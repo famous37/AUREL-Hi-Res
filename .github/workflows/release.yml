@@ -32,13 +32,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
-          TAG=v0.2.0-alpha
+          TAG=v0.4.0-alpha
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK#AUREL-Hi-Res-v0.2.0-alpha-debug.apk" --clobber
+            gh release upload "$TAG" "$APK#AUREL-Hi-Res-v0.4.0-alpha-debug.apk" --clobber
           else
-            gh release create "$TAG" "$APK#AUREL-Hi-Res-v0.2.0-alpha-debug.apk" \
+            gh release create "$TAG" "$APK#AUREL-Hi-Res-v0.4.0-alpha-debug.apk" \
               --target "$GITHUB_SHA" \
-              --title "AUREL Hi-Res v0.2.0 Alpha" \
-              --notes "First standalone Android alpha. Includes dual-account Qobuz UI, search and library. This debug APK has not been validated against a real Qobuz account. It does not support encrypted or segmented Qobuz streams. Unofficial client; not affiliated with Qobuz." \
+              --title "AUREL Hi-Res v0.4.0 Alpha" \
+              --notes "AUREL Hi-Res v0.4 audiophile alpha by famous37: revamped high-contrast artwork-first player, source audio metadata with verified sample-rate conversion, no equalizer, custom launcher icon, purchased-track/album/artist downloads when authorized by Qobuz, and local purchased-file playback. Direct HTTPS audio only; encrypted segmented streams unsupported. Qobuz login and downloads require real account validation. Unofficial independent application, not affiliated with Qobuz." \
               --prerelease
           fi
