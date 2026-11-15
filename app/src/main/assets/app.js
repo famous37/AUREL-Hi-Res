@@ -1,0 +1,258 @@
+'use strict';
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeCover=url=>{try{let u=new URL(String(url||''));return u.protocol==='https:'&&(u.hostname==='qobuz.com'||u.hostname.endsWith('.qobuz.com'))?u.href:''}catch(_){return ''}};
+const image=o=>{for(let obj of [o?.image,o?.album?.image,o?.picture,o?.cover]){if(typeof obj==='string'){let url=safeCover(obj);if(url)return url;}if(obj&&typeof obj==='object'){for(let key of ['large','medium','small','thumbnail','default']){let url=safeCover(obj[key]||obj.images?.[key]);if(url)return url;}}}return '';};
+const withAlbum=(tracks,album)=>tracks.map(t=>({...t,album:{...(t.album||{}),image:t.album?.image||album?.image,title:t.album?.title||album?.title,artist:t.album?.artist||album?.artist},image:t.image||t.album?.image||album?.image}));
+const artistName=o=>typeof o?.name==='string'?o.name:(o?.name?.display||o?.artist?.name||'Unknown artist');
+const artist=o=>{let a=o?.artist||o?.performer||o?.album?.artist||{};return typeof a==='string'?a:typeof a.name==='string'?a.name:a.name?.display||o?.performer?.name||'Unknown artist'};
+const duration=n=>{n=Math.max(0,Math.floor(Number(n)||0));return `${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`};
+const qualityText=q=>({'5':'MP3 · 320 kbps','6':'FLAC · 16-bit / 44.1 kHz','7':'Hi-Res · up to 24-bit / 96 kHz','27':'Hi-Res · up to 24-bit / 192 kHz'})[q]||'Automatic';
+const fallbackArt=`<div class="cover"><div style="position:absolute;inset:10%;border-radius:50%;border:22px solid #8f657555;box-shadow:0 0 60px #c08c9955"></div></div>`;
+const art=(o,cl='')=>{let src=image(o);return src?`<img class="${cl}" loading="lazy" src="${html(src)}" alt="Album art">`:''};
+const app={nav:'home',loginMode:'token',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,eq:{enabled:false,bass:0,mid:0,treble:0},dragging:false};
+let sequence=1;const waiting=new Map();
+function nativeCall(action,data={}){
+ return new Promise((resolve,reject)=>{
+  if(!window.AurelNative){reject(new Error('Android-only function: open inside the APK'));return;}
+  const id=String(sequence++); const timer=setTimeout(()=>{waiting.delete(id);reject(new Error('Qobuz did not respond in time'))},65000);
+  waiting.set(id,{resolve,reject,timer});
+  try{window.AurelNative.call(id,action,JSON.stringify(data))}catch(e){clearTimeout(timer);waiting.delete(id);reject(e)}
+ });
+}
+window.AurelReceive=(id,reply)=>{
+ const pending=waiting.get(String(id));if(!pending)return;
+ clearTimeout(pending.timer);waiting.delete(String(id));
+ reply?.ok?pending.resolve(reply.data):pending.reject(new Error(reply?.error||'Unknown API error'));
+};
+window.AurelEvent=(kind,data)=>{
+ if(kind==='player'){
+  const changed=app.player?.track?.id!==data?.track?.id || app.player?.error!==data?.error;
+  app.player=data;
+  updateMini();
+  if(app.overlay){if(changed)drawOverlay();else updateOverlayState()}
+  if(data?.error && data?.error!==app.lastPlayerError){app.lastPlayerError=data.error;showToast(data.error,6000)}
+ }
+};
+window.AurelBack=()=>{if(app.overlay){app.overlay=false;drawOverlay();return;}if(app.selected){app.selected=null;app.selectedTracks=[];render();return;}navigate('home')};
+function showToast(msg,ms=3600){const t=$('#toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(showToast.t);showToast.t=setTimeout(()=>t.classList.add('hidden'),ms)}
+async function api(action,params={},quiet=false){try{return await nativeCall(action,params)}catch(e){if(!quiet)showToast(e.message,6000);throw e}}
+const sliceItems=(body,key)=>{if(!body)return[];const o=key?body[key]:body;return Array.isArray(o)?o:Array.isArray(o?.items)?o.items:Array.isArray(body.items)?body.items:[]};
+const hasAuth=()=>!!app.session?.loggedIn;
+function title(name,subtitle){return `<div class="eyebrow">AUREL / ${html(name)}</div><h1 class="headline">${html(subtitle)}</h1>`}
+function banner(){return `<div class="hero"><div class="content"><div class="eyebrow" style="color:#f3b8a9">HI-RES WITHOUT COMPROMISE</div><h2>Hear the music.<br>Feel everything.</h2><p>Uncompressed detail, thoughtful discovery and a listening space made for music lovers.</p><button class="pill" data-nav="search">Explore music <span>↗</span></button></div></div>`}
+function albumCards(items){if(!items.length)return `<div class="empty"><strong>Nothing to show yet</strong>Search for your favourite artists or explore another section.</div>`;
+ return `<div class="cards">${items.map((o,i)=>{
+   let name=o.title||o.name||'Untitled';let rawId=html(o.id||'');let cd=art(o);
+   return `<article class="albumcard" data-open-album="${rawId}"><div class="cover">${cd}<span class="hoverplay">▶</span></div><div class="album-title">${html(name)}</div><div class="album-artist">${html(artist(o))}</div>${o.hires||Number(o.maximum_bit_depth)>16?`<span class="audio-badge">HI-RES AUDIO</span>`:''}</article>`;
+ }).join('')}</div>`
+}
+function listTracks(items){if(!items.length)return `<div class="empty">No tracks found.</div>`;
+ return `<div class="tracklist">${items.map((o,i)=>{
+  return `<div class="track"><span class="index">${i+1}</span>${art(o,'track-art')||'<div class="track-art"></div>'}
+   <div class="track-details" data-play-index="${i}"><div class="track-title">${html(o.title||'Untitled')}</div><div class="track-meta">${html(artist(o))}${o.album?.title?' · '+html(o.album.title):''}</div></div>
+   <span class="track-length">${duration(o.duration)}</span><button class="icon-btn" title="Favourite" data-like-track="${html(o.id)}">♡</button>
+   <button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
+ }).join('')}</div>`;
+}
+function render(){
+ $$('.nav,.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===app.nav));
+ $('#headerName').textContent=app.session?.profile?.displayName||'Account';
+ if(!hasAuth()&&app.nav!=='settings'){renderLogin();return;}
+ if(app.selected){if(app.selectedKind==='artist')renderArtist();else renderAlbum();return;}
+ switch(app.nav){case 'home':renderHome();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;default:renderHome()}
+}
+function renderHome(){
+ $('#screen').innerHTML=`<div style="padding:8px 0 21px"><div class="eyebrow">WELCOME TO YOUR LISTENING ROOM</div><h1 class="headline">Discover something<br>extraordinary<span style="color:var(--accent)">.</span></h1><div class="subline">Editorial warmth. Exceptional sound. Your music, your way.</div></div>${banner()}
+ <div class="sectionhead"><div><h2>Fresh releases</h2><p>New arrivals across the Qobuz catalogue</p></div><span class="tag">LOSSLESS &amp; HI-RES</span></div>
+ ${app.albums.length?albumCards(app.albums):'<div class="empty"><strong>Your discovery feed</strong>Sign in with a working Qobuz token to load recent releases.<br><button class="pill secondary" data-refresh>Try again</button></div>'}
+ <p class="footer-note">Streaming and available quality depend on your active Qobuz subscription, the catalogue and API access.</p>`;
+}
+function renderSearch(){
+ $('#screen').innerHTML=title('DISCOVER','What moves you?')+`<div class="subline">Artists, albums, and every track worth hearing.</div>
+ <form id="searchForm" class="searchbox"><span>⌕</span><input id="searchInput" placeholder="Search tracks, albums, artists…" autocomplete="off" value="${html(app.searchQuery)}" autofocus></form>
+ <div class="tabs">${['tracks','albums','artists'].map(t=>`<button class="tab ${app.searchType===t?'active':''}" data-search-type="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div>
+ <div id="searchResults">${app.searchBusy?'<div class="loading"><div class="pulse"></div>Searching catalogue…</div>':searchResults()}</div>`;
+}
+function searchResults(){if(!app.searchQuery)return '<div class="empty"><strong>Find your next favourite</strong>Search Qobuz by artist, album or track.</div>';
+ if(!app.results.length)return '<div class="empty">No results. Try a different search.</div>';
+ if(app.searchType==='tracks')return listTracks(app.results);
+ if(app.searchType==='artists')return artistRows(app.results);
+ return albumCards(app.results);
+}
+function artistRows(items){if(!items.length)return '<div class="empty">No artists found.</div>';
+ return `<div class="artistrows">${items.map(o=>`<button class="artistrow" data-open-artist="${html(o.id||'')}">${art(o,'artist-avatar')||'<span class="artist-avatar artist-placeholder">♫</span>'}<span class="artist-text"><strong>${html(artistName(o))}</strong><small>Artist · View albums</small></span><span class="chevron">›</span></button>`).join('')}</div>`;
+}
+function renderLibrary(){
+ $('#screen').innerHTML=title('YOUR COLLECTION','The music you love.')+`<div class="subline">Your Qobuz favourites, always close.</div>
+ <div class="tabs"><button class="tab ${app.libType==='albums'?'active':''}" data-lib-type="albums">Albums</button><button class="tab ${app.libType==='tracks'?'active':''}" data-lib-type="tracks">Tracks</button><button class="tab ${app.libType==='artists'?'active':''}" data-lib-type="artists">Artists</button></div>
+ <div id="libraryContent">${app.libraryLoading?'<div class="loading"><div class="pulse"></div>Loading favourites…</div>':app.libType==='tracks'?listTracks(app.libraryItems||[]):app.libType==='albums'?albumCards(app.libraryItems||[]):artistRows(app.libraryItems||[])}</div>`;
+}
+function renderPlaylists(){
+ const lists=app.playlists||[];
+ $('#screen').innerHTML=title('YOUR LIBRARY','Playlists.')+`<p class="subline">Made by you. Collected for every mood.</p><div class="sectionhead"><h2>My playlists</h2></div>
+ ${app.playlistsLoading?'<div class="loading"><div class="pulse"></div>Loading playlists…</div>':lists.length?`<div class="tracklist">${lists.map(o=>`<div class="track"><div class="track-details" data-playlist-id="${html(o.id)}"><div class="track-title">${html(o.name)}</div><div class="track-meta">${o.tracks_count||0} tracks</div></div><button class="icon-btn" data-playlist-id="${html(o.id)}">›</button></div>`).join('')}</div>`:'<div class="empty">No Qobuz playlists returned by your account.</div>'}`;
+}
+function renderAlbum(){
+ let o=app.selected;
+ if(!o)return;
+ let content=`<button class="small-link" data-back>‹ Back</button><div class="albumhero"><div class="cover">${art(o)}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><div class="subline">${html(artist(o))}</div><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
+ <div class="actionbar"><button class="pill" data-play-all>▶ &nbsp; Play album</button><button class="pill secondary" data-like-album="${html(o.id)}">♡ Save</button></div>
+ ${listTracks(app.selectedTracks)}<p class="footer-note">Availability and stream quality are verified when playback is requested. Direct-file streaming only in this alpha build.</p>`;
+ $('#screen').innerHTML=content;
+}
+function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
+ $('#screen').innerHTML=`<button class="small-link" data-back>‹ Back</button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2></div>${albumCards(albums)}`;
+}
+function renderLogin(){let secondary=app.loginTarget==='library';
+ $('#screen').innerHTML=`<div class="auth-shell"><div class="eyebrow">${secondary?'OPTIONAL COLLECTION ACCOUNT':'YOUR MUSIC. YOUR SOUND.'}</div><h1>${secondary?'Connect your library.':'Connect to AUREL.'}</h1>
+ <p>${secondary?'Use another Qobuz account to load its artists, favourites and playlists. Streaming still uses the primary account and its rights.':'Connect the account authorized for playback. An active Qobuz subscription and supported API format are required.'}</p>
+ <div class="tabs"><button class="tab ${app.loginMode==='token'?'active':''}" data-login-mode="token">Token + User ID</button><button class="tab ${app.loginMode==='password'?'active':''}" data-login-mode="password">Email / password</button></div>
+ <form id="loginForm"><div class="formgrid">
+ <label class="field">App ID <input id="appId" inputmode="numeric" placeholder="Qobuz App ID" value="${html(secondary?app.session?.libraryAppId||app.session?.appId||'':app.session?.appId||'')}" ${secondary?'':'required'}></label>
+ ${secondary?'':`<label class="field">App Secret <input type="password" id="appSecret" autocomplete="off" placeholder="For signed streams"></label>`}
+ ${app.loginMode==='token'?`<label class="field wide">Session token<input type="password" id="token" autocomplete="off" placeholder="X-User-Auth-Token" required></label><label class="field wide">User ID <small>Optional validation</small><input id="userId" inputmode="numeric" placeholder="Qobuz user ID"></label>`:`<label class="field wide">Email / account name<input type="text" autocomplete="username" id="email" required></label><label class="field wide">Password<input type="password" id="password" autocomplete="current-password" required></label>`}
+ </div><p class="hint">Direct password sign-in is supported only when Qobuz accepts it; CAPTCHA or OAuth may require a session token. Tokens are encrypted on your device; passwords are not saved.</p>
+ <button id="loginSubmit" class="pill" type="submit">${secondary?'Connect library account':'Connect for streaming'}</button></form>
+ ${secondary?'<button class="small-link" data-cancel-library style="margin-top:22px">‹ Return to account settings</button>':''}
+ ${!secondary?'<button class="small-link" data-add-library style="display:block;margin-top:23px">＋ Connect another account for library / favourites</button>':''}
+ <p class="hint" style="margin-top:23px">Independent Qobuz client; no keys or tokens are built into the APK.</p></div>`;
+}
+function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();return;}
+ let p=app.session.profile||{},lp=app.session.libraryProfile||{};
+ $('#screen').innerHTML=title('ACCOUNT & AUDIO','Your listening space.')+`<div class="panel"><h3>Streaming account</h3>
+ <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Active':'Not connected'}</strong></div>
+ <div class="info-row"><span>Profile</span><strong>${html(p.displayName||'—')}</strong></div>
+ <div class="info-row"><span>User ID</span><strong>${html(p.userId||'Not verified')}</strong></div>
+ <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?' ✓':''}</strong></div>
+ <div class="info-row"><span>App ID</span><strong>${html(app.session.appId||'—')}</strong></div>
+ <button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div>
+ <div class="panel"><h3>Additional library account</h3><p class="subline">Load artists, albums, favorites and playlists from a second account. Playback remains tied to the streaming account and available content rights.</p>
+ <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
+ <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
+ ${app.session.libraryConnected?'<button class="small-link" data-logout-library style="margin-left:18px">Disconnect library</button>':''}</div>
+ <div class="panel"><h3>Streaming quality</h3><p class="subline">Maximum requested quality. Actual format depends on rights, availability and decoding support.</p>
+ <div class="selectrow">${[5,6,7,27].map(q=>`<button class="quality ${app.session.quality===q?'selected':''}" data-quality="${q}"><strong>${q===5?'MP3':q===6?'CD Lossless':q===7?'Hi-Res':'Max Hi-Res'}</strong><small>${q===5?'320 kbps':q===6?'16 / 44.1':q===7?'24 / 96':'24 / 192'}</small></button>`).join('')}</div>
+ <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
+ <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
+ <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
+ <div class="panel"><h3>3-band EQ</h3><p class="subline">Off by default. Equalization can change the signal reaching Android audio hardware.</p>
+ <label style="display:flex;gap:10px;align-items:center;margin:15px 0"><input id="eqEnabled" class="switch" type="checkbox" ${app.eq.enabled?'checked':''}> Enable EQ</label>
+ ${['bass','mid','treble'].map(t=>`<div class="eq-row"><label>${t[0].toUpperCase()+t.slice(1)}</label><input data-eq="${t}" type="range" min="-12" max="12" value="${app.eq[t]}"><span id="eq-${t}">${app.eq[t] > 0?'+':''}${app.eq[t]} dB</span></div>`).join('')}
+ <button class="pill secondary" data-eq-save>Apply EQ</button></div>
+ <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
+}
+function updateMini(){
+ let p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}
+ m.classList.remove('hidden');let t=p.track;
+ m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(t.title||'Untitled')}</div><div class="artist">${html(artist(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
+}
+function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
+ const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=p.position||0}
+ if($('#elapsed'))$('#elapsed').textContent=duration((p.position||0)/1000);
+ if($('#remaining'))$('#remaining').textContent='-'+duration(Math.max(0,(p.duration||0)-(p.position||0))/1000);
+ if($('#full-toggle'))$('#full-toggle').textContent=p.playing?'Ⅱ':'▶';
+ if($('#full-shuffle'))$('#full-shuffle').classList.toggle('active',!!p.shuffle);
+ if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').textContent=p.repeat===2?'↺¹':'↺';}
+ if($('#playingStatus'))$('#playingStatus').textContent=p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED';
+}
+function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return;}
+ let p=app.player||{},t=p.track||{},src=image(t);overlay.classList.remove('hidden');
+ overlay.style.setProperty('--cover-image',src?`url("${src}")`:'none');
+ overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>⌄ <span>Now playing</span></button>
+ <div class="art-stage">${src?`<img class="now-cover" src="${html(src)}" alt="Album cover">`:'<div class="now-cover empty-art">♫</div>'}</div>
+ <div class="now-info"><span>${p.bits?(p.bits+'-bit / '+(p.sampleRate>1000?(p.sampleRate/1000):p.sampleRate)+' kHz'):'AUDIO QUALITY PENDING'}</span><span>${p.formatId===5?'MP3':p.formatId?'FLAC':''}</span></div>
+ <div class="now-track-row"><div class="now-title">${html(t.title||'Choose a track')}</div><div class="now-artist">${html(artist(t))}</div></div>
+ <input id="progress" class="progress" type="range" min="0" max="${p.duration||100}" value="${p.position||0}" step="500"><div class="timebar"><span id="elapsed">${duration((p.position||0)/1000)}</span><span id="remaining">-${duration(Math.max(0,(p.duration||0)-(p.position||0))/1000)}</span></div>
+ <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle>⤨</button><button class="ctrl" data-prev>❚◀</button><button id="full-toggle" class="main-play" data-full-toggle>${p.playing?'Ⅱ':'▶'}</button><button class="ctrl" data-next>▶❚</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat>${p.repeat===2?'↺¹':'↺'}</button></div>
+ <div class="playing-foot"><span id="playingStatus">${p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED'}</span><span>QUEUE ${p.count?`${p.index+1} / ${p.count}`:'—'}</span></div>
+ ${p.error?`<div class="playback-error">${html(p.error)}</div>`:''}</div>`;
+}
+async function navigate(page){app.selected=null;app.selectedTracks=[];app.nav=page;render();
+ try{
+ if(page==='home'&&!app.albums.length&&hasAuth())await loadHome();
+ else if(page==='library')await loadLibrary();
+ else if(page==='playlists')await loadPlaylists();
+ }catch(e){showToast(e.message)}
+}
+async function loadHome(){try{let d=await api('discover',{},true);app.albums=sliceItems(d,'albums').length?sliceItems(d,'albums'):sliceItems(d);if(app.nav==='home')render();}
+ catch(e){if(app.nav==='home')render();showToast('Qobuz discovery unavailable: '+e.message,5000)}}
+async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()||app.searchQuery;if(!app.searchQuery)return;
+ app.searchBusy=true;renderSearch();try{let d=await api('search',{query:app.searchQuery,type:app.searchType},true);app.results=sliceItems(d,app.searchType);if(!app.results.length)app.results=sliceItems(d);}
+ catch(e){app.results=[];showToast(e.message,6000)}finally{app.searchBusy=false;if(app.nav==='search')renderSearch();}}
+async function loadLibrary(){app.libraryLoading=true;render();try{let d=await api('favorites',{type:app.libType},true);app.libraryItems=sliceItems(d,app.libType);}
+ catch(e){app.libraryItems=[];showToast(e.message)}finally{app.libraryLoading=false;if(app.nav==='library')render();}}
+async function loadPlaylists(){app.playlistsLoading=true;render();try{let d=await api('playlists',{},true);app.playlists=sliceItems(d,'playlists');}
+ catch(e){app.playlists=[];showToast(e.message)}finally{app.playlistsLoading=false;if(app.nav==='playlists')render();}}
+async function openArtist(id){if(!id)return;$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
+async function openAlbum(id){if(!id)return;$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
+ try{let d=await api('album',{id});app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
+async function openPlaylist(id){$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
+ try{let d=await api('playlist',{id});app.selected=d;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
+async function playFromTracks(items,index=0){if(!items.length)return;await api('play',{tracks:items,index});app.overlay=true;drawOverlay()}
+async function like(type,id){try{await api('favoriteAdd',{type,id});showToast('Added to your Qobuz favourites ♡')}catch(e){}}
+async function login(form){const button=$('#loginSubmit');if(button){button.disabled=true;button.textContent='Connecting…'}
+ try{
+  let data={appId:$('#appId').value,libraryOnly:app.loginTarget==='library'};if(app.loginTarget!=='library')data.appSecret=$('#appSecret')?.value||'';
+  if(app.loginMode==='token'){data.token=$('#token').value;data.userId=$('#userId').value}
+  else{data.email=$('#email').value;data.password=$('#password').value}
+  app.session=await api(app.loginMode==='token'?'loginToken':'loginPassword',data);
+  showToast(app.loginTarget==='library'?'Library account connected':'Streaming account connected');app.loginTarget='stream';app.results=[];app.albums=[];navigate('home');
+ }catch(e){if(button){button.disabled=false;button.textContent='Connect to Qobuz ↗'}}
+}
+function setQuality(q){nativeCall('saveSettings',{quality:q}).then(d=>{app.session=d;render();showToast('Quality preference saved')}).catch(e=>showToast(e.message))}
+function setSecret(){const value=$('#newSecret').value;if(!value){showToast('Enter a new secret');return}
+ nativeCall('saveSettings',{quality:app.session.quality,appSecret:value}).then(d=>{app.session=d;render();showToast('Secret encrypted and saved')}).catch(e=>showToast(e.message));}
+function togglePlayback(){if(!app.player)return;nativeCall(app.player.playing?'pause':'resume').catch(e=>showToast(e.message))}
+// Delegated action handlers: all API-derived content is HTML-escaped before rendering.
+document.addEventListener('click',async ev=>{
+ const b=ev.target.closest('button,[data-open-album],[data-open-artist],[data-play-index],[data-playlist-id]');if(!b)return;
+ if(b.dataset.nav){navigate(b.dataset.nav);return}
+ if(b.dataset.loginMode){app.loginMode=b.dataset.loginMode;renderLogin();return}
+ if(b.dataset.searchType){app.searchType=b.dataset.searchType;app.results=[];renderSearch();if(app.searchQuery)search();return}
+ if(b.dataset.libType){app.libType=b.dataset.libType;loadLibrary();return}
+ if(b.hasAttribute('data-refresh')){loadHome();return}
+ if(b.dataset.openAlbum){openAlbum(b.dataset.openAlbum);return}
+ if(b.dataset.openArtist){openArtist(b.dataset.openArtist);return}
+ if(b.dataset.playlistId){openPlaylist(b.dataset.playlistId);return}
+ if(b.hasAttribute('data-back')){app.selected=null;app.selectedTracks=[];render();return}
+ if(b.hasAttribute('data-play-all')){playFromTracks(app.selectedTracks,0);return}
+ if(b.hasAttribute('data-play-index')){
+  const source=app.selected?app.selectedTracks:app.nav==='library'?app.libraryItems:app.results;
+  playFromTracks(source||[],Number(b.dataset.playIndex));return;
+ }
+ if(b.dataset.likeTrack){like('tracks',b.dataset.likeTrack);return}
+ if(b.dataset.likeAlbum){like('albums',b.dataset.likeAlbum);return}
+ if(b.dataset.quality){setQuality(Number(b.dataset.quality));return}
+ if(b.hasAttribute('data-save-secret')){setSecret();return}
+ if(b.hasAttribute('data-add-library')){app.loginTarget='library';app.loginMode='password';renderLogin();return}
+ if(b.hasAttribute('data-change-stream')){app.loginTarget='stream';app.loginMode='token';renderLogin();return}
+ if(b.hasAttribute('data-cancel-library')){app.loginTarget='stream';renderSettings();return}
+ if(b.hasAttribute('data-logout-library')){try{app.session=await api('logoutLibrary');showToast('Using primary library');navigate('library')}catch(e){}return}
+ if(b.hasAttribute('data-logout')){try{app.session=await api('logout');app.albums=[];app.results=[];navigate('home')}catch(e){}return}
+ if(b.hasAttribute('data-eq-save')){app.eq.enabled=$('#eqEnabled').checked;try{await api('eq',app.eq);showToast('EQ updated')}catch(e){}return}
+ if(b.hasAttribute('data-mini-toggle')||b.hasAttribute('data-full-toggle')){ev.stopPropagation();togglePlayback();return}
+ if(b.hasAttribute('data-mini-next')||b.hasAttribute('data-next')){ev.stopPropagation();nativeCall('next').catch(()=>{});return}
+ if(b.hasAttribute('data-prev')){nativeCall('previous').catch(()=>{});return}
+ if(b.hasAttribute('data-shuffle')){nativeCall('playbackSettings',{repeat:app.player?.repeat||0,shuffle:!app.player?.shuffle}).catch(()=>{});return}
+ if(b.hasAttribute('data-repeat')){nativeCall('playbackSettings',{repeat:((app.player?.repeat||0)+1)%3,shuffle:app.player?.shuffle||false}).catch(()=>{});return}
+ if(b.hasAttribute('data-close-overlay')){app.overlay=false;drawOverlay();return}
+});
+document.addEventListener('submit',e=>{
+ if(e.target.id==='loginForm'){e.preventDefault();login(e.target)}
+ if(e.target.id==='searchForm'){e.preventDefault();search()}
+});
+document.addEventListener('input',e=>{
+ if(e.target.dataset.eq){let k=e.target.dataset.eq;app.eq[k]=Number(e.target.value);if($('#eq-'+k))$('#eq-'+k).textContent=`${app.eq[k]>0?'+':''}${app.eq[k]} dB`;}
+ if(e.target.id==='progress'){app.dragging=true;$('#elapsed').textContent=duration(Number(e.target.value)/1000)}
+});
+document.addEventListener('change',e=>{
+ if(e.target.id==='progress'){app.dragging=false;nativeCall('seek',{ms:Number(e.target.value)}).catch(()=>{})}
+});
+$('#mini').addEventListener('click',e=>{if(e.target.closest('button'))return;app.overlay=true;drawOverlay()});
+// Startup: no injected credentials or assumed subscription status.
+(async()=>{
+ try{app.session=await api('session',{},true);render();if(hasAuth()){nativeCall('playerState').catch(()=>{});loadHome()}}
+ catch(e){app.session={loggedIn:false,profile:{}};renderLogin();if(!window.AurelNative)showToast('Visual preview only — Qobuz requests require the Android application',7000)}
+})();
