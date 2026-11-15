@@ -22,7 +22,7 @@ renderHome=function(){
  <div class="quicklinks"><button data-nav="library">▦ <strong>Your favourites</strong><small>Releases, artists, playlists</small></button><button data-nav="search">⌕ <strong>Search catalogue</strong><small>Tracks, artists and albums</small></button></div>`}
  <p class="disclaimer">AUREL is an independent client. Catalogue and streaming depend on Qobuz authorization.</p>`;
 };
-renderMagazine=function(){
+function renderMagazine(){
  $('#screen').innerHTML=`<div class="page-heading"><h1>Magazine</h1></div><div class="magazine-hero"><span class="kicker">MUSIC / STORIES / ARTISTS</span><h2>Go beyond<br>the recording.</h2><p>Reviews, interviews and listening guides from Qobuz's editorial magazine.</p><button class="action-pill" data-open-magazine>Read Qobuz Magazine ↗</button></div>
  <div class="sectionhead"><div><h2>Music has a story</h2><p>Editorial articles open on Qobuz's official site</p></div></div>
  <div class="magazine-features"><div class="magazine-tile">✎<strong>Interviews</strong><small>The people behind the music</small></div><div class="magazine-tile">◎<strong>Album stories</strong><small>Context for deeper listening</small></div><div class="magazine-tile">♬<strong>Discoveries</strong><small>Genres, labels and recordings</small></div></div>
@@ -59,24 +59,38 @@ function queuePanel(p){const q=Array.isArray(p.queue)?p.queue:[];if(!q.length)re
 function creditsPanel(p){const t=p.track||{},album=t.album||{};
  const value=(key,val)=>val?`<div class="credit"><span>${key}</span><strong>${html(val)}</strong></div>`:'';
  return `<div class="sheet-title">Recording details</div><div class="credits">${value('Track',t.title)}${value('Artist',artist(t))}${value('Album',album.title)}${value('Label',album.label?.name||album.label||t.label?.name)}${value('Released',album.release_date_original||album.release_date||album.releaseDate)}${value('Duration',t.duration?duration(t.duration):'')}${value('Copyright',album.copyright||album.copyright_label)}<p>Credits are displayed only when provided by Qobuz metadata.</p></div>`}
+// Truthful format display: Qobuz reports source specifications; Android reports a
+// parsed media track if MediaPlayer exposes one. Neither proves DAC bit-perfect output.
+const kHzLabel=hz=>{const n=Number(hz);if(!Number.isFinite(n)||n<8000)return '';const k=n/1000;return `${Number(k.toFixed(3))} kHz`};
 function actualSource(p){
- const bits=Number(p?.bits)||0, hz=Number(p?.sampleRateHz)||0;
- const kHz=hz>=1000?hz/1000:0;
- if(p?.sourceVerified && bits && kHz){
-   const rate=Number.isInteger(kHz)?String(kHz):String(Number(kHz.toFixed(3)));
-   return `${html(p.codec||'Lossless')} · ${bits}-bit / ${rate} kHz`;
- }
- return p?.sourceLabel==='Local file (verified)'?'Local audio · format not confirmed':'Source quality not verified';
+ if(!p)return 'Format unavailable';
+ const bits=Number(p.bits)||0,rate=kHzLabel(p.sampleRateHz);
+ const mediaRate=kHzLabel(p.decoderSampleRateHz);
+ const codec=p.codec||((p.decoderMime||'').toLowerCase().includes('flac')?'FLAC':'');
+ if(p.sourceVerified && bits && rate)return `${codec?codec+' · ':''}${bits}-bit / ${rate}`;
+ if(mediaRate)return `${p.decoderMime?.includes('flac')?'FLAC · ':''}${mediaRate} · parsed track`;
+ if(p.buffering)return 'Checking audio source…';
+ return 'Audio quality unavailable';
 }
 const bytesText=n=>Number(n)>0?`${(Number(n)/1048576).toFixed(1)} MB`:'Not reported';
 function audioPanel(p){
- const fields=[['Source',actualSource(p)],['Verification',p.sourceVerified?(p.sourceLabel||'Qobuz API'):'Not verified by Qobuz API'],
- ['Codec / container',p.mimeType||p.codec||'Not reported'],['Channels',p.channels||'Not reported'],
- ['File size',bytesText(p.fileSize)],['Android mixer',p.androidMixerHz?`${p.androidMixerHz} Hz`:'Not reported'],
- ['Requested ceiling',qualityText(p.quality)]];
- return `<div class="sheet-title">Audio information</div><div class="credits">${fields.map(([key,val])=>`<div class="credit"><span>${html(key)}</span><strong>${html(val)}</strong></div>`).join('')}
- <p>The API-reported source format is not a measurement of the DAC output. Android may resample. No software EQ or DSP is applied by AUREL.</p></div>`;
+ const source=p?.sourceVerified?'Qobuz API (reported, not independently decoded)':'Not supplied by Qobuz API';
+ const decoderHz=kHzLabel(p?.decoderSampleRateHz);
+ const fields=[
+  ['Qobuz source',p?.sourceVerified?`${p.bits}-bit / ${kHzLabel(p.sampleRateHz)}`:'Unknown'],
+  ['Source provenance',source],
+  ['Source codec',p?.codec||'Not reported'],
+  ['MediaPlayer parsed format',p?.decoderMime||'Not reported'],
+  ['MediaPlayer track rate',decoderHz||'Not exposed by Android'],
+  ['MediaPlayer channels',p?.decoderChannels||'Not reported'],
+  ['Android default output property',p?.androidMixerHz?`${p.androidMixerHz} Hz (not DAC measurement)`:'Not reported'],
+  ['Qobuz file size',bytesText(p?.fileSize)],
+  ['Selected quality ceiling',qualityText(p?.quality)]
+ ];
+ return `<div class="sheet-title">Audio signal information</div><div class="credits">${fields.map(([key,val])=>`<div class="credit"><span>${html(key)}</span><strong>${html(val)}</strong></div>`).join('')}
+ <p>Bit depth is displayed only when returned by Qobuz. MediaPlayer can sometimes expose a parsed track sample rate and MIME type; this does not guarantee the physical DAC's output format or bit-perfect playback. Android may resample audio.</p></div>`;
 }
+
 const ic=(key,size=24)=>{
  const path={
   down:'<path d="m6 9 6 6 6-6"/>',more:'<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
@@ -97,27 +111,58 @@ const ic=(key,size=24)=>{
 const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
 updateMini=function(){const p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}const t=p.track;m.classList.remove('hidden');m.innerHTML=`${art(t,'minicover')||'<span class="minicover placeholder">♪</span>'}<div class="meta"><div class="title">${html(t.title||'Untitled')}</div><div class="artist">${html(artistLabel(t))}</div></div><button class="mini-love" data-mini-fav="${html(t.id)}" aria-label="Add to favourites">${ic('heart',23)}</button><button class="mini-play" data-mini-toggle aria-label="${p.playing?'Pause':'Play'}">${ic(p.playing?'pause':'play',25)}</button><div class="mini-progress" style="--played:${p.duration?Math.round(100*(p.position||0)/p.duration):0}%"></div>`;};
 drawOverlay=function(){
- const overlay=$('#overlay');if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return}
+ const overlay=$('#overlay');
+ if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return}
  const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
- overlay.classList.remove('hidden');overlay.style.setProperty('--cover-image',src?`url("${src}")`:'none');
- overlay.innerHTML=`<div class="modern-player">
- <div class="player-nav"><button class="player-back" data-close-overlay aria-label="Close player">${ic('close',26)}</button><span>Now playing</span><button class="player-options" data-player-sheet="audio" aria-label="Audio information">${ic('more',24)}</button></div>
- <div class="player-art-wrap">${src?`<img src="${html(src)}" alt="Album artwork" class="large-art">`:'<div class="large-art art-placeholder">♫</div>'}</div>
- <div class="now-quality"><span class="quality-chip">${ic('audio',19)} ${html(actualSource(p))}</span><span class="device-chip">${ic('album',18)} ${p.androidMixerHz?`${html(p.androidMixerHz)} Hz mixer`:'Android output'}</span></div>
- <div class="player-track"><div class="player-song"><h1>${html(t.title||'Choose a track')}</h1>${artistButton(t)}${t.album?.title?`<button class="player-album-link" data-open-playing-album>${html(t.album.title)}</button>`:''}</div>
- <button class="love-now" data-like-track="${html(t.id||'')}" aria-label="Add to favourites">${ic('heart',25)}</button></div>
- <div class="player-progress"><input id="progress" class="progress" type="range" min="0" max="${Number(p.duration)||100}" step="500" value="${Number(p.position)||0}" aria-label="Playback position"><div class="timebar"><span id="elapsed">${duration((p.position||0)/1000)}</span><span id="remaining">-${duration(Math.max(0,(p.duration||0)-(p.position||0))/1000)}</span></div></div>
- <div class="controls"><button class="ctrl ${p.shuffle?'active':''}" data-shuffle id="full-shuffle" aria-label="Shuffle">${ic('shuffle',22)}</button><button class="ctrl previous" data-prev aria-label="Previous track">${ic('prev',32)}</button><button id="full-toggle" class="main-play" data-full-toggle aria-label="${p.playing?'Pause':'Play'}">${ic(p.playing?'pause':'play',33)}</button><button class="ctrl next" data-next aria-label="Next track">${ic('next',32)}</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat aria-label="Repeat">${ic('repeat',23)}${p.repeat===2?'<span class="repeat-one">1</span>':''}</button></div>
- <div class="player-tools"><button class="${active==='upnext'?'active':''}" data-player-sheet="upnext" aria-label="Play queue">${ic('queue',24)}<span>Queue</span></button><button class="${active==='credits'?'active':''}" data-player-sheet="credits" aria-label="Track credits">${ic('info',24)}<span>Credits</span></button><button class="${active==='audio'?'active':''}" data-player-sheet="audio" aria-label="Audio details">${ic('audio',24)}<span>Audio</span></button></div>
- ${active?`<div class="player-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
- ${p.error?`<div class="playback-error">${html(p.error)}</div>`:''}<div id="playingStatus" class="assistive-state">${p.buffering?'BUFFERING':p.playing?'PLAYING':'PAUSED'}</div></div>`;
+ const progressTotal=Math.max(0,Number(p.duration)||0),position=Math.min(progressTotal,Math.max(0,Number(p.position)||0));
+ const loading=p.buffering&&!p.error;
+ const format=actualSource(p);
+ const subtitle=p.error?'Playback unavailable':loading?'Connecting to audio…':p.sourceVerified?'Source format · Qobuz metadata':p.decoderSampleRateHz?'Media track format · Android':'Source format not confirmed';
+ const safeBackground=src?`url("${src.replaceAll('"','%22')}")`:'none';
+ overlay.classList.remove('hidden');overlay.style.setProperty('--cover-image',safeBackground);
+ overlay.innerHTML=`<div class="aurel-listening-screen">
+  <div class="aurel-art-backdrop" aria-hidden="true"></div>
+  <header class="aurel-listening-nav">
+   <button class="aurel-round-icon" data-close-overlay aria-label="Minimize player">${ic('down',29)}</button>
+   <strong>Now Playing</strong>
+   <div class="aurel-nav-right"><button class="aurel-round-icon" data-player-sheet="upnext" aria-label="Play queue">${ic('queue',27)}</button><button class="aurel-round-icon" data-player-sheet="audio" aria-label="Audio details">${ic('more',25)}</button></div>
+  </header>
+  <div class="aurel-art-space" aria-hidden="true"></div>
+  <div class="aurel-listening-bottom">
+   <section class="aurel-track-title-row"><div class="aurel-song-details"><h1>${html(t.title||'Choose a track')}</h1>
+    <div class="aurel-source-caption">${html(subtitle)}</div>
+    ${artistButton(t)}
+    ${t.album?.title?`<button class="aurel-album-link" data-open-playing-album aria-label="Open album">${html(t.album.title)} ${ic('chevron',15)}</button>`:''}
+    </div>
+    <button class="aurel-fav-button" data-like-track="${html(t.id||'')}" aria-label="Add to favourites">${ic('heart',27)}</button></section>
+   <section class="aurel-timeline" aria-label="Track progress">
+    <input id="progress" class="progress" type="range" min="0" max="${progressTotal||100}" step="500" value="${position}" aria-label="Playback position">
+    <div class="aurel-timeline-labels"><span id="elapsed">${duration(position/1000)}</span><button class="aurel-source-pill" data-player-sheet="audio" aria-label="Show audio source information">${ic('audio',17)}<span>${html(format)}</span></button><span id="remaining">${duration(progressTotal/1000)}</span></div>
+   </section>
+   <section class="aurel-main-actions" aria-label="Playback controls">
+    <button data-prev aria-label="Previous track" class="aurel-transport side">${ic('prev',33)}</button>
+    <button id="full-toggle" data-full-toggle aria-label="${p.playing?'Pause':'Play'}" class="aurel-transport middle">${ic(p.playing?'pause':'play',40)}</button>
+    <button data-next aria-label="Next track" class="aurel-transport side">${ic('next',33)}</button>
+   </section>
+   <section class="aurel-extra-actions" aria-label="Playback options">
+    <button data-player-sheet="upnext" aria-label="Queue" class="${active==='upnext'?'active':''}">${ic('queue',25)}<span>Queue</span></button>
+    <button id="full-shuffle" data-shuffle aria-label="Shuffle" class="${p.shuffle?'active':''}">${ic('shuffle',23)}<span>Shuffle</span></button>
+    <button id="full-repeat" data-repeat aria-label="Repeat" class="${p.repeat?'active':''}">${ic('repeat',24)}${p.repeat===2?'<sup>1</sup>':''}<span>Repeat</span></button>
+    <button data-player-sheet="credits" aria-label="Credits" class="${active==='credits'?'active':''}">${ic('info',24)}<span>Info</span></button>
+   </section>
+   ${active?`<div class="aurel-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
+   ${p.error?`<div class="playback-error" role="status">${html(p.error)}</div>`:''}
+   <div class="aurel-playback-state" id="playingStatus" aria-live="polite">${p.error?'UNAVAILABLE':loading?'BUFFERING':p.playing?'PLAYING':'PAUSED'}</div>
+  </div>
+ </div>`;
 };
+
 const formerEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const old=app.lastQueueFingerprint;formerEvent(kind,data);if(kind==='player'){
  const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
- if(app.overlay&&(old!==fingerprint||app.lastSourceSignature!==JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel]))){
-    app.lastSourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel]);drawOverlay();
+ if(app.overlay&&(old!==fingerprint||app.lastSourceSignature!==JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime]))){
+    app.lastSourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime]);drawOverlay();
  }
  }};
 // The native action bridge is the sole route to Qobuz. No extra account tokens are shared.

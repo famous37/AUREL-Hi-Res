@@ -11,6 +11,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.MediaFormat;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -42,6 +43,8 @@ public final class MainActivity extends Activity {
     private JSONObject fileInfo=new JSONObject();
     private String codec="", sourceLabel="";
     private boolean sourceVerified=false;
+    private int decoderSampleRateHz=0, decoderChannels=0;
+    private String decoderMime="";
     private int queueIndex=-1;
     private int playGeneration=0;
     private int repeatMode=0; // 0 off, 1 list, 2 one
@@ -449,6 +452,30 @@ public final class MainActivity extends Activity {
         return false;
     }
 
+    /** Track parameters from Android's parsed stream headers; not a DAC measurement. */
+    private void inspectPreparedTrack(MediaPlayer mp) {
+        decoderSampleRateHz=0;decoderChannels=0;decoderMime="";
+        try {
+            MediaPlayer.TrackInfo[] tracks=mp.getTrackInfo();
+            if(tracks==null)return;
+            for(MediaPlayer.TrackInfo track:tracks) {
+                if(track.getTrackType()!=MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO)continue;
+                MediaFormat format=track.getFormat();
+                if(format==null)continue;
+                if(format.containsKey(MediaFormat.KEY_SAMPLE_RATE)){
+                    int sample= format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                    if(sample>=8000&&sample<=768000) decoderSampleRateHz=sample;
+                }
+                if(format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)){
+                    int ch=format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
+                    if(ch>=1&&ch<=32)decoderChannels=ch;
+                }
+                if(format.containsKey(MediaFormat.KEY_MIME))decoderMime=format.getString(MediaFormat.KEY_MIME);
+                break;
+            }
+        }catch(Exception ignored){/* Android does not expose track format on every decoder. */}
+    }
+
     private void cleanupPlayer() {
         prepared=false;buffering=false;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
@@ -458,7 +485,7 @@ public final class MainActivity extends Activity {
         playGeneration++;
         final int generation=playGeneration;
         cleanupPlayer();
-        current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";buffering=true;playerError="";
+        current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";decoderSampleRateHz=0;decoderChannels=0;decoderMime="";buffering=true;playerError="";
         emit("player",playerState());
         final String id=current.optString("id","");
         // Load missing performer/album metadata independently of the audio request.
@@ -517,6 +544,7 @@ public final class MainActivity extends Activity {
                         player.setOnPreparedListener(mp->{
                             if(generation!=playGeneration)return;
                             prepared=true;buffering=false;
+                            inspectPreparedTrack(mp);
                             try{mp.start();}catch(Exception ignored){}
                             emit("player",playerState());
                         });
@@ -570,6 +598,9 @@ public final class MainActivity extends Activity {
             state.put("channels",fileInfo.optInt("n_channels",0));
             state.put("codec",codec);
             state.put("sourceVerified",sourceVerified);
+            state.put("decoderSampleRateHz",decoderSampleRateHz);
+            state.put("decoderChannels",decoderChannels);
+            state.put("decoderMime",decoderMime);
             state.put("sourceLabel",sourceLabel);
             state.put("mimeType",fileInfo.optString("mime_type",""));
             state.put("fileSize",fileInfo.optLong("file_size",0));

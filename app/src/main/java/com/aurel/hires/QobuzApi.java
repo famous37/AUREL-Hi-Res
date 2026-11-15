@@ -38,7 +38,7 @@ final class QobuzApi {
         c.setConnectTimeout(12000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);
         c.setRequestProperty("Accept","application/json");
         c.setRequestProperty("X-App-Id",appId);
-        c.setRequestProperty("User-Agent","AurelHiRes/0.5 Android");
+        c.setRequestProperty("User-Agent","AurelHiRes/0.6 Android");
         if(!token.isEmpty())c.setRequestProperty("X-User-Auth-Token",token);
         if(post){
             c.setRequestMethod("POST");c.setDoOutput(true);

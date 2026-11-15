@@ -1,4 +1,4 @@
-# AUREL Hi-Res — 0.5.0 Alpha
+# AUREL Hi-Res — 0.6.0 Alpha
 
 **Developer: famous37**
 
@@ -35,3 +35,16 @@ Use Android Studio with JDK 17 and Android SDK 35; build with `gradle :app:assem
 
 - https://www.qobuz.com/us-en/legal/terms
 - https://static.qobuz.com/apps/api/QobuzAPI-TermsofUse.pdf
+
+
+## v0.6.0 visual and audio integrity update
+
+- Full-bleed cover-art player using the user-provided reference layout (original implementation).
+- Large artist/title labels, high-contrast controls and wide previous/play/next buttons.
+- Discrete bottom queue, shuffle, repeat and information controls.
+- The Qobuz API-provided bit depth/rate is labelled as **reported metadata**.
+- Android MediaPlayer track information is separately exposed, when the platform makes it available; mixer property is **not** a DAC measurement.
+- Source formatting is never inferred solely from the selected streaming quality setting.
+- No downloads, equalizer or DSP controls.
+
+Note: This alpha still needs on-device playback and interface verification; secure Qobuz streams require official authorization/integration.
