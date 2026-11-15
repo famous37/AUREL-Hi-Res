@@ -1,40 +1,37 @@
-# AUREL Hi-Res — 0.4.0 Alpha
+# AUREL Hi-Res — 0.5.0 Alpha
 
 **Developer: famous37**
 
-Independent Android player inspired by the usability of contemporary lossless services. It is not made by or affiliated with Qobuz and does not contain Qobuz proprietary code, branding or bundled music.
+An independent Android music player focused on legible, elegant lossless listening. The design follows familiar streaming-app navigation patterns and the supplied Qobuz 10.2.0.0 APK as a visual/interaction reference; **AUREL is neither Qobuz's app nor affiliated with Qobuz**. No Qobuz proprietary code, assets, or music have been copied into this project.
 
-## Audiophile edition (0.4)
+## 0.5 — Playback and artist focus
 
-- Larger consistent, high-contrast typography; artwork-first dark burgundy listening view and Qobuz-like navigation hierarchy.
-- High-contrast custom AUREL launcher icon in all standard Android density buckets.
-- **No equalizer or software DSP**; AUREL does not claim bit-perfect output. Android MediaPlayer and the device mixer can resample audio.
-- Source-quality chip shows verified bit depth and sample rate **only when an authorized direct stream or FLAC header provides this information**. Unknown source quality stays explicitly unverified. Source sample rate is normalized to Hz then displayed in kHz. Audio panel distinguishes source from Android mixer.
-- Download commands for purchased tracks, albums, and artist discography. The download endpoint uses `intent=download` and **must return a Qobuz-authorized direct file URL** for every track; streaming-only URLs are never saved. Artist batch supports up to 400 tracks in this alpha build; individual unavailable or non-purchased tracks are skipped. Downloads live in app-specific private storage and disappear on uninstall.
-- Locally saved purchased files can be played in the Downloads screen. Actual FLAC source sample rate and bit depth are parsed from the file header when valid.
-- Two optional Qobuz credentials roles: one for streaming rights and one for displaying a separate library. Tokens stored in Android Keystore-backed encrypted storage; passwords never stored.
+- Refined high-contrast now-playing screen, larger coherent typography, artwork-first layout, touch-friendly SVG transport buttons, and responsive margins for Android devices.
+- **Tap the artist name in Now Playing** to open their discography. AUREL uses artist IDs from metadata, tries `track/get` and `album/get`, then an exact-name `artist/search` match, avoiding unrelated search results.
+- Normalizes artist names across `artist`, `artists`, `performer`, `album.artist`, nested `display` fields and common variant payloads. Missing artist metadata is hydrated in the background during playback when `track/get` is available.
+- Artist pages display releases from `artist/get?extra=albums`; `artist/getReleasesList` is used as a compatible fallback. More releases can be requested if the catalogue reports additional pages.
+- Album-artist labels are also actionable, and the album name in Now Playing opens the album where an ID is provided.
+- **All audio download/export features removed**, including native download handlers, purchase download requests, download queue, downloaded-files UI and associated code. Offline content is not exported by AUREL.
+- **No EQ, no DSP.** Source quality is displayed only when verified metadata is supplied by Qobuz. Android's audio mixer may resample and bit-perfect output is not claimed.
+- Independent optional credentials for streaming and the collection library remain supported; credentials are stored securely by Android and passwords are not retained.
 
-## Limitations and safety
+## Limitations
 
-Qobuz access requires valid credentials and server-authorized API access. The legacy account-password endpoint may not work if Qobuz requires CAPTCHA/OAuth. The direct URL audio engine does not decode licensed encrypted segmented streams and does not circumvent DRM. **A Studio subscription does not entitle an application to export all streaming tracks as DRM-free files**. Subscription offline listening is available through Qobuz's official app; AUREL only attempts server-authorized purchased-file downloads. No credentials are committed to Git.
-
-Download outcomes and streaming features need on-device verification using an account with rights. This repository does not include or imply an official API authorization.
+Playback needs API-authorized Qobuz access and compatible direct HTTPS stream URLs. Protected segmented audio is not decoded, decrypted, or bypassed in this client. Password login may fail if Qobuz requires OAuth or verification. On-device validation with authorized Qobuz accounts is still needed for exact endpoint compatibility and streaming.
 
 ## Build
 
-Open in Android Studio or use `gradle :app:assembleDebug` with JDK 17 and Android SDK 35 installed. GitHub Actions builds debug APK automatically on commits to `main`.
+Use Android Studio with JDK 17 and Android SDK 35; build with `gradle :app:assembleDebug`. GitHub Actions builds a debug APK after commits to `main`. A reproducible `node test_ui.cjs` suite checks artist rendering, player controls, discography and removal of download actions.
 
-## Key files
+## Project files
 
-- `app/src/main/assets/app.js` — Android bridge, account, catalogue and collection UI
-- `app/src/main/assets/modern.js` — contemporary library, Qobuz-inspired now-playing UI, quality panel, downloads UI
-- `app/src/main/assets/style.css` — adaptive, high-contrast UI
-- `app/src/main/java/com/aurel/hires/MainActivity.java` — native MediaPlayer, downloads, local FLAC header verification
-- `app/src/main/java/com/aurel/hires/QobuzApi.java` — API requests and purchase download authorization
-- `app/src/main/res/mipmap-*/ic_launcher.png` — AUREL original high-contrast mark
+- `app/src/main/assets/app.js` — account, catalogue, artist identity and navigation
+- `app/src/main/assets/modern.js` — now-playing UI, library and modern controls
+- `app/src/main/assets/style.css` — visual system and Android layout
+- `app/src/main/java/com/aurel/hires/MainActivity.java` — native streaming playback, metadata enrichment and bridge
+- `app/src/main/java/com/aurel/hires/QobuzApi.java` — authenticated Qobuz API client
 
-### Rights and provider sources
+## Related APIs
 
-- Qobuz terms: https://www.qobuz.com/us-en/legal/terms
-- Qobuz API conditions: https://static.qobuz.com/apps/api/QobuzAPI-TermsofUse.pdf
-- Qobuz purchased downloads help: https://help.qobuz.com/en/articles/10168-how-to-download-albums-tracks-collections-or-complete-works
+- https://www.qobuz.com/us-en/legal/terms
+- https://static.qobuz.com/apps/api/QobuzAPI-TermsofUse.pdf

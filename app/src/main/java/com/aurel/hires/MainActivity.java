@@ -3,13 +3,6 @@ package com.aurel.hires;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Environment;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import android.os.Bundle;
 import android.os.Handler;
@@ -42,7 +35,6 @@ public final class MainActivity extends Activity {
     private SecureStore secure;
     private QobuzApi api;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
-    private final ExecutorService downloads=Executors.newSingleThreadExecutor();
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
     private MediaPlayer player;
@@ -120,7 +112,7 @@ public final class MainActivity extends Activity {
         ui.removeCallbacks(ticker);
         cleanupPlayer();
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
-        jobs.shutdownNow();downloads.shutdownNow();super.onDestroy();
+        jobs.shutdownNow();super.onDestroy();
     }
     private void script(String js) { ui.post(()->{ if(web!=null)web.evaluateJavascript(js,null); }); }
     private void complete(String id,JSONObject result) {
@@ -241,7 +233,22 @@ public final class MainActivity extends Activity {
                             data=api.catalog(endpoint,new JSONObject().put("query",q).put("limit",35));break;
                         }
                         case "album":data=api.catalog("album/get",new JSONObject().put("album_id",p.getString("id")).put("limit",100));break;
-                        case "artist":data=api.catalog("artist/get",new JSONObject().put("artist_id",p.getString("id")).put("extra","albums").put("limit",100));break;
+                        case "artist": {
+                            data=api.catalog("artist/get",new JSONObject().put("artist_id",p.getString("id"))
+                                .put("extra","albums").put("limit",100).put("offset",0));
+                            data=withArtistReleases(data,p.getString("id"),0,100);
+                            break;
+                        }
+                        case "artistAlbums": {
+                            int offset=Math.max(0,p.optInt("offset",0));
+                            int limit=Math.max(1,Math.min(100,p.optInt("limit",100)));
+                            String artistId=p.getString("id");
+                            data=api.catalog("artist/get",new JSONObject().put("artist_id",artistId)
+                                .put("extra","albums").put("limit",limit).put("offset",offset));
+                            data=withArtistReleases(data,artistId,offset,limit);
+                            break;
+                        }
+                        case "resolveArtist": data=resolveArtist(p);break;
                         case "favorites": {
                             String type=p.optString("type","albums");
                             if(!type.equals("albums")&&!type.equals("tracks")&&!type.equals("artists"))type="albums";
@@ -255,36 +262,6 @@ public final class MainActivity extends Activity {
                         }
                         case "playlists":data=api.library("playlist/getUserPlaylists",new JSONObject().put("limit",100));break;
                         case "playlist":data=api.library("playlist/get",new JSONObject().put("playlist_id",p.getString("id")).put("extra","tracks").put("limit",100));break;
-                        case "downloadTrack": {
-                            JSONObject track=p.getJSONObject("track");
-                            JSONArray tracks=new JSONArray().put(track);
-                            enqueuePurchaseDownloads(tracks);
-                            data=param("accepted",1);break;
-                        }
-                        case "downloadAlbum": {
-                            JSONArray tracks=p.getJSONArray("tracks");
-                            if(tracks.length()<1||tracks.length()>400)throw new Exception("Select up to 400 tracks");
-                            enqueuePurchaseDownloads(tracks);
-                            data=param("accepted",tracks.length());break;
-                        }
-                        case "downloadArtist": {
-                            String artistId=p.optString("id","");
-                            if(!artistId.matches("[0-9]+"))throw new Exception("Invalid artist ID");
-                            downloads.execute(()->downloadArtistCatalog(artistId));
-                            data=param("queued",true);break;
-                        }
-                        case "downloadedFiles": {
-                            data=localFiles();break;
-                        }
-                        case "playDownloaded": {
-                            String filename=p.optString("file","");
-                            File base=offlineDirectory();
-                            File requested=new File(base,filename);
-                            if(!requested.getCanonicalPath().startsWith(base.getCanonicalPath()+File.separator)
-                                    ||!requested.isFile()||!filename.endsWith(".flac")&&!filename.endsWith(".mp3"))
-                                throw new Exception("Local audio file not found");
-                            ui.post(()->playDownloaded(requested));data=param("local",true);break;
-                        }
                         case "play":{
                             final JSONArray list=p.getJSONArray("tracks");final int index=p.optInt("index",0);
                             if(list.length()==0||list.length()>400||index<0||index>=list.length())throw new Exception("Invalid playlist queue");
@@ -370,6 +347,108 @@ public final class MainActivity extends Activity {
         }
     }
 
+    /** A release list may be an artist/get albums block, or the newer getReleasesList.
+     *  Normalize the response without modifying Qobuz credentials or removing rights checks. */
+    private JSONObject withArtistReleases(JSONObject artist,String id,int offset,int limit) throws Exception {
+        JSONObject albums=artist.optJSONObject("albums");
+        JSONArray items=albums==null?null:albums.optJSONArray("items");
+        if(items!=null&&items.length()>0) {enrichAlbumArtists(artist,items);return artist;}
+        try {
+            JSONObject latest=api.catalog("artist/getReleasesList",new JSONObject()
+                .put("artist_id",id).put("release_type","all").put("sort","release_date_by_priority")
+                .put("offset",offset).put("limit",limit));
+            JSONObject block=latest.optJSONObject("albums");
+            if(block==null)block=latest.optJSONObject("releases");
+            JSONArray releases=block!=null?block.optJSONArray("items"):latest.optJSONArray("items");
+            if(releases!=null) {
+                JSONArray normalized=new JSONArray();
+                for(int i=0;i<releases.length();i++) {
+                    JSONObject item=releases.optJSONObject(i);
+                    if(item==null)continue;
+                    JSONObject album=item.optJSONObject("album");
+                    normalized.put(album!=null?album:item);
+                }
+                enrichAlbumArtists(artist,normalized);
+                JSONObject converted=new JSONObject().put("items",normalized)
+                    .put("total",block!=null?block.optInt("total",normalized.length()):normalized.length())
+                    .put("limit",limit);
+                artist.put("albums",converted);
+            }
+        } catch(Exception ignored) { // Older Qobuz integrations expose only artist/get.
+            if(albums==null)artist.put("albums",new JSONObject().put("items",new JSONArray()));
+        }
+        return artist;
+    }
+    private void enrichAlbumArtists(JSONObject artist,JSONArray albums) throws Exception {
+        JSONObject canonical=new JSONObject().put("id",artist.opt("id"))
+            .put("name",artist.optString("name", ""));
+        for(int i=0;i<albums.length();i++) {
+            JSONObject item=albums.optJSONObject(i);
+            if(item==null)continue;
+            if(!item.has("artist")||item.isNull("artist"))item.put("artist",canonical);
+        }
+    }
+    private String artistIdFrom(JSONObject o) {
+        if(o==null)return "";
+        JSONObject artist=o.optJSONObject("artist");
+        if(artist!=null&&artist.has("id"))return artist.optString("id","");
+        JSONObject album=o.optJSONObject("album");
+        if(album!=null){artist=album.optJSONObject("artist");if(artist!=null&&artist.has("id"))return artist.optString("id","");}
+        JSONArray artists=o.optJSONArray("artists");
+        if(artists!=null&&artists.length()>0){artist=artists.optJSONObject(0);if(artist!=null)return artist.optString("id","");}
+        return o.optString("artist_id", "");
+    }
+    private JSONObject resolveArtist(JSONObject input) throws Exception {
+        String albumId=input.optString("albumId", "").trim();
+        String trackId=input.optString("trackId", "").trim();
+        String name=input.optString("name", "").trim();
+        if(trackId.matches("[0-9]+")) {
+            try {
+                JSONObject track=api.catalog("track/get",new JSONObject().put("track_id",trackId));
+                String found=artistIdFrom(track);
+                if(found.matches("[0-9]+"))return new JSONObject().put("id",found).put("matchedBy","track");
+                JSONObject album=track.optJSONObject("album");
+                if(albumId.isEmpty()&&album!=null)albumId=album.optString("id","");
+            } catch(Exception ignored) {}
+        }
+        if(albumId.matches("[0-9]+")) {
+            try {
+                JSONObject album=api.catalog("album/get",new JSONObject().put("album_id",albumId));
+                String found=artistIdFrom(album);
+                if(found.matches("[0-9]+"))return new JSONObject().put("id",found).put("matchedBy","album");
+            } catch(Exception ignored) {}
+        }
+        if(!name.isEmpty()&&!name.equalsIgnoreCase("Artist information unavailable")&&!name.equalsIgnoreCase("Unknown artist")) {
+            JSONObject found=api.catalog("artist/search",new JSONObject().put("query",name).put("limit",30));
+            JSONObject artists=found.optJSONObject("artists");
+            JSONArray items=artists==null?found.optJSONArray("items"):artists.optJSONArray("items");
+            if(items!=null)for(int i=0;i<items.length();i++) {
+                JSONObject candidate=items.optJSONObject(i);
+                if(candidate!=null&&name.equalsIgnoreCase(candidate.optString("name").trim())
+                    &&candidate.optString("id").matches("[0-9]+"))
+                    return new JSONObject().put("id",candidate.optString("id")).put("matchedBy","exactName");
+            }
+        }
+        throw new Exception("Qobuz did not identify the artist. Search the artist by name.");
+    }
+
+    private boolean hasArtistName(JSONObject track){
+        if(track==null)return false;
+        JSONObject artist=track.optJSONObject("artist");
+        if(artist!=null&&!artist.optString("name","").isEmpty())return true;
+        if(!track.optString("performer","").isEmpty())return true;
+        JSONArray artists=track.optJSONArray("artists");
+        if(artists!=null&&artists.length()>0)return true;
+        JSONObject album=track.optJSONObject("album");
+        if(album!=null){
+            artist=album.optJSONObject("artist");
+            if(artist!=null&&!artist.optString("name","").isEmpty())return true;
+            artists=album.optJSONArray("artists");
+            if(artists!=null&&artists.length()>0)return true;
+        }
+        return false;
+    }
+
     private void cleanupPlayer() {
         prepared=false;buffering=false;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
@@ -382,6 +461,37 @@ public final class MainActivity extends Activity {
         current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";buffering=true;playerError="";
         emit("player",playerState());
         final String id=current.optString("id","");
+        // Load missing performer/album metadata independently of the audio request.
+        // Some Qobuz discovery responses contain album art but omit the artist name.
+        if(id.matches("[0-9]+") && !hasArtistName(current)) {
+            jobs.execute(()->{
+                try {
+                    JSONObject full=api.catalog("track/get",new JSONObject().put("track_id",id));
+                    ui.post(()->{
+                        if(generation!=playGeneration || current==null)return;
+                        try {
+                            JSONObject performer=full.optJSONObject("artist");
+                            if(performer!=null && !performer.optString("name","").isEmpty())
+                                current.put("artist",performer);
+                            else if(full.has("performer"))current.put("performer",full.opt("performer"));
+                            JSONObject album=full.optJSONObject("album");
+                            if(album!=null){
+                                JSONObject currentAlbum=current.optJSONObject("album");
+                                if(currentAlbum==null)current.put("album",album);
+                                else {
+                                    if(!currentAlbum.has("artist")&&album.has("artist"))currentAlbum.put("artist",album.opt("artist"));
+                                    if(!currentAlbum.has("image")&&album.has("image"))currentAlbum.put("image",album.opt("image"));
+                                    if(!currentAlbum.has("id")&&album.has("id"))currentAlbum.put("id",album.opt("id"));
+                                    if(!currentAlbum.has("title")&&album.has("title"))currentAlbum.put("title",album.opt("title"));
+                                }
+                            }
+                            queue.set(queueIndex,current);
+                            emit("player",playerState());
+                        }catch(Exception ignored){}
+                    });
+                }catch(Exception ignored){}
+            });
+        }
         jobs.execute(()->{
             try {
                 JSONObject info=null;Exception last=null;
@@ -444,128 +554,6 @@ public final class MainActivity extends Activity {
             }
         }
         queueIndex=next;startAtCurrent();
-    }
-    private File offlineDirectory() {
-        File root=getExternalFilesDir(Environment.DIRECTORY_MUSIC);
-        if(root==null)root=new File(getFilesDir(),"Music");
-        File dir=new File(root,"AUREL Purchases");
-        if(!dir.exists()&&!dir.mkdirs())throw new IllegalStateException("Cannot create offline directory");
-        return dir;
-    }
-    private String safeName(String value){
-        String cleaned=value.replaceAll("[\\/:*?\"<>|\\p{Cntrl}]","_").trim().replaceAll("\\s+"," ");
-        if(cleaned.length()>90)cleaned=cleaned.substring(0,90);
-        return cleaned.isEmpty()?"Unknown":cleaned;
-    }
-    private JSONObject localFiles() throws Exception {
-        JSONArray items=new JSONArray();
-        File[] files=offlineDirectory().listFiles();
-        if(files!=null)for(File f:files)if(f.isFile()&&(f.getName().endsWith(".flac")||f.getName().endsWith(".mp3"))){
-            items.put(new JSONObject().put("name",f.getName()).put("bytes",f.length()));
-        }
-        return new JSONObject().put("items",items).put("location","App private Music/AUREL Purchases (removed when app is uninstalled)");
-    }
-    private void broadcastDownload(int done,int total,int failed,String text){
-        try{emit("download",new JSONObject().put("done",done).put("total",total).put("failed",failed).put("message",text));}
-        catch(Exception ignored){}
-    }
-    private void enqueuePurchaseDownloads(JSONArray input){
-        // Only the rights-bearing streaming account can request intent=download.
-        downloads.execute(()->downloadTracks(input));
-    }
-    private void downloadArtistCatalog(String artistId){
-        try{
-            JSONArray tracks=new JSONArray();int offset=0;
-            while(offset<200 && tracks.length()<400){
-                JSONObject artist=api.catalog("artist/get",new JSONObject().put("artist_id",artistId)
-                    .put("extra","albums").put("offset",offset).put("limit",50));
-                JSONObject albums=artist.optJSONObject("albums");
-                JSONArray items=albums==null?null:albums.optJSONArray("items");
-                if(items==null||items.length()==0)break;
-                for(int a=0;a<items.length()&&tracks.length()<400;a++){
-                    JSONObject album=items.optJSONObject(a);if(album==null)continue;
-                    JSONObject details=api.catalog("album/get",new JSONObject().put("album_id",album.optString("id"))
-                        .put("limit",100));
-                    JSONObject group=details.optJSONObject("tracks");
-                    JSONArray songList=group==null?null:group.optJSONArray("items");
-                    if(songList!=null)for(int t=0;t<songList.length()&&tracks.length()<400;t++){
-                        JSONObject track=songList.optJSONObject(t);
-                        if(track!=null){track.put("album",new JSONObject().put("title",details.optString("title")));
-                            tracks.put(track);}
-                    }
-                }
-                offset+=items.length();
-                if(albums==null||offset>=albums.optInt("total",offset))break;
-            }
-            broadcastDownload(0,tracks.length(),0,"Artist catalogue discovered; checking purchased-track rights");
-            downloadTracks(tracks);
-        }catch(Exception e){broadcastDownload(0,0,1,"Cannot load artist catalogue: "+e.getMessage());}
-    }
-    private void downloadTracks(JSONArray tracks){
-        int done=0,fail=0,total=tracks.length();
-        if(total==0){broadcastDownload(0,0,0,"No tracks available");return;}
-        broadcastDownload(0,total,0,"Checking purchased downloads…");
-        for(int i=0;i<total;i++){
-            JSONObject t=tracks.optJSONObject(i);if(t==null){fail++;continue;}
-            String id=t.optString("id","");
-            try{
-                JSONObject signed=api.purchaseDownloadInfo(id,quality());
-                String url=signed.optString("url","");
-                if(!url.startsWith("https://"))throw new Exception("No authorized download URL");
-                String extension=signed.optString("mime_type","").contains("mpeg")?".mp3":".flac";
-                String fileName=safeName(t.optString("title","Track"))+" - "+id+extension;
-                File dest=new File(offlineDirectory(),fileName);File temp=new File(dest.getAbsolutePath()+".part");
-                HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
-                c.setConnectTimeout(15000);c.setReadTimeout(30000);c.setInstanceFollowRedirects(true);
-                try{
-                    if(c.getResponseCode()!=200)throw new Exception("Download HTTP "+c.getResponseCode());
-                    try(InputStream in=c.getInputStream();FileOutputStream out=new FileOutputStream(temp)){
-                        byte[] buffer=new byte[32768];int n;long count=0;
-                        while((n=in.read(buffer))!=-1){out.write(buffer,0,n);count+=n;
-                            if(count>2_000_000_000L)throw new Exception("File exceeds 2 GB");}
-                        if(count==0)throw new Exception("Empty download");
-                    }
-                    if(dest.exists()&&!dest.delete())throw new Exception("Cannot replace existing file");
-                    if(!temp.renameTo(dest))throw new Exception("Unable to finalize download");
-                    done++;
-                }finally{c.disconnect();if(temp.exists())temp.delete();}
-            }catch(Exception e){fail++;}
-            broadcastDownload(done,total,fail,"Purchased downloads: "+done+" saved, "+fail+" unavailable ("+(i+1)+"/"+total+")");
-        }
-        broadcastDownload(done,total,fail,"Finished: "+done+" downloaded, "+fail+" unavailable. Only purchased files authorized by Qobuz can be saved.");
-    }
-    private void playDownloaded(File f){
-        playGeneration++;final int generation=playGeneration;
-        cleanupPlayer();queue.clear();queueIndex=0;
-        current=new JSONObject();fileInfo=new JSONObject();playerError="";
-        try {
-            current.put("id","offline-"+f.getName()).put("title",f.getName().replaceFirst(" - \\d+\\.(flac|mp3)$", ""))
-                .put("artist",new JSONObject().put("name","Purchased download"));
-            queue.add(current);
-            codec=f.getName().endsWith(".flac")?"FLAC":"MP3";
-            sourceLabel="Local file (verified)";
-            sourceVerified=f.getName().endsWith(".flac")&&readFlacHeader(f,fileInfo);
-            fileInfo.put("mime_type",codec.equals("FLAC")?"audio/flac":"audio/mpeg");
-            player=new MediaPlayer();player.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            player.setOnPreparedListener(mp->{if(generation!=playGeneration)return;prepared=true;mp.start();emit("player",playerState());});
-            player.setOnCompletionListener(mp->advance(1,true));
-            player.setDataSource(f.getAbsolutePath());player.prepareAsync();emit("player",playerState());
-        }catch(Exception e){playerError=e.getMessage();emit("player",playerState());}
-    }
-    private boolean readFlacHeader(File f,JSONObject out){
-        try(FileInputStream in=new FileInputStream(f)){
-            byte[] header=new byte[42];int read=0;
-            while(read<header.length){int n=in.read(header,read,header.length-read);if(n<0)break;read+=n;}
-            if(read<42||header[0]!='f'||header[1]!='L'||header[2]!='a'||header[3]!='C'||(header[4]&127)!=0)return false;
-            long metadata=0;
-            for(int i=18;i<26;i++)metadata=(metadata<<8)|(header[i]&0xff);
-            int sampleRate=(int)((metadata>>44)&0xfffff);
-            int channels=(int)((metadata>>41)&7)+1;
-            int depth=(int)((metadata>>36)&31)+1;
-            if(sampleRate<8000||sampleRate>768000||depth<4||depth>32)return false;
-            out.put("sample_rate_hz",sampleRate).put("bits_depth",depth).put("n_channels",channels);
-            return true;
-        }catch(Exception e){return false;}
     }
     private JSONObject playerState() {
         JSONObject state=new JSONObject();

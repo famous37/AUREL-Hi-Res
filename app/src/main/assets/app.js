@@ -4,9 +4,40 @@ const $$=s=>[...document.querySelectorAll(s)];
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeCover=url=>{try{let u=new URL(String(url||''));return u.protocol==='https:'&&(u.hostname==='qobuz.com'||u.hostname.endsWith('.qobuz.com'))?u.href:''}catch(_){return ''}};
 const image=o=>{for(let obj of [o?.image,o?.album?.image,o?.picture,o?.cover]){if(typeof obj==='string'){let url=safeCover(obj);if(url)return url;}if(obj&&typeof obj==='object'){for(let key of ['extralarge','large','medium','small','thumbnail','default']){let url=safeCover(obj[key]||obj.images?.[key]);if(url)return url;}}}return '';};
-const withAlbum=(tracks,album)=>tracks.map(t=>({...t,album:{...(t.album||{}),image:t.album?.image||album?.image,title:t.album?.title||album?.title,artist:t.album?.artist||album?.artist},image:t.image||t.album?.image||album?.image}));
-const artistName=o=>typeof o?.name==='string'?o.name:(o?.name?.display||o?.artist?.name||'Unknown artist');
-const artist=o=>{let a=o?.artist||o?.performer||o?.album?.artist||{};return typeof a==='string'?a:typeof a.name==='string'?a.name:a.name?.display||o?.performer?.name||'Unknown artist'};
+const withAlbum=(tracks,album)=>tracks.map(t=>({...t,
+  album:{...(t.album||{}),id:t.album?.id||album?.id,image:t.album?.image||album?.image,
+    title:t.album?.title||album?.title,artist:t.album?.artist||album?.artist,
+    artists:t.album?.artists||album?.artists},
+  image:t.image||t.album?.image||album?.image,
+  artist:t.artist||t.performer||t.album?.artist||album?.artist||album?.artists?.items?.[0]}));
+// Qobuz releases and tracks may encode an artist as an object, array, display-name
+// object, or nested list. Do not label a known artist as Unknown merely because a
+// shallow 'artist.name' field is absent from one endpoint.
+const nameOf=o=>{
+ if(typeof o==='string')return o.trim();
+ if(!o||typeof o!=='object')return '';
+ for(const v of [o.name,o.display_name,o.displayName,o.display,o.full_name,o.artist_name,o.title]){
+  if(typeof v==='string'&&v.trim())return v.trim();
+  if(v&&typeof v==='object'&&typeof v.display==='string'&&v.display.trim())return v.display.trim();
+ }
+ return '';
+};
+const artistChoices=o=>[o?.artist,o?.album?.artist,o?.main_artist,o?.mainArtist,o?.performer,o?.performers?.items?.[0],
+ o?.artists?.items?.[0],Array.isArray(o?.artists)?o.artists[0]:null,
+ o?.artists?.main?.[0],o?.artist_name,o?.main_artist_name,
+ o?.album?.artist,o?.album?.artist_name,o?.album?.main_artist,o?.album?.performer,o?.album?.artists?.items?.[0],
+ Array.isArray(o?.album?.artists)?o.album.artists[0]:null];
+const artistName=o=>nameOf(o)||nameOf(o?.artist)||nameOf(o?.performer)||'Artist not provided';
+const artist=o=>artistChoices(o).map(nameOf).find(Boolean)||'';
+const artistId=o=>{
+ for(const candidate of artistChoices(o)){
+  const id=candidate&&typeof candidate==='object'?(candidate.id??candidate.artist_id):null;
+  if(id!=null&&/^\d+$/.test(String(id)))return String(id);
+ }
+ for(const id of [o?.artist_id,o?.main_artist_id,o?.album?.artist_id])if(id!=null&&/^\d+$/.test(String(id)))return String(id);
+ return '';
+};
+const artistLabel=o=>artist(o)||'Artist information unavailable';
 const duration=n=>{n=Math.max(0,Math.floor(Number(n)||0));return `${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`};
 const qualityText=q=>({'5':'MP3 · 320 kbps','6':'FLAC · 16-bit / 44.1 kHz','7':'Hi-Res · up to 24-bit / 96 kHz','27':'Hi-Res · up to 24-bit / 192 kHz'})[q]||'Automatic';
 const fallbackArt=`<div class="cover"><div style="position:absolute;inset:10%;border-radius:50%;border:22px solid #8f657555;box-shadow:0 0 60px #c08c9955"></div></div>`;
@@ -45,15 +76,15 @@ function banner(){return `<div class="hero"><div class="content"><div class="eye
 function albumCards(items){if(!items.length)return `<div class="empty"><strong>Nothing to show yet</strong>Search for your favourite artists or explore another section.</div>`;
  return `<div class="cards">${items.map((o,i)=>{
    let name=o.title||o.name||'Untitled';let rawId=html(o.id||'');let cd=art(o);
-   return `<article class="albumcard" data-open-album="${rawId}"><div class="cover">${cd}<span class="hoverplay">▶</span></div><div class="album-title">${html(name)}</div><div class="album-artist">${html(artist(o))}</div>${o.hires||Number(o.maximum_bit_depth)>16?`<span class="audio-badge">HI-RES AUDIO</span>`:''}</article>`;
+   return `<article class="albumcard" data-open-album="${rawId}"><div class="cover">${cd}<span class="hoverplay">▶</span></div><div class="album-title">${html(name)}</div><div class="album-artist">${html(artistLabel(o))}</div>${o.hires||Number(o.maximum_bit_depth)>16?`<span class="audio-badge">HI-RES AUDIO</span>`:''}</article>`;
  }).join('')}</div>`
 }
 function listTracks(items){if(!items.length)return `<div class="empty">No tracks found.</div>`;
  return `<div class="tracklist">${items.map((o,i)=>{
   return `<div class="track"><span class="index">${i+1}</span>${art(o,'track-art')||'<div class="track-art"></div>'}
-   <div class="track-details" data-play-index="${i}"><div class="track-title">${html(o.title||'Untitled')}</div><div class="track-meta">${html(artist(o))}${o.album?.title?' · '+html(o.album.title):''}</div></div>
+   <div class="track-details" data-play-index="${i}"><div class="track-title">${html(o.title||'Untitled')}</div><div class="track-meta">${html(artistLabel(o))}${o.album?.title?' · '+html(o.album.title):''}</div></div>
    <span class="track-length">${duration(o.duration)}</span><button class="icon-btn" title="Add to favorites" data-like-track="${html(o.id)}">♡</button>
-   <button class="icon-btn queue-add-icon" data-play-next="${i}" title="Play next">＋</button><button class="icon-btn download-icon" data-download-index="${i}" title="Download purchased track" aria-label="Download purchased track">↓</button><button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
+   <button class="icon-btn queue-add-icon" data-play-next="${i}" title="Play next">＋</button><button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
  }).join('')}</div>`;
 }
 function render(){
@@ -61,7 +92,7 @@ function render(){
  $('#headerName').textContent=app.session?.profile?.displayName||'Account';
  if(!hasAuth()&&app.nav!=='settings'){renderLogin();return;}
  if(app.selected){if(app.selectedKind==='artist')renderArtist();else renderAlbum();return;}
- switch(app.nav){case 'home':renderHome();break;case 'magazine':renderMagazine();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;case 'downloads':renderDownloads();break;default:renderHome()}
+ switch(app.nav){case 'home':renderHome();break;case 'magazine':renderMagazine();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;default:renderHome()}
 }
 function renderHome(){
  $('#screen').innerHTML=`<div style="padding:8px 0 21px"><div class="eyebrow">WELCOME TO YOUR LISTENING ROOM</div><h1 class="headline">Discover something<br>extraordinary<span style="color:var(--accent)">.</span></h1><div class="subline">Editorial warmth. Exceptional sound. Your music, your way.</div></div>${banner()}
@@ -82,7 +113,7 @@ function searchResults(){if(!app.searchQuery)return '<div class="empty"><strong>
  return albumCards(app.results);
 }
 function artistRows(items){if(!items.length)return '<div class="empty">No artists found.</div>';
- return `<div class="artistrows">${items.map(o=>`<button class="artistrow" data-open-artist="${html(o.id||'')}">${art(o,'artist-avatar')||'<span class="artist-avatar artist-placeholder">♫</span>'}<span class="artist-text"><strong>${html(artistName(o))}</strong><small>Artist · View albums</small></span><span class="chevron">›</span></button>`).join('')}</div>`;
+ return `<div class="artistrows">${items.map(o=>`<button class="artistrow" data-open-artist="${html(o.id||'')}">${art(o,'artist-avatar')||'<span class="artist-avatar artist-placeholder">♫</span>'}<span class="artist-text"><strong>${html(artistName(o))}</strong><small>Artist · Discography</small></span><span class="chevron">›</span></button>`).join('')}</div>`;
 }
 function renderLibrary(){
  $('#screen').innerHTML=title('YOUR COLLECTION','The music you love.')+`<div class="subline">Your Qobuz favourites, always close.</div>
@@ -97,13 +128,13 @@ function renderPlaylists(){
 function renderAlbum(){
  let o=app.selected;
  if(!o)return;
- let content=`<button class="small-link" data-back>‹ Back</button><div class="albumhero"><div class="cover">${art(o)}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><div class="subline">${html(artist(o))}</div><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
- <div class="actionbar"><button class="pill" data-play-all>▶ &nbsp; Play album</button><button class="pill secondary" data-download-album title="Download owned tracks">↓ Download</button><button class="pill secondary" data-like-album="${html(o.id)}">♡ Save</button></div>
+ let content=`<button class="small-link" data-back>‹ Back</button><div class="albumhero"><div class="cover">${art(o)}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><button class="album-artist-button" data-artist-from-album aria-label="Open artist discography">${html(artistLabel(o))}<span aria-hidden="true">›</span></button><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
+ <div class="actionbar"><button class="pill" data-play-all>▶ &nbsp; Play album</button><button class="pill secondary" data-like-album="${html(o.id)}">♡ Save</button></div>
  ${listTracks(app.selectedTracks)}<p class="footer-note">Availability and stream quality are verified when playback is requested. Direct-file streaming only in this alpha build.</p>`;
  $('#screen').innerHTML=content;
 }
 function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
- $('#screen').innerHTML=`<button class="small-link" data-back>‹ Back</button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p><button class="pill secondary" data-download-artist="${html(o.id)}">↓ Download purchased discography</button></div></div><div class="sectionhead"><h2>Discography</h2></div>${albumCards(albums)}`;
+ $('#screen').innerHTML=`<button class="small-link" data-back>‹ Back</button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2><span class="discography-count">${albums.length} releases</span></div>${albumCards(albums)}${albums.length>=Number(o.albums?.limit||100)&&albums.length<Number(o.albums?.total||albums.length)?`<button class="load-more-albums" data-load-more-artist>Show more releases</button>`:``}`;
 }
 function renderLogin(){let secondary=app.loginTarget==='library';
  $('#screen').innerHTML=`<div class="auth-shell"><div class="eyebrow">${secondary?'OPTIONAL COLLECTION ACCOUNT':'YOUR MUSIC. YOUR SOUND.'}</div><h1>${secondary?'Connect your library.':'Connect to AUREL.'}</h1>
@@ -137,22 +168,21 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>Downloads</h3><p class="subline">Only purchased music for which Qobuz authorizes a direct download can be saved. Subscription streams cannot be exported as unrestricted files.</p><button class="pill secondary" data-open-downloads>View downloaded music</button></div>
  <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>0.4.0 Alpha</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
  let p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}
  m.classList.remove('hidden');let t=p.track;
- m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(t.title||'Untitled')}</div><div class="artist">${html(artist(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
+ m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(t.title||'Untitled')}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
 }
 function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
  const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=p.position||0}
  if($('#elapsed'))$('#elapsed').textContent=duration((p.position||0)/1000);
  if($('#remaining'))$('#remaining').textContent='-'+duration(Math.max(0,(p.duration||0)-(p.position||0))/1000);
- if($('#full-toggle'))$('#full-toggle').textContent=p.playing?'Ⅱ':'▶';
+ if($('#full-toggle'))$('#full-toggle').innerHTML=ic(p.playing?'pause':'play',33);
  if($('#full-shuffle'))$('#full-shuffle').classList.toggle('active',!!p.shuffle);
- if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').textContent=p.repeat===2?'↺¹':'↺';}
+ if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').innerHTML=ic('repeat',23)+(p.repeat===2?'<span class="repeat-one">1</span>':'');}
  if($('#playingStatus'))$('#playingStatus').textContent=p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED';
 }
 function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return;}
@@ -161,7 +191,7 @@ function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.clas
  overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>⌄ <span>Now playing</span></button>
  <div class="art-stage">${src?`<img class="now-cover" src="${html(src)}" alt="Album cover">`:'<div class="now-cover empty-art">♫</div>'}</div>
  <div class="now-info"><span>${p.bits?(p.bits+'-bit / '+(p.sampleRate>1000?(p.sampleRate/1000):p.sampleRate)+' kHz'):'AUDIO QUALITY PENDING'}</span><span>${p.formatId===5?'MP3':p.formatId?'FLAC':''}</span></div>
- <div class="now-track-row"><div class="now-title">${html(t.title||'Choose a track')}</div><div class="now-artist">${html(artist(t))}</div></div>
+ <div class="now-track-row"><div class="now-title">${html(t.title||'Choose a track')}</div><div class="now-artist">${html(artistLabel(t))}</div></div>
  <input id="progress" class="progress" type="range" min="0" max="${p.duration||100}" value="${p.position||0}" step="500"><div class="timebar"><span id="elapsed">${duration((p.position||0)/1000)}</span><span id="remaining">-${duration(Math.max(0,(p.duration||0)-(p.position||0))/1000)}</span></div>
  <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle>⤨</button><button class="ctrl" data-prev>❚◀</button><button id="full-toggle" class="main-play" data-full-toggle>${p.playing?'Ⅱ':'▶'}</button><button class="ctrl" data-next>▶❚</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat>${p.repeat===2?'↺¹':'↺'}</button></div>
  <div class="playing-foot"><span id="playingStatus">${p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED'}</span><span>QUEUE ${p.count?`${p.index+1} / ${p.count}`:'—'}</span></div>
@@ -185,6 +215,35 @@ async function loadLibrary(){app.libraryLoading=true;render();try{let d=await ap
 async function loadPlaylists(){app.playlistsLoading=true;render();try{let d=await api('playlists',{},true);app.playlists=sliceItems(d,'playlists');}
  catch(e){app.playlists=[];showToast(e.message)}finally{app.playlistsLoading=false;if(app.nav==='playlists'||(app.nav==='library'&&app.libType==='playlists'))render();}}
 async function openArtist(id){if(!id)return;$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
+async function openArtistFor(entity){
+ if(!entity){showToast('No artist metadata for this track');return}
+ app.overlay=false;drawOverlay();
+ let id=artistId(entity),label=artist(entity);
+ if(!id){
+  try{
+   const found=await api('resolveArtist',{trackId:String(entity.id||''),albumId:String(entity.album?.id||''),name:label},true);
+   id=String(found?.id||'');
+  }catch(e){showToast('Could not identify the artist: '+e.message,5000);return}
+ }
+ if(!id){showToast('Qobuz did not return a matching artist');return}
+ await openArtist(id);
+}
+async function loadMoreArtistAlbums(){
+ if(app.selectedKind!=='artist'||!app.selected?.id)return;
+ const selected=app.selected;
+ const offset=sliceItems(selected,'albums').length;
+ try{
+  const next=await api('artistAlbums',{id:String(selected.id),offset,limit:100});
+  const more=sliceItems(next,'albums');
+  const seen=new Set(sliceItems(selected,'albums').map(x=>String(x.id)));
+  const fresh=more.filter(x=>x?.id&&!seen.has(String(x.id)));
+  selected.albums.items.push(...fresh);
+  selected.albums.limit=Number(selected.albums.limit)||100;
+  selected.albums.total=Math.max(Number(selected.albums.total)||0,Number(next?.albums?.total)||0);
+  renderArtist();
+  if(!fresh.length)showToast('No further releases returned by Qobuz');
+ }catch(e){showToast('Unable to load more releases: '+e.message)}
+}
 async function openAlbum(id){if(!id)return;$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
  try{let d=await api('album',{id});app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
 async function openPlaylist(id){$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
@@ -214,6 +273,8 @@ document.addEventListener('click',async ev=>{
  if(b.hasAttribute('data-refresh')){loadHome();return}
  if(b.dataset.openAlbum){openAlbum(b.dataset.openAlbum);return}
  if(b.dataset.openArtist){openArtist(b.dataset.openArtist);return}
+ if(b.hasAttribute('data-artist-from-album')){openArtistFor(app.selected);return}
+ if(b.hasAttribute('data-load-more-artist')){loadMoreArtistAlbums();return}
  if(b.dataset.playlistId){openPlaylist(b.dataset.playlistId);return}
  if(b.hasAttribute('data-back')){app.selected=null;app.selectedTracks=[];render();return}
  if(b.hasAttribute('data-play-all')){playFromTracks(app.selectedTracks,0);return}

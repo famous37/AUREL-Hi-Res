@@ -38,7 +38,7 @@ final class QobuzApi {
         c.setConnectTimeout(12000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);
         c.setRequestProperty("Accept","application/json");
         c.setRequestProperty("X-App-Id",appId);
-        c.setRequestProperty("User-Agent","AurelHiRes/0.4 Android");
+        c.setRequestProperty("User-Agent","AurelHiRes/0.5 Android");
         if(!token.isEmpty())c.setRequestProperty("X-User-Auth-Token",token);
         if(post){
             c.setRequestMethod("POST");c.setDoOutput(true);
@@ -89,26 +89,6 @@ final class QobuzApi {
         catch(Exception e){original=e;}
         try{return request("user/login",new JSONObject().put("username",email).put("password",password),true,appId,"");}
         catch(Exception e){throw new Exception("Qobuz did not accept direct password login (browser verification may be required): "+e.getMessage());}
-    }
-    JSONObject purchaseDownloadInfo(String trackId,int format) throws Exception {
-        if(!trackId.matches("[0-9]+"))throw new Exception("Invalid track ID");
-        String secret=streamSecret();
-        if(secret.isEmpty())throw new Exception("Streaming App Secret required");
-        // The provider must authorize intent=download; we never save subscription stream URLs.
-        int[] variants=format==27?new int[]{7,6,5}:format==7?new int[]{7,6,5}:format==6?new int[]{6,5}:new int[]{5};
-        Exception last=null;
-        for(int fmt:variants){
-            long ts=System.currentTimeMillis()/1000L;
-            JSONObject params=new JSONObject().put("format_id",fmt).put("intent","download")
-                .put("track_id",trackId).put("request_ts",ts);
-            params.put("request_sig",md5("trackgetFileUrlformat_id"+fmt+"intentdownloadtrack_id"+trackId+ts+secret));
-            try{
-                JSONObject info=catalog("track/getFileUrl",params);
-                if(info.optString("url","").startsWith("https://"))return audioInfo(info,"Qobuz purchased download");
-                throw new Exception("No direct download URL");
-            }catch(Exception e){last=e;}
-        }
-        throw new Exception("Download unavailable or not purchased: "+(last==null?"Qobuz denied request":last.getMessage()));
     }
     private String md5(String v)throws Exception{
         byte[] raw=MessageDigest.getInstance("MD5").digest(v.getBytes(StandardCharsets.UTF_8));
