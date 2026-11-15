@@ -136,7 +136,10 @@
           ${item.error?`<p class="download-error">${html(friendlyDownloadError(item.error))}</p>`:''}
           <div class="download-entry-actions">
             ${item.status==='running'||item.status==='queued'?`<button data-download-cancel="${html(item.id)}">Cancel</button>`:''}
-            ${item.status==='failed'||item.status==='cancelled'?`<button data-download-retry="${html(item.id)}">${ic('refresh',18)} Retry</button>`:''}
+            ${item.status==='failed'&&/Invalid Request Signature/i.test(item.error||'')&&!app.downloadEndpoint?
+              `<button data-download-configure>${ic('settings',18)} Configure provider</button>`:
+              item.status==='failed'||item.status==='cancelled'?
+              `<button data-download-retry="${html(item.id)}">${ic('refresh',18)} Retry</button>`:''}
             ${item.status==='done'?`<button data-download-play="${html(item.id)}">${ic('play',17)} Play offline</button><button data-download-open="${html(item.id)}">Open audio</button>`:''}
           </div>
         </article>`).join(''):
@@ -264,6 +267,13 @@
       handle('downloadDiscography',{id:String(app.selected.id),mode:b.dataset.downloadDiscography||'all'},'Preparing discography downloads');return;
     }
     if(b.hasAttribute('data-download-cancel')){handle('downloadCancel',{id:b.dataset.downloadCancel});return}
+    if(b.hasAttribute('data-download-configure')){
+      ev.preventDefault();ev.stopImmediatePropagation();
+      app.downloadProviderOpen=true;renderDownloads();
+      const details=document.querySelector('#downloadProviderSettings');
+      if(details&&typeof details.scrollIntoView==='function')details.scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
     if(b.hasAttribute('data-download-retry')){handle('downloadRetry',{id:b.dataset.downloadRetry},'Queued for retry');return}
     if(b.hasAttribute('data-download-clear')){handle('downloadClear',{},'History cleared — saved files kept');return}
     if(b.hasAttribute('data-download-play')){handle('playDownloaded',{id:b.dataset.downloadPlay});return}
