@@ -1,4 +1,4 @@
-# AUREL Hi-Res — 0.9.0 Beta
+# AUREL Hi-Res — 0.9.1 Beta
 
 **Developer: famous37**
 
@@ -95,3 +95,13 @@ Other 0.9 updates:
 - The full player's Download button opens a **source-choice sheet**, instead of immediately sending a Qobuz request that previously failed with HTTP 400.
 - Downloads has compact counters, All/Active/Saved/Issues filters, concise expandable errors, a prominent import area and an Advanced settings section.
 - Colors, typography, icons, touch targets and safe-area spacing are normalized on narrow and wide Android displays.
+
+## 0.9.1 — Qobuz token sign-in reliability and transparency
+
+- The original token-validation code had not changed since v0.2, but could incorrectly make connection dependent on two optional user-facing API routes (`user/login` and `favorite/getUserFavorites`), both of which may reject some integrations.
+- A 401 now presents **Use token without precheck** as an explicit alternative. It saves the user-provided App ID + token in Android's encrypted store but **does not claim the Qobuz session is verified**. Real streaming may still fail if a token is expired, invalid, unsupported or lacks rights.
+- Once online Qobuz playback starts successfully, the session may be marked **Playback confirmed**. This does not claim DAC bit-perfect quality or guarantee access to every track.
+- Reconnecting an account with the same App ID and an empty App Secret field no longer erases an existing streaming secret. Switching to a different App ID still clears an unrelated old secret.
+- Preview builds intentionally have isolated Android app IDs and storage. The official AUREL app cannot silently share its previously encrypted token with a Preview package. No passwords or tokens are exported or embedded in the APK.
+- User ID is optional and is a profile comparison when a profile is returned, **not** a substitute for a valid user session token.
+- Qobuz 401 can still indicate an expired token, app ID mismatch, restricted developer integration or user authorization failure. An unverified saved token is not an authentication bypass.

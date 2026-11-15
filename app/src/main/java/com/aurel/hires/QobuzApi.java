@@ -70,15 +70,52 @@ final class QobuzApi {
     JSONObject get(String endpoint, JSONObject params)throws Exception{return catalog(endpoint,params);}
     JSONObject post(String endpoint, JSONObject params)throws Exception{return libraryPost(endpoint,params);}
 
-    JSONObject verifyToken(String appId,String token)throws Exception{
-        if(!appId.matches("\\d{3,15}")||token.trim().isEmpty())throw new Exception("Enter an App ID and a session token");
-        try {return request("user/login",new JSONObject().put("extra","partner"),true,appId,token);}
-        catch(Exception first){
-            // The user/login profile request is not supported by every integration.
-            // This verifies the token against the server, without asserting a profile that was not returned.
-            JSONObject f=request("favorite/getUserFavorites",new JSONObject().put("type","albums").put("limit",1),false,appId,token);
-            return new JSONObject().put("validated",true).put("profile_unavailable",true).put("favorites",f);
+    /** Validate an existing browser session token without reusing password login.
+     *  Certain Qobuz integrations reject profile or favourites endpoints for an
+     *  otherwise usable playback session, so a user may explicitly save unverified
+     *  credentials. That choice never masquerades as successful verification.
+     */
+    JSONObject verifyToken(String appId,String token,String optionalUserId,boolean useWithoutPrecheck)throws Exception{
+        if(appId==null||!appId.matches("\\d{3,15}"))
+            throw new Exception("Enter a valid numeric Qobuz App ID");
+        if(token==null||token.trim().length()<10)
+            throw new Exception("Enter the complete X-User-Auth-Token from your Qobuz session");
+        String uid=optionalUserId==null?"":optionalUserId.trim();
+        if(!uid.isEmpty()&&!uid.matches("\\d{1,20}"))
+            throw new Exception("Optional User ID must contain digits only");
+        if(useWithoutPrecheck){
+            // Explicit opt-in: the user can attempt actual streaming but the session
+            // must be described as unverified until Qobuz confirms it.
+            return new JSONObject().put("validated",false)
+                .put("profile_unavailable",true)
+                .put("validation_status","unverified")
+                .put("validation_note","Token saved without API verification; playback must be tested.");
         }
+        Exception loginFailure=null;
+        try{
+            JSONObject profile=request("user/login",
+                new JSONObject().put("extra","partner"),true,appId,token);
+            // The endpoint can succeed without a user object.
+            if(profile.has("user"))return profile.put("validated",true);
+            loginFailure=new Exception("Profile endpoint did not return an account");
+        }catch(Exception e){loginFailure=e;}
+        try{
+            JSONObject params=new JSONObject().put("type","albums").put("limit",1);
+            if(!uid.isEmpty())params.put("user_id",uid);
+            JSONObject favorites=request("favorite/getUserFavorites",params,false,appId,token);
+            return new JSONObject().put("validated",true).put("profile_unavailable",true)
+                .put("validation_status","verified").put("favorites",favorites);
+        }catch(Exception favoritesFailure){
+            // Neither request confirms validity. Don't discard the token, don't
+            // assert it is good, and don't convert failed auth into success.
+            throw new Exception("Qobuz did not validate this token ("+
+                favoritesFailure.getMessage()+"). If the same token still plays "+
+                "in another client, choose 'Use token without precheck' and test "+
+                "playback. Otherwise obtain a fresh Qobuz session token.");
+        }
+    }
+    JSONObject verifyToken(String appId,String token)throws Exception{
+        return verifyToken(appId,token,"",false);
     }
     JSONObject passwordLogin(String appId,String email,String password)throws Exception{
         if(!appId.matches("\\d{3,15}")||email.trim().isEmpty()||password.isEmpty())

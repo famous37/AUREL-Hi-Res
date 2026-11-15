@@ -183,6 +183,13 @@ public final class MainActivity extends Activity {
         j.put("appId",streamAppId());
         j.put("libraryAppId",secure.get("libraryAppId"));
         j.put("hasSecret",!streamSecret().isEmpty());
+        // The preview package has isolated encrypted storage; it cannot reuse
+        // credentials saved under another installed application ID.
+        j.put("previewBuild",getPackageName().contains(".preview"));
+        String streamValidation=secure.get("streamValidation");
+        String libraryValidation=secure.get("libraryValidation");
+        j.put("streamValidation",streamValidation.isEmpty()?"unknown":streamValidation);
+        j.put("libraryValidation",libraryValidation.isEmpty()?"unknown":libraryValidation);
         try { j.put("profile",new JSONObject(secure.get("profile"))); }
         catch(Exception ignored) {j.put("profile",new JSONObject());}
         try{j.put("libraryProfile",new JSONObject(secure.get("libraryProfile")));}
@@ -277,28 +284,38 @@ public final class MainActivity extends Activity {
                             String token;
                             if(action.equals("loginToken")){
                                 token=p.optString("token","").trim();
-                                raw=api.verifyToken(appId,token);
+                                raw=api.verifyToken(appId,token,p.optString("userId",""),
+                                    p.optBoolean("skipValidation",false));
                             }else{
                                 raw=api.passwordLogin(appId,p.optString("email").trim(),p.optString("password"));
                                 token=raw.optString("user_auth_token",raw.optString("token",""));
                                 if(token.isEmpty())throw new Exception("Qobuz did not issue an auth token. Use session-token login or the official sign-in.");
                             }
                             JSONObject prof=profile(raw,p);
+                            boolean validated=action.equals("loginPassword")||raw.optBoolean("validated",raw.has("user"));
+                            String validation=validated?"verified":"unverified";
                             if(secondary){
                                 secure.put("libraryAppId",appId);
                                 secure.put("libraryToken",token);
+                                secure.put("libraryValidation",validation);
                                 secure.put("libraryProfile",prof.toString());
                             }else{
+                                String previousAppId=streamAppId();
+                                String suppliedSecret=p.optString("appSecret","").trim();
                                 secure.put("streamAppId",appId);
-                                secure.put("streamAppSecret",p.optString("appSecret","").trim());
+                                // Never erase an existing signed-stream secret when the
+                                // same account is reconnected with an empty secret field.
+                                if(!suppliedSecret.isEmpty())secure.put("streamAppSecret",suppliedSecret);
+                                else if(!appId.equals(previousAppId))secure.put("streamAppSecret","");
                                 secure.put("streamToken",token);
+                                secure.put("streamValidation",validation);
                                 secure.put("profile",prof.toString());
                             }
                             // Password is never stored; source and library tokens are distinct.
                             data=session();break;
                         }
                         case "logoutLibrary": {
-                            secure.put("libraryAppId","");secure.put("libraryToken","");secure.put("libraryProfile","");
+                            secure.put("libraryAppId","");secure.put("libraryToken","");secure.put("libraryProfile","");secure.put("libraryValidation","");
                             data=session();break;
                         }
                         case "logout": {
@@ -735,6 +752,16 @@ public final class MainActivity extends Activity {
                             prepared=true;buffering=false;
                             inspectPreparedTrack(mp);
                             try{mp.start();}catch(Exception ignored){}
+                            // The successful start of an actual Qobuz stream is
+                            // stronger evidence than an optional login endpoint.
+                            if("unverified".equals(secure.get("streamValidation"))){
+                                jobs.execute(()->{
+                                    try{
+                                        secure.put("streamValidation","playback");
+                                        emit("session",session());
+                                    }catch(Exception ignored){}
+                                });
+                            }
                             emit("player",playerState());
                         });
                         player.setOnCompletionListener(mp->advance(1,true));
