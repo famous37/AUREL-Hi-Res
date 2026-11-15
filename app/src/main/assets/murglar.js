@@ -40,6 +40,7 @@
           <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-label="Play queue" title="Queue">${ic('queue',25)}<span>Queue</span></button>
           <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-label="Track details" title="Credits">${ic('info',25)}<span>Info</span></button>
           <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-label="Source quality details" title="Audio">${ic('audio',25)}<span>Audio</span></button>
+          <button data-download-current aria-label="Download purchased track" title="Download">${ic('down',25)}<span>Download</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',26)}<span>Favourite</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">

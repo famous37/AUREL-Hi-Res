@@ -138,4 +138,41 @@ final class QobuzApi {
             throw e;
         }
     }
+    /** Request a separately authorized permanent file download.
+     *  Streaming "intent=stream" URLs are deliberately never used here.
+     *  Qobuz may not expose this endpoint to a particular account/integration.
+     */
+    JSONObject purchasedFileInfo(String trackId,int format)throws Exception {
+        if(!trackId.matches("[0-9]+"))throw new Exception("Invalid Qobuz track ID");
+        if(format!=5&&format!=6&&format!=7&&format!=27)throw new Exception("Invalid download format");
+        String secret=streamSecret();
+        if(secret.isEmpty()||streamToken().isEmpty())
+            throw new Exception("Connect an account authorized for purchased downloads.");
+        long ts=System.currentTimeMillis()/1000L;
+        String intent="download";
+        JSONObject params=new JSONObject().put("format_id",format).put("intent",intent)
+            .put("track_id",trackId).put("request_ts",ts);
+        String sig=md5("trackgetFileUrlformat_id"+format+"intent"+intent+
+            "track_id"+trackId+ts+secret);
+        params.put("request_sig",sig);
+        Exception first=null;
+        JSONObject info=null;
+        try{info=catalog("track/getFileUrl",params);}
+        catch(Exception e){first=e;}
+        if(info==null||!info.optString("url","").startsWith("https://")){
+            params.put("request_sig",md5("fileUrlformat_id"+format+"intent"+intent+
+                "track_id"+trackId+ts+secret));
+            try{info=catalog("file/url",params);}
+            catch(Exception e){
+                throw new Exception("An authorized purchased-file download is unavailable: "+
+                    (first!=null?first.getMessage()+"; ":"")+e.getMessage());
+            }
+        }
+        if(info==null||!info.optString("url","").startsWith("https://"))
+            throw new Exception("Qobuz did not grant a direct purchased-file download URL.");
+        if(info.has("key_id")||info.has("url_template")||info.has("license_url"))
+            throw new Exception("Protected content cannot be exported by this application.");
+        return audioInfo(info,"Qobuz purchased download");
+    }
+
 }

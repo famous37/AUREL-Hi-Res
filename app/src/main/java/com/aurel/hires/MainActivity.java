@@ -35,6 +35,7 @@ public final class MainActivity extends Activity {
     private WebView web;
     private SecureStore secure;
     private QobuzApi api;
+    private AuthorizedDownloadManager downloads;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -61,6 +62,7 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         api=new QobuzApi(secure);
+        downloads=new AuthorizedDownloadManager(this,api,statePayload->emit("downloads",statePayload));
         web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
         WebSettings s=web.getSettings();
         s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
@@ -114,6 +116,7 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy() {
         ui.removeCallbacks(ticker);
         cleanupPlayer();
+        if(downloads!=null)downloads.close();
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
         jobs.shutdownNow();super.onDestroy();
     }
@@ -335,6 +338,36 @@ public final class MainActivity extends Activity {
                             final boolean rand=p.optBoolean("shuffle",false);
                             ui.post(()->{repeatMode=mode;shuffle=rand;emit("player",playerState());});data=new JSONObject();break;
                         }
+                        case "downloadTrack":data=downloads.addTrack(p.getJSONObject("track"));break;
+                        case "downloadAlbum":data=downloads.addAlbum(p.getString("id"));break;
+                        case "downloadDiscography":data=downloads.addDiscography(
+                            p.getString("id"),p.optString("mode","all"));break;
+                        case "downloadState":data=downloads.snapshot();break;
+                        case "downloadCancel":data=downloads.cancel(p.getString("id"));break;
+                        case "downloadRetry":data=downloads.retry(p.getString("id"));break;
+                        case "downloadClear":data=downloads.clearHistory();break;
+                        case "downloadQuality":data=downloads.setQuality(p.getInt("quality"));break;
+                        case "downloadSettings":data=downloads.settings();break;
+                        case "playDownloaded": {
+                            final JSONObject saved=downloads.savedItem(p.getString("id"));
+                            ui.post(()->startLocalPlayback(saved));
+                            data=new JSONObject();break;
+                        }
+                        case "openDownloaded": {
+                            String stored=downloads.fileUri(p.getString("id"));
+                            if(!stored.startsWith("content://"))
+                                throw new Exception("File saved in AUREL app Music folder; open from file manager.");
+                            Uri file=Uri.parse(stored);
+                            ui.post(()->{
+                                try {
+                                    Intent open=new Intent(Intent.ACTION_VIEW);
+                                    open.setDataAndType(file, "audio/*");
+                                    open.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                    startActivity(Intent.createChooser(open,"Open downloaded audio"));
+                                }catch(Exception e){emit("downloadError",new JSONObject(java.util.Collections.singletonMap("message","No app found for opening audio"))); }
+                            });
+                            data=new JSONObject();break;
+                        }
                         case "playerState": {
                             // UI state must be read on main thread; send by native event instead.
                             ui.post(()->emit("player",playerState()));data=new JSONObject();break;
@@ -480,6 +513,61 @@ public final class MainActivity extends Activity {
         prepared=false;buffering=false;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
     }
+
+    /** Play an already-saved purchased file without fetching another Qobuz stream. */
+    private void startLocalPlayback(JSONObject saved){
+        playGeneration++;
+        final int generation=playGeneration;
+        cleanupPlayer();
+        queue.clear();
+        queueIndex=0;
+        try {
+            current=new JSONObject().put("id",saved.optString("id"))
+                .put("title",saved.optString("title","Track"))
+                .put("artist",new JSONObject().put("name",saved.optString("artist","Artist")))
+                .put("album",new JSONObject().put("title",saved.optString("album","Album")));
+            queue.add(current);
+            fileInfo=new JSONObject().put("mime_type",saved.optString("mime",""));
+            codec=saved.optString("mime","").contains("flac")?"FLAC":"";
+            sourceVerified=false;sourceLabel="Local purchased audio";
+            decoderSampleRateHz=0;decoderChannels=0;decoderMime="";
+            buffering=true;prepared=false;playerError="";
+            emit("player",playerState());
+            String link=saved.optString("uri","");
+            Uri location=Uri.parse(link);
+            player=new MediaPlayer();
+            player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            player.setOnPreparedListener(mp->{
+                if(generation!=playGeneration)return;
+                prepared=true;buffering=false;
+                inspectPreparedTrack(mp);
+                mp.start();
+                emit("player",playerState());
+            });
+            player.setOnCompletionListener(mp->{
+                if(generation!=playGeneration)return;
+                if(repeatMode==2){mp.seekTo(0);mp.start();}
+                else{cleanupPlayer();emit("player",playerState());}
+            });
+            player.setOnErrorListener((mp,what,extra)->{
+                if(generation!=playGeneration)return true;
+                buffering=false;prepared=false;
+                playerError="Local audio decoder error ("+what+" / "+extra+")";
+                emit("player",playerState());return true;
+            });
+            if("content".equalsIgnoreCase(location.getScheme()))
+                player.setDataSource(this,location);
+            else if("file".equalsIgnoreCase(location.getScheme()))
+                player.setDataSource(location.getPath());
+            else throw new Exception("Invalid saved audio URI");
+            player.prepareAsync();
+        } catch(Exception e){
+            cleanupPlayer();
+            playerError=e.getMessage();
+            emit("player",playerState());
+        }
+    }
+
     private void startAtCurrent() {
         if(queueIndex<0||queueIndex>=queue.size())return;
         playGeneration++;
