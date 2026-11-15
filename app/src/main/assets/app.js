@@ -53,7 +53,7 @@ function listTracks(items){if(!items.length)return `<div class="empty">No tracks
   return `<div class="track"><span class="index">${i+1}</span>${art(o,'track-art')||'<div class="track-art"></div>'}
    <div class="track-details" data-play-index="${i}"><div class="track-title">${html(o.title||'Untitled')}</div><div class="track-meta">${html(artist(o))}${o.album?.title?' · '+html(o.album.title):''}</div></div>
    <span class="track-length">${duration(o.duration)}</span><button class="icon-btn" title="Favourite" data-like-track="${html(o.id)}">♡</button>
-   <button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
+   <button class="icon-btn" data-play-next="${i}" title="Play next">＋</button><button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
  }).join('')}</div>`;
 }
 function render(){
@@ -61,7 +61,7 @@ function render(){
  $('#headerName').textContent=app.session?.profile?.displayName||'Account';
  if(!hasAuth()&&app.nav!=='settings'){renderLogin();return;}
  if(app.selected){if(app.selectedKind==='artist')renderArtist();else renderAlbum();return;}
- switch(app.nav){case 'home':renderHome();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;default:renderHome()}
+ switch(app.nav){case 'home':renderHome();break;case 'magazine':renderMagazine();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;default:renderHome()}
 }
 function renderHome(){
  $('#screen').innerHTML=`<div style="padding:8px 0 21px"><div class="eyebrow">WELCOME TO YOUR LISTENING ROOM</div><h1 class="headline">Discover something<br>extraordinary<span style="color:var(--accent)">.</span></h1><div class="subline">Editorial warmth. Exceptional sound. Your music, your way.</div></div>${banner()}
@@ -172,19 +172,20 @@ function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.clas
 async function navigate(page){app.selected=null;app.selectedTracks=[];app.nav=page;render();
  try{
  if(page==='home'&&!app.albums.length&&hasAuth())await loadHome();
- else if(page==='library')await loadLibrary();
+ else if(page==='library')await (app.libType==='playlists'?loadPlaylists():loadLibrary());
  else if(page==='playlists')await loadPlaylists();
  }catch(e){showToast(e.message)}
 }
 async function loadHome(){try{let d=await api('discover',{},true);app.albums=sliceItems(d,'albums').length?sliceItems(d,'albums'):sliceItems(d);if(app.nav==='home')render();}
  catch(e){if(app.nav==='home')render();showToast('Qobuz discovery unavailable: '+e.message,5000)}}
 async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()||app.searchQuery;if(!app.searchQuery)return;
+ if(window.AurelSearchHistory)window.AurelSearchHistory(app.searchQuery);
  app.searchBusy=true;renderSearch();try{let d=await api('search',{query:app.searchQuery,type:app.searchType},true);app.results=sliceItems(d,app.searchType);if(!app.results.length)app.results=sliceItems(d);}
  catch(e){app.results=[];showToast(e.message,6000)}finally{app.searchBusy=false;if(app.nav==='search')renderSearch();}}
 async function loadLibrary(){app.libraryLoading=true;render();try{let d=await api('favorites',{type:app.libType},true);app.libraryItems=sliceItems(d,app.libType);}
  catch(e){app.libraryItems=[];showToast(e.message)}finally{app.libraryLoading=false;if(app.nav==='library')render();}}
 async function loadPlaylists(){app.playlistsLoading=true;render();try{let d=await api('playlists',{},true);app.playlists=sliceItems(d,'playlists');}
- catch(e){app.playlists=[];showToast(e.message)}finally{app.playlistsLoading=false;if(app.nav==='playlists')render();}}
+ catch(e){app.playlists=[];showToast(e.message)}finally{app.playlistsLoading=false;if(app.nav==='playlists'||(app.nav==='library'&&app.libType==='playlists'))render();}}
 async function openArtist(id){if(!id)return;$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
 async function openAlbum(id){if(!id)return;$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
  try{let d=await api('album',{id});app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
@@ -211,7 +212,7 @@ document.addEventListener('click',async ev=>{
  if(b.dataset.nav){navigate(b.dataset.nav);return}
  if(b.dataset.loginMode){app.loginMode=b.dataset.loginMode;renderLogin();return}
  if(b.dataset.searchType){app.searchType=b.dataset.searchType;app.results=[];renderSearch();if(app.searchQuery)search();return}
- if(b.dataset.libType){app.libType=b.dataset.libType;loadLibrary();return}
+ if(b.dataset.libType){app.libType=b.dataset.libType;if(app.libType==='playlists')loadPlaylists();else loadLibrary();return}
  if(b.hasAttribute('data-refresh')){loadHome();return}
  if(b.dataset.openAlbum){openAlbum(b.dataset.openAlbum);return}
  if(b.dataset.openArtist){openArtist(b.dataset.openArtist);return}

@@ -1,6 +1,8 @@
 package com.aurel.hires;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -264,6 +266,46 @@ public final class MainActivity extends Activity {
                             else advance(-1,false);
                         });data=new JSONObject();break;
                         case "seek":{final int to=Math.max(0,p.optInt("ms",0));ui.post(()->{if(player!=null&&prepared)player.seekTo(to);});data=new JSONObject();break;}
+
+                        case "queueAdd": {
+                            final JSONArray incoming=p.getJSONArray("tracks");
+                            final boolean next=p.optBoolean("next",false);
+                            if(incoming.length()>200)throw new Exception("Too many tracks");
+                            ui.post(()->{int at=next?Math.max(0,queueIndex+1):queue.size();
+                                for(int i=0;i<incoming.length()&&queue.size()<500;i++){JSONObject t=incoming.optJSONObject(i);
+                                    if(t!=null)queue.add(Math.min(at++,queue.size()),t);}
+                                emit("player",playerState());
+                            });data=new JSONObject();break;
+                        }
+                        case "queuePlay":{
+                            final int index=p.optInt("index",-1);
+                            ui.post(()->{if(index>=0&&index<queue.size()){queueIndex=index;startAtCurrent();}});
+                            data=new JSONObject();break;
+                        }
+                        case "queueMove":{
+                            final int from=p.optInt("from",-1),to=p.optInt("to",-1);
+                            ui.post(()->{if(from<0||to<0||from>=queue.size()||to>=queue.size()||from==to)return;
+                                JSONObject t=queue.remove(from);queue.add(to,t);
+                                if(queueIndex==from)queueIndex=to;
+                                else if(from<queueIndex&&to>=queueIndex)queueIndex--;
+                                else if(from>queueIndex&&to<=queueIndex)queueIndex++;
+                                emit("player",playerState());});
+                            data=new JSONObject();break;
+                        }
+                        case "queueRemove":{
+                            final int index=p.optInt("index",-1);
+                            ui.post(()->{if(index<0||index>=queue.size())return;
+                                queue.remove(index);
+                                if(queue.isEmpty()){playGeneration++;cleanupPlayer();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();}
+                                else if(index==queueIndex){queueIndex=Math.min(index,queue.size()-1);startAtCurrent();}
+                                else if(index<queueIndex)queueIndex--;
+                                emit("player",playerState());});
+                            data=new JSONObject();break;
+                        }
+                        case "openMagazine":{
+                            ui.post(()->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.qobuz.com/us-en/magazine/")));}catch(Exception ignored){}});
+                            data=new JSONObject();break;
+                        }
                         case "playbackSettings":{
                             final int mode=Math.max(0,Math.min(2,p.optInt("repeat",0)));
                             final boolean rand=p.optBoolean("shuffle",false);
@@ -393,6 +435,7 @@ public final class MainActivity extends Activity {
             state.put("bits",fileInfo.optInt("bits_depth",0));
             state.put("sampleRate",fileInfo.optDouble("sampling_rate",0));
             state.put("formatId",fileInfo.optInt("format_id",0));
+            JSONArray queueJson=new JSONArray();for(JSONObject t:queue)queueJson.put(t);state.put("queue",queueJson);
             AudioManager manager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             state.put("androidMixerHz",manager==null?"":manager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE));
         }catch(Exception ignored){}

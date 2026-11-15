@@ -37,3 +37,8 @@ This repository is standalone: it does not include source code or history from M
 - `app/src/main/java/com/aurel/hires/SecureStore.java` — encrypted local storage.
 
 The application includes no copyrighted album art, account credentials, tokens or access keys in source code.
+
+
+## v0.3.0 Alpha
+
+Original album-led Discover UI, Magazine entry, Qobuz-style four-tab navigation, improved library/sorting, search history, new artwork-driven player, queue editing, and detailed audio/credit panels. No proprietary code or Qobuz assets are copied. Protected segmented audio remains unsupported.
