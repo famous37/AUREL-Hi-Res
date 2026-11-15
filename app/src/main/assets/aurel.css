@@ -228,3 +228,11 @@ button:disabled{opacity:.38}
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
+
+/* Verified-session diagnostics: persistent, readable 401 guidance, not a toast. */
+.screen .aurel-auth-warning{margin:13px 0 19px;padding:14px 16px;border:1px solid #b67b83;background:#3b2830;border-radius:14px;display:flex;flex-direction:column;gap:6px}
+.screen .aurel-auth-warning strong{color:#ffced3;font-size:16px;line-height:1.35}
+.screen .aurel-auth-warning span{color:#f0d4dd;font-size:14px;line-height:1.55}
+.screen .aurel-account-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.screen .aurel-account-actions .pill{margin:0;min-height:45px}
+.screen .aurel-signin-error{white-space:normal;overflow-wrap:anywhere}
