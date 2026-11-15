@@ -141,26 +141,38 @@ function renderAlbum(){
 function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
  $('#screen').innerHTML=`<button class="small-link" data-back>‹ Back</button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2><span class="discography-count">${albums.length} releases</span></div>${albumCards(albums)}${albums.length>=Number(o.albums?.limit||100)&&albums.length<Number(o.albums?.total||albums.length)?`<button class="load-more-albums" data-load-more-artist>Show more releases</button>`:``}`;
 }
-function renderLogin(){let secondary=app.loginTarget==='library';
- $('#screen').innerHTML=`<div class="auth-shell"><div class="eyebrow">${secondary?'OPTIONAL COLLECTION ACCOUNT':'YOUR MUSIC. YOUR SOUND.'}</div><h1>${secondary?'Connect your library.':'Connect to AUREL.'}</h1>
- <p>${secondary?'Use another Qobuz account to load its artists, favourites and playlists. Streaming still uses the primary account and its rights.':'Connect the account authorized for playback. An active Qobuz subscription and supported API format are required.'}</p>
- ${app.session?.previewBuild?'<div class="auth-preview-note" role="note">Preview installation: saved tokens from the original AUREL are not shared with this separate app. Enter a valid session token here.</div>':''}
- <div class="tabs"><button class="tab ${app.loginMode==='token'?'active':''}" data-login-mode="token">Token + User ID</button><button class="tab ${app.loginMode==='password'?'active':''}" data-login-mode="password">Email / password</button></div>
- <form id="loginForm"><div class="formgrid">
- <label class="field">App ID <input id="appId" inputmode="numeric" placeholder="Qobuz App ID" value="${html(secondary?app.session?.libraryAppId||app.session?.appId||'':app.session?.appId||'')}" ${secondary?'':'required'}></label>
- ${secondary?'':`<label class="field">App Secret <input type="password" id="appSecret" autocomplete="off" placeholder="${app.session?.hasSecret?'Saved on device · leave blank to keep':'For signed streams'}"></label>`}
- ${app.loginMode==='token'?`<label class="field wide">Session token<input type="password" id="token" autocomplete="off" placeholder="X-User-Auth-Token" required></label><label class="field wide">User ID <small>Optional · profile comparison only</small><input id="userId" inputmode="numeric" placeholder="Qobuz user ID"></label>`:`<label class="field wide">Email / account name<input type="text" autocomplete="username" id="email" required></label><label class="field wide">Password<input type="password" id="password" autocomplete="current-password" required></label>`}
- </div><p class="hint">Direct password sign-in is supported only when Qobuz accepts it; CAPTCHA or OAuth may require a session token. Tokens are encrypted on your device; passwords are not saved.</p>
- <button id="loginSubmit" class="pill" type="submit">${secondary?'Connect library account':'Connect for streaming'}</button>
- <div id="loginValidationError" class="auth-error-panel hidden" role="alert">
-  <strong>Qobuz did not validate this session.</strong>
-  <p id="loginValidationErrorText"></p>
-  <button type="button" data-login-unverified class="pill secondary">Use token without precheck</button>
-  <small>This saves your token locally but does not verify access. Streaming may still fail.</small>
- </div></form>
- ${secondary?'<button class="small-link" data-cancel-library style="margin-top:22px">‹ Return to account settings</button>':''}
- ${!secondary?'<button class="small-link" data-add-library style="display:block;margin-top:23px">＋ Connect another account for library / favourites</button>':''}
- <p class="hint" style="margin-top:23px">Independent Qobuz client; no keys or tokens are built into the APK.</p></div>`;
+function renderLogin(){
+  const secondary=app.loginTarget==='library';
+  const appId=secondary?app.session?.libraryAppId||app.session?.appId||'312369995':app.session?.appId||'312369995';
+  $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
+    <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
+    <div class="eyebrow">AUREL / QOBUZ</div>
+    <h1>${secondary?'Connect your library.':'Your music starts here.'}</h1>
+    <p class="aurel-signin-subtitle">${secondary?'Add a separate Qobuz session for your favourites, playlists and saved releases. Audio still uses the primary account.':'Enter your Qobuz session token, as in Murglar. No password or profile request is required just to save it.'}</p>
+    ${app.session?.previewBuild?'<p class="auth-preview-note">This Preview is installed separately and cannot read credentials from your other AUREL installation.</p>':''}
+    <form id="loginForm" class="aurel-signin-form">
+      <label for="token" class="aurel-token-label">Qobuz session token</label>
+      <div class="aurel-token-input">
+        <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste X-User-Auth-Token" required aria-label="Qobuz session token">
+        <button type="button" data-toggle-token aria-label="Show token" title="Show or hide token">${ic('eye',22)}</button>
+      </div>
+      <details class="aurel-signin-advanced">
+        <summary>${ic('settings',19)} Advanced · App ID &amp; App Secret ${ic('chevron',16)}</summary>
+        <div class="aurel-advanced-fields">
+          <label for="appId">App ID <small>Change only if your token uses another application</small></label>
+          <input id="appId" inputmode="numeric" autocomplete="off" value="${html(appId)}" placeholder="312369995">
+          ${secondary?'':`<label for="appSecret">App Secret <small>Optional at sign-in; needed for signed audio URLs if not already saved</small></label>
+          <div class="aurel-token-input"><input id="appSecret" type="password" autocomplete="off" placeholder="${app.session?.hasSecret?'Previously saved · leave empty to keep':'Enter your App Secret if available'}"><button type="button" data-toggle-secret aria-label="Show App Secret" title="Show or hide App Secret">${ic('eye',22)}</button></div>`}
+          <label for="userId">User ID <small>Optional · for checking a returned profile only</small></label>
+          <input id="userId" inputmode="numeric" autocomplete="off" placeholder="Optional user identifier">
+        </div>
+      </details>
+      <p class="aurel-signin-info">${ic('info',18)} AUREL securely saves your token on this device. Qobuz authorization is checked when you use the catalogue or play a track.</p>
+      <div id="loginError" class="aurel-signin-error hidden" role="alert"></div>
+      <button id="loginSubmit" type="submit" class="aurel-signin-submit">${secondary?'Connect library account':'Connect Qobuz'} ${ic('chevron',22)}</button>
+    </form>
+    ${secondary?'<button class="small-link" data-cancel-library>Return to your account settings</button>':'<div class="aurel-signin-footer">Need a separate favourites collection? Connect it from Settings after you sign in.</div>'}
+  </div>`;
 }
 function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
@@ -172,7 +184,7 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?' ✓':''}</strong></div>
  <div class="info-row"><span>App ID</span><strong>${html(app.session.appId||'—')}</strong></div>
  <button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div>
- <div class="panel"><h3>Additional library account</h3><p class="subline">Load artists, albums, favorites and playlists from a second account. Playback remains tied to the streaming account and available content rights.</p>
+ <div class="panel"><h3>Additional library account</h3><p class="subline">Use a different Qobuz token for favourites, saved albums, artists and playlists. Playback always uses your primary streaming account.</p>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
  ${app.session.libraryConnected?'<button class="small-link" data-logout-library style="margin-left:18px">Disconnect library</button>':''}</div>
@@ -181,7 +193,7 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>0.6.0 Alpha</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.0.0 Beta</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -263,38 +275,32 @@ async function openPlaylist(id){$('#screen').innerHTML='<div class="loading"><di
  try{let d=await api('playlist',{id});app.selected=d;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
 async function playFromTracks(items,index=0){if(!items.length)return;await api('play',{tracks:items,index});app.overlay=true;drawOverlay()}
 async function like(type,id){try{await api('favoriteAdd',{type,id});showToast('Added to your Qobuz favourites ♡')}catch(e){}}
-async function login(form,skipValidation=false){
+async function login(form){
  const button=$('#loginSubmit');
- if(button){button.disabled=true;button.textContent=skipValidation?'Saving session…':'Checking token…'}
+ if(button){button.disabled=true;button.textContent='Saving token…'}
  try{
-  let data={appId:$('#appId').value,libraryOnly:app.loginTarget==='library'};
-  if(app.loginTarget!=='library')data.appSecret=$('#appSecret')?.value||'';
-  if(app.loginMode==='token'){
-   data.token=$('#token').value;
-   data.userId=$('#userId').value;
-   data.skipValidation=!!skipValidation;
-  }else{
-   data.email=$('#email').value;data.password=$('#password').value;
-  }
-  app.session=await nativeCall(app.loginMode==='token'?'loginToken':'loginPassword',data);
-  const status=app.loginTarget==='library'?app.session.libraryValidation:app.session.streamValidation;
-  showToast(status==='unverified'
-   ?'Token saved locally, not verified by Qobuz. Try playing a track.'
-   :app.loginTarget==='library'?'Library account connected':'Qobuz account verified',6500);
-  app.loginTarget='stream';app.results=[];app.albums=[];navigate('home');
+  const token=$('#token')?.value?.trim()||'';
+  const data={
+   token,
+   appId:$('#appId')?.value?.trim()||app.session?.appId||'312369995',
+   appSecret:app.loginTarget==='library'?'':($('#appSecret')?.value||''),
+   userId:$('#userId')?.value?.trim()||'',
+   libraryOnly:app.loginTarget==='library'
+  };
+  app.session=await nativeCall('loginToken',data);
+  app.results=[];app.albums=[];
+  const secondary=app.loginTarget==='library';
+  app.loginTarget='stream';
+  showToast(secondary?'Library token saved · access checked when opening favourites':'Qobuz token saved · test playback to confirm access',5700);
+  navigate(secondary?'library':'home');
  }catch(e){
-  if(button){button.disabled=false;button.textContent=app.loginTarget==='library'?'Connect library account':'Connect for streaming'}
-  const canBypass=app.loginMode==='token'&&!skipValidation&&
-   /401|403|authentication|required|validate|unauthori[sz]ed/i.test(e.message||'');
-  const panel=$('#loginValidationError');
-  if(panel){
-   panel.classList.toggle('hidden',!canBypass);
-   const text=$('#loginValidationErrorText');
-   if(text)text.textContent='Verification failed. You may still test this token in the player, but it has not been confirmed by Qobuz.';
-  }
-  if(!canBypass)showToast(e.message||'Unable to connect to Qobuz',6500);
+  const error=$('#loginError');
+  if(error){error.textContent=e.message||'Unable to save this token';error.classList.remove('hidden')}
+  else showToast(e.message||'Unable to save this token',6400);
+  if(button){button.disabled=false;button.innerHTML=(app.loginTarget==='library'?'Connect library account':'Connect Qobuz')+' '+ic('chevron',22)}
  }
 }
+
 function setQuality(q){nativeCall('saveSettings',{quality:q}).then(d=>{app.session=d;render();showToast('Quality preference saved')}).catch(e=>showToast(e.message))}
 function setSecret(){const value=$('#newSecret').value;if(!value){showToast('Enter a new secret');return}
  nativeCall('saveSettings',{quality:app.session.quality,appSecret:value}).then(d=>{app.session=d;render();showToast('Secret encrypted and saved')}).catch(e=>showToast(e.message));}
@@ -303,8 +309,18 @@ function togglePlayback(){if(!app.player)return;nativeCall(app.player.playing?'p
 document.addEventListener('click',async ev=>{
  const b=ev.target.closest('button,[data-open-album],[data-open-artist],[data-play-index],[data-playlist-id]');if(!b)return;
  if(b.dataset.nav){navigate(b.dataset.nav);return}
- if(b.dataset.loginMode){app.loginMode=b.dataset.loginMode;renderLogin();return}
- if(b.hasAttribute('data-login-unverified')){ev.preventDefault();login(null,true);return}
+ if(b.dataset.loginMode){app.loginMode='token';renderLogin();return}
+ if(b.hasAttribute('data-toggle-token')||b.hasAttribute('data-toggle-secret')){
+    ev.preventDefault();
+    const secret=b.hasAttribute('data-toggle-secret');
+    const field=$(secret?'#appSecret':'#token');
+    if(field){
+      field.type=field.type==='password'?'text':'password';
+      b.setAttribute('aria-label',field.type==='password'?(secret?'Show App Secret':'Show token'):(secret?'Hide App Secret':'Hide token'));
+      b.innerHTML=ic(field.type==='password'?'eye':'eye-off',22);
+    }
+    return;
+  }
  if(b.dataset.searchType){app.searchType=b.dataset.searchType;app.results=[];renderSearch();if(app.searchQuery)search();return}
  if(b.dataset.libType){app.libType=b.dataset.libType;if(app.libType==='playlists')loadPlaylists();else loadLibrary();return}
  if(b.hasAttribute('data-refresh')){loadHome();return}
@@ -323,7 +339,7 @@ document.addEventListener('click',async ev=>{
  if(b.dataset.likeAlbum){like('albums',b.dataset.likeAlbum);return}
  if(b.dataset.quality){setQuality(Number(b.dataset.quality));return}
  if(b.hasAttribute('data-save-secret')){setSecret();return}
- if(b.hasAttribute('data-add-library')){app.loginTarget='library';app.loginMode='password';renderLogin();return}
+ if(b.hasAttribute('data-add-library')){app.loginTarget='library';app.loginMode='token';renderLogin();return}
  if(b.hasAttribute('data-change-stream')){app.loginTarget='stream';app.loginMode='token';renderLogin();return}
  if(b.hasAttribute('data-cancel-library')){app.loginTarget='stream';renderSettings();return}
  if(b.hasAttribute('data-logout-library')){try{app.session=await api('logoutLibrary');showToast('Using primary library');navigate('library')}catch(e){}return}
