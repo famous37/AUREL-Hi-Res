@@ -2,6 +2,8 @@
   'use strict';
   app.downloads={items:[],total:0,queued:0,done:0,failed:0,running:0,planning:false,planMessage:''};
   app.downloadQuality=27;
+  app.downloadFilter='all';
+  app.downloadAdvancedOpen=false;
   app.downloadEndpoint='';
   app.downloadHasKey=false;
   app.downloadProviderOpen=false;
@@ -42,7 +44,7 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       /(<button class="pill secondary" data-like-album=[^>]*>♡ Save<\/button>)/,
-      '$1<button class="pill secondary aurel-download-album" data-download-album title="Download purchased album">'+ic('download',20)+' Download album</button>');
+      '$1<button class="pill secondary aurel-download-album" data-download-album title="Queue authorized Qobuz album">'+ic('download',20)+' Qobuz files</button><button class="pill secondary" data-saf-import="folder" title="Import album folder from Murglar">'+ic('library',20)+' Import album</button>');
   };
   const priorRenderArtist=renderArtist;
   renderArtist=function(){
@@ -51,7 +53,7 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       '<div class="sectionhead"><h2>Discography',
-      '<div class="discography-actions"><button class="pill secondary" data-download-discography="all">'+ic('download',19)+' Download discography</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button></div><div class="sectionhead"><h2>Discography');
+      '<div class="discography-actions"><button class="pill secondary" data-saf-import="folder">'+ic('library',19)+' Import collection</button><button class="pill secondary" data-download-discography="all">'+ic('download',19)+' Qobuz discography</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button></div><div class="sectionhead"><h2>Discography');
   };
   const priorRender=render;
   render=function(){
@@ -66,10 +68,16 @@
   };
   function friendlyDownloadError(value){
     const s=String(value||'');
-    if(/Invalid Request Signature/i.test(s))
-      return 'Qobuz rejected the purchased-file authorization. This is not a network problem. Configure your own authorized download endpoint below; simply retrying will fail again.';
+    if(/Invalid Request Signature|refused the purchase-download signature/i.test(s))
+      return 'The Qobuz API did not authorize a downloadable file. You can import music through Murglar’s Android document library, or use a separately authorized download provider.';
     if(s.length>380)return s.slice(0,377)+'…';
     return s;
+  }
+  function errorSummary(value){
+    const s=String(value||'');
+    if(/Invalid Request Signature|refused the purchase-download signature/i.test(s))return 'Qobuz file unavailable';
+    if(/expired|permission|denied/i.test(s))return 'Re-select the source file';
+    return s.length>95?s.slice(0,92)+'…':s;
   }
   function badgeText(item){
     if(item.status==='done')return 'Saved';
@@ -88,8 +96,24 @@
     const sc=$('#screen'),previous=sc.scrollTop;
     const dl=app.downloads||{};
     const items=Array.isArray(dl.items)?dl.items:[];
+    const shown=items.filter(i=>app.downloadFilter==='all'||
+      app.downloadFilter==='active'&&(i.status==='running'||i.status==='queued')||
+      app.downloadFilter==='saved'&&i.status==='done'||
+      app.downloadFilter==='failed'&&(i.status==='failed'||i.status==='cancelled'));
     sc.innerHTML=`<div class="page-heading"><h1>Downloads</h1></div>
-      <p class="subline">Music files you own or are separately authorized to download. Streaming-only access does not permit permanent exports.</p>
+      <p class="subline downloads-intro">Your offline music, organized in one place.</p>
+      <section class="aurel-import-hero" aria-label="Import music from Murglar">
+        <div class="aurel-import-heading">
+          <div class="aurel-import-mark">${ic('library',27)}</div>
+          <div><div class="aurel-import-kicker">MURGLAR &amp; DEVICE FILES</div>
+            <h2>Import your music</h2></div>
+        </div>
+        <p>Choose audio tracks or a complete album/artist folder from Murglar in Android Files. AUREL copies the selected files into your offline library.</p>
+        <div class="aurel-import-buttons">
+          <button data-saf-import="files" class="aurel-import-primary">${ic('download',20)} Select tracks</button>
+          <button data-saf-import="folder" class="aurel-import-secondary">${ic('library',20)} Select folder</button>
+        </div>
+      </section>
       <div class="download-summary">
         <div><strong>${Number(dl.total)||0}</strong><span>Tracks</span></div>
         <div><strong>${Number(dl.done)||0}</strong><span>Saved</span></div>
@@ -98,6 +122,9 @@
       </div>
       ${dl.planning?`<div class="download-plan" role="status"><span class="loading-dot"></span>${html(dl.planMessage||'Preparing downloads…')}</div>`:
         dl.planMessage?`<div class="download-plan">${html(dl.planMessage)}</div>`:''}
+      <details class="aurel-download-advanced" id="aurelAdvanced" ${app.downloadAdvancedOpen?'open':''}>
+        <summary>${ic('settings',20)} Download quality &amp; advanced settings</summary>
+        <div class="aurel-download-advanced-inner">
       <div class="download-settings-row">
         <label for="downloadQuality">Purchased download quality</label>
         <select id="downloadQuality" aria-label="Maximum requested download quality">
@@ -123,30 +150,36 @@
           <p class="hint">Only configure services you own or are authorized to use. No Qobuz account token is sent to this endpoint.</p>
         </div>
       </details>
+        </div>
+      </details>
       <div class="sectionhead download-history-heading"><h2>Download queue</h2><button class="plain-action" data-download-refresh aria-label="Refresh downloads" title="Refresh">${ic('refresh',23)}</button></div>
+      <div class="aurel-download-filter" role="group" aria-label="Filter downloads">
+        ${[['all','All'],['active','Active'],['saved','Saved'],['failed','Issues']].map(([key,label])=>`<button data-download-filter="${key}" class="${app.downloadFilter===key?'selected':''}" aria-pressed="${app.downloadFilter===key}">${label}</button>`).join('')}
+      </div>
       <div id="downloadsList" class="downloads-list">
-        ${items.length?items.map(item=>`<article class="download-entry" data-track-id="${html(item.id)}" data-status="${html(item.status)}">
-          <div class="download-entry-main"><span class="download-entry-icon" aria-hidden="true">${item.status==='done'?'✓':item.status==='failed'?'!':'♫'}</span>
+        ${shown.length?shown.map(item=>`<article class="download-entry" data-track-id="${html(item.id)}" data-status="${html(item.status)}">
+          <div class="download-entry-main"><span class="download-entry-icon" aria-hidden="true">${ic(item.status==='done'?'check':item.status==='failed'?'info':'audio',22)}</span>
             <div class="download-entry-meta"><strong>${html(item.title||'Track')}</strong>
               <span>${html(item.artist||'Artist')}${item.album?' · '+html(item.album):''}</span>
+              <small class="aurel-download-origin">${item.sourceKind==='saf'?'Imported file':'Qobuz file'}</small>
             </div><span class="download-entry-status">${html(badgeText(item))}</span>
           </div>
           ${item.status==='running'?`<div class="download-progress" role="progressbar" aria-label="Download ${html(item.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.max(0,Number(item.percent)||0)}"><span style="width:${Math.max(0,Number(item.percent)||0)}%"></span></div>
           <small class="download-transfer">${humanBytes(item.bytes)}${Number(item.total)>0?' / '+humanBytes(item.total):''}</small>`:''}
-          ${item.error?`<p class="download-error">${html(friendlyDownloadError(item.error))}</p>`:''}
+          ${item.error?`<details class="aurel-download-error"><summary>${html(errorSummary(item.error))}</summary><p>${html(friendlyDownloadError(item.error))}</p></details>`:''}
           <div class="download-entry-actions">
             ${item.status==='running'||item.status==='queued'?`<button data-download-cancel="${html(item.id)}">Cancel</button>`:''}
-            ${item.status==='failed'&&/Invalid Request Signature/i.test(item.error||'')&&!app.downloadEndpoint?
-              `<button data-download-configure>${ic('settings',18)} Configure provider</button>`:
+            ${item.status==='failed'&&/Invalid Request Signature|refused the purchase-download signature/i.test(item.error||'')&&!app.downloadEndpoint?
+              `<button data-saf-import="files">${ic('library',18)} Import from Murglar</button>`:
               item.status==='failed'||item.status==='cancelled'?
               `<button data-download-retry="${html(item.id)}">${ic('refresh',18)} Retry</button>`:''}
             ${item.status==='done'?`<button data-download-play="${html(item.id)}">${ic('play',17)} Play offline</button><button data-download-open="${html(item.id)}">Open audio</button>`:''}
           </div>
         </article>`).join(''):
-          '<div class="empty"><strong>No downloads yet</strong>Open an album, artist or track to add a purchased file to the queue.</div>'}
+          '<div class="aurel-download-empty">'+ic('download',27)+'<strong>No items in this view</strong><span>Choose tracks, import a folder, or change the filter.</span></div>'}
       </div>
       ${items.some(x=>x.status==='done'||x.status==='failed'||x.status==='cancelled')?'<button class="aurel-clear-downloads" data-download-clear>Clear finished history</button>':''}
-      <p class="download-disclaimer">Downloads require a Qobuz integration with separate purchased-file authorization. Unavailable endpoints or streaming-only titles will report a clear error. Android 10+ files go to Music/AUREL; Android 8–9 use the app music folder.</p>`;
+      <p class="download-disclaimer">Saved on Android 10+: <strong>Music/AUREL</strong>. Imports use Android’s file permissions; Qobuz downloads require separate file authorization.</p>`;
     sc.scrollTop=previous;
     app.downloadStructureKey=downloadStructureKey(dl);
   }
@@ -185,6 +218,7 @@
   window.AurelEvent=function(kind,data){
     if(kind==='downloads'){updateDownloads(data);return}
     if(kind==='downloadError'){showToast(data?.message||'Unable to open audio');return}
+    if(kind==='downloadNotice'){showToast(data?.message||'Import updated',data?.error?6500:3600);return}
     priorEvent(kind,data);
   };
   updateMini=function(){
@@ -250,6 +284,16 @@
         album:t.album?.title||'',albumId:t.album?.id?String(t.album.id):''
       }},'Added to download queue');return;
     }
+    if(b.hasAttribute('data-saf-import')){
+      ev.preventDefault();ev.stopImmediatePropagation();
+      nativeCall('openSafImport',{mode:b.dataset.safImport||'files'})
+        .catch(e=>showToast(e.message||'Android file picker unavailable',6000));
+      return;
+    }
+    if(b.hasAttribute('data-download-filter')){
+      ev.preventDefault();ev.stopImmediatePropagation();
+      app.downloadFilter=b.dataset.downloadFilter;renderDownloads();return;
+    }
     if(b.hasAttribute('data-download-track')){
       const i=Number(b.dataset.downloadTrack);
       const t=app.visibleDownloadTracks?.[i];if(!t)return;
@@ -269,7 +313,7 @@
     if(b.hasAttribute('data-download-cancel')){handle('downloadCancel',{id:b.dataset.downloadCancel});return}
     if(b.hasAttribute('data-download-configure')){
       ev.preventDefault();ev.stopImmediatePropagation();
-      app.downloadProviderOpen=true;renderDownloads();
+      app.downloadProviderOpen=true;app.downloadAdvancedOpen=true;renderDownloads();
       const details=document.querySelector('#downloadProviderSettings');
       if(details&&typeof details.scrollIntoView==='function')details.scrollIntoView({behavior:'smooth',block:'center'});
       return;
@@ -294,6 +338,7 @@
     }).catch(e=>showToast(e.message||'Unable to save provider',6500));
   },true);
   document.addEventListener('toggle',ev=>{
+    if(ev.target?.id==='aurelAdvanced')app.downloadAdvancedOpen=!!ev.target.open;
     if(ev.target?.id==='downloadProviderSettings')app.downloadProviderOpen=!!ev.target.open;
   },true);
   document.addEventListener('change',ev=>{
