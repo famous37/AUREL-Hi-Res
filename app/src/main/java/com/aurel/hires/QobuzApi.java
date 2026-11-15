@@ -80,7 +80,10 @@ final class QobuzApi {
         if(id.isEmpty())id=store.get("appId");
         return id.isEmpty()?"312369995":id;
     }
-    private String streamToken(){String t=store.get("streamToken");return t.isEmpty()?(store.get("token").isEmpty()?store.get("libraryToken"):store.get("token")):t;}
+    private String streamToken(){
+        String t=store.get("streamToken");
+        return t.isEmpty()?store.get("token"):t;
+    }
     private String streamSecret(){String s=store.get("streamAppSecret");return s.isEmpty()?store.get("appSecret"):s;}
     private String libraryId(){String id=store.get("libraryAppId");return id.isEmpty()?streamId():id;}
     private String libraryToken(){String t=store.get("libraryToken");return t.isEmpty()?streamToken():t;}
@@ -108,6 +111,13 @@ final class QobuzApi {
             JSONObject result=request("favorite/getUserFavorites",args,false,appId,token);
             if(result.has("status")&&"error".equalsIgnoreCase(result.optString("status")))
                 throw new Exception("Qobuz refused the authenticated favourites request.");
+            // Some Qobuz backends treat favourites differently from catalogue
+            // routes. Both user entitlement AND App ID catalogue access are
+            // required, otherwise a misleading login-success leads to 401
+            // on the first search/album page.
+            request("album/getFeatured",
+                new JSONObject().put("type","new-releases").put("limit",1),
+                false,appId,token);
             return new JSONObject().put("validated",true)
                 .put("validation_status","verified")
                 .put("profile_unavailable",true);
