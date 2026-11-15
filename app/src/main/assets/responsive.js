@@ -42,7 +42,7 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       /(<button class="pill secondary" data-like-album=[^>]*>♡ Save<\/button>)/,
-      '$1<button class="pill secondary aurel-download-album" data-download-album title="Download purchased album">${ic('download',20)} Download album</button>');
+      '$1<button class="pill secondary aurel-download-album" data-download-album title="Download purchased album">'+ic('download',20)+' Download album</button>');
   };
   const priorRenderArtist=renderArtist;
   renderArtist=function(){
@@ -51,7 +51,7 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       '<div class="sectionhead"><h2>Discography',
-      '<div class="discography-actions"><button class="pill secondary" data-download-discography="all">${ic('download',19)} Download discography</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button></div><div class="sectionhead"><h2>Discography');
+      '<div class="discography-actions"><button class="pill secondary" data-download-discography="all">'+ic('download',19)+' Download discography</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button></div><div class="sectionhead"><h2>Discography');
   };
   const priorRender=render;
   render=function(){
