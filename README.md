@@ -1,107 +1,31 @@
-# AUREL Hi-Res — 0.9.1 Beta
+# AUREL Hi-Res · 1.0.0 Beta
 
-**Developer: famous37**
+**Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
-An independent Android music player focused on legible, elegant lossless listening. The design follows familiar streaming-app navigation patterns and the supplied Qobuz 10.2.0.0 APK as a visual/interaction reference; **AUREL is neither Qobuz's app nor affiliated with Qobuz**. No Qobuz proprietary code, assets, or music have been copied into this project.
+## Interface
 
-## 0.5 — Playback and artist focus
+- High-contrast dark theme with lavender controls, large readable text, and adaptive layouts from compact phones through landscape to tablets.
+- Four mobile destinations: Discover, Search, Library, Settings. A persistent mini-player has cover art, title/artist, previous, play/pause, next and progress.
+- The full player includes responsive album art, interactive seeking, shuffle/repeat, Queue, Info, Audio and Favourites. Artist names open discographies. Android MediaSession supports lock-screen and notification controls.
+- **No downloads, saving, folder importer, purchased-file manager or export controls.** AUREL is streaming-focused. Legacy files previously copied by older versions are not deleted.
 
-- Refined high-contrast now-playing screen, larger coherent typography, artwork-first layout, touch-friendly SVG transport buttons, and responsive margins for Android devices.
-- **Tap the artist name in Now Playing** to open their discography. AUREL uses artist IDs from metadata, tries `track/get` and `album/get`, then an exact-name `artist/search` match, avoiding unrelated search results.
-- Normalizes artist names across `artist`, `artists`, `performer`, `album.artist`, nested `display` fields and common variant payloads. Missing artist metadata is hydrated in the background during playback when `track/get` is available.
-- Artist pages display releases from `artist/get?extra=albums`; `artist/getReleasesList` is used as a compatible fallback. More releases can be requested if the catalogue reports additional pages.
-- Album-artist labels are also actionable, and the album name in Now Playing opens the album where an ID is provided.
-- **Downloads are restricted to independently authorized purchased-file URLs.** The player never exports a streaming URL, decrypts protected segmented streams or treats a subscription as ownership. Album and discography batches, progress, cancellation and retries are supported where the account/API grants purchased-file downloads.
-- **No EQ, no DSP.** Source quality is displayed only when verified metadata is supplied by Qobuz. Android's audio mixer may resample and bit-perfect output is not claimed.
-- Independent optional credentials for streaming and the collection library remain supported; credentials are stored securely by Android and passwords are not retained.
+## Murglar-inspired token-first sign-in
 
-## Limitations
+1. In AUREL, enter your existing **Qobuz session token**. This does not require email/password sign-in or a user/profile/favourites API preflight.
+2. Expand **Advanced · App ID & App Secret** only if your account uses different integration credentials. The default App ID is `312369995`, from the user's previously supplied AUREL configuration; it may not be valid for every token or environment.
+3. To play signed direct Qobuz audio URLs, a compatible **App Secret is still required** when none is stored. The login form's optional secret refers only to the act of saving the token, not to bypassing Qobuz playback requirements.
+4. Qobuz may reject an invalid/expired token, an unsupported App ID, or a stream request even when the token has been saved. **Saved is not the same as verified.** The app marks the session as playback-confirmed only after an actual stream begins.
+5. The optional **separate library account**, available in Settings, uses its own token and App ID for favourites, artists, saved albums and playlists. Playback is always authorized by the primary streaming account.
 
-Playback needs API-authorized Qobuz access and compatible direct HTTPS stream URLs. Protected segmented audio is not decoded, decrypted, or bypassed in this client. Password login may fail if Qobuz requires OAuth or verification. On-device validation with authorized Qobuz accounts is still needed for exact endpoint compatibility and streaming.
+This is an independent interface inspired by publicly visible Murglar UX patterns, not a copy of private Murglar or Qobuz authentication keys or proprietary modules. No tokens, passwords or App Secrets are embedded in the APK. The Android Keystore encrypts credentials saved on each installation.
 
-## Build
+## Build and checks
 
-Use Android Studio with JDK 17 and Android SDK 35; build with `gradle :app:assembleDebug`. GitHub Actions builds a debug APK after commits to `main`. A reproducible `node test_ui.cjs` suite checks artist rendering, player controls, discography and removal of download actions.
+```bash
+node test_ui.cjs
+./gradlew :app:assembleDebug
+```
 
-## Project files
+Android 8+ (minSdk 26). APKs built by separate GitHub Actions runs may use different debug signing keys; updating a previously installed debug APK can fail for signature mismatch. Test preview variants have their own application IDs and therefore **do not inherit credentials** from the original installation.
 
-- `app/src/main/assets/app.js` — account, catalogue, artist identity and navigation
-- `app/src/main/assets/modern.js` — now-playing UI, library and modern controls
-- `app/src/main/assets/style.css` — visual system and Android layout
-- `app/src/main/java/com/aurel/hires/MainActivity.java` — native streaming playback, metadata enrichment and bridge
-- `app/src/main/java/com/aurel/hires/QobuzApi.java` — authenticated Qobuz API client
-
-## Related APIs
-
-- https://www.qobuz.com/us-en/legal/terms
-- https://static.qobuz.com/apps/api/QobuzAPI-TermsofUse.pdf
-
-
-## v0.6.0 visual and audio integrity update
-
-- Full-bleed cover-art player using the user-provided reference layout (original implementation).
-- Large artist/title labels, high-contrast controls and wide previous/play/next buttons.
-- Discrete bottom queue, shuffle, repeat and information controls.
-- The Qobuz API-provided bit depth/rate is labelled as **reported metadata**.
-- Android MediaPlayer track information is separately exposed, when the platform makes it available; mixer property is **not** a DAC measurement.
-- Source formatting is never inferred solely from the selected streaming quality setting.
-- No DSP/equalizer controls; separately authorized purchased downloads only.
-
-Note: This alpha still needs on-device playback and interface verification; secure Qobuz streams require official authorization/integration.
-
-## v0.7.0 — adaptive interface and purchased-file download queue
-
-- Responsive layouts for compact smartphones, tall phones, landscape, tablets and foldable widths; motion-reduction support and fewer unnecessary mini-player DOM rebuilds.
-- Persistent mini-player above mobile navigation with album art, track and artist, previous / pause-play / next, progress and swipe-up-to-expand.
-- Five mobile destinations: Home, Search, Library, Downloads and Settings.
-- Per-track downloads from lists and Now Playing, album batch downloads and artist discography download preparation (all, albums or singles).
-- An Android background transfer worker queues tasks, exposes byte progress, cancellation, retry and history, and saves music via MediaStore to `Music/AUREL/Artist/Album` on Android 10+. Android 8–9 use the app-specific Music folder.
-- **Important limitation:** Only an explicitly requested `intent=download` purchased-file URL may be stored. Streaming URLs are never saved, nor are DRM-protected streams decoded. Qobuz may reject this endpoint for many third-party app credentials or tracks, including ordinary subscriptions, and Android-device testing with licensed accounts is still required.
-- Download quality is only a requested ceiling and may differ from the authorized file actually supplied. MediaStore entries include title/artist/album where possible; embedded FLAC tags and artwork are not yet written.
-- Batch preparation supports up to 150 artist releases and 500 tracks per album, and queued items cap at 3000. Closing the activity interrupts queued/in-flight transfers; saved entries and retry actions persist.
-
-### Implementation
-- `app/src/main/assets/responsive.js` — mini-player, navigation, download action UI
-- `app/src/main/assets/responsive.css` — breakpoint and accessibility refinements
-- `AuthorizedDownloadManager.java` — purchased-file export, MediaStore saving, queue and progress
-- `QobuzApi.purchasedFileInfo` — asks for a distinct download entitlement; never falls back to `intent=stream`
-
-Mornye is used for feature and UX research only. No Mornye or Murglar source code, assets or brand UI were copied.
-
-## v0.8 — compact-screen fixes, media controls and source clarity
-
-- The full player uses a fixed-height header and bottom navigation with a single independently scrolling content panel; the previous square-art layout could push the navigation beneath the visible Android WebView at compact heights.
-- 5-column transport and quick actions scale down smoothly on small phones; landscape and tablets use a two-column player. Text hierarchy and SVG controls are consistent across Discover, Library, Search and Downloads.
-- The persistent mini-player remains above bottom navigation and the main screen has enough bottom inset to scroll behind it safely.
-- An Android MediaSession foreground service supplies playback notifications / system media controls (previous, play/pause, next and seek) while the Activity is minimized. **Force-closing the app still stops playback**; the playback engine has not yet been moved to a standalone headless service.
-- Direct Qobuz purchased-file URL requests may fail with `HTTP 400: Invalid Request Signature`. This is not a retryable network failure. Mornye uses independently authorized, signed providers instead of simply exporting streams.
-- AUREL now has an optional HTTPS custom provider compatible with `GET /download-url/{track_id}?quality=hi96|hi24|flac|mp3`; an optional `X-API-Key` is encrypted with the existing Android secure store. No third-party endpoint or key is bundled. The streaming Qobuz token is **never forwarded** to the custom provider, and downloaded files still require appropriate rights.
-- Audio quality data remains explicitly separated into Qobuz-reported metadata and parsed Android track values. No bit-perfect claim.
-- CI validates the syntax of all JavaScript assets, UI tests and the Android 35 debug APK build.
-
-**Known limitations:** The custom endpoint must be supplied by the user and be licensed/authorized to provide the requested files. Generic Qobuz subscription access alone does not guarantee permanent downloads. Full visual verification on different physical screens is not implied by CI tests.
-
-## 0.9 — Android Murglar document imports
-
-Unlike the Qobuz purchased-file request, **the Android Storage Access Framework (SAF)** can access files the user explicitly selects in the system picker. [Murglar's document provider](https://github.com/badmannersteam/murglar-plugins/blob/master/DOCUMENT_PROVIDER.md) exposes music through `content://com.badmanners.murglar.provider.nodes`. AUREL uses only public, user-authorized Android interfaces, not Murglar's internal classes or DRM workarounds.
-
-From **Downloads → Import your music**, use **Select tracks** to choose multiple files or **Select folder** to select a complete album/artist/discography directory from Murglar or a local storage provider. AUREL traverses up to 1500 audio files (maximum depth 10) and imports via the native ContentResolver into `Music/AUREL/Imported` on Android 10+. Android 8–9 use app-specific music storage. The queue supports cancellation, progress, retry and offline playback; files are scoped to user-granted read permissions.
-
-The Qobuz "Purchased download quality" setting applies **only** to separately authorized Qobuz/API download URLs; it cannot alter the bit depth of files exposed by Murglar or other Android providers. No format conversion, fake bitrate, stream capture, or removal of DRM is performed. If a file fails, it remains in the queue for retry. If an Android document permission expires, choose the source again.
-
-This is a real user-selected import flow, **not a fully automatic standalone Qobuz download service**. AUREL cannot guarantee availability of music through every Murglar account, plugin, folder or subscription. The Android SAF provider may need to be enabled in Murglar, and the picker may show sources that restrict file copies. Real-device interoperability tests remain necessary.
-
-Other 0.9 updates:
-- The full player's Download button opens a **source-choice sheet**, instead of immediately sending a Qobuz request that previously failed with HTTP 400.
-- Downloads has compact counters, All/Active/Saved/Issues filters, concise expandable errors, a prominent import area and an Advanced settings section.
-- Colors, typography, icons, touch targets and safe-area spacing are normalized on narrow and wide Android displays.
-
-## 0.9.1 — Qobuz token sign-in reliability and transparency
-
-- The original token-validation code had not changed since v0.2, but could incorrectly make connection dependent on two optional user-facing API routes (`user/login` and `favorite/getUserFavorites`), both of which may reject some integrations.
-- A 401 now presents **Use token without precheck** as an explicit alternative. It saves the user-provided App ID + token in Android's encrypted store but **does not claim the Qobuz session is verified**. Real streaming may still fail if a token is expired, invalid, unsupported or lacks rights.
-- Once online Qobuz playback starts successfully, the session may be marked **Playback confirmed**. This does not claim DAC bit-perfect quality or guarantee access to every track.
-- Reconnecting an account with the same App ID and an empty App Secret field no longer erases an existing streaming secret. Switching to a different App ID still clears an unrelated old secret.
-- Preview builds intentionally have isolated Android app IDs and storage. The official AUREL app cannot silently share its previously encrypted token with a Preview package. No passwords or tokens are exported or embedded in the APK.
-- User ID is optional and is a profile comparison when a profile is returned, **not** a substitute for a valid user session token.
-- Qobuz 401 can still indicate an expired token, app ID mismatch, restricted developer integration or user authorization failure. An unverified saved token is not an authentication bypass.
+**Validation:** automated JavaScript and Android build checks are not a substitute for live Qobuz token and playback verification on a real device.
