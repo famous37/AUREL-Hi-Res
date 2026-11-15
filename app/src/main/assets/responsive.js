@@ -2,6 +2,9 @@
   'use strict';
   app.downloads={items:[],total:0,queued:0,done:0,failed:0,running:0,planning:false,planMessage:''};
   app.downloadQuality=27;
+  app.downloadEndpoint='';
+  app.downloadHasKey=false;
+  app.downloadProviderOpen=false;
   app.visibleDownloadTracks=[];
   const mobile=document.querySelector('.bottom-nav');
   if(mobile)mobile.innerHTML=`
@@ -50,6 +53,13 @@
     n=Number(n)||0;
     return n>=1048576?(n/1048576).toFixed(1)+' MB':n>=1024?(n/1024).toFixed(0)+' KB':n+' B';
   };
+  function friendlyDownloadError(value){
+    const s=String(value||'');
+    if(/Invalid Request Signature/i.test(s))
+      return 'Qobuz rejected the purchased-file authorization. This is not a network problem. Configure your own authorized download endpoint below; simply retrying will fail again.';
+    if(s.length>380)return s.slice(0,377)+'…';
+    return s;
+  }
   function badgeText(item){
     if(item.status==='done')return 'Saved';
     if(item.status==='running')return item.percent>0?item.percent+'%':'Downloading';
@@ -83,7 +93,26 @@
           ${[[27,'Best available · up to 24 / 192'],[7,'Hi-Res · up to 24 / 96'],[6,'CD · 16 / 44.1'],[5,'MP3 · 320']].map(([q,label])=>`<option value="${q}" ${Number(app.downloadQuality)===q?'selected':''}>${label}</option>`).join('')}
         </select>
       </div>
-      <div class="sectionhead download-history-heading"><h2>Download queue</h2><button class="plain-action" data-download-refresh title="Refresh">↻</button></div>
+      <details class="aurel-provider-settings" id="downloadProviderSettings" ${app.downloadProviderOpen?'open':''}>
+        <summary>Authorized download provider ${app.downloadEndpoint?'· Connected':'· Not configured'}</summary>
+        <div class="aurel-provider-body">
+          <p>Qobuz streaming credentials do not necessarily authorize permanent downloads. Mornye supports independent providers; AUREL can connect to your own licensed HTTPS provider using the /download-url/{id}?quality=… interface. An endpoint is not supplied with the app.</p>
+          <form id="downloadProviderForm">
+            <label>HTTPS provider URL
+              <input id="providerEndpoint" type="url" inputmode="url" autocomplete="off" placeholder="https://your-authorized-provider.example" value="${html(app.downloadEndpoint||'')}">
+            </label>
+            <label>Provider API key (optional)
+              <input id="providerApiKey" type="password" autocomplete="off" placeholder="${app.downloadHasKey?'Key saved — leave blank to retain':'Optional X-API-Key'}">
+            </label>
+            <div class="aurel-provider-buttons">
+              <label class="aurel-key-reset"><input id="providerClearKey" type="checkbox"> Clear saved key</label>
+              <button type="submit" class="pill">Save provider</button>
+            </div>
+          </form>
+          <p class="hint">Only configure services you own or are authorized to use. No Qobuz account token is sent to this endpoint.</p>
+        </div>
+      </details>
+      <div class="sectionhead download-history-heading"><h2>Download queue</h2><button class="plain-action" data-download-refresh aria-label="Refresh downloads" title="Refresh">↻</button></div>
       <div id="downloadsList" class="downloads-list">
         ${items.length?items.map(item=>`<article class="download-entry" data-track-id="${html(item.id)}" data-status="${html(item.status)}">
           <div class="download-entry-main"><span class="download-entry-icon" aria-hidden="true">${item.status==='done'?'✓':item.status==='failed'?'!':'♫'}</span>
@@ -93,7 +122,7 @@
           </div>
           ${item.status==='running'?`<div class="download-progress" role="progressbar" aria-label="Download ${html(item.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.max(0,Number(item.percent)||0)}"><span style="width:${Math.max(0,Number(item.percent)||0)}%"></span></div>
           <small class="download-transfer">${humanBytes(item.bytes)}${Number(item.total)>0?' / '+humanBytes(item.total):''}</small>`:''}
-          ${item.error?`<p class="download-error">${html(item.error)}</p>`:''}
+          ${item.error?`<p class="download-error">${html(friendlyDownloadError(item.error))}</p>`:''}
           <div class="download-entry-actions">
             ${item.status==='running'||item.status==='queued'?`<button data-download-cancel="${html(item.id)}">Cancel</button>`:''}
             ${item.status==='failed'||item.status==='cancelled'?`<button data-download-retry="${html(item.id)}">Retry</button>`:''}
@@ -230,6 +259,22 @@
     if(b.hasAttribute('data-download-open')){handle('openDownloaded',{id:b.dataset.downloadOpen});return}
     if(b.hasAttribute('data-download-refresh')){ev.preventDefault();ev.stopImmediatePropagation();refreshDownloads();return}
   },true);
+  document.addEventListener('submit',ev=>{
+    if(ev.target.id!=='downloadProviderForm')return;
+    ev.preventDefault();ev.stopImmediatePropagation();
+    const endpoint=document.querySelector('#providerEndpoint')?.value?.trim()||'';
+    const apiKey=document.querySelector('#providerApiKey')?.value||'';
+    const clearKey=!!document.querySelector('#providerClearKey')?.checked;
+    nativeCall('saveDownloadProvider',{endpoint,apiKey,clearKey}).then(d=>{
+      app.downloadEndpoint=d.endpoint||'';
+      app.downloadHasKey=!!d.hasApiKey;
+      showToast(app.downloadEndpoint?'Authorized provider saved':'Custom provider removed');
+      renderDownloads();
+    }).catch(e=>showToast(e.message||'Unable to save provider',6500));
+  },true);
+  document.addEventListener('toggle',ev=>{
+    if(ev.target?.id==='downloadProviderSettings')app.downloadProviderOpen=!!ev.target.open;
+  },true);
   document.addEventListener('change',ev=>{
     if(ev.target.id!=='downloadQuality')return;
     ev.stopImmediatePropagation();
@@ -239,6 +284,11 @@
   },true);
   if(window.AurelNative){
     refreshDownloads();
-    nativeCall('downloadSettings').then(d=>{app.downloadQuality=d.quality||27;if(app.nav==='downloads')renderDownloads()}).catch(()=>{});
+    nativeCall('downloadSettings').then(d=>{
+      app.downloadQuality=d.quality||27;
+      app.downloadEndpoint=d.endpoint||'';
+      app.downloadHasKey=!!d.hasApiKey;
+      if(app.nav==='downloads')renderDownloads();
+    }).catch(()=>{});
   }
 })();
