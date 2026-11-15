@@ -752,6 +752,16 @@ public final class MainActivity extends Activity {
                             prepared=true;buffering=false;
                             inspectPreparedTrack(mp);
                             try{mp.start();}catch(Exception ignored){}
+                            // The successful start of an actual Qobuz stream is
+                            // stronger evidence than an optional login endpoint.
+                            if("unverified".equals(secure.get("streamValidation"))){
+                                jobs.execute(()->{
+                                    try{
+                                        secure.put("streamValidation","playback");
+                                        emit("session",session());
+                                    }catch(Exception ignored){}
+                                });
+                            }
                             emit("player",playerState());
                         });
                         player.setOnCompletionListener(mp->advance(1,true));
