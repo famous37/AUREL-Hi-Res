@@ -8,21 +8,32 @@
   app.visibleDownloadTracks=[];
   const mobile=document.querySelector('.bottom-nav');
   if(mobile)mobile.innerHTML=`
-    <button data-nav="home"><span aria-hidden="true">⌂</span>Home</button>
-    <button data-nav="search"><span aria-hidden="true">⌕</span>Search</button>
-    <button data-nav="library"><span aria-hidden="true">▦</span>Library</button>
-    <button data-nav="downloads"><span aria-hidden="true">⇩</span>Downloads</button>
-    <button data-nav="settings"><span aria-hidden="true">⚙</span>Settings</button>`;
+    <button data-nav="home"><span aria-hidden="true">${ic('home',24)}</span>Home</button>
+    <button data-nav="search"><span aria-hidden="true">${ic('search',24)}</span>Search</button>
+    <button data-nav="library"><span aria-hidden="true">${ic('library',24)}</span>Library</button>
+    <button data-nav="downloads"><span aria-hidden="true">${ic('download',24)}</span>Downloads</button>
+    <button data-nav="settings"><span aria-hidden="true">${ic('settings',24)}</span>Settings</button>`;
   const side=document.querySelector('.sidebar .side-foot');
   if(side&&typeof side.insertAdjacentHTML==='function')side.insertAdjacentHTML('beforebegin',
-    '<button class="nav" data-nav="downloads"><b>⇩</b> Downloads</button>');
+    '<button class="nav" data-nav="downloads"><b>'+ic('download',24)+'</b> Downloads</button>');
 
+  // One vector icon language for navigation in both desktop and Android layouts.
+  document.querySelectorAll('.sidebar .nav').forEach(b=>{
+    const glyph=b.querySelector('b');
+    if(glyph){
+      const name=b.dataset.nav==='magazine'?'info':b.dataset.nav==='downloads'?'download':b.dataset.nav;
+      if(['home','search','library','settings','info','download'].includes(name))glyph.innerHTML=ic(name,24);
+    }
+  });
   const priorListTracks=listTracks;
   listTracks=function(items){
     app.visibleDownloadTracks=items||[];
     const original=priorListTracks(items);
     return original.replace(/(<button class="icon-btn" data-play-index="(\d+)" title="Play">)/g,
-      '<button class="icon-btn download-track-button" data-download-track="$2" title="Download if purchased" aria-label="Download purchased track">⇩</button>$1');
+      '<button class="icon-btn download-track-button" data-download-track="$2" title="Download if purchased" aria-label="Download purchased track">'+ic('download',22)+'</button>$1')
+      .replaceAll('>♡</button>','>'+ic('heart',22)+'</button>')
+      .replaceAll('>＋</button>','>'+ic('plus',22)+'</button>')
+      .replaceAll('>▶</button>','>'+ic('play',24)+'</button>');
   };
   const priorRenderAlbum=renderAlbum;
   renderAlbum=function(){
@@ -31,7 +42,7 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       /(<button class="pill secondary" data-like-album=[^>]*>♡ Save<\/button>)/,
-      '$1<button class="pill secondary aurel-download-album" data-download-album title="Download purchased album">⇩ Download album</button>');
+      '$1<button class="pill secondary aurel-download-album" data-download-album title="Download purchased album">${ic('download',20)} Download album</button>');
   };
   const priorRenderArtist=renderArtist;
   renderArtist=function(){
@@ -40,7 +51,7 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       '<div class="sectionhead"><h2>Discography',
-      '<div class="discography-actions"><button class="pill secondary" data-download-discography="all">⇩ Download discography</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button></div><div class="sectionhead"><h2>Discography');
+      '<div class="discography-actions"><button class="pill secondary" data-download-discography="all">${ic('download',19)} Download discography</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button></div><div class="sectionhead"><h2>Discography');
   };
   const priorRender=render;
   render=function(){
@@ -112,7 +123,7 @@
           <p class="hint">Only configure services you own or are authorized to use. No Qobuz account token is sent to this endpoint.</p>
         </div>
       </details>
-      <div class="sectionhead download-history-heading"><h2>Download queue</h2><button class="plain-action" data-download-refresh aria-label="Refresh downloads" title="Refresh">↻</button></div>
+      <div class="sectionhead download-history-heading"><h2>Download queue</h2><button class="plain-action" data-download-refresh aria-label="Refresh downloads" title="Refresh">${ic('refresh',23)}</button></div>
       <div id="downloadsList" class="downloads-list">
         ${items.length?items.map(item=>`<article class="download-entry" data-track-id="${html(item.id)}" data-status="${html(item.status)}">
           <div class="download-entry-main"><span class="download-entry-icon" aria-hidden="true">${item.status==='done'?'✓':item.status==='failed'?'!':'♫'}</span>
@@ -125,8 +136,8 @@
           ${item.error?`<p class="download-error">${html(friendlyDownloadError(item.error))}</p>`:''}
           <div class="download-entry-actions">
             ${item.status==='running'||item.status==='queued'?`<button data-download-cancel="${html(item.id)}">Cancel</button>`:''}
-            ${item.status==='failed'||item.status==='cancelled'?`<button data-download-retry="${html(item.id)}">Retry</button>`:''}
-            ${item.status==='done'?`<button data-download-play="${html(item.id)}">Play offline</button><button data-download-open="${html(item.id)}">Open audio</button>`:''}
+            ${item.status==='failed'||item.status==='cancelled'?`<button data-download-retry="${html(item.id)}">${ic('refresh',18)} Retry</button>`:''}
+            ${item.status==='done'?`<button data-download-play="${html(item.id)}">${ic('play',17)} Play offline</button><button data-download-open="${html(item.id)}">Open audio</button>`:''}
           </div>
         </article>`).join(''):
           '<div class="empty"><strong>No downloads yet</strong>Open an album, artist or track to add a purchased file to the queue.</div>'}
