@@ -58,6 +58,11 @@ window.AurelReceive=(id,reply)=>{
  reply?.ok?pending.resolve(reply.data):pending.reject(new Error(reply?.error||'Unknown API error'));
 };
 window.AurelEvent=(kind,data)=>{
+ if(kind==='session'){
+  app.session=data;
+  if(app.nav==='home'||app.nav==='settings')render();
+  return;
+ }
  if(kind==='player'){
   const changed=app.player?.track?.id!==data?.track?.id || app.player?.error!==data?.error;
   app.player=data;
@@ -161,7 +166,7 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  $('#screen').innerHTML=title('ACCOUNT & AUDIO','Your listening space.')+`<div class="panel"><h3>Streaming account</h3>
  <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
- <div class="info-row"><span>Session verification</span><strong>${app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='unverified'?'Not verified · test playback':'Not checked'}</strong></div>
+ <div class="info-row"><span>Session verification</span><strong>${app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':'Not checked'}</strong></div>
  <div class="info-row"><span>Profile</span><strong>${html(p.displayName||'—')}</strong></div>
  <div class="info-row"><span>User ID</span><strong>${html(p.userId||'Not verified')}</strong></div>
  <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?' ✓':''}</strong></div>
