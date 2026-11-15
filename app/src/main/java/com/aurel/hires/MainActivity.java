@@ -230,7 +230,7 @@ public final class MainActivity extends Activity {
                             String token=streamToken();
                             if(token.isEmpty()){data=session();data.put("authError","No streaming token saved.");break;}
                             try {
-                                api.validateLiveToken(streamAppId(),token,"");
+                                api.validateLiveToken(streamAppId(),token,secure.get("streamUserId"));
                                 secure.put("streamValidation","verified");
                                 data=session();
                             }catch(Exception issue){
@@ -268,6 +268,7 @@ public final class MainActivity extends Activity {
                             String validation=validated?"verified":"unverified";
                             if(secondary){
                                 secure.put("libraryAppId",appId);
+                                secure.put("libraryUserId",p.optString("userId","").trim());
                                 secure.put("libraryToken",token);
                                 secure.put("libraryValidation",validation);
                                 secure.put("libraryProfile",prof.toString());
@@ -280,6 +281,7 @@ public final class MainActivity extends Activity {
                                 if(!suppliedSecret.isEmpty())secure.put("streamAppSecret",suppliedSecret);
                                 else if(!appId.equals(previousAppId))secure.put("streamAppSecret","");
                                 secure.put("streamToken",token);
+                                secure.put("streamUserId",p.optString("userId","").trim());
                                 secure.put("streamValidation",validation);
                                 secure.put("profile",prof.toString());
                             }
@@ -289,7 +291,7 @@ public final class MainActivity extends Activity {
                             data=session();break;
                         }
                         case "logoutLibrary": {
-                            secure.put("libraryAppId","");secure.put("libraryToken","");secure.put("libraryProfile","");secure.put("libraryValidation","");
+                            secure.put("libraryAppId","");secure.put("libraryUserId","");secure.put("libraryToken","");secure.put("libraryProfile","");secure.put("libraryValidation","");
                             data=session();break;
                         }
                         case "logout": {
