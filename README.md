@@ -1,4 +1,4 @@
-# AUREL Hi-Res — 0.7.0 Alpha
+# AUREL Hi-Res — 0.8.0 Beta
 
 **Developer: famous37**
 
@@ -67,3 +67,16 @@ Note: This alpha still needs on-device playback and interface verification; secu
 - `QobuzApi.purchasedFileInfo` — asks for a distinct download entitlement; never falls back to `intent=stream`
 
 Mornye is used for feature and UX research only. No Mornye or Murglar source code, assets or brand UI were copied.
+
+## v0.8 — compact-screen fixes, media controls and source clarity
+
+- The full player uses a fixed-height header and bottom navigation with a single independently scrolling content panel; the previous square-art layout could push the navigation beneath the visible Android WebView at compact heights.
+- 5-column transport and quick actions scale down smoothly on small phones; landscape and tablets use a two-column player. Text hierarchy and SVG controls are consistent across Discover, Library, Search and Downloads.
+- The persistent mini-player remains above bottom navigation and the main screen has enough bottom inset to scroll behind it safely.
+- An Android MediaSession foreground service supplies playback notifications / system media controls (previous, play/pause, next and seek) while the Activity is minimized. **Force-closing the app still stops playback**; the playback engine has not yet been moved to a standalone headless service.
+- Direct Qobuz purchased-file URL requests may fail with `HTTP 400: Invalid Request Signature`. This is not a retryable network failure. Mornye uses independently authorized, signed providers instead of simply exporting streams.
+- AUREL now has an optional HTTPS custom provider compatible with `GET /download-url/{track_id}?quality=hi96|hi24|flac|mp3`; an optional `X-API-Key` is encrypted with the existing Android secure store. No third-party endpoint or key is bundled. The streaming Qobuz token is **never forwarded** to the custom provider, and downloaded files still require appropriate rights.
+- Audio quality data remains explicitly separated into Qobuz-reported metadata and parsed Android track values. No bit-perfect claim.
+- CI validates the syntax of all JavaScript assets, UI tests and the Android 35 debug APK build.
+
+**Known limitations:** The custom endpoint must be supplied by the user and be licensed/authorized to provide the requested files. Generic Qobuz subscription access alone does not guarantee permanent downloads. Full visual verification on different physical screens is not implied by CI tests.
