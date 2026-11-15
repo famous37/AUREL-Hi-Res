@@ -376,7 +376,19 @@ public final class MainActivity extends Activity {
                         case "downloadRetry":data=downloads.retry(p.getString("id"));break;
                         case "downloadClear":data=downloads.clearHistory();break;
                         case "downloadQuality":data=downloads.setQuality(p.getInt("quality"));break;
-                        case "downloadSettings":data=downloads.settings();break;
+                        case "downloadSettings":{
+                            data=downloads.settings();
+                            JSONObject provider=api.downloadConfiguration();
+                            data.put("endpoint",provider.optString("endpoint",""));
+                            data.put("hasApiKey",provider.optBoolean("hasApiKey",false));
+                            break;
+                        }
+                        case "saveDownloadProvider":{
+                            data=api.saveDownloadConfiguration(
+                                p.optString("endpoint",""),p.optString("apiKey",""),
+                                p.optBoolean("clearKey",false));
+                            break;
+                        }
                         case "playDownloaded": {
                             final JSONObject saved=downloads.savedItem(p.getString("id"));
                             ui.post(()->startLocalPlayback(saved));
