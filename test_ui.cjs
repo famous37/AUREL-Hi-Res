@@ -7,6 +7,7 @@ const store=new Map(), ls={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.se
 const win={AurelNative:null};const ctx=vm.createContext({document:doc,window:win,localStorage:ls,console,URL,Map,Promise,setTimeout,clearTimeout,JSON,Error});
 vm.runInContext(fs.readFileSync(base+'app.js','utf8'),ctx,{filename:'app.js'});
 vm.runInContext(fs.readFileSync(base+'modern.js','utf8'),ctx,{filename:'modern.js'});
+vm.runInContext(fs.readFileSync(base+'murglar.js','utf8'),ctx,{filename:'murglar.js'});
 const evalJs=s=>vm.runInContext(s,ctx);
 const cover='https://static.qobuz.com/images/covers/fl/al/123_600.jpg';
 assert.equal(evalJs(`image({album:{image:{large:'${cover}'}}})`),cover);
@@ -35,6 +36,20 @@ assert(!nodes.get('#overlay').innerHTML.toLowerCase().includes('download'));
 assert(nodes.get('#overlay').innerHTML.includes('data-player-sheet="audio"'));
 assert(nodes.get('#overlay').innerHTML.includes('aurel-art-backdrop'));
 assert(nodes.get('#overlay').innerHTML.includes('aurel-transport middle'));
+assert(nodes.get('#overlay').innerHTML.includes('murglar-cover'));
+assert(nodes.get('#overlay').innerHTML.includes('murglar-footer'));
+assert(nodes.get('#overlay').innerHTML.includes('data-player-nav="library"'));
+assert(nodes.get('#overlay').innerHTML.includes('data-player-nav="settings"'));
+assert(nodes.get('#overlay').innerHTML.includes('data-player-nav="search"'));
+assert(nodes.get('#overlay').innerHTML.includes('Qobuz metadata'));
+assert(nodes.get('#overlay').innerHTML.includes('2:48')===false);
+const theme=fs.readFileSync(base+'murglar.css','utf8');
+assert(theme.includes('.murglar-track-data h1'));
+assert(theme.includes('.screen .album-title'));
+assert(theme.includes('font-size:18px'));
+assert(fs.readFileSync(base+'index.html','utf8').includes('murglar.js'));
+assert(fs.readFileSync(base+'index.html','utf8').includes('murglar.css'));
+
 assert(nodes.get('#overlay').innerHTML.includes('svg'));
 evalJs(`app.playerSheet='upnext';drawOverlay()`);
 assert(nodes.get('#overlay').innerHTML.includes('data-queue-play="1"'));
@@ -54,4 +69,4 @@ assert.equal(evalJs("actualSource({buffering:true,quality:27})"), 'Checking audi
 assert.equal(evalJs("actualSource({sourceVerified:false,quality:27})"), 'Audio quality unavailable');
 assert.equal(evalJs("actualSource({sourceVerified:true,bits:24,sampleRateHz:96000,codec:'FLAC',quality:27})"), 'FLAC · 24-bit / 96 kHz');
 assert.equal(evalJs("actualSource({decoderSampleRateHz:44100,decoderMime:'audio/flac'})"), 'FLAC · 44.1 kHz · parsed track');
-console.log('AUREL v0.6 UI checks passed — artist metadata, discography, Qobuz-like player, no download actions, audio state.');
+console.log('AUREL v0.7 UI checks passed — Murglar layout, larger typography, artist discography, audio metadata, no downloads.');
