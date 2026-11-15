@@ -242,6 +242,11 @@ final class AuthorizedDownloadManager {
         save();notifyState(true);
         return snapshot();
     }
+    synchronized JSONObject savedItem(String trackId)throws Exception{
+        for(Entry e:records)if(e.id.equals(id(trackId))&&e.status.equals("done")&&!e.uri.isEmpty())
+            return e.json();
+        throw new Exception("No saved audio for this track");
+    }
     synchronized String fileUri(String trackId)throws Exception{
         for(Entry e:records)if(e.id.equals(id(trackId))&&e.status.equals("done"))return e.uri;
         throw new Exception("No saved file for this track");
