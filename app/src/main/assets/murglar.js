@@ -66,7 +66,9 @@
               <div class="aurel-download-choice">
                 <button data-saf-import="files">${ic('library',20)} Import track</button>
                 <button data-saf-import="folder">${ic('download',20)} Import album folder</button>
-                <button data-download-current>${ic('download',20)} Qobuz purchased file</button>
+                ${app.downloadEndpoint?
+                  `<button data-download-current>${ic('download',20)} Authorized Qobuz file</button>`:
+                  `<button data-player-nav="downloads">${ic('settings',20)} Download source settings</button>`}
               </div>
             </div>`:
           active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
