@@ -17,6 +17,14 @@ import java.util.Iterator;
 final class QobuzApi {
     private static final String BASE="https://www.qobuz.com/api.json/0.2/";
     private final SecureStore store;
+    /** Qobuz status without token, API secret or request headers in diagnostics. */
+    static final class ApiException extends Exception {
+        final int status;
+        final String endpoint;
+        ApiException(int status,String endpoint,String message){
+            super(message);this.status=status;this.endpoint=endpoint;
+        }
+    }
     QobuzApi(SecureStore store) {this.store=store;}
 
     private String encode(String s) throws Exception {return URLEncoder.encode(s,"UTF-8");}
@@ -54,7 +62,16 @@ final class QobuzApi {
             }
             String text=out.toString("UTF-8");
             JSONObject body=text.isEmpty()?new JSONObject():new JSONObject(text);
-            if(code>=400)throw new Exception("Qobuz HTTP "+code+": "+body.optString("message",body.optString("error","Request rejected")));
+            if(code>=400){
+                // Root identifiers are Qobuz server trace IDs, not evidence of a valid session.
+                String detail=body.optString("message",body.optString("error","Request rejected"))
+                    .replaceAll("\\s*\\(Root=[^)]*\\)","").trim();
+                if(code==401||code==403)
+                    throw new ApiException(code,endpoint,
+                        "Qobuz HTTP "+code+": token authentication rejected for this App ID. "+
+                        "Use the X-App-Id paired with your token, or obtain a fresh token.");
+                throw new ApiException(code,endpoint,"Qobuz HTTP "+code+": "+detail);
+            }
             return body;
         }finally{c.disconnect();}
     }
@@ -72,6 +89,51 @@ final class QobuzApi {
     JSONObject library(String endpoint,JSONObject args)throws Exception{return request(endpoint,args,false,libraryId(),libraryToken());}
     JSONObject libraryPost(String endpoint,JSONObject args)throws Exception{return request(endpoint,args,true,libraryId(),libraryToken());}
     JSONObject get(String endpoint, JSONObject params)throws Exception{return catalog(endpoint,params);}
+    /** Test the selected account on a genuinely authenticated endpoint before
+     *  recording a login as verified. A token without a matching App ID can be
+     *  syntactically valid yet receive 401 for every Qobuz API request.
+     */
+    JSONObject validateLiveToken(String appId,String token,String optionalUserId)throws Exception{
+        if(appId==null||!appId.matches("[0-9]{3,15}"))
+            throw new Exception("Enter the numeric X-App-Id that belongs to the token source.");
+        if(token==null||token.trim().length()<10)
+            throw new Exception("Paste the complete Qobuz X-User-Auth-Token.");
+        JSONObject args=new JSONObject().put("type","albums").put("limit",1);
+        String uid=optionalUserId==null?"":optionalUserId.trim();
+        if(!uid.isEmpty()){
+            if(!uid.matches("[0-9]{1,20}"))throw new Exception("User ID must contain digits only.");
+            args.put("user_id",uid);
+        }
+        try{
+            JSONObject result=request("favorite/getUserFavorites",args,false,appId,token);
+            if(result.has("status")&&"error".equalsIgnoreCase(result.optString("status")))
+                throw new Exception("Qobuz refused the authenticated favourites request.");
+            return new JSONObject().put("validated",true)
+                .put("validation_status","verified")
+                .put("profile_unavailable",true);
+        }catch(ApiException e){
+            if(e.status==401||e.status==403)
+                throw new Exception("Qobuz rejected this token with App ID "+appId+
+                    " (HTTP "+e.status+"). AUREL cannot authenticate using an unrelated "+
+                    "App ID. Use the matching X-App-Id from the service that issued "+
+                    "the token, or obtain a new token and its matching App ID.");
+            throw e;
+        }
+    }
+    /** Fallback to documented album discovery when a newer discover endpoint
+     *  is restricted to some Qobuz client capabilities.
+     */
+    JSONObject discoverReleases(int limit)throws Exception{
+        int safeLimit=Math.max(1,Math.min(48,limit));
+        try{
+            return catalog("discover/newReleases",new JSONObject().put("limit",safeLimit));
+        }catch(ApiException e){
+            if(e.status!=401&&e.status!=403&&e.status!=404&&e.status!=400)throw e;
+            return catalog("album/getFeatured",
+                new JSONObject().put("type","new-releases").put("limit",safeLimit));
+        }
+    }
+
     JSONObject post(String endpoint, JSONObject params)throws Exception{return libraryPost(endpoint,params);}
 
     /** Validate an existing browser session token without reusing password login.
