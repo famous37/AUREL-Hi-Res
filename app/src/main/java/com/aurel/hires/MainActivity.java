@@ -116,6 +116,7 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy() {
         ui.removeCallbacks(ticker);
         cleanupPlayer();
+        AurelPlaybackService.stop(this);
         if(downloads!=null)downloads.close();
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
         jobs.shutdownNow();super.onDestroy();
@@ -126,6 +127,34 @@ public final class MainActivity extends Activity {
     }
     private void emit(String event,JSONObject data) {
         script("window.AurelEvent("+JSONObject.quote(event)+","+data.toString()+")");
+        if("player".equals(event)) {
+            if(Looper.myLooper()==Looper.getMainLooper())AurelPlaybackService.publish(this,data);
+            else ui.post(()->AurelPlaybackService.publish(this,data));
+        }
+    }
+    /** Called by Android MediaSession notification and hardware transport controls. */
+    void mediaControl(String action,boolean play) {
+        ui.post(()->{
+            if("next".equals(action))advance(1,false);
+            else if("previous".equals(action)){
+                if(player!=null&&prepared&&player.getCurrentPosition()>3500)player.seekTo(0);
+                else advance(-1,false);
+            }else if("toggle".equals(action)){
+                if(player!=null&&prepared){
+                    if(play&&!player.isPlaying())player.start();
+                    else if(!play&&player.isPlaying())player.pause();
+                }
+            }
+            emit("player",playerState());
+        });
+    }
+    void seekFromMediaSession(long position) {
+        ui.post(()->{
+            if(player!=null&&prepared){
+                player.seekTo((int)Math.max(0,Math.min(Integer.MAX_VALUE,position)));
+                emit("player",playerState());
+            }
+        });
     }
     private JSONObject success(JSONObject data) throws Exception {return new JSONObject().put("ok",true).put("data",data);}
     private JSONObject resultError(String message) throws Exception {return new JSONObject().put("ok",false).put("error",message);}
@@ -347,7 +376,19 @@ public final class MainActivity extends Activity {
                         case "downloadRetry":data=downloads.retry(p.getString("id"));break;
                         case "downloadClear":data=downloads.clearHistory();break;
                         case "downloadQuality":data=downloads.setQuality(p.getInt("quality"));break;
-                        case "downloadSettings":data=downloads.settings();break;
+                        case "downloadSettings":{
+                            data=downloads.settings();
+                            JSONObject provider=api.downloadConfiguration();
+                            data.put("endpoint",provider.optString("endpoint",""));
+                            data.put("hasApiKey",provider.optBoolean("hasApiKey",false));
+                            break;
+                        }
+                        case "saveDownloadProvider":{
+                            data=api.saveDownloadConfiguration(
+                                p.optString("endpoint",""),p.optString("apiKey",""),
+                                p.optBoolean("clearKey",false));
+                            break;
+                        }
                         case "playDownloaded": {
                             final JSONObject saved=downloads.savedItem(p.getString("id"));
                             ui.post(()->startLocalPlayback(saved));

@@ -138,6 +138,71 @@ final class QobuzApi {
             throw e;
         }
     }
+
+    /** Optional self-managed /download-url provider for separately authorized files.
+     * Contract mirrors the public Mornye custom-endpoint shape but uses original code.
+     * Only HTTPS endpoints are supported; the Qobuz streaming token is never forwarded.
+     */
+    JSONObject downloadConfiguration()throws Exception {
+        return new JSONObject().put("endpoint",store.get("purchaseDownloadEndpoint"))
+            .put("hasApiKey",!store.get("purchaseDownloadKey").isEmpty());
+    }
+    JSONObject saveDownloadConfiguration(String endpoint,String key,boolean clearKey)throws Exception{
+        String cleaned=endpoint==null?"":endpoint.trim().replaceAll("/+$","");
+        if(!cleaned.isEmpty()){
+            java.net.URI uri=new java.net.URI(cleaned);
+            String host=uri.getHost();
+            if(!"https".equalsIgnoreCase(uri.getScheme())||host==null||host.trim().isEmpty()||
+                uri.getUserInfo()!=null||uri.getQuery()!=null||uri.getFragment()!=null||
+                host.equalsIgnoreCase("localhost")||host.endsWith(".local")||
+                host.startsWith("127.")||host.startsWith("10.")||
+                host.startsWith("192.168.")||host.startsWith("172.16."))
+                throw new Exception("Enter a valid HTTPS endpoint hosted by an authorized provider");
+        }
+        store.put("purchaseDownloadEndpoint",cleaned);
+        if(clearKey||cleaned.isEmpty())store.put("purchaseDownloadKey","");
+        else if(key!=null&&!key.isEmpty())store.put("purchaseDownloadKey",key.trim());
+        return downloadConfiguration();
+    }
+    private JSONObject externalPurchasedFile(String trackId,int format)throws Exception{
+        String base=store.get("purchaseDownloadEndpoint");
+        if(base.isEmpty())throw new Exception("No authorized purchase download endpoint configured");
+        String quality=format==27?"hi96":format==7?"hi24":format==6?"flac":"mp3";
+        java.net.URL url=new java.net.URL(base+"/download-url/"+trackId+"?quality="+quality);
+        java.net.HttpURLConnection c=(java.net.HttpURLConnection)url.openConnection();
+        c.setConnectTimeout(12000);c.setReadTimeout(22000);c.setInstanceFollowRedirects(false);
+        c.setRequestProperty("Accept","application/json");
+        String key=store.get("purchaseDownloadKey");
+        if(!key.isEmpty())c.setRequestProperty("X-API-Key",key);
+        try{
+            int status=c.getResponseCode();
+            java.io.InputStream stream=status<400?c.getInputStream():c.getErrorStream();
+            java.io.ByteArrayOutputStream buffer=new java.io.ByteArrayOutputStream();
+            if(stream!=null)try(java.io.InputStream in=stream){
+                byte[] data=new byte[4096];int n;
+                while((n=in.read(data))!=-1){
+                    if(buffer.size()+n>1_000_000)throw new Exception("Provider response too large");
+                    buffer.write(data,0,n);
+                }
+            }
+            JSONObject reply;
+            try{reply=new JSONObject(buffer.toString("UTF-8"));}
+            catch(Exception e){throw new Exception("Authorized download provider did not return JSON (HTTP "+status+")");}
+            if(status!=200||reply.optBoolean("success",true)==false)
+                throw new Exception("Authorized provider HTTP "+status+": "+
+                    reply.optString("detail",reply.optString("error",reply.optString("message","Download rejected"))));
+            JSONObject nested=reply.optJSONObject("data");
+            String link=reply.optString("download_url",reply.optString("url",reply.optString("link","")));
+            if(link.isEmpty()&&nested!=null)link=nested.optString("download_url",nested.optString("url",nested.optString("link","")));
+            if(!link.startsWith("https://"))throw new Exception("Provider did not grant a direct HTTPS download");
+            if(reply.has("key_id")||reply.has("url_template")||reply.has("license_url"))
+                throw new Exception("Provider returned protected media, not an authorized file");
+            reply.put("url",link);
+            if(!reply.has("mime_type"))reply.put("mime_type",format==5?"audio/mpeg":"audio/flac");
+            return audioInfo(reply,"Authorized purchase download provider");
+        } finally{c.disconnect();}
+    }
+
     /** Request a separately authorized permanent file download.
      *  Streaming "intent=stream" URLs are deliberately never used here.
      *  Qobuz may not expose this endpoint to a particular account/integration.
@@ -145,6 +210,7 @@ final class QobuzApi {
     JSONObject purchasedFileInfo(String trackId,int format)throws Exception {
         if(!trackId.matches("[0-9]+"))throw new Exception("Invalid Qobuz track ID");
         if(format!=5&&format!=6&&format!=7&&format!=27)throw new Exception("Invalid download format");
+        if(!store.get("purchaseDownloadEndpoint").isEmpty())return externalPurchasedFile(trackId,format);
         String secret=streamSecret();
         if(secret.isEmpty()||streamToken().isEmpty())
             throw new Exception("Connect an account authorized for purchased downloads.");
@@ -164,8 +230,10 @@ final class QobuzApi {
                 "track_id"+trackId+ts+secret));
             try{info=catalog("file/url",params);}
             catch(Exception e){
-                throw new Exception("An authorized purchased-file download is unavailable: "+
-                    (first!=null?first.getMessage()+"; ":"")+e.getMessage());
+                String details=(first!=null?first.getMessage()+"; ":"")+e.getMessage();
+                if(details.contains("Invalid Request Signature"))
+                    throw new Exception("Qobuz refused the purchase-download signature. The streaming API cannot export this file. Connect an authorized download provider in Downloads settings; Retry alone will not fix this.");
+                throw new Exception("Purchased-file download unavailable: "+details);
             }
         }
         if(info==null||!info.optString("url","").startsWith("https://"))
