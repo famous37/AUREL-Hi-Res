@@ -32,7 +32,7 @@
     app.visibleDownloadTracks=items||[];
     const original=priorListTracks(items);
     return original.replace(/(<button class="icon-btn" data-play-index="(\d+)" title="Play">)/g,
-      '<button class="icon-btn download-track-button" data-download-track="$2" title="Download if purchased" aria-label="Download purchased track">'+ic('download',22)+'</button>$1')
+      '<button class="icon-btn download-track-button" data-download-track="$2" title="Save or import track" aria-label="Save or import track">'+ic('download',22)+'</button>$1')
       .replaceAll('>♡</button>','>'+ic('heart',22)+'</button>')
       .replaceAll('>＋</button>','>'+ic('plus',22)+'</button>')
       .replaceAll('>▶</button>','>'+ic('play',24)+'</button>');
@@ -44,7 +44,8 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       /(<button class="pill secondary" data-like-album=[^>]*>♡ Save<\/button>)/,
-      '$1<button class="pill secondary aurel-download-album" data-download-album title="Queue authorized Qobuz album">'+ic('download',20)+' Qobuz files</button><button class="pill secondary" data-saf-import="folder" title="Import album folder from Murglar">'+ic('library',20)+' Import album</button>');
+      '$1'+(app.downloadEndpoint?'<button class="pill secondary aurel-download-album" data-download-album title="Queue authorized Qobuz album">'+ic('download',20)+' Download via provider</button>':'')+
+      '<button class="pill secondary" data-saf-import="folder" title="Import album folder from Murglar">'+ic('library',20)+' Import album folder</button>');
   };
   const priorRenderArtist=renderArtist;
   renderArtist=function(){
@@ -53,7 +54,9 @@
     const screen=$('#screen');
     screen.innerHTML=screen.innerHTML.replace(
       '<div class="sectionhead"><h2>Discography',
-      '<div class="discography-actions"><button class="pill secondary" data-saf-import="folder">'+ic('library',19)+' Import collection</button><button class="pill secondary" data-download-discography="all">'+ic('download',19)+' Qobuz discography</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button></div><div class="sectionhead"><h2>Discography');
+      '<div class="discography-actions"><button class="pill secondary" data-saf-import="folder">'+ic('library',19)+' Import discography folder</button>'+
+      (app.downloadEndpoint?'<button class="pill secondary" data-download-discography="all">'+ic('download',19)+' Download via provider</button><button class="chip" data-download-discography="albums">Albums only</button><button class="chip" data-download-discography="singles">Singles only</button>':'')+
+      '</div><div class="sectionhead"><h2>Discography');
   };
   const priorRender=render;
   render=function(){
