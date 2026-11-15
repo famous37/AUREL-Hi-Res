@@ -52,7 +52,7 @@ evalJs("app.playerSheet='downloads';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-player-download-sheet'));
 assert(nodes.get('#overlay').innerHTML.includes('data-saf-import="files"'));
 assert(nodes.get('#overlay').innerHTML.includes('data-saf-import="folder"'));
-assert(nodes.get('#overlay').innerHTML.includes('Qobuz purchased file'));
+assert(nodes.get('#overlay').innerHTML.includes('Download source settings'));
 const theme=fs.readFileSync(base+'murglar.css','utf8');
 assert(theme.includes('.murglar-track-data h1'));
 assert(theme.includes('.screen .album-title'));
@@ -101,6 +101,7 @@ assert(!nodes.get('#screen').innerHTML.includes('Test FLAC'));
 evalJs("app.downloadFilter='all'");
 evalJs("app.nav='search';app.searchType='tracks';app.searchQuery='Black Sabbath';app.results=[{id:20,title:'Paranoid',artist:{id:42,name:'Black Sabbath'}}];renderSearch()");
 assert(nodes.get('#screen').innerHTML.includes('data-download-track'));
+assert(fs.readFileSync(base+'responsive.js','utf8').includes("if(!app.downloadEndpoint)"));
 
 assert(nodes.get('#screen').innerHTML.includes('data-download-track'));
 for(const name of ['app.js','modern.js']) assert(!fs.readFileSync(base+name,'utf8').includes('data-download'));
