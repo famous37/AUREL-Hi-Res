@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeCover=url=>{try{let u=new URL(String(url||''));return u.protocol==='https:'&&(u.hostname==='qobuz.com'||u.hostname.endsWith('.qobuz.com'))?u.href:''}catch(_){return ''}};
-const image=o=>{for(let obj of [o?.image,o?.album?.image,o?.picture,o?.cover]){if(typeof obj==='string'){let url=safeCover(obj);if(url)return url;}if(obj&&typeof obj==='object'){for(let key of ['large','medium','small','thumbnail','default']){let url=safeCover(obj[key]||obj.images?.[key]);if(url)return url;}}}return '';};
+const image=o=>{for(let obj of [o?.image,o?.album?.image,o?.picture,o?.cover]){if(typeof obj==='string'){let url=safeCover(obj);if(url)return url;}if(obj&&typeof obj==='object'){for(let key of ['extralarge','large','medium','small','thumbnail','default']){let url=safeCover(obj[key]||obj.images?.[key]);if(url)return url;}}}return '';};
 const withAlbum=(tracks,album)=>tracks.map(t=>({...t,album:{...(t.album||{}),image:t.album?.image||album?.image,title:t.album?.title||album?.title,artist:t.album?.artist||album?.artist},image:t.image||t.album?.image||album?.image}));
 const artistName=o=>typeof o?.name==='string'?o.name:(o?.name?.display||o?.artist?.name||'Unknown artist');
 const artist=o=>{let a=o?.artist||o?.performer||o?.album?.artist||{};return typeof a==='string'?a:typeof a.name==='string'?a.name:a.name?.display||o?.performer?.name||'Unknown artist'};
@@ -11,7 +11,7 @@ const duration=n=>{n=Math.max(0,Math.floor(Number(n)||0));return `${Math.floor(n
 const qualityText=q=>({'5':'MP3 · 320 kbps','6':'FLAC · 16-bit / 44.1 kHz','7':'Hi-Res · up to 24-bit / 96 kHz','27':'Hi-Res · up to 24-bit / 192 kHz'})[q]||'Automatic';
 const fallbackArt=`<div class="cover"><div style="position:absolute;inset:10%;border-radius:50%;border:22px solid #8f657555;box-shadow:0 0 60px #c08c9955"></div></div>`;
 const art=(o,cl='')=>{let src=image(o);return src?`<img class="${cl}" loading="lazy" src="${html(src)}" alt="Album art">`:''};
-const app={nav:'home',loginMode:'token',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,eq:{enabled:false,bass:0,mid:0,treble:0},dragging:false};
+const app={nav:'home',loginMode:'token',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,dragging:false};
 let sequence=1;const waiting=new Map();
 function nativeCall(action,data={}){
  return new Promise((resolve,reject)=>{
@@ -52,8 +52,8 @@ function listTracks(items){if(!items.length)return `<div class="empty">No tracks
  return `<div class="tracklist">${items.map((o,i)=>{
   return `<div class="track"><span class="index">${i+1}</span>${art(o,'track-art')||'<div class="track-art"></div>'}
    <div class="track-details" data-play-index="${i}"><div class="track-title">${html(o.title||'Untitled')}</div><div class="track-meta">${html(artist(o))}${o.album?.title?' · '+html(o.album.title):''}</div></div>
-   <span class="track-length">${duration(o.duration)}</span><button class="icon-btn" title="Favourite" data-like-track="${html(o.id)}">♡</button>
-   <button class="icon-btn" data-play-next="${i}" title="Play next">＋</button><button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
+   <span class="track-length">${duration(o.duration)}</span><button class="icon-btn" title="Add to favorites" data-like-track="${html(o.id)}">♡</button>
+   <button class="icon-btn queue-add-icon" data-play-next="${i}" title="Play next">＋</button><button class="icon-btn download-icon" data-download-index="${i}" title="Download purchased track" aria-label="Download purchased track">↓</button><button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
  }).join('')}</div>`;
 }
 function render(){
@@ -61,7 +61,7 @@ function render(){
  $('#headerName').textContent=app.session?.profile?.displayName||'Account';
  if(!hasAuth()&&app.nav!=='settings'){renderLogin();return;}
  if(app.selected){if(app.selectedKind==='artist')renderArtist();else renderAlbum();return;}
- switch(app.nav){case 'home':renderHome();break;case 'magazine':renderMagazine();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;default:renderHome()}
+ switch(app.nav){case 'home':renderHome();break;case 'magazine':renderMagazine();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;case 'downloads':renderDownloads();break;default:renderHome()}
 }
 function renderHome(){
  $('#screen').innerHTML=`<div style="padding:8px 0 21px"><div class="eyebrow">WELCOME TO YOUR LISTENING ROOM</div><h1 class="headline">Discover something<br>extraordinary<span style="color:var(--accent)">.</span></h1><div class="subline">Editorial warmth. Exceptional sound. Your music, your way.</div></div>${banner()}
@@ -98,12 +98,12 @@ function renderAlbum(){
  let o=app.selected;
  if(!o)return;
  let content=`<button class="small-link" data-back>‹ Back</button><div class="albumhero"><div class="cover">${art(o)}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><div class="subline">${html(artist(o))}</div><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
- <div class="actionbar"><button class="pill" data-play-all>▶ &nbsp; Play album</button><button class="pill secondary" data-like-album="${html(o.id)}">♡ Save</button></div>
+ <div class="actionbar"><button class="pill" data-play-all>▶ &nbsp; Play album</button><button class="pill secondary" data-download-album title="Download owned tracks">↓ Download</button><button class="pill secondary" data-like-album="${html(o.id)}">♡ Save</button></div>
  ${listTracks(app.selectedTracks)}<p class="footer-note">Availability and stream quality are verified when playback is requested. Direct-file streaming only in this alpha build.</p>`;
  $('#screen').innerHTML=content;
 }
 function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
- $('#screen').innerHTML=`<button class="small-link" data-back>‹ Back</button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2></div>${albumCards(albums)}`;
+ $('#screen').innerHTML=`<button class="small-link" data-back>‹ Back</button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p><button class="pill secondary" data-download-artist="${html(o.id)}">↓ Download purchased discography</button></div></div><div class="sectionhead"><h2>Discography</h2></div>${albumCards(albums)}`;
 }
 function renderLogin(){let secondary=app.loginTarget==='library';
  $('#screen').innerHTML=`<div class="auth-shell"><div class="eyebrow">${secondary?'OPTIONAL COLLECTION ACCOUNT':'YOUR MUSIC. YOUR SOUND.'}</div><h1>${secondary?'Connect your library.':'Connect to AUREL.'}</h1>
@@ -137,10 +137,8 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>3-band EQ</h3><p class="subline">Off by default. Equalization can change the signal reaching Android audio hardware.</p>
- <label style="display:flex;gap:10px;align-items:center;margin:15px 0"><input id="eqEnabled" class="switch" type="checkbox" ${app.eq.enabled?'checked':''}> Enable EQ</label>
- ${['bass','mid','treble'].map(t=>`<div class="eq-row"><label>${t[0].toUpperCase()+t.slice(1)}</label><input data-eq="${t}" type="range" min="-12" max="12" value="${app.eq[t]}"><span id="eq-${t}">${app.eq[t] > 0?'+':''}${app.eq[t]} dB</span></div>`).join('')}
- <button class="pill secondary" data-eq-save>Apply EQ</button></div>
+ <div class="panel"><h3>Downloads</h3><p class="subline">Only purchased music for which Qobuz authorizes a direct download can be saved. Subscription streams cannot be exported as unrestricted files.</p><button class="pill secondary" data-open-downloads>View downloaded music</button></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>0.4.0 Alpha</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -232,7 +230,6 @@ document.addEventListener('click',async ev=>{
  if(b.hasAttribute('data-cancel-library')){app.loginTarget='stream';renderSettings();return}
  if(b.hasAttribute('data-logout-library')){try{app.session=await api('logoutLibrary');showToast('Using primary library');navigate('library')}catch(e){}return}
  if(b.hasAttribute('data-logout')){try{app.session=await api('logout');app.albums=[];app.results=[];navigate('home')}catch(e){}return}
- if(b.hasAttribute('data-eq-save')){app.eq.enabled=$('#eqEnabled').checked;try{await api('eq',app.eq);showToast('EQ updated')}catch(e){}return}
  if(b.hasAttribute('data-mini-toggle')||b.hasAttribute('data-full-toggle')){ev.stopPropagation();togglePlayback();return}
  if(b.hasAttribute('data-mini-next')||b.hasAttribute('data-next')){ev.stopPropagation();nativeCall('next').catch(()=>{});return}
  if(b.hasAttribute('data-prev')){nativeCall('previous').catch(()=>{});return}
@@ -245,7 +242,6 @@ document.addEventListener('submit',e=>{
  if(e.target.id==='searchForm'){e.preventDefault();search()}
 });
 document.addEventListener('input',e=>{
- if(e.target.dataset.eq){let k=e.target.dataset.eq;app.eq[k]=Number(e.target.value);if($('#eq-'+k))$('#eq-'+k).textContent=`${app.eq[k]>0?'+':''}${app.eq[k]} dB`;}
  if(e.target.id==='progress'){app.dragging=true;$('#elapsed').textContent=duration(Number(e.target.value)/1000)}
 });
 document.addEventListener('change',e=>{

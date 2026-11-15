@@ -3,6 +3,14 @@ package com.aurel.hires;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Environment;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,7 +18,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.audiofx.Equalizer;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -35,18 +42,18 @@ public final class MainActivity extends Activity {
     private SecureStore secure;
     private QobuzApi api;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
+    private final ExecutorService downloads=Executors.newSingleThreadExecutor();
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
     private MediaPlayer player;
-    private Equalizer equalizer;
     private JSONObject current=new JSONObject();
     private JSONObject fileInfo=new JSONObject();
+    private String codec="", sourceLabel="";
+    private boolean sourceVerified=false;
     private int queueIndex=-1;
     private int playGeneration=0;
     private int repeatMode=0; // 0 off, 1 list, 2 one
     private boolean shuffle=false;
-    private boolean eqEnabled=false;
-    private int bass=0, mid=0, treble=0;
     private boolean prepared=false, buffering=false;
     private String playerError="";
     private long lastStateSent=0;
@@ -113,7 +120,7 @@ public final class MainActivity extends Activity {
         ui.removeCallbacks(ticker);
         cleanupPlayer();
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
-        jobs.shutdownNow(); super.onDestroy();
+        jobs.shutdownNow();downloads.shutdownNow();super.onDestroy();
     }
     private void script(String js) { ui.post(()->{ if(web!=null)web.evaluateJavascript(js,null); }); }
     private void complete(String id,JSONObject result) {
@@ -248,6 +255,36 @@ public final class MainActivity extends Activity {
                         }
                         case "playlists":data=api.library("playlist/getUserPlaylists",new JSONObject().put("limit",100));break;
                         case "playlist":data=api.library("playlist/get",new JSONObject().put("playlist_id",p.getString("id")).put("extra","tracks").put("limit",100));break;
+                        case "downloadTrack": {
+                            JSONObject track=p.getJSONObject("track");
+                            JSONArray tracks=new JSONArray().put(track);
+                            enqueuePurchaseDownloads(tracks);
+                            data=param("accepted",1);break;
+                        }
+                        case "downloadAlbum": {
+                            JSONArray tracks=p.getJSONArray("tracks");
+                            if(tracks.length()<1||tracks.length()>400)throw new Exception("Select up to 400 tracks");
+                            enqueuePurchaseDownloads(tracks);
+                            data=param("accepted",tracks.length());break;
+                        }
+                        case "downloadArtist": {
+                            String artistId=p.optString("id","");
+                            if(!artistId.matches("[0-9]+"))throw new Exception("Invalid artist ID");
+                            downloads.execute(()->downloadArtistCatalog(artistId));
+                            data=param("queued",true);break;
+                        }
+                        case "downloadedFiles": {
+                            data=localFiles();break;
+                        }
+                        case "playDownloaded": {
+                            String filename=p.optString("file","");
+                            File base=offlineDirectory();
+                            File requested=new File(base,filename);
+                            if(!requested.getCanonicalPath().startsWith(base.getCanonicalPath()+File.separator)
+                                    ||!requested.isFile()||!filename.endsWith(".flac")&&!filename.endsWith(".mp3"))
+                                throw new Exception("Local audio file not found");
+                            ui.post(()->playDownloaded(requested));data=param("local",true);break;
+                        }
                         case "play":{
                             final JSONArray list=p.getJSONArray("tracks");final int index=p.optInt("index",0);
                             if(list.length()==0||list.length()>400||index<0||index>=list.length())throw new Exception("Invalid playlist queue");
@@ -266,16 +303,18 @@ public final class MainActivity extends Activity {
                             else advance(-1,false);
                         });data=new JSONObject();break;
                         case "seek":{final int to=Math.max(0,p.optInt("ms",0));ui.post(()->{if(player!=null&&prepared)player.seekTo(to);});data=new JSONObject();break;}
-
                         case "queueAdd": {
                             final JSONArray incoming=p.getJSONArray("tracks");
                             final boolean next=p.optBoolean("next",false);
-                            if(incoming.length()>200)throw new Exception("Too many tracks");
-                            ui.post(()->{int at=next?Math.max(0,queueIndex+1):queue.size();
-                                for(int i=0;i<incoming.length()&&queue.size()<500;i++){JSONObject t=incoming.optJSONObject(i);
-                                    if(t!=null)queue.add(Math.min(at++,queue.size()),t);}
+                            if(incoming.length()>200)throw new Exception("Too many queued tracks");
+                            ui.post(()->{
+                                int at=next?Math.max(0,queueIndex+1):queue.size();
+                                for(int i=0;i<incoming.length()&&queue.size()<500;i++){
+                                    JSONObject track=incoming.optJSONObject(i);
+                                    if(track!=null)queue.add(Math.min(at++,queue.size()),track);
+                                }
                                 emit("player",playerState());
-                            });data=new JSONObject();break;
+                            }); data=new JSONObject();break;
                         }
                         case "queuePlay":{
                             final int index=p.optInt("index",-1);
@@ -284,38 +323,37 @@ public final class MainActivity extends Activity {
                         }
                         case "queueMove":{
                             final int from=p.optInt("from",-1),to=p.optInt("to",-1);
-                            ui.post(()->{if(from<0||to<0||from>=queue.size()||to>=queue.size()||from==to)return;
-                                JSONObject t=queue.remove(from);queue.add(to,t);
+                            ui.post(()->{
+                                if(from<0||to<0||from>=queue.size()||to>=queue.size()||from==to)return;
+                                JSONObject moving=queue.remove(from);queue.add(to,moving);
                                 if(queueIndex==from)queueIndex=to;
                                 else if(from<queueIndex&&to>=queueIndex)queueIndex--;
                                 else if(from>queueIndex&&to<=queueIndex)queueIndex++;
-                                emit("player",playerState());});
-                            data=new JSONObject();break;
+                                emit("player",playerState());
+                            }); data=new JSONObject();break;
                         }
                         case "queueRemove":{
                             final int index=p.optInt("index",-1);
-                            ui.post(()->{if(index<0||index>=queue.size())return;
+                            ui.post(()->{
+                                if(index<0||index>=queue.size())return;
                                 queue.remove(index);
                                 if(queue.isEmpty()){playGeneration++;cleanupPlayer();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();}
                                 else if(index==queueIndex){queueIndex=Math.min(index,queue.size()-1);startAtCurrent();}
                                 else if(index<queueIndex)queueIndex--;
-                                emit("player",playerState());});
-                            data=new JSONObject();break;
+                                emit("player",playerState());
+                            }); data=new JSONObject();break;
                         }
-                        case "openMagazine":{
-                            ui.post(()->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.qobuz.com/us-en/magazine/")));}catch(Exception ignored){}});
-                            data=new JSONObject();break;
+                        case "openMagazine": {
+                            // Only the official Qobuz editorial page may be opened.
+                            ui.post(()->{
+                                Intent link=new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.qobuz.com/us-en/magazine/"));
+                                try{startActivity(link);}catch(Exception ignored){}
+                            }); data=new JSONObject();break;
                         }
                         case "playbackSettings":{
                             final int mode=Math.max(0,Math.min(2,p.optInt("repeat",0)));
                             final boolean rand=p.optBoolean("shuffle",false);
                             ui.post(()->{repeatMode=mode;shuffle=rand;emit("player",playerState());});data=new JSONObject();break;
-                        }
-                        case "eq": {
-                            final boolean enabled=p.optBoolean("enabled",false);
-                            final int low=p.optInt("bass",0),middle=p.optInt("mid",0),high=p.optInt("treble",0);
-                            ui.post(()->{eqEnabled=enabled;bass=low;mid=middle;treble=high;applyEq();emit("player",playerState());});
-                            data=new JSONObject();break;
                         }
                         case "playerState": {
                             // UI state must be read on main thread; send by native event instead.
@@ -334,7 +372,6 @@ public final class MainActivity extends Activity {
 
     private void cleanupPlayer() {
         prepared=false;buffering=false;
-        if(equalizer!=null){try{equalizer.release();}catch(Exception ignored){}equalizer=null;}
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
     }
     private void startAtCurrent() {
@@ -342,7 +379,7 @@ public final class MainActivity extends Activity {
         playGeneration++;
         final int generation=playGeneration;
         cleanupPlayer();
-        current=queue.get(queueIndex);fileInfo=new JSONObject();buffering=true;playerError="";
+        current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";buffering=true;playerError="";
         emit("player",playerState());
         final String id=current.optString("id","");
         jobs.execute(()->{
@@ -362,12 +399,15 @@ public final class MainActivity extends Activity {
                     if(generation!=playGeneration)return;
                     try {
                         fileInfo=metadata;
+                        sourceVerified=metadata.optBoolean("source_verified",false);
+                        sourceLabel=metadata.optString("source_label","Qobuz API");
+                        codec=metadata.optString("codec","");
                         player=new MediaPlayer();
                         player.setAudioStreamType(AudioManager.STREAM_MUSIC);
                         player.setOnPreparedListener(mp->{
                             if(generation!=playGeneration)return;
                             prepared=true;buffering=false;
-                            try{applyEq();mp.start();}catch(Exception ignored){}
+                            try{mp.start();}catch(Exception ignored){}
                             emit("player",playerState());
                         });
                         player.setOnCompletionListener(mp->advance(1,true));
@@ -405,22 +445,127 @@ public final class MainActivity extends Activity {
         }
         queueIndex=next;startAtCurrent();
     }
-    private void applyEq() {
-        if(player==null||!prepared)return;
-        try {
-            if(equalizer!=null){equalizer.release();equalizer=null;}
-            if(!eqEnabled)return; // off by default; effects may alter bit-perfect output.
-            equalizer=new Equalizer(0,player.getAudioSessionId());
-            short count=equalizer.getNumberOfBands();
-            short[] range=equalizer.getBandLevelRange();
-            for(short b=0;b<count;b++) {
-                double pos=count==1?0.5:(double)b/(count-1);
-                int gain=pos<0.34?bass:pos<0.67?mid:treble;
-                short level=(short)Math.max(range[0],Math.min(range[1],gain*100));
-                equalizer.setBandLevel(b,level);
+    private File offlineDirectory() {
+        File root=getExternalFilesDir(Environment.DIRECTORY_MUSIC);
+        if(root==null)root=new File(getFilesDir(),"Music");
+        File dir=new File(root,"AUREL Purchases");
+        if(!dir.exists()&&!dir.mkdirs())throw new IllegalStateException("Cannot create offline directory");
+        return dir;
+    }
+    private String safeName(String value){
+        String cleaned=value.replaceAll("[\\/:*?\"<>|\\p{Cntrl}]","_").trim().replaceAll("\\s+"," ");
+        if(cleaned.length()>90)cleaned=cleaned.substring(0,90);
+        return cleaned.isEmpty()?"Unknown":cleaned;
+    }
+    private JSONObject localFiles() throws Exception {
+        JSONArray items=new JSONArray();
+        File[] files=offlineDirectory().listFiles();
+        if(files!=null)for(File f:files)if(f.isFile()&&(f.getName().endsWith(".flac")||f.getName().endsWith(".mp3"))){
+            items.put(new JSONObject().put("name",f.getName()).put("bytes",f.length()));
+        }
+        return new JSONObject().put("items",items).put("location","App private Music/AUREL Purchases (removed when app is uninstalled)");
+    }
+    private void broadcastDownload(int done,int total,int failed,String text){
+        try{emit("download",new JSONObject().put("done",done).put("total",total).put("failed",failed).put("message",text));}
+        catch(Exception ignored){}
+    }
+    private void enqueuePurchaseDownloads(JSONArray input){
+        // Only the rights-bearing streaming account can request intent=download.
+        downloads.execute(()->downloadTracks(input));
+    }
+    private void downloadArtistCatalog(String artistId){
+        try{
+            JSONArray tracks=new JSONArray();int offset=0;
+            while(offset<200 && tracks.length()<400){
+                JSONObject artist=api.catalog("artist/get",new JSONObject().put("artist_id",artistId)
+                    .put("extra","albums").put("offset",offset).put("limit",50));
+                JSONObject albums=artist.optJSONObject("albums");
+                JSONArray items=albums==null?null:albums.optJSONArray("items");
+                if(items==null||items.length()==0)break;
+                for(int a=0;a<items.length()&&tracks.length()<400;a++){
+                    JSONObject album=items.optJSONObject(a);if(album==null)continue;
+                    JSONObject details=api.catalog("album/get",new JSONObject().put("album_id",album.optString("id"))
+                        .put("limit",100));
+                    JSONObject group=details.optJSONObject("tracks");
+                    JSONArray songList=group==null?null:group.optJSONArray("items");
+                    if(songList!=null)for(int t=0;t<songList.length()&&tracks.length()<400;t++){
+                        JSONObject track=songList.optJSONObject(t);
+                        if(track!=null){track.put("album",new JSONObject().put("title",details.optString("title")));
+                            tracks.put(track);}
+                    }
+                }
+                offset+=items.length();
+                if(albums==null||offset>=albums.optInt("total",offset))break;
             }
-            equalizer.setEnabled(true);
-        }catch(Exception ignored){eqEnabled=false;}
+            broadcastDownload(0,tracks.length(),0,"Artist catalogue discovered; checking purchased-track rights");
+            downloadTracks(tracks);
+        }catch(Exception e){broadcastDownload(0,0,1,"Cannot load artist catalogue: "+e.getMessage());}
+    }
+    private void downloadTracks(JSONArray tracks){
+        int done=0,fail=0,total=tracks.length();
+        if(total==0){broadcastDownload(0,0,0,"No tracks available");return;}
+        broadcastDownload(0,total,0,"Checking purchased downloads…");
+        for(int i=0;i<total;i++){
+            JSONObject t=tracks.optJSONObject(i);if(t==null){fail++;continue;}
+            String id=t.optString("id","");
+            try{
+                JSONObject signed=api.purchaseDownloadInfo(id,quality());
+                String url=signed.optString("url","");
+                if(!url.startsWith("https://"))throw new Exception("No authorized download URL");
+                String extension=signed.optString("mime_type","").contains("mpeg")?".mp3":".flac";
+                String fileName=safeName(t.optString("title","Track"))+" - "+id+extension;
+                File dest=new File(offlineDirectory(),fileName);File temp=new File(dest.getAbsolutePath()+".part");
+                HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
+                c.setConnectTimeout(15000);c.setReadTimeout(30000);c.setInstanceFollowRedirects(true);
+                try{
+                    if(c.getResponseCode()!=200)throw new Exception("Download HTTP "+c.getResponseCode());
+                    try(InputStream in=c.getInputStream();FileOutputStream out=new FileOutputStream(temp)){
+                        byte[] buffer=new byte[32768];int n;long count=0;
+                        while((n=in.read(buffer))!=-1){out.write(buffer,0,n);count+=n;
+                            if(count>2_000_000_000L)throw new Exception("File exceeds 2 GB");}
+                        if(count==0)throw new Exception("Empty download");
+                    }
+                    if(dest.exists()&&!dest.delete())throw new Exception("Cannot replace existing file");
+                    if(!temp.renameTo(dest))throw new Exception("Unable to finalize download");
+                    done++;
+                }finally{c.disconnect();if(temp.exists())temp.delete();}
+            }catch(Exception e){fail++;}
+            broadcastDownload(done,total,fail,"Purchased downloads: "+done+" saved, "+fail+" unavailable ("+(i+1)+"/"+total+")");
+        }
+        broadcastDownload(done,total,fail,"Finished: "+done+" downloaded, "+fail+" unavailable. Only purchased files authorized by Qobuz can be saved.");
+    }
+    private void playDownloaded(File f){
+        playGeneration++;final int generation=playGeneration;
+        cleanupPlayer();queue.clear();queueIndex=0;
+        current=new JSONObject();fileInfo=new JSONObject();playerError="";
+        try {
+            current.put("id","offline-"+f.getName()).put("title",f.getName().replaceFirst(" - \\d+\\.(flac|mp3)$", ""))
+                .put("artist",new JSONObject().put("name","Purchased download"));
+            queue.add(current);
+            codec=f.getName().endsWith(".flac")?"FLAC":"MP3";
+            sourceLabel="Local file (verified)";
+            sourceVerified=f.getName().endsWith(".flac")&&readFlacHeader(f,fileInfo);
+            fileInfo.put("mime_type",codec.equals("FLAC")?"audio/flac":"audio/mpeg");
+            player=new MediaPlayer();player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            player.setOnPreparedListener(mp->{if(generation!=playGeneration)return;prepared=true;mp.start();emit("player",playerState());});
+            player.setOnCompletionListener(mp->advance(1,true));
+            player.setDataSource(f.getAbsolutePath());player.prepareAsync();emit("player",playerState());
+        }catch(Exception e){playerError=e.getMessage();emit("player",playerState());}
+    }
+    private boolean readFlacHeader(File f,JSONObject out){
+        try(FileInputStream in=new FileInputStream(f)){
+            byte[] header=new byte[42];int read=0;
+            while(read<header.length){int n=in.read(header,read,header.length-read);if(n<0)break;read+=n;}
+            if(read<42||header[0]!='f'||header[1]!='L'||header[2]!='a'||header[3]!='C'||(header[4]&127)!=0)return false;
+            long metadata=0;
+            for(int i=18;i<26;i++)metadata=(metadata<<8)|(header[i]&0xff);
+            int sampleRate=(int)((metadata>>44)&0xfffff);
+            int channels=(int)((metadata>>41)&7)+1;
+            int depth=(int)((metadata>>36)&31)+1;
+            if(sampleRate<8000||sampleRate>768000||depth<4||depth>32)return false;
+            out.put("sample_rate_hz",sampleRate).put("bits_depth",depth).put("n_channels",channels);
+            return true;
+        }catch(Exception e){return false;}
     }
     private JSONObject playerState() {
         JSONObject state=new JSONObject();
@@ -429,13 +574,21 @@ public final class MainActivity extends Activity {
             state.put("playing",player!=null&&prepared&&player.isPlaying());
             state.put("buffering",buffering).put("prepared",prepared);
             state.put("repeat",repeatMode).put("shuffle",shuffle).put("error",playerError);
-            state.put("quality",quality());state.put("eqEnabled",eqEnabled);
+            state.put("quality",quality());
             state.put("position",player!=null&&prepared?player.getCurrentPosition():0);
             state.put("duration",player!=null&&prepared?player.getDuration():current.optInt("duration",0)*1000);
             state.put("bits",fileInfo.optInt("bits_depth",0));
-            state.put("sampleRate",fileInfo.optDouble("sampling_rate",0));
+            state.put("sampleRateHz",fileInfo.optDouble("sample_rate_hz",0));
+            state.put("channels",fileInfo.optInt("n_channels",0));
+            state.put("codec",codec);
+            state.put("sourceVerified",sourceVerified);
+            state.put("sourceLabel",sourceLabel);
+            state.put("mimeType",fileInfo.optString("mime_type",""));
+            state.put("fileSize",fileInfo.optLong("file_size",0));
             state.put("formatId",fileInfo.optInt("format_id",0));
-            JSONArray queueJson=new JSONArray();for(JSONObject t:queue)queueJson.put(t);state.put("queue",queueJson);
+            JSONArray nextQueue=new JSONArray();
+            for(int i=0;i<queue.size();i++)nextQueue.put(queue.get(i));
+            state.put("queue",nextQueue);
             AudioManager manager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             state.put("androidMixerHz",manager==null?"":manager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE));
         }catch(Exception ignored){}

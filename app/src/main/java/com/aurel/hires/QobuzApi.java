@@ -38,7 +38,7 @@ final class QobuzApi {
         c.setConnectTimeout(12000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);
         c.setRequestProperty("Accept","application/json");
         c.setRequestProperty("X-App-Id",appId);
-        c.setRequestProperty("User-Agent","AurelHiRes/0.2 Android");
+        c.setRequestProperty("User-Agent","AurelHiRes/0.4 Android");
         if(!token.isEmpty())c.setRequestProperty("X-User-Auth-Token",token);
         if(post){
             c.setRequestMethod("POST");c.setDoOutput(true);
@@ -90,9 +90,47 @@ final class QobuzApi {
         try{return request("user/login",new JSONObject().put("username",email).put("password",password),true,appId,"");}
         catch(Exception e){throw new Exception("Qobuz did not accept direct password login (browser verification may be required): "+e.getMessage());}
     }
+    JSONObject purchaseDownloadInfo(String trackId,int format) throws Exception {
+        if(!trackId.matches("[0-9]+"))throw new Exception("Invalid track ID");
+        String secret=streamSecret();
+        if(secret.isEmpty())throw new Exception("Streaming App Secret required");
+        // The provider must authorize intent=download; we never save subscription stream URLs.
+        int[] variants=format==27?new int[]{7,6,5}:format==7?new int[]{7,6,5}:format==6?new int[]{6,5}:new int[]{5};
+        Exception last=null;
+        for(int fmt:variants){
+            long ts=System.currentTimeMillis()/1000L;
+            JSONObject params=new JSONObject().put("format_id",fmt).put("intent","download")
+                .put("track_id",trackId).put("request_ts",ts);
+            params.put("request_sig",md5("trackgetFileUrlformat_id"+fmt+"intentdownloadtrack_id"+trackId+ts+secret));
+            try{
+                JSONObject info=catalog("track/getFileUrl",params);
+                if(info.optString("url","").startsWith("https://"))return audioInfo(info,"Qobuz purchased download");
+                throw new Exception("No direct download URL");
+            }catch(Exception e){last=e;}
+        }
+        throw new Exception("Download unavailable or not purchased: "+(last==null?"Qobuz denied request":last.getMessage()));
+    }
     private String md5(String v)throws Exception{
         byte[] raw=MessageDigest.getInstance("MD5").digest(v.getBytes(StandardCharsets.UTF_8));
         StringBuilder b=new StringBuilder();for(byte item:raw)b.append(String.format(java.util.Locale.US,"%02x",item&0xff));return b.toString();
+    }
+    private JSONObject audioInfo(JSONObject raw,String origin) throws Exception {
+        JSONObject info=new JSONObject(raw.toString());
+        int bitDepth=raw.optInt("bits_depth",raw.optInt("bit_depth",0));
+        double sr=raw.optDouble("sampling_rate",raw.optDouble("sample_rate",0));
+        int format=raw.optInt("format_id",0);
+        if(sr>=8&&sr<=768)sr*=1000;  // Qobuz versions expose either kHz or Hz.
+        String mime=raw.optString("mime_type","").toLowerCase(java.util.Locale.ROOT);
+        String codec=mime.contains("flac")?"FLAC":mime.contains("mpeg")?"MP3":"";
+        boolean verified=sr>=8000&&sr<=768000&&bitDepth>0&&bitDepth<=32;
+        // A format selection is only a ceiling; do not synthesize source specs from format_id.
+        info.put("bits_depth",verified?bitDepth:0);
+        info.put("sample_rate_hz",verified?sr:0);
+        info.put("source_verified",verified);
+        info.put("source_label",origin);
+        info.put("codec",codec);
+        info.put("format_id",format);
+        return info;
     }
     JSONObject streamInfo(String trackId,int format)throws Exception{
         String secret=streamSecret();
@@ -104,13 +142,13 @@ final class QobuzApi {
         Exception oldError=null;
         try {
             JSONObject info=catalog("track/getFileUrl",args);
-            if(info.optString("url").startsWith("https://"))return info;
+            if(info.optString("url").startsWith("https://"))return audioInfo(info,"Qobuz API");
         }catch(Exception e){oldError=e;}
         // New Qobuz responses can require a licensed decryption/session integration.
         args.put("request_sig",md5("fileUrlformat_id"+format+"intentstreamtrack_id"+trackId+ts+secret));
         try {
             JSONObject info=catalog("file/url",args);
-            if(info.optString("url").startsWith("https://"))return info;
+            if(info.optString("url").startsWith("https://"))return audioInfo(info,"Qobuz API");
             if(info.has("url_template")||info.has("key_id"))
                 throw new Exception("Qobuz returned protected segmented audio. This build does not decrypt or bypass protected streams.");
             throw new Exception("Qobuz did not supply a directly playable URL");
