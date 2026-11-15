@@ -40,7 +40,7 @@
           <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-label="Play queue" title="Queue">${ic('queue',25)}<span>Queue</span></button>
           <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-label="Track details" title="Credits">${ic('info',25)}<span>Info</span></button>
           <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-label="Source quality details" title="Audio">${ic('audio',25)}<span>Audio</span></button>
-          <button data-download-current aria-label="Download purchased track" title="Download">${ic('download',25)}<span>Download</span></button>
+          <button data-download-current aria-label="Download purchased track" title="Download options" data-player-sheet="downloads">${ic('download',25)}<span>Download</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',26)}<span>Favourite</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
@@ -59,7 +59,17 @@
           ${ic('audio',18)}<span>${html(source)}</span><small>· ${html(sourceCaption(p))}</small>
         </button>
         ${p.error?`<div class="playback-error" role="status">${html(p.error)}</div>`:''}
-        ${active?`<div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
+        ${active?`<div class="aurel-detail-sheet murglar-detail-sheet">${active==='downloads'?
+          `<div class="aurel-player-download-sheet">
+              <h3>Save music</h3>
+              <p>Select music from Murglar's Android file library, or add a separately authorized Qobuz file.</p>
+              <div class="aurel-download-choice">
+                <button data-saf-import="files">${ic('library',20)} Import track</button>
+                <button data-saf-import="folder">${ic('download',20)} Import album folder</button>
+                <button data-download-current>${ic('download',20)} Qobuz purchased file</button>
+              </div>
+            </div>`:
+          active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
         <span class="murglar-state" id="playingStatus" aria-live="polite">${stateCaption(p)}</span>
       </div>
       <nav class="murglar-footer" aria-label="Player navigation">
