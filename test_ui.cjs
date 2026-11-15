@@ -28,7 +28,7 @@ assert.strictEqual(run("artist({artists:[{id:44,name:'Black Sabbath'}]})"),'Blac
 run("app.session={loggedIn:false,streamConnected:false,previewBuild:true,appId:'312369995',hasSecret:false};app.loginTarget='stream';renderLogin()");
 const login=nodes.get('#screen').innerHTML;
 assert(login.includes('Qobuz session token'));
-assert(login.includes('type="password" id="token"'));
+assert(login.includes('id="token" type="password"'));
 assert(login.includes('data-toggle-token'));
 assert(login.includes('aurel-signin-advanced'));
 assert(login.includes('App ID &amp; App Secret'));
