@@ -278,6 +278,12 @@
     if(b.hasAttribute('data-open-mini-player')){ev.preventDefault();ev.stopImmediatePropagation();openPlayer();return}
     if(b.hasAttribute('data-mini-prev')){handle('previous',{});return}
     if(b.hasAttribute('data-download-current')){
+      if(!app.downloadEndpoint){
+        ev.preventDefault();ev.stopImmediatePropagation();
+        nativeCall('openSafImport',{mode:'files'})
+          .catch(e=>showToast(e.message||'Choose an audio track',6000));
+        return;
+      }
       const t=app.player?.track;if(!t?.id)return;
       handle('downloadTrack',{track:{
         id:String(t.id),title:t.title||'Track',artist:artistLabel(t),
@@ -295,6 +301,12 @@
       app.downloadFilter=b.dataset.downloadFilter;renderDownloads();return;
     }
     if(b.hasAttribute('data-download-track')){
+      if(!app.downloadEndpoint){
+        ev.preventDefault();ev.stopImmediatePropagation();
+        nativeCall('openSafImport',{mode:'files'})
+          .catch(e=>showToast(e.message||'Choose a file in Android Files',6000));
+        return;
+      }
       const i=Number(b.dataset.downloadTrack);
       const t=app.visibleDownloadTracks?.[i];if(!t)return;
       handle('downloadTrack',{track:{
@@ -303,10 +315,22 @@
       }},'Added to download queue');return;
     }
     if(b.hasAttribute('data-download-album')){
+      if(!app.downloadEndpoint){
+        ev.preventDefault();ev.stopImmediatePropagation();
+        nativeCall('openSafImport',{mode:'folder'})
+          .catch(e=>showToast(e.message||'Choose album folder',6000));
+        return;
+      }
       if(!app.selected?.id)return;
       handle('downloadAlbum',{id:String(app.selected.id)},'Preparing album downloads');return;
     }
     if(b.hasAttribute('data-download-discography')){
+      if(!app.downloadEndpoint){
+        ev.preventDefault();ev.stopImmediatePropagation();
+        nativeCall('openSafImport',{mode:'folder'})
+          .catch(e=>showToast(e.message||'Choose artist folder',6000));
+        return;
+      }
       if(!app.selected?.id)return;
       handle('downloadDiscography',{id:String(app.selected.id),mode:b.dataset.downloadDiscography||'all'},'Preparing discography downloads');return;
     }
