@@ -24,6 +24,9 @@ jobs:
           gradle-version: '8.9'
       - name: Install Android SDK 35
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Validate all player scripts
+        run: |
+          for file in app/src/main/assets/*.js; do node --check "$file"; done
       - name: Verify player UI and source metadata
         run: node test_ui.cjs
       - name: Assemble debug APK
