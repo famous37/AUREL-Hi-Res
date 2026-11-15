@@ -170,8 +170,10 @@ const formerEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const old=app.lastQueueFingerprint;formerEvent(kind,data);if(kind==='player'){
  const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
- if(app.overlay&&(old!==fingerprint||app.lastSourceSignature!==JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime]))){
-    app.lastSourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime]);drawOverlay();
+ const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime]);
+ const trackSignature=JSON.stringify([data?.track?.id,data?.track?.title,artistLabel(data?.track||{}),data?.track?.album?.title,image(data?.track||{})]);
+ if(app.overlay&&(old!==fingerprint||app.lastSourceSignature!==sourceSignature||app.lastVisualSignature!==trackSignature)){
+    app.lastSourceSignature=sourceSignature;app.lastVisualSignature=trackSignature;drawOverlay();
  }
  }};
 // The native action bridge is the sole route to Qobuz. No extra account tokens are shared.
