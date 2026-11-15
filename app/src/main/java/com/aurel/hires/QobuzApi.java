@@ -62,15 +62,16 @@ final class QobuzApi {
             }
             String text=out.toString("UTF-8");
             JSONObject body=text.isEmpty()?new JSONObject():new JSONObject(text);
-            if(code>=400){
+            if(code>=300||"error".equalsIgnoreCase(body.optString("status"))){
+                int status=code>=300?code:body.optInt("code",500);
                 // Root identifiers are Qobuz server trace IDs, not evidence of a valid session.
                 String detail=body.optString("message",body.optString("error","Request rejected"))
                     .replaceAll("\\s*\\(Root=[^)]*\\)","").trim();
-                if(code==401||code==403)
-                    throw new ApiException(code,endpoint,
-                        "Qobuz HTTP "+code+": token authentication rejected for this App ID. "+
+                if(status==401||status==403)
+                    throw new ApiException(status,endpoint,
+                        "Qobuz HTTP "+status+": token authentication rejected for this App ID. "+
                         "Use the X-App-Id paired with your token, or obtain a fresh token.");
-                throw new ApiException(code,endpoint,"Qobuz HTTP "+code+": "+detail);
+                throw new ApiException(status,endpoint,"Qobuz HTTP "+status+": "+detail);
             }
             return body;
         }finally{c.disconnect();}
@@ -109,15 +110,17 @@ final class QobuzApi {
         }
         try{
             JSONObject result=request("favorite/getUserFavorites",args,false,appId,token);
-            if(result.has("status")&&"error".equalsIgnoreCase(result.optString("status")))
-                throw new Exception("Qobuz refused the authenticated favourites request.");
+            if(!result.has("albums")&&!result.has("tracks")&&!result.has("artists"))
+                throw new Exception("Qobuz did not return a recognizable authenticated library response.");
             // Some Qobuz backends treat favourites differently from catalogue
             // routes. Both user entitlement AND App ID catalogue access are
             // required, otherwise a misleading login-success leads to 401
             // on the first search/album page.
-            request("album/getFeatured",
+            JSONObject catalogue=request("album/getFeatured",
                 new JSONObject().put("type","new-releases").put("limit",1),
                 false,appId,token);
+            if(!catalogue.has("albums")&&!catalogue.has("items"))
+                throw new Exception("Qobuz did not return a recognizable catalogue response for this App ID.");
             return new JSONObject().put("validated",true)
                 .put("validation_status","verified")
                 .put("profile_unavailable",true);
