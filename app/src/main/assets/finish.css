@@ -186,3 +186,12 @@ button:disabled{opacity:.35}
  html{scroll-behavior:auto}
  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
 }
+
+/* Keep queue statistics on one compact row on everyday phones.
+   Extremely narrow displays switch to two columns. */
+@media(min-width:366px) and (max-width:820px){
+ .screen .download-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .screen .download-summary>div{padding:11px 4px}
+ .screen .download-summary strong{font-size:clamp(19px,4.8vw,25px)}
+ .screen .download-summary span{font-size:12px}
+}
