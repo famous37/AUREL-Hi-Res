@@ -348,6 +348,11 @@ public final class MainActivity extends Activity {
                         case "downloadClear":data=downloads.clearHistory();break;
                         case "downloadQuality":data=downloads.setQuality(p.getInt("quality"));break;
                         case "downloadSettings":data=downloads.settings();break;
+                        case "playDownloaded": {
+                            final JSONObject saved=downloads.savedItem(p.getString("id"));
+                            ui.post(()->startLocalPlayback(saved));
+                            data=new JSONObject();break;
+                        }
                         case "openDownloaded": {
                             String stored=downloads.fileUri(p.getString("id"));
                             if(!stored.startsWith("content://"))
@@ -508,6 +513,61 @@ public final class MainActivity extends Activity {
         prepared=false;buffering=false;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
     }
+
+    /** Play an already-saved purchased file without fetching another Qobuz stream. */
+    private void startLocalPlayback(JSONObject saved){
+        playGeneration++;
+        final int generation=playGeneration;
+        cleanupPlayer();
+        queue.clear();
+        queueIndex=0;
+        try {
+            current=new JSONObject().put("id",saved.optString("id"))
+                .put("title",saved.optString("title","Track"))
+                .put("artist",new JSONObject().put("name",saved.optString("artist","Artist")))
+                .put("album",new JSONObject().put("title",saved.optString("album","Album")));
+            queue.add(current);
+            fileInfo=new JSONObject().put("mime_type",saved.optString("mime",""));
+            codec=saved.optString("mime","").contains("flac")?"FLAC":"";
+            sourceVerified=false;sourceLabel="Local purchased audio";
+            decoderSampleRateHz=0;decoderChannels=0;decoderMime="";
+            buffering=true;prepared=false;playerError="";
+            emit("player",playerState());
+            String link=saved.optString("uri","");
+            Uri location=Uri.parse(link);
+            player=new MediaPlayer();
+            player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            player.setOnPreparedListener(mp->{
+                if(generation!=playGeneration)return;
+                prepared=true;buffering=false;
+                inspectPreparedTrack(mp);
+                mp.start();
+                emit("player",playerState());
+            });
+            player.setOnCompletionListener(mp->{
+                if(generation!=playGeneration)return;
+                if(repeatMode==2){mp.seekTo(0);mp.start();}
+                else{cleanupPlayer();emit("player",playerState());}
+            });
+            player.setOnErrorListener((mp,what,extra)->{
+                if(generation!=playGeneration)return true;
+                buffering=false;prepared=false;
+                playerError="Local audio decoder error ("+what+" / "+extra+")";
+                emit("player",playerState());return true;
+            });
+            if("content".equalsIgnoreCase(location.getScheme()))
+                player.setDataSource(this,location);
+            else if("file".equalsIgnoreCase(location.getScheme()))
+                player.setDataSource(location.getPath());
+            else throw new Exception("Invalid saved audio URI");
+            player.prepareAsync();
+        } catch(Exception e){
+            cleanupPlayer();
+            playerError=e.getMessage();
+            emit("player",playerState());
+        }
+    }
+
     private void startAtCurrent() {
         if(queueIndex<0||queueIndex>=queue.size())return;
         playGeneration++;
