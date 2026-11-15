@@ -162,6 +162,7 @@ function renderLogin(){
         <div class="aurel-advanced-fields">
           <label for="appId">App ID <small>Must match the App ID that issued the token</small></label>
           <input id="appId" inputmode="numeric" autocomplete="off" value="${html(appId)}" placeholder="312369995">
+          <p class="aurel-signin-appid-note">The prefilled 312369995 is a legacy AUREL setting, not a universal Qobuz ID. To find the matching value: sign in at play.qobuz.com on a computer, open Developer Tools → Network → a request to api.json → Request Headers → X-App-Id. Keep your token private.</p>
           ${secondary?'':`<label for="appSecret">App Secret <small>Optional at sign-in; needed for signed audio URLs if not already saved</small></label>
           <div class="aurel-token-input"><input id="appSecret" type="password" autocomplete="off" placeholder="${app.session?.hasSecret?'Previously saved · leave empty to keep':'Enter your App Secret if available'}"><button type="button" data-toggle-secret aria-label="Show App Secret" title="Show or hide App Secret">${ic('eye',22)}</button></div>`}
           <label for="userId">User ID <small>Optional · for checking a returned profile only</small></label>
