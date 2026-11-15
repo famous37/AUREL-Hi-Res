@@ -2,6 +2,8 @@ package com.aurel.hires;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ClipData;
+import java.util.LinkedHashSet;
 import android.net.Uri;
 import java.nio.charset.StandardCharsets;
 import android.os.Bundle;
@@ -53,6 +55,8 @@ public final class MainActivity extends Activity {
     private boolean prepared=false, buffering=false;
     private String playerError="";
     private long lastStateSent=0;
+    private static final int REQUEST_AUDIO_FILES=4101;
+    private static final int REQUEST_MUSIC_FOLDER=4102;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -206,6 +210,56 @@ public final class MainActivity extends Activity {
         return j;
     }
 
+    /** The Android system picker grants access to Murglar's public DocumentsProvider,
+     * or any other user-selected music provider. The app never sees passwords. */
+    private void showImportPicker(boolean folder){
+        Intent choose=new Intent(folder?Intent.ACTION_OPEN_DOCUMENT_TREE:Intent.ACTION_OPEN_DOCUMENT);
+        if(!folder){
+            choose.setType("audio/*");
+            choose.addCategory(Intent.CATEGORY_OPENABLE);
+            choose.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
+        }
+        choose.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        try{startActivityForResult(choose,folder?REQUEST_MUSIC_FOLDER:REQUEST_AUDIO_FILES);}
+        catch(Exception e){
+            try{emit("downloadNotice",new JSONObject().put("error",true)
+                .put("message","Android Files picker unavailable: "+e.getMessage()));}
+            catch(Exception ignored){}
+        }
+    }
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=REQUEST_AUDIO_FILES&&requestCode!=REQUEST_MUSIC_FOLDER)return;
+        if(resultCode!=RESULT_OK||data==null)return;
+        LinkedHashSet<Uri> files=new LinkedHashSet<>();
+        Uri selected=data.getData();
+        if(selected!=null)files.add(selected);
+        ClipData clips=data.getClipData();
+        if(clips!=null)for(int i=0;i<clips.getItemCount();i++){
+            Uri item=clips.getItemAt(i).getUri();
+            if(item!=null)files.add(item);
+        }
+        for(Uri item:files){
+            try{
+                getContentResolver().takePersistableUriPermission(item,Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }catch(Exception ignored){/* Some providers issue only temporary read access. */}
+        }
+        if(files.isEmpty())return;
+        final boolean folder=requestCode==REQUEST_MUSIC_FOLDER;
+        jobs.execute(()->{
+            try{
+                JSONObject response=folder?downloads.importTree(files.iterator().next()):
+                    downloads.importDocuments(new ArrayList<>(files));
+                emit("downloadNotice",new JSONObject()
+                    .put("message",folder?"Scanning selected music folder":
+                        response.optInt("added",0)+" selected audio files added to queue"));
+                emit("downloads",downloads.snapshot());
+            }catch(Exception e){
+                try{emit("downloadNotice",new JSONObject()
+                    .put("error",true).put("message",e.getMessage()));}catch(Exception ignored){}
+            }
+        });
+    }
     private final class Bridge {
         @JavascriptInterface public void call(String requestId,String action,String payload) {
             if(requestId==null||requestId.length()>72)return;
@@ -366,6 +420,12 @@ public final class MainActivity extends Activity {
                             final int mode=Math.max(0,Math.min(2,p.optInt("repeat",0)));
                             final boolean rand=p.optBoolean("shuffle",false);
                             ui.post(()->{repeatMode=mode;shuffle=rand;emit("player",playerState());});data=new JSONObject();break;
+                        }
+                        case "openSafImport":{
+                            final boolean folder="folder".equals(p.optString("mode","files"));
+                            ui.post(()->showImportPicker(folder));
+                            data=new JSONObject().put("picker",true);
+                            break;
                         }
                         case "downloadTrack":data=downloads.addTrack(p.getJSONObject("track"));break;
                         case "downloadAlbum":data=downloads.addAlbum(p.getString("id"));break;

@@ -11,6 +11,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.provider.DocumentsContract;
+import android.provider.OpenableColumns;
+import android.database.Cursor;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.File;
@@ -22,6 +25,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -50,7 +54,7 @@ final class AuthorizedDownloadManager {
 
     static final class Entry {
         final String id,title,artist,album,albumId;
-        String status="queued",error="",uri="",mime="";
+        String status="queued",error="",uri="",mime="",sourceUri="",sourceName="",sourceKind="qobuz";
         int percent=0;
         long bytes=0,total=0;
         boolean cancel=false;
@@ -61,7 +65,8 @@ final class AuthorizedDownloadManager {
             return new JSONObject().put("id",id).put("title",title).put("artist",artist)
                 .put("album",album).put("albumId",albumId).put("status",status)
                 .put("error",error).put("percent",percent).put("bytes",bytes)
-                .put("total",total).put("mime",mime).put("uri",uri);
+                .put("total",total).put("mime",mime).put("uri",uri)
+                .put("sourceUri",sourceUri).put("sourceName",sourceName).put("sourceKind",sourceKind);
         }
     }
     AuthorizedDownloadManager(Context ctx,QobuzApi api,Listener listener){
@@ -76,7 +81,7 @@ final class AuthorizedDownloadManager {
         return s.length()>96?s.substring(0,96).trim():s;
     }
     private static String id(String v)throws Exception{
-        if(v==null||!v.matches("[0-9]{1,24}"))throw new Exception("Invalid track ID");
+        if(v==null||!v.matches("([0-9]{1,24}|import-[a-f0-9-]{36})"))throw new Exception("Invalid track ID");
         return v;
     }
     private static String getArtist(JSONObject t,JSONObject album){
@@ -103,7 +108,7 @@ final class AuthorizedDownloadManager {
         return new JSONObject().put("added",added?1:0).put("existing",added?0:1);
     }
     JSONObject addAlbum(String albumId)throws Exception {
-        id(albumId);
+        if(!albumId.matches("[0-9]{1,24}"))throw new Exception("Invalid Qobuz album ID");
         synchronized(this){if(planning)throw new Exception("A batch is already being prepared");planning=true;planMessage="Loading album tracks…";}
         notifyState(true);
         planner.execute(()->{
@@ -148,7 +153,7 @@ final class AuthorizedDownloadManager {
         return added;
     }
     JSONObject addDiscography(String artistId,String mode)throws Exception{
-        id(artistId);
+        if(!artistId.matches("[0-9]{1,24}"))throw new Exception("Invalid Qobuz artist ID");
         final String selected=mode.equals("albums")?"albums":mode.equals("singles")?"singles":"all";
         synchronized(this){if(planning)throw new Exception("A batch is already being prepared");planning=true;planMessage="Loading artist discography…";}
         notifyState(true);
@@ -276,6 +281,7 @@ final class AuthorizedDownloadManager {
         });
     }
     private void saveAudio(Entry entry)throws Exception{
+        if(!entry.sourceUri.isEmpty()){saveImportedAudio(entry);return;}
         // This method never asks for a streaming URL or bypasses access control.
         JSONObject info=api.purchasedFileInfo(entry.id,quality());
         String raw=info.optString("url","");
@@ -374,6 +380,208 @@ final class AuthorizedDownloadManager {
             if(connection!=null)connection.disconnect();
         }
     }
+
+    /** Android SAF: import files explicitly selected from Murglar or Files.
+     * The system's URI grant is the authorization. No Qobuz signatures/DRM bypass.
+     */
+    private static final String[] AUDIO_EXTENSIONS={
+        ".flac",".mp3",".m4a",".aac",".wav",".ogg",".opus",".aiff",".aif",".alac"
+    };
+    private static boolean isAudio(String displayName,String mime){
+        String type=mime==null?"":mime.toLowerCase(Locale.ROOT);
+        String file=displayName==null?"":displayName.toLowerCase(Locale.ROOT);
+        if(type.startsWith("audio/"))return true;
+        for(String ext:AUDIO_EXTENSIONS)if(file.endsWith(ext))return true;
+        return false;
+    }
+    private static String audioMime(String filename,String fallback){
+        String lower=filename.toLowerCase(Locale.ROOT);
+        if(lower.endsWith(".flac"))return "audio/flac";
+        if(lower.endsWith(".mp3"))return "audio/mpeg";
+        if(lower.endsWith(".m4a")||lower.endsWith(".aac")||lower.endsWith(".alac"))return "audio/mp4";
+        if(lower.endsWith(".wav"))return "audio/wav";
+        if(lower.endsWith(".opus"))return "audio/opus";
+        if(lower.endsWith(".ogg"))return "audio/ogg";
+        if(lower.endsWith(".aif")||lower.endsWith(".aiff"))return "audio/aiff";
+        return fallback!=null&&fallback.startsWith("audio/")?fallback:"audio/mpeg";
+    }
+    private static final class DocumentMeta {
+        String fileName="",title="",artist="",album="",mime="";
+        long size=-1;
+    }
+    private DocumentMeta documentMeta(Uri doc)throws Exception{
+        DocumentMeta meta=new DocumentMeta();
+        ContentResolver resolver=context.getContentResolver();
+        String[] columns={OpenableColumns.DISPLAY_NAME,OpenableColumns.SIZE,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,MediaStore.Audio.Media.ALBUM};
+        try(Cursor cursor=resolver.query(doc,columns,null,null,null)){
+            if(cursor!=null&&cursor.moveToFirst()){
+                meta.fileName=column(cursor,OpenableColumns.DISPLAY_NAME);
+                meta.mime=column(cursor,DocumentsContract.Document.COLUMN_MIME_TYPE);
+                meta.title=column(cursor,MediaStore.Audio.Media.TITLE);
+                meta.artist=column(cursor,MediaStore.Audio.Media.ARTIST);
+                meta.album=column(cursor,MediaStore.Audio.Media.ALBUM);
+                int bytes=cursor.getColumnIndex(OpenableColumns.SIZE);
+                if(bytes>=0&&!cursor.isNull(bytes))meta.size=cursor.getLong(bytes);
+            }
+        }catch(Exception ignored){
+            // Some remote providers omit audio metadata fields or reject projections.
+        }
+        if(meta.fileName.isEmpty()){
+            try(Cursor cursor=resolver.query(doc,new String[]{OpenableColumns.DISPLAY_NAME},null,null,null)){
+                if(cursor!=null&&cursor.moveToFirst())meta.fileName=column(cursor,OpenableColumns.DISPLAY_NAME);
+            }
+        }
+        if(meta.fileName.isEmpty())meta.fileName="Imported audio";
+        if(meta.mime.isEmpty())meta.mime=resolver.getType(doc);
+        return meta;
+    }
+    private static String column(Cursor c,String key){
+        int i=c.getColumnIndex(key);
+        return i<0||c.isNull(i)?"":c.getString(i);
+    }
+    private synchronized boolean enqueueDocument(Uri document,String folder)throws Exception{
+        if(closed)throw new Exception("Importer closed");
+        if(!"content".equalsIgnoreCase(document.getScheme()))throw new Exception("Select a file using Android Files");
+        String source=document.toString();
+        for(Entry item:records)if(source.equals(item.sourceUri))return false;
+        if(records.size()>=MAX_ITEMS)throw new Exception("Queue limit reached");
+        DocumentMeta info=documentMeta(document);
+        if(!isAudio(info.fileName,info.mime))return false;
+        if(info.size>MAX_AUDIO_BYTES)throw new Exception("Audio file exceeds 3 GB");
+        String uid="import-"+UUID.randomUUID().toString();
+        String file=info.fileName;
+        String title=info.title.isEmpty()?file.replaceFirst("(?i)\\.(flac|mp3|m4a|aac|wav|ogg|opus|aiff|aif|alac)$",""):info.title;
+        Entry e=new Entry(uid,name(title,"Imported track"),
+            name(info.artist,"Imported audio"),name(info.album,folder==null?"Imports":folder),"");
+        e.sourceKind="saf";e.sourceUri=source;
+        e.sourceName=name(file,"Audio");
+        e.mime=audioMime(file,info.mime);
+        e.total=Math.max(0,info.size);
+        records.add(e);known.add(uid);
+        return true;
+    }
+    JSONObject importDocuments(java.util.List<Uri> docs)throws Exception{
+        if(docs==null||docs.isEmpty())throw new Exception("No documents selected");
+        int added=0;
+        for(Uri uri:docs){
+            try{if(enqueueDocument(uri,"Selected files"))added++;}
+            catch(Exception problem){ synchronized(this){planMessage="Some files skipped: "+problem.getMessage();} }
+        }
+        synchronized(this){save();schedule();}
+        notifyState(true);
+        return new JSONObject().put("added",added).put("selected",docs.size());
+    }
+    JSONObject importTree(Uri tree)throws Exception{
+        if(!"content".equalsIgnoreCase(tree.getScheme()))throw new Exception("Select an Android document folder");
+        synchronized(this){
+            if(planning)throw new Exception("Another batch is being prepared");
+            planning=true;planMessage="Scanning selected music folder…";
+        }
+        notifyState(true);
+        planner.execute(()->{
+            int[] total={0,0};
+            try{
+                String root=DocumentsContract.getTreeDocumentId(tree);
+                traverseTree(tree,root,0,"Imported collection",new HashSet<>(),total);
+                synchronized(this){save();schedule();planMessage=total[0]+" music files queued · "+total[1]+" skipped";}
+            }catch(Exception e){
+                synchronized(this){planMessage="Folder import: "+e.getMessage()+" · "+total[0]+" queued";}
+            }finally{
+                synchronized(this){planning=false;}
+                notifyState(true);
+            }
+        });
+        return new JSONObject().put("preparing",true);
+    }
+    private void traverseTree(Uri tree,String parent,int depth,String folder,Set<String> visited,int[] totals)throws Exception{
+        if(depth>10||totals[0]>=1500||closed||!visited.add(parent))return;
+        ContentResolver resolver=context.getContentResolver();
+        Uri children=DocumentsContract.buildChildDocumentsUriUsingTree(tree,parent);
+        String[] projection={DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,DocumentsContract.Document.COLUMN_MIME_TYPE};
+        try(Cursor cursor=resolver.query(children,projection,null,null,null)){
+            if(cursor==null)throw new Exception("Cannot browse this folder; choose tracks instead");
+            while(cursor.moveToNext()&&!closed&&totals[0]<1500){
+                String docId=column(cursor,DocumentsContract.Document.COLUMN_DOCUMENT_ID);
+                String display=column(cursor,DocumentsContract.Document.COLUMN_DISPLAY_NAME);
+                String mime=column(cursor,DocumentsContract.Document.COLUMN_MIME_TYPE);
+                if(docId.isEmpty())continue;
+                if(DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)){
+                    traverseTree(tree,docId,depth+1,name(display,folder),visited,totals);
+                }else if(isAudio(display,mime)){
+                    Uri doc=DocumentsContract.buildDocumentUriUsingTree(tree,docId);
+                    try{if(enqueueDocument(doc,folder))totals[0]++;else totals[1]++;}
+                    catch(Exception ignored){totals[1]++;}
+                    if(totals[0]%25==0){
+                        synchronized(this){planMessage="Scanning music: "+totals[0]+" queued";save();}
+                        notifyState(false);
+                    }
+                }
+            }
+        }
+    }
+    private void saveImportedAudio(Entry entry)throws Exception{
+        ContentResolver resolver=context.getContentResolver();
+        Uri input=Uri.parse(entry.sourceUri);
+        if(!"content".equalsIgnoreCase(input.getScheme()))throw new Exception("Invalid source document");
+        String filename=name(entry.sourceName,entry.title+".flac");
+        String relative=Environment.DIRECTORY_MUSIC+"/AUREL/Imported/"+name(entry.album,"Selected files")+"/";
+        Uri target=null;
+        File local=null;
+        OutputStream output=null;
+        try{
+            if(Build.VERSION.SDK_INT>=29){
+                ContentValues values=new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME,filename);
+                values.put(MediaStore.MediaColumns.MIME_TYPE,entry.mime);
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH,relative);
+                values.put(MediaStore.MediaColumns.IS_PENDING,1);
+                values.put(MediaStore.Audio.Media.TITLE,entry.title);
+                values.put(MediaStore.Audio.Media.ARTIST,entry.artist);
+                values.put(MediaStore.Audio.Media.ALBUM,entry.album);
+                target=resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,values);
+                if(target==null)throw new Exception("Cannot create music file");
+                output=resolver.openOutputStream(target,"w");
+            }else{
+                File base=context.getExternalFilesDir(Environment.DIRECTORY_MUSIC);
+                if(base==null)throw new Exception("Music storage unavailable");
+                File directory=new File(new File(new File(base,"AUREL"),"Imported"),name(entry.album,"Selected files"));
+                if(!directory.exists()&&!directory.mkdirs())throw new Exception("Cannot create music folder");
+                local=new File(directory,filename);
+                output=new FileOutputStream(local);
+            }
+            if(output==null)throw new Exception("No destination stream");
+            try(InputStream source=resolver.openInputStream(input)){
+                if(source==null)throw new Exception("Source document unavailable");
+                byte[] buffer=new byte[65536];
+                int n;long received=0;
+                while((n=source.read(buffer))!=-1){
+                    if(entry.cancel||closed)throw new Exception("Cancelled");
+                    output.write(buffer,0,n);received+=n;
+                    if(received>MAX_AUDIO_BYTES)throw new Exception("Audio file exceeds 3 GB");
+                    entry.bytes=received;
+                    if(entry.total>0)entry.percent=Math.min(99,(int)(received*100/entry.total));
+                    notifyState(false);
+                }
+                if(received==0||entry.total>0&&received<entry.total)
+                    throw new Exception("File was empty or incomplete");
+            }
+            output.flush();output.close();output=null;
+            if(target!=null){
+                ContentValues ready=new ContentValues();
+                ready.put(MediaStore.MediaColumns.IS_PENDING,0);
+                resolver.update(target,ready,null,null);
+                entry.uri=target.toString();
+            }else if(local!=null){entry.uri=Uri.fromFile(local).toString();}
+        }catch(Exception error){
+            if(target!=null)resolver.delete(target,null,null);
+            if(local!=null)local.delete();
+            throw new Exception("Could not import "+entry.title+": "+error.getMessage());
+        }finally{if(output!=null)try{output.close();}catch(Exception ignored){}}
+    }
+
     private int quality(){
         String saved=context.getSharedPreferences("aurel_download_settings",Context.MODE_PRIVATE)
             .getString("download_quality","27");
@@ -411,6 +619,9 @@ final class AuthorizedDownloadManager {
                     e.status="failed";e.error="Interrupted; tap Retry";
                 }else e.error=o.optString("error","");
                 e.uri=o.optString("uri","");
+                e.sourceUri=o.optString("sourceUri","");
+                e.sourceName=o.optString("sourceName","");
+                e.sourceKind=o.optString("sourceKind","qobuz");
                 e.mime=o.optString("mime","");
                 e.percent=o.optInt("percent",0);
                 e.bytes=o.optLong("bytes",0);
