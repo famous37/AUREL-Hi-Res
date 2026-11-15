@@ -121,13 +121,13 @@
     if(!p?.track?.id){m.classList.add('hidden');return}
     const t=p.track,played=p.duration?Math.max(0,Math.min(100,Math.round((p.position||0)/p.duration*100))):0;
     m.classList.remove('hidden');
-    if(m.dataset.trackId===String(t.id)&&m.dataset.playing===String(!!p.playing)){
+    const metaKey=[String(t.id),String(t.title||''),artistLabel(t),image(t),String(!!p.playing)].join('|');
+    if(m.dataset.metaKey===metaKey){
       const bar=m.querySelector('.mini-progress');
       if(bar)bar.style.setProperty('--played',played+'%');
       return;
     }
-    m.dataset.trackId=String(t.id);
-    m.dataset.playing=String(!!p.playing);
+    m.dataset.metaKey=metaKey;
     m.innerHTML=`<span class="mini-drag" aria-hidden="true"></span>
       ${art(t,'minicover')||'<span class="minicover placeholder">♫</span>'}
       <button class="mini-track-open" data-open-mini-player aria-label="Open Now Playing">
