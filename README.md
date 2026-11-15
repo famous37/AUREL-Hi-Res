@@ -1,4 +1,4 @@
-# AUREL Hi-Res — 0.8.0 Beta
+# AUREL Hi-Res — 0.9.0 Beta
 
 **Developer: famous37**
 
@@ -80,3 +80,18 @@ Mornye is used for feature and UX research only. No Mornye or Murglar source cod
 - CI validates the syntax of all JavaScript assets, UI tests and the Android 35 debug APK build.
 
 **Known limitations:** The custom endpoint must be supplied by the user and be licensed/authorized to provide the requested files. Generic Qobuz subscription access alone does not guarantee permanent downloads. Full visual verification on different physical screens is not implied by CI tests.
+
+## 0.9 — Android Murglar document imports
+
+Unlike the Qobuz purchased-file request, **the Android Storage Access Framework (SAF)** can access files the user explicitly selects in the system picker. [Murglar's document provider](https://github.com/badmannersteam/murglar-plugins/blob/master/DOCUMENT_PROVIDER.md) exposes music through `content://com.badmanners.murglar.provider.nodes`. AUREL uses only public, user-authorized Android interfaces, not Murglar's internal classes or DRM workarounds.
+
+From **Downloads → Import your music**, use **Select tracks** to choose multiple files or **Select folder** to select a complete album/artist/discography directory from Murglar or a local storage provider. AUREL traverses up to 1500 audio files (maximum depth 10) and imports via the native ContentResolver into `Music/AUREL/Imported` on Android 10+. Android 8–9 use app-specific music storage. The queue supports cancellation, progress, retry and offline playback; files are scoped to user-granted read permissions.
+
+The Qobuz "Purchased download quality" setting applies **only** to separately authorized Qobuz/API download URLs; it cannot alter the bit depth of files exposed by Murglar or other Android providers. No format conversion, fake bitrate, stream capture, or removal of DRM is performed. If a file fails, it remains in the queue for retry. If an Android document permission expires, choose the source again.
+
+This is a real user-selected import flow, **not a fully automatic standalone Qobuz download service**. AUREL cannot guarantee availability of music through every Murglar account, plugin, folder or subscription. The Android SAF provider may need to be enabled in Murglar, and the picker may show sources that restrict file copies. Real-device interoperability tests remain necessary.
+
+Other 0.9 updates:
+- The full player's Download button opens a **source-choice sheet**, instead of immediately sending a Qobuz request that previously failed with HTTP 400.
+- Downloads has compact counters, All/Active/Saved/Issues filters, concise expandable errors, a prominent import area and an Advanced settings section.
+- Colors, typography, icons, touch targets and safe-area spacing are normalized on narrow and wide Android displays.
