@@ -298,6 +298,8 @@ async function login(form){
   const error=$('#loginError');
   if(error){error.textContent=e.message||'Unable to save this token';error.classList.remove('hidden')}
   else showToast(e.message||'Unable to save this token',6400);
+  const advanced=document.querySelector('.aurel-signin-advanced');
+  if(advanced&&/401|403|App ID|X-App-Id|token/i.test(e.message||''))advanced.open=true;
   if(button){button.disabled=false;button.innerHTML=(app.loginTarget==='library'?'Connect library account':'Connect Qobuz')+' '+ic('chevron',22)}
  }
 }
