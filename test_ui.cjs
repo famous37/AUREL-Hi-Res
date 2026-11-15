@@ -115,6 +115,9 @@ assert(!fs.existsSync(__dirname+'/app/src/main/java/com/aurel/hires/AuthorizedDo
 assert(api.includes('streamInfo('));
 assert(api.includes('JSONObject validateLiveToken('));
 assert(api.includes('favorite/getUserFavorites'));
+assert(api.includes('request("album/getFeatured",'));
+assert(api.includes('return t.isEmpty()?store.get("token"):t;'));
+assert(!api.includes('store.get("libraryToken"):store.get("token")'));
 assert(api.includes('Qobuz rejected this token with App ID'));
 assert(api.includes('JSONObject discoverReleases('));
 assert(api.includes('album/getFeatured'));
