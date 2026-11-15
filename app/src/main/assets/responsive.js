@@ -57,6 +57,12 @@
     if(item.status==='cancelled')return 'Cancelled';
     return 'Failed';
   }
+  function downloadStructureKey(dl){
+    const items=Array.isArray(dl?.items)?dl.items:[];
+    return [dl?.total,dl?.queued,dl?.done,dl?.failed,dl?.running,
+      String(!!dl?.planning),dl?.planMessage||'',
+      ...items.map(i=>[i.id,i.status,i.error||''].join(':'))].join('|');
+  }
   function renderDownloads(){
     const sc=$('#screen'),previous=sc.scrollTop;
     const dl=app.downloads||{};
@@ -79,7 +85,7 @@
       </div>
       <div class="sectionhead download-history-heading"><h2>Download queue</h2><button class="plain-action" data-download-refresh title="Refresh">↻</button></div>
       <div id="downloadsList" class="downloads-list">
-        ${items.length?items.map(item=>`<article class="download-entry" data-status="${html(item.status)}">
+        ${items.length?items.map(item=>`<article class="download-entry" data-track-id="${html(item.id)}" data-status="${html(item.status)}">
           <div class="download-entry-main"><span class="download-entry-icon" aria-hidden="true">${item.status==='done'?'✓':item.status==='failed'?'!':'♫'}</span>
             <div class="download-entry-meta"><strong>${html(item.title||'Track')}</strong>
               <span>${html(item.artist||'Artist')}${item.album?' · '+html(item.album):''}</span>
@@ -99,11 +105,33 @@
       ${items.some(x=>x.status==='done'||x.status==='failed'||x.status==='cancelled')?'<button class="aurel-clear-downloads" data-download-clear>Clear finished history</button>':''}
       <p class="download-disclaimer">Downloads require a Qobuz integration with separate purchased-file authorization. Unavailable endpoints or streaming-only titles will report a clear error. Android 10+ files go to Music/AUREL; Android 8–9 use the app music folder.</p>`;
     sc.scrollTop=previous;
+    app.downloadStructureKey=downloadStructureKey(dl);
   }
   let scheduledRender=false;
   function updateDownloads(state){
     app.downloads=state||app.downloads;
-    if(app.nav!=='downloads'||app.selected||scheduledRender)return;
+    if(app.nav!=='downloads'||app.selected)return;
+    const dl=app.downloads;
+    if(downloadStructureKey(dl)===app.downloadStructureKey){
+      for(const item of (dl.items||[])){
+        if(item.status!=='running')continue;
+        const node=document.querySelector('#downloadsList .download-entry[data-track-id="'+item.id+'"]');
+        if(!node)continue;
+        const bar=node.querySelector('.download-progress');
+        if(bar){
+          const percent=Math.max(0,Math.min(100,Number(item.percent)||0));
+          bar.setAttribute('aria-valuenow',String(percent));
+          const fill=bar.querySelector('span');
+          if(fill)fill.style.width=percent+'%';
+        }
+        const status=node.querySelector('.download-entry-status');
+        if(status)status.textContent=badgeText(item);
+        const amount=node.querySelector('.download-transfer');
+        if(amount)amount.textContent=humanBytes(item.bytes)+(Number(item.total)>0?' / '+humanBytes(item.total):'');
+      }
+      return;
+    }
+    if(scheduledRender)return;
     scheduledRender=true;
     requestAnimationFrame(()=>{scheduledRender=false;if(app.nav==='downloads'&&!app.selected)renderDownloads();});
   }
