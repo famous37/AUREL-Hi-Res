@@ -121,6 +121,13 @@
     if(!p?.track?.id){m.classList.add('hidden');return}
     const t=p.track,played=p.duration?Math.max(0,Math.min(100,Math.round((p.position||0)/p.duration*100))):0;
     m.classList.remove('hidden');
+    if(m.dataset.trackId===String(t.id)&&m.dataset.playing===String(!!p.playing)){
+      const bar=m.querySelector('.mini-progress');
+      if(bar)bar.style.setProperty('--played',played+'%');
+      return;
+    }
+    m.dataset.trackId=String(t.id);
+    m.dataset.playing=String(!!p.playing);
     m.innerHTML=`<span class="mini-drag" aria-hidden="true"></span>
       ${art(t,'minicover')||'<span class="minicover placeholder">♫</span>'}
       <button class="mini-track-open" data-open-mini-player aria-label="Open Now Playing">
@@ -165,6 +172,13 @@
     };
     if(b.hasAttribute('data-open-mini-player')){ev.preventDefault();ev.stopImmediatePropagation();openPlayer();return}
     if(b.hasAttribute('data-mini-prev')){handle('previous',{});return}
+    if(b.hasAttribute('data-download-current')){
+      const t=app.player?.track;if(!t?.id)return;
+      handle('downloadTrack',{track:{
+        id:String(t.id),title:t.title||'Track',artist:artistLabel(t),
+        album:t.album?.title||'',albumId:t.album?.id?String(t.album.id):''
+      }},'Added to download queue');return;
+    }
     if(b.hasAttribute('data-download-track')){
       const i=Number(b.dataset.downloadTrack);
       const t=app.visibleDownloadTracks?.[i];if(!t)return;
