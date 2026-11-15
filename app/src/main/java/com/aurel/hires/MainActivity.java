@@ -35,6 +35,7 @@ public final class MainActivity extends Activity {
     private WebView web;
     private SecureStore secure;
     private QobuzApi api;
+    private AuthorizedDownloadManager downloads;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -61,6 +62,7 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         api=new QobuzApi(secure);
+        downloads=new AuthorizedDownloadManager(this,api,statePayload->emit("downloads",statePayload));
         web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
         WebSettings s=web.getSettings();
         s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
@@ -114,6 +116,7 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy() {
         ui.removeCallbacks(ticker);
         cleanupPlayer();
+        if(downloads!=null)downloads.close();
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
         jobs.shutdownNow();super.onDestroy();
     }
@@ -334,6 +337,31 @@ public final class MainActivity extends Activity {
                             final int mode=Math.max(0,Math.min(2,p.optInt("repeat",0)));
                             final boolean rand=p.optBoolean("shuffle",false);
                             ui.post(()->{repeatMode=mode;shuffle=rand;emit("player",playerState());});data=new JSONObject();break;
+                        }
+                        case "downloadTrack":data=downloads.addTrack(p.getJSONObject("track"));break;
+                        case "downloadAlbum":data=downloads.addAlbum(p.getString("id"));break;
+                        case "downloadDiscography":data=downloads.addDiscography(
+                            p.getString("id"),p.optString("mode","all"));break;
+                        case "downloadState":data=downloads.snapshot();break;
+                        case "downloadCancel":data=downloads.cancel(p.getString("id"));break;
+                        case "downloadRetry":data=downloads.retry(p.getString("id"));break;
+                        case "downloadClear":data=downloads.clearHistory();break;
+                        case "downloadQuality":data=downloads.setQuality(p.getInt("quality"));break;
+                        case "downloadSettings":data=downloads.settings();break;
+                        case "openDownloaded": {
+                            String stored=downloads.fileUri(p.getString("id"));
+                            if(!stored.startsWith("content://"))
+                                throw new Exception("File saved in AUREL app Music folder; open from file manager.");
+                            Uri file=Uri.parse(stored);
+                            ui.post(()->{
+                                try {
+                                    Intent open=new Intent(Intent.ACTION_VIEW);
+                                    open.setDataAndType(file, "audio/*");
+                                    open.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                    startActivity(Intent.createChooser(open,"Open downloaded audio"));
+                                }catch(Exception e){emit("downloadError",new JSONObject(java.util.Collections.singletonMap("message","No app found for opening audio"))); }
+                            });
+                            data=new JSONObject();break;
                         }
                         case "playerState": {
                             // UI state must be read on main thread; send by native event instead.
