@@ -75,6 +75,7 @@ body{-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
 #overlay .murglar-view .murglar-player-content{max-width:980px}
 #overlay .murglar-view .murglar-footer{max-width:none}
 #overlay .murglar-view .murglar-track-data h1{hyphens:auto;overflow-wrap:break-word}
+#overlay .murglar-view .murglar-quick-actions{grid-template-columns:repeat(5,minmax(0,1fr))}
 #overlay .murglar-view .murglar-quick-actions button{transition:background-color .15s ease,color .15s ease;min-width:0}
 #overlay .murglar-view .murglar-transport .murglar-control{touch-action:manipulation}
 #overlay .murglar-view .murglar-transport .murglar-control:focus-visible{outline:2px solid #e7d2ff;outline-offset:4px}
