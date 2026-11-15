@@ -2,8 +2,6 @@ package com.aurel.hires;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.ClipData;
-import java.util.LinkedHashSet;
 import android.net.Uri;
 import java.nio.charset.StandardCharsets;
 import android.os.Bundle;
@@ -37,7 +35,6 @@ public final class MainActivity extends Activity {
     private WebView web;
     private SecureStore secure;
     private QobuzApi api;
-    private AuthorizedDownloadManager downloads;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -55,8 +52,6 @@ public final class MainActivity extends Activity {
     private boolean prepared=false, buffering=false;
     private String playerError="";
     private long lastStateSent=0;
-    private static final int REQUEST_AUDIO_FILES=4101;
-    private static final int REQUEST_MUSIC_FOLDER=4102;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -66,7 +61,6 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         api=new QobuzApi(secure);
-        downloads=new AuthorizedDownloadManager(this,api,statePayload->emit("downloads",statePayload));
         web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
         WebSettings s=web.getSettings();
         s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
@@ -121,7 +115,6 @@ public final class MainActivity extends Activity {
         ui.removeCallbacks(ticker);
         cleanupPlayer();
         AurelPlaybackService.stop(this);
-        if(downloads!=null)downloads.close();
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
         jobs.shutdownNow();super.onDestroy();
     }
@@ -169,7 +162,14 @@ public final class MainActivity extends Activity {
         catch(Exception ignored){return 27;}
     }
     private String streamToken(){String t=secure.get("streamToken");return t.isEmpty()?secure.get("token"):t;}
-    private String streamAppId(){String t=secure.get("streamAppId");return t.isEmpty()?secure.get("appId"):t;}
+    // Default App ID shown in the user's original AUREL configuration.
+    // Not a secret; callers can override it in Advanced account settings.
+    private static final String DEFAULT_APP_ID="312369995";
+    private String streamAppId(){
+        String t=secure.get("streamAppId");
+        if(t.isEmpty())t=secure.get("appId");
+        return t.isEmpty()?DEFAULT_APP_ID:t;
+    }
     private String streamSecret(){String t=secure.get("streamAppSecret");return t.isEmpty()?secure.get("appSecret"):t;}
     private JSONObject session() throws Exception {
         JSONObject j=new JSONObject();
@@ -217,56 +217,6 @@ public final class MainActivity extends Activity {
         return j;
     }
 
-    /** The Android system picker grants access to Murglar's public DocumentsProvider,
-     * or any other user-selected music provider. The app never sees passwords. */
-    private void showImportPicker(boolean folder){
-        Intent choose=new Intent(folder?Intent.ACTION_OPEN_DOCUMENT_TREE:Intent.ACTION_OPEN_DOCUMENT);
-        if(!folder){
-            choose.setType("audio/*");
-            choose.addCategory(Intent.CATEGORY_OPENABLE);
-            choose.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
-        }
-        choose.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        try{startActivityForResult(choose,folder?REQUEST_MUSIC_FOLDER:REQUEST_AUDIO_FILES);}
-        catch(Exception e){
-            try{emit("downloadNotice",new JSONObject().put("error",true)
-                .put("message","Android Files picker unavailable: "+e.getMessage()));}
-            catch(Exception ignored){}
-        }
-    }
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode!=REQUEST_AUDIO_FILES&&requestCode!=REQUEST_MUSIC_FOLDER)return;
-        if(resultCode!=RESULT_OK||data==null)return;
-        LinkedHashSet<Uri> files=new LinkedHashSet<>();
-        Uri selected=data.getData();
-        if(selected!=null)files.add(selected);
-        ClipData clips=data.getClipData();
-        if(clips!=null)for(int i=0;i<clips.getItemCount();i++){
-            Uri item=clips.getItemAt(i).getUri();
-            if(item!=null)files.add(item);
-        }
-        for(Uri item:files){
-            try{
-                getContentResolver().takePersistableUriPermission(item,Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            }catch(Exception ignored){/* Some providers issue only temporary read access. */}
-        }
-        if(files.isEmpty())return;
-        final boolean folder=requestCode==REQUEST_MUSIC_FOLDER;
-        jobs.execute(()->{
-            try{
-                JSONObject response=folder?downloads.importTree(files.iterator().next()):
-                    downloads.importDocuments(new ArrayList<>(files));
-                emit("downloadNotice",new JSONObject()
-                    .put("message",folder?"Scanning selected music folder":
-                        response.optInt("added",0)+" selected audio files added to queue"));
-                emit("downloads",downloads.snapshot());
-            }catch(Exception e){
-                try{emit("downloadNotice",new JSONObject()
-                    .put("error",true).put("message",e.getMessage()));}catch(Exception ignored){}
-            }
-        });
-    }
     private final class Bridge {
         @JavascriptInterface public void call(String requestId,String action,String payload) {
             if(requestId==null||requestId.length()>72)return;
@@ -279,20 +229,24 @@ public final class MainActivity extends Activity {
                         case "loginToken": case "loginPassword": {
                             boolean secondary=p.optBoolean("libraryOnly",false);
                             String appId=p.optString("appId","").trim();
-                            if(appId.isEmpty()&&secondary)appId=streamAppId();
+                            if(appId.isEmpty())appId=secondary?
+                                (!secure.get("libraryAppId").isEmpty()?secure.get("libraryAppId"):streamAppId()):
+                                streamAppId();
                             JSONObject raw;
                             String token;
                             if(action.equals("loginToken")){
                                 token=p.optString("token","").trim();
-                                raw=api.verifyToken(appId,token,p.optString("userId",""),
-                                    p.optBoolean("skipValidation",false));
+                                // Token-first flow like Murglar's UI: no fragile
+                                // profile or favourites preflight blocking sign-in.
+                                // The token remains unverified until Qobuz playback works.
+                                raw=api.verifyToken(appId,token,p.optString("userId",""),true);
                             }else{
                                 raw=api.passwordLogin(appId,p.optString("email").trim(),p.optString("password"));
                                 token=raw.optString("user_auth_token",raw.optString("token",""));
                                 if(token.isEmpty())throw new Exception("Qobuz did not issue an auth token. Use session-token login or the official sign-in.");
                             }
                             JSONObject prof=profile(raw,p);
-                            boolean validated=action.equals("loginPassword")||raw.optBoolean("validated",raw.has("user"));
+                            boolean validated=action.equals("loginPassword")&&raw.has("user");
                             String validation=validated?"verified":"unverified";
                             if(secondary){
                                 secure.put("libraryAppId",appId);
@@ -311,6 +265,8 @@ public final class MainActivity extends Activity {
                                 secure.put("streamValidation",validation);
                                 secure.put("profile",prof.toString());
                             }
+                            // No API request is made merely to save a token; actual
+                            // catalogue and stream requests still require Qobuz authorization.
                             // Password is never stored; source and library tokens are distinct.
                             data=session();break;
                         }
@@ -437,54 +393,6 @@ public final class MainActivity extends Activity {
                             final int mode=Math.max(0,Math.min(2,p.optInt("repeat",0)));
                             final boolean rand=p.optBoolean("shuffle",false);
                             ui.post(()->{repeatMode=mode;shuffle=rand;emit("player",playerState());});data=new JSONObject();break;
-                        }
-                        case "openSafImport":{
-                            final boolean folder="folder".equals(p.optString("mode","files"));
-                            ui.post(()->showImportPicker(folder));
-                            data=new JSONObject().put("picker",true);
-                            break;
-                        }
-                        case "downloadTrack":data=downloads.addTrack(p.getJSONObject("track"));break;
-                        case "downloadAlbum":data=downloads.addAlbum(p.getString("id"));break;
-                        case "downloadDiscography":data=downloads.addDiscography(
-                            p.getString("id"),p.optString("mode","all"));break;
-                        case "downloadState":data=downloads.snapshot();break;
-                        case "downloadCancel":data=downloads.cancel(p.getString("id"));break;
-                        case "downloadRetry":data=downloads.retry(p.getString("id"));break;
-                        case "downloadClear":data=downloads.clearHistory();break;
-                        case "downloadQuality":data=downloads.setQuality(p.getInt("quality"));break;
-                        case "downloadSettings":{
-                            data=downloads.settings();
-                            JSONObject provider=api.downloadConfiguration();
-                            data.put("endpoint",provider.optString("endpoint",""));
-                            data.put("hasApiKey",provider.optBoolean("hasApiKey",false));
-                            break;
-                        }
-                        case "saveDownloadProvider":{
-                            data=api.saveDownloadConfiguration(
-                                p.optString("endpoint",""),p.optString("apiKey",""),
-                                p.optBoolean("clearKey",false));
-                            break;
-                        }
-                        case "playDownloaded": {
-                            final JSONObject saved=downloads.savedItem(p.getString("id"));
-                            ui.post(()->startLocalPlayback(saved));
-                            data=new JSONObject();break;
-                        }
-                        case "openDownloaded": {
-                            String stored=downloads.fileUri(p.getString("id"));
-                            if(!stored.startsWith("content://"))
-                                throw new Exception("File saved in AUREL app Music folder; open from file manager.");
-                            Uri file=Uri.parse(stored);
-                            ui.post(()->{
-                                try {
-                                    Intent open=new Intent(Intent.ACTION_VIEW);
-                                    open.setDataAndType(file, "audio/*");
-                                    open.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                                    startActivity(Intent.createChooser(open,"Open downloaded audio"));
-                                }catch(Exception e){emit("downloadError",new JSONObject(java.util.Collections.singletonMap("message","No app found for opening audio"))); }
-                            });
-                            data=new JSONObject();break;
                         }
                         case "playerState": {
                             // UI state must be read on main thread; send by native event instead.
@@ -630,60 +538,6 @@ public final class MainActivity extends Activity {
     private void cleanupPlayer() {
         prepared=false;buffering=false;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
-    }
-
-    /** Play an already-saved purchased file without fetching another Qobuz stream. */
-    private void startLocalPlayback(JSONObject saved){
-        playGeneration++;
-        final int generation=playGeneration;
-        cleanupPlayer();
-        queue.clear();
-        queueIndex=0;
-        try {
-            current=new JSONObject().put("id",saved.optString("id"))
-                .put("title",saved.optString("title","Track"))
-                .put("artist",new JSONObject().put("name",saved.optString("artist","Artist")))
-                .put("album",new JSONObject().put("title",saved.optString("album","Album")));
-            queue.add(current);
-            fileInfo=new JSONObject().put("mime_type",saved.optString("mime",""));
-            codec=saved.optString("mime","").contains("flac")?"FLAC":"";
-            sourceVerified=false;sourceLabel="Local purchased audio";
-            decoderSampleRateHz=0;decoderChannels=0;decoderMime="";
-            buffering=true;prepared=false;playerError="";
-            emit("player",playerState());
-            String link=saved.optString("uri","");
-            Uri location=Uri.parse(link);
-            player=new MediaPlayer();
-            player.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            player.setOnPreparedListener(mp->{
-                if(generation!=playGeneration)return;
-                prepared=true;buffering=false;
-                inspectPreparedTrack(mp);
-                mp.start();
-                emit("player",playerState());
-            });
-            player.setOnCompletionListener(mp->{
-                if(generation!=playGeneration)return;
-                if(repeatMode==2){mp.seekTo(0);mp.start();}
-                else{cleanupPlayer();emit("player",playerState());}
-            });
-            player.setOnErrorListener((mp,what,extra)->{
-                if(generation!=playGeneration)return true;
-                buffering=false;prepared=false;
-                playerError="Local audio decoder error ("+what+" / "+extra+")";
-                emit("player",playerState());return true;
-            });
-            if("content".equalsIgnoreCase(location.getScheme()))
-                player.setDataSource(this,location);
-            else if("file".equalsIgnoreCase(location.getScheme()))
-                player.setDataSource(location.getPath());
-            else throw new Exception("Invalid saved audio URI");
-            player.prepareAsync();
-        } catch(Exception e){
-            cleanupPlayer();
-            playerError=e.getMessage();
-            emit("player",playerState());
-        }
     }
 
     private void startAtCurrent() {

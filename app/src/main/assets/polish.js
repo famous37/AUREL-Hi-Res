@@ -1,6 +1,6 @@
 'use strict';
 /* One vector icon language for dynamically-rendered Qobuz discovery, library,
-   album and downloads screens. Avoid loading external icon fonts or assets. */
+   and album screens. Avoid loading external icon fonts or assets. */
 (function(){
   const screen=document.querySelector('#screen');
   if(!screen||typeof screen.querySelectorAll!=='function')return;
@@ -19,11 +19,11 @@
   }
   function polish(){
     scheduled=false;
-    for(const b of screen.querySelectorAll('button[title="Add to favorites"],button[title="Play"],button[title="Play next"],button[data-refresh],button[data-back],button[data-download-refresh],button[aria-label="Settings"],button[aria-label="Library account"]')){
+    for(const b of screen.querySelectorAll('button[title="Add to favorites"],button[title="Play"],button[title="Play next"],button[data-refresh],button[data-back],button[aria-label="Settings"],button[aria-label="Library account"]')){
       if(b.matches('button[title="Add to favorites"]'))replaceIfNeeded(b,'heart');
       else if(b.matches('button[title="Play"]'))replaceIfNeeded(b,'play');
       else if(b.matches('button[title="Play next"]'))replaceIfNeeded(b,'plus');
-      else if(b.matches('button[data-refresh],button[data-download-refresh]'))replaceIfNeeded(b,'refresh');
+      else if(b.matches('button[data-refresh]'))replaceIfNeeded(b,'refresh');
       else if(b.matches('button[data-back]'))replaceIfNeeded(b,'back','Back');
       else if(b.matches('button[aria-label="Settings"]'))replaceIfNeeded(b,'settings');
       else if(b.matches('button[aria-label="Library account"]'))replaceIfNeeded(b,'plus');
