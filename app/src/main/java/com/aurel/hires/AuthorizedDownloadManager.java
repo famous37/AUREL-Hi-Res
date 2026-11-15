@@ -93,13 +93,13 @@ final class AuthorizedDownloadManager {
         if(records.size()>=MAX_ITEMS)throw new Exception("Download queue is full (3000 tracks)");
         Entry item=new Entry(trackId,name(title,"Track "+trackId),name(artist,"Unknown artist"),
             name(album,"Singles"),albumId==null?"":albumId);
-        records.add(item);known.add(trackId);save();schedule();return true;
+        records.add(item);known.add(trackId);schedule();return true;
     }
     synchronized JSONObject addTrack(JSONObject t)throws Exception{
         String trackId=id(t.optString("id"));
         boolean added=enqueue(trackId,t.optString("title"),t.optString("artist"),
             t.optString("album"),t.optString("albumId"));
-        notifyState(true);
+        save();notifyState(true);
         return new JSONObject().put("added",added?1:0).put("existing",added?0:1);
     }
     JSONObject addAlbum(String albumId)throws Exception {
@@ -143,6 +143,7 @@ final class AuthorizedDownloadManager {
             songs=group==null?album.optJSONArray("tracks"):group.optJSONArray("items");
             if(songs==null)break;
         }
+        synchronized(this){save();}
         notifyState(true);
         return added;
     }
@@ -258,7 +259,11 @@ final class AuthorizedDownloadManager {
                     next.status="running";
                 }
                 notifyState(true);
-                try{saveAudio(next);if(!next.cancel){next.status="done";next.percent=100;}}
+                try{
+                    saveAudio(next);
+                    if(next.cancel){next.status="cancelled";next.error="Cancelled";}
+                    else{next.status="done";next.percent=100;}
+                }
                 catch(Exception ex){next.status=next.cancel?"cancelled":"failed";next.error=ex.getMessage()==null?"Download failed":ex.getMessage();}
                 synchronized(AuthorizedDownloadManager.this){save();}
                 notifyState(true);
