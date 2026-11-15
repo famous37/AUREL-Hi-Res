@@ -97,7 +97,7 @@
           <div class="download-entry-actions">
             ${item.status==='running'||item.status==='queued'?`<button data-download-cancel="${html(item.id)}">Cancel</button>`:''}
             ${item.status==='failed'||item.status==='cancelled'?`<button data-download-retry="${html(item.id)}">Retry</button>`:''}
-            ${item.status==='done'?`<button data-download-open="${html(item.id)}">Open audio</button>`:''}
+            ${item.status==='done'?`<button data-download-play="${html(item.id)}">Play offline</button><button data-download-open="${html(item.id)}">Open audio</button>`:''}
           </div>
         </article>`).join(''):
           '<div class="empty"><strong>No downloads yet</strong>Open an album, artist or track to add a purchased file to the queue.</div>'}
@@ -226,6 +226,7 @@
     if(b.hasAttribute('data-download-cancel')){handle('downloadCancel',{id:b.dataset.downloadCancel});return}
     if(b.hasAttribute('data-download-retry')){handle('downloadRetry',{id:b.dataset.downloadRetry},'Queued for retry');return}
     if(b.hasAttribute('data-download-clear')){handle('downloadClear',{},'History cleared — saved files kept');return}
+    if(b.hasAttribute('data-download-play')){handle('playDownloaded',{id:b.dataset.downloadPlay});return}
     if(b.hasAttribute('data-download-open')){handle('openDownloaded',{id:b.dataset.downloadOpen});return}
     if(b.hasAttribute('data-download-refresh')){ev.preventDefault();ev.stopImmediatePropagation();refreshDownloads();return}
   },true);
