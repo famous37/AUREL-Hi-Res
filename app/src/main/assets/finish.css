@@ -195,3 +195,23 @@ button:disabled{opacity:.35}
  .screen .download-summary strong{font-size:clamp(19px,4.8vw,25px)}
  .screen .download-summary span{font-size:12px}
 }
+
+/* Authentication recovery: persistent explanation, not a disappearing toast. */
+.screen .auth-preview-note{padding:13px 15px;border-radius:13px;background:#343040;border:1px solid #665479;color:#d8c8e9;font-size:14px;line-height:1.55;margin:13px 0}
+.screen .auth-error-panel{margin-top:18px;padding:17px;background:#332b37;border:1px solid #8c566c;border-radius:14px;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.screen .auth-error-panel.hidden{display:none!important}
+.screen .auth-error-panel strong{font-size:17px;line-height:1.3;color:#ffccdb}
+.screen .auth-error-panel p{font-size:14px;line-height:1.55;margin:0;color:#e4bfcc}
+.screen .auth-error-panel small{color:#c6bacb;line-height:1.5;font-size:13px}
+.screen .auth-error-panel button{margin-top:3px;min-height:48px;font-size:16px;font-weight:750;border-color:#9d75b4}
+.screen .auth-status-banner{display:flex;align-items:flex-start;gap:11px;border:1px solid #6b567e;background:#352c40;color:#e6d5fa;border-radius:14px;padding:13px 15px;margin:13px 0 17px}
+.screen .auth-status-banner .ui-icon{flex:0 0 auto;margin-top:2px;color:#d3b9f6}
+.screen .auth-status-banner strong{display:block;font-size:15px;line-height:1.35;margin-bottom:4px}
+.screen .auth-status-banner span{font-size:14px;line-height:1.55}
+@media(max-width:450px){
+ .screen .auth-shell{padding:19px 17px;max-width:100%}
+ .screen .auth-shell .tabs{gap:8px}
+ .screen .auth-shell .tab{flex:1;min-width:0;font-size:14px;padding:10px 6px}
+ .screen .auth-shell .field{font-size:16px}
+ .screen .auth-shell .field input{font-size:16px}
+}
