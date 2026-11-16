@@ -1,4 +1,16 @@
-# AUREL Hi-Res · 1.1.18 Beta
+# AUREL Hi-Res · 1.1.19 Media3 Preview
+
+## v1.1.19 — verify real FLAC quality from the playing stream
+
+- Replaces Android MediaPlayer playback in the experimental branch with Media3 ExoPlayer for progressive Qobuz/Mornye streams. The app keeps its existing UI, queues and Android media session integration.
+- A lightweight read-through DataSource observes initial bytes **from ExoPlayer's actual media HTTP response** and parses native FLAC STREAMINFO. No second HTTP request, duplicate signed stream URL, stream download, caching, file storage, or provider ticket is created for quality inspection.
+- The player shows **FLAC 16-bit / 44.1 kHz** or **FLAC 24-bit / 96 kHz** only after the actual encoded stream header is parsed; otherwise the Media3 selected track format supplies trustworthy sample rate/codec with no invented bit depth. The requested Qobuz tier is displayed separately if the header isn't available.
+- Sniffing is bounded to 64 KiB, supports optional ID3 before FLAC, and uses one callback per playback instance. Stale data is ignored on track switches.
+- Existing bounded decoder recovery, new-link fallback, session handling, UI, navigation and dynamic artwork palette remain in place.
+- Android Media3 dependency version 1.11.1 (stable September 2026). Lossless encoding quality is distinct from output-path/DAC format and bit-perfect status.
+- **Important:** this is a playback-engine change requiring real-device Mornye/Zarz tests. Build/test success does not guarantee that a particular signed CDN accepts Media3 or all codecs are supported on the device. The previous v1.1.18 version remains available separately.
+
+
 
 ## v1.1.18 — keep audio quality visible without inventing bit depth
 
