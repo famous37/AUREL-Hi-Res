@@ -256,6 +256,9 @@
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading related artists…':error?'<span>Similar artists could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'No similar artists returned by Qobuz')+'</p>')
       +'</section>';
   }
+  // Called only after a newly verified session to retry previously rejected
+  // artist extras; never cache 401 as an empty discography.
+  window.AurelResetArtistMetadata=id=>{byArtist.delete(String(id));};
   const oldOpenArtist=openArtist;
   openArtist=async function(id){
     requestToken++;
