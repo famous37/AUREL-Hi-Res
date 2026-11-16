@@ -89,23 +89,42 @@
     if(!p||!app.overlay)return;
     const progress=$('#progress');
     if(progress&&!app.dragging){
-      progress.max=p.duration||100;
-      progress.value=p.position||0;
+      const max=p.duration||100,value=p.position||0;
+      if(Number(progress.max)!==Number(max))progress.max=max;
+      if(Math.abs(Number(progress.value)-Number(value))>150)progress.value=value;
       const total=Number(p.duration)||0;
-      progress.style.setProperty('--played',total?Math.min(100,Math.round((Number(p.position)||0)/total*100))+'%':'0%');
+      const percent=total?Math.min(100,Math.round((Number(p.position)||0)/total*100))+'%':'0%';
+      if(progress.dataset.played!==percent){
+        progress.dataset.played=percent;
+        progress.style.setProperty('--played',percent);
+      }
     }
-    if($('#elapsed'))$('#elapsed').textContent=duration((p.position||0)/1000);
-    if($('#remaining'))$('#remaining').textContent=duration((p.duration||0)/1000);
-    if($('#full-toggle')){
-      $('#full-toggle').innerHTML=ic(p.playing?'pause':'play',41);
-      $('#full-toggle').setAttribute('aria-label',p.playing?'Pause':'Play');
+    const elapsed=$('#elapsed'),remaining=$('#remaining');
+    const a=duration((p.position||0)/1000),b=duration((p.duration||0)/1000);
+    if(elapsed&&elapsed.textContent!==a)elapsed.textContent=a;
+    if(remaining&&remaining.textContent!==b)remaining.textContent=b;
+    const toggle=$('#full-toggle'),mode=p.playing?'pause':'play';
+    if(toggle){
+      if(toggle.dataset.icon!==mode){
+        toggle.dataset.icon=mode;
+        toggle.innerHTML=ic(mode,41);
+      }
+      const label=p.playing?'Pause':'Play';
+      if(toggle.getAttribute('aria-label')!==label)toggle.setAttribute('aria-label',label);
     }
-    if($('#full-shuffle'))$('#full-shuffle').classList.toggle('active',!!p.shuffle);
-    if($('#full-repeat')){
-      $('#full-repeat').classList.toggle('active',!!p.repeat);
-      $('#full-repeat').innerHTML=ic('repeat',25)+(p.repeat===2?'<sup>1</sup>':'');
+    const shuffleButton=$('#full-shuffle');
+    if(shuffleButton&&shuffleButton.classList.contains('active')!==!!p.shuffle)
+      shuffleButton.classList.toggle('active',!!p.shuffle);
+    const repeatButton=$('#full-repeat');
+    if(repeatButton){
+      if(repeatButton.classList.contains('active')!==!!p.repeat)
+        repeatButton.classList.toggle('active',!!p.repeat);
+      if(repeatButton.dataset.mode!==String(p.repeat)){
+        repeatButton.dataset.mode=String(p.repeat);
+        repeatButton.innerHTML=ic('repeat',25)+(p.repeat===2?'<sup>1</sup>':'');
+      }
     }
-    if($('#playingStatus'))$('#playingStatus').textContent=stateCaption(p);
+    const state=$('#playingStatus'),caption=stateCaption(p);
+    if(state&&state.textContent!==caption)state.textContent=caption;
   };
-
 })();

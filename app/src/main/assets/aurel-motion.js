@@ -20,8 +20,8 @@
    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
    try {
      if(active&&typeof active.cancel==='function')active.cancel();
-     active=screen.animate([{opacity:.95},{opacity:1}],{
-       duration:125,easing:'ease-out',fill:'none'
+     active=screen.animate([{opacity:.965},{opacity:1}],{
+       duration:190,easing:'cubic-bezier(.22,.65,.25,1)',fill:'none'
      });
    }catch(_){active=null;} // older WebViews simply render immediately
  }

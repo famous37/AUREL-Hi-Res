@@ -245,8 +245,22 @@ window.AurelEvent=function(kind,data){
  const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
  const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz,data?.sourceBitrateKbps,data?.decoderBitrateKbps,data?.estimatedAvgBitrateKbps,data?.qualityProbePending,data?.qualityProbeAttempted,data?.streamHeaderVerified,data?.sourceEvidence,data?.frameBitrateKbps,data?.fileSize]);
  const trackSignature=JSON.stringify([data?.track?.id,data?.track?.title,artistLabel(data?.track||{}),data?.track?.album?.title,image(data?.track||{}),data?.track?.isrc,data?.track?.composers,data?.track?.performers,data?.track?.album?.label,data?.track?.album?.release_date_original]);
- if(app.overlay&&(old!==fingerprint||app.lastSourceSignature!==sourceSignature||app.lastVisualSignature!==trackSignature)){
-    app.lastSourceSignature=sourceSignature;app.lastVisualSignature=trackSignature;drawOverlay();
+ if(app.overlay){
+   const viewChanged=old!==fingerprint||app.lastVisualSignature!==trackSignature;
+   const audioChanged=app.lastSourceSignature!==sourceSignature;
+   app.lastSourceSignature=sourceSignature;
+   app.lastVisualSignature=trackSignature;
+   if(viewChanged)drawOverlay();
+   else if(audioChanged){
+     // Avoid destroying artwork, focus and scroll for every late decoder fact.
+     const badge=document.querySelector('#overlay .murglar-source-line span');
+     const text=actualSource(data);
+     if(badge&&badge.textContent!==text)badge.textContent=text;
+     if(app.playerSheet==='audio'){
+       const details=document.querySelector('#overlay .aurel-detail-sheet');
+       if(details)details.innerHTML=audioPanel(data);
+     }
+   }
  }
  }};
 // The native action bridge is the sole route to Qobuz. No extra account tokens are shared.
