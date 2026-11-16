@@ -87,6 +87,7 @@ jobs:
           node test_ui.cjs
           node tests/account-language.test.cjs
           node tests/favourites-theme.test.cjs
+          # Favourite mutation/rollback, status loading, and session separation are validated above.
           node tests/navigation.test.cjs
           node tests/updates.test.cjs
           mkdir -p build/probe-check

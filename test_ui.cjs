@@ -409,7 +409,7 @@ const discoCss=fs.readFileSync(base+'aurel-discography.css','utf8');
 assert(discoJs.includes('renderArtist=function()'), 'artist discography renderer must be installed');
 assert(discoJs.includes('Most popular')&&discoJs.includes('EPs & Singles')&&discoJs.includes('Similar artists'));
 assert(discoJs.includes('artistExtras')&&discoJs.includes('artistReleaseType'), 'all optional artist catalog endpoints must be wired');
-assert(discoJs.includes("nativeCall('favoriteAdd'"), 'Follow must perform an action');
+assert(discoJs.includes("window.AurelFavoriteToggle('artists',id,b)"), 'Artist Follow must use the shared add/remove favourites action');
 assert(discoCss.includes('.aurel-popular-track')&&discoCss.includes('.aurel-release-strip'));
 assert(discoCss.includes('var(--aurel-theme-accent)'), 'artist page must use album colour theme');
 assert(discoCss.includes('.spotlight')&&discoCss.includes('.magazine-hero'), 'legacy promotional cards must share the theme');
