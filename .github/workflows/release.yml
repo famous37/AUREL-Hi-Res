@@ -86,6 +86,7 @@ jobs:
           for script in app/src/main/assets/*.js; do node --check "$script"; done
           node test_ui.cjs
           node tests/account-language.test.cjs
+          node tests/favourites-theme.test.cjs
           node tests/navigation.test.cjs
           node tests/updates.test.cjs
           mkdir -p build/probe-check
@@ -128,16 +129,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.22 — Qobuz account switching and full Ukrainian interface**' \
+            '**AUREL Hi-Res v1.1.23 — Graphite UI and two-way favourites**' \
             '' \
-            '- Expanded Ukrainian translation across login, menus, library, player, account and updater.' \
-            '- English remains default. Language switch is now available on login and in Settings.' \
-            '- Qobuz accepts email or username/password, or a matching session token with App ID.' \
-            '- Verified Qobuz login ends Mornye and clears the old account library cache.' \
+            '- Neutral graphite appearance by default, subtly rounded borders, larger readable labels and soft motion.' \
+            '- Optional album artwork colours remain available in Settings, off by default.' \
+            '- Add and remove track, album and artist favourites with immediate UI feedback and rollback on failure.' \
+            '- Favourites membership is loaded from authenticated Qobuz, with a paginated fallback and account isolation.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
             '- Preserves signed in-app updates, player, navigation, artwork, and audio metadata.' \
             '' \
-            'Install: v1.1.22 over the signed v1.1.21 retains device settings and encrypted accounts until you choose to change the account.' \
+            'Install: v1.1.23 over the signed v1.1.22 preserves app settings and credentials. Android verifies package ID and permanent certificate.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
