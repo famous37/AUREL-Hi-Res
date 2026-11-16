@@ -3,7 +3,18 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeCover=url=>{try{let u=new URL(String(url||''));return u.protocol==='https:'&&(u.hostname==='qobuz.com'||u.hostname.endsWith('.qobuz.com'))?u.href:''}catch(_){return ''}};
-const image=o=>{for(let obj of [o?.image,o?.album?.image,o?.picture,o?.cover]){if(typeof obj==='string'){let url=safeCover(obj);if(url)return url;}if(obj&&typeof obj==='object'){for(let key of ['extralarge','large','medium','small','thumbnail','default']){let url=safeCover(obj[key]||obj.images?.[key]);if(url)return url;}}}return '';};
+// Small covers for lists, full-size artwork for the actual Now Playing view.
+const image=(o,size='full')=>{
+ const keys=size==='thumb'?['medium','small','thumbnail','large','extralarge','default']:
+                           ['large','extralarge','medium','small','thumbnail','default'];
+ for(const obj of [o?.image,o?.album?.image,o?.picture,o?.cover]){
+  if(typeof obj==='string'){const direct=safeCover(obj);if(direct)return direct;}
+  if(obj&&typeof obj==='object'){
+   for(const key of keys){const url=safeCover(obj[key]||obj.images?.[key]);if(url)return url;}
+  }
+ }
+ return '';
+};
 const withAlbum=(tracks,album)=>tracks.map(t=>({...t,
   album:{...(t.album||{}),id:t.album?.id||album?.id,image:t.album?.image||album?.image,
     title:t.album?.title||album?.title,artist:t.album?.artist||album?.artist,
@@ -41,7 +52,11 @@ const artistLabel=o=>artist(o)||'Artist information unavailable';
 const duration=n=>{n=Math.max(0,Math.floor(Number(n)||0));return `${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`};
 const qualityText=q=>({'5':'MP3 · 320 kbps','6':'FLAC · 16-bit / 44.1 kHz','7':'Hi-Res · up to 24-bit / 96 kHz','27':'Hi-Res · up to 24-bit / 192 kHz'})[q]||'Automatic';
 const fallbackArt=`<div class="cover"><div style="position:absolute;inset:10%;border-radius:50%;border:22px solid #8f657555;box-shadow:0 0 60px #c08c9955"></div></div>`;
-const art=(o,cl='')=>{let src=image(o);return src?`<img class="${cl}" loading="lazy" src="${html(src)}" alt="Album art">`:''};
+const art=(o,cl='')=>{
+ const hero=/artist-image|aurel-artist-photo|album-hero-art/.test(cl);
+ const src=image(o,hero?'full':'thumb');
+ return src?`<img class="${cl}" loading="${hero?'eager':'lazy'}" decoding="async" ${hero?'fetchpriority="high"':''} src="${html(src)}" alt="Album art">`:'';
+};
 const app={nav:'home',loginMode:'token',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,dragging:false};
 let sequence=1;const waiting=new Map();
 function nativeCall(action,data={}){
@@ -193,7 +208,7 @@ function renderPlaylists(){
 function renderAlbum(){
  let o=app.selected;
  if(!o)return;
- let content=`<button class="small-link" data-back>‹ Back</button><div class="albumhero"><div class="cover">${art(o)}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><button class="album-artist-button" data-artist-from-album aria-label="Open artist discography">${html(artistLabel(o))}<span aria-hidden="true">›</span></button><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
+ let content=`<button class="small-link" data-back>‹ Back</button><div class="albumhero"><div class="cover">${art(o,"album-hero-art")}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><button class="album-artist-button" data-artist-from-album aria-label="Open artist discography">${html(artistLabel(o))}<span aria-hidden="true">›</span></button><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
  <div class="actionbar"><button class="pill" data-play-all>▶ &nbsp; Play album</button><button class="pill secondary" data-like-album="${html(o.id)}">♡ Save</button></div>
  ${listTracks(app.selectedTracks)}<p class="footer-note">Availability and stream quality are verified when playback is requested. Direct-file streaming only in this alpha build.</p>`;
  $('#screen').innerHTML=content;
@@ -297,7 +312,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.16</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.17</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -348,10 +363,52 @@ async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()
  if(window.AurelSearchHistory)window.AurelSearchHistory(app.searchQuery);
  app.searchBusy=true;renderSearch();try{let d=await api('search',{query:app.searchQuery,type:app.searchType},true);app.results=sliceItems(d,app.searchType);if(!app.results.length)app.results=sliceItems(d);}
  catch(e){app.results=[];showToast(e.message,6000)}finally{app.searchBusy=false;if(app.nav==='search')renderSearch();}}
-async function loadLibrary(){app.libraryLoading=true;render();try{let d=await api('favorites',{type:app.libType},true);app.libraryItems=sliceItems(d,app.libType);}
- catch(e){app.libraryItems=[];showToast(e.message)}finally{app.libraryLoading=false;if(app.nav==='library')render();}}
-async function loadPlaylists(){app.playlistsLoading=true;render();try{let d=await api('playlists',{},true);app.playlists=sliceItems(d,'playlists');}
- catch(e){app.playlists=[];showToast(e.message)}finally{app.playlistsLoading=false;if(app.nav==='playlists'||(app.nav==='library'&&app.libType==='playlists'))render();}}
+async function loadLibrary(force=false){
+ const type=app.libType;
+ app.libraryCache=app.libraryCache||Object.create(null);
+ const cached=app.libraryCache[type];
+ if(cached){
+  app.libraryItems=cached.items;app.libraryLoading=false;
+  if(app.nav==='library'&&app.libType===type)render();
+  if(!force&&Date.now()-cached.time<120000)return;
+ }else{
+  app.libraryItems=[];app.libraryLoading=true;
+  if(app.nav==='library'&&app.libType===type)render();
+ }
+ try{
+  const data=await api('favorites',{type},true);
+  const items=sliceItems(data,type);
+  app.libraryCache[type]={items,time:Date.now()};
+  if(app.libType===type)app.libraryItems=items;
+ }catch(e){
+  if(!cached&&app.libType===type)app.libraryItems=[];
+  showToast(e.message);
+ }finally{
+  if(app.libType===type){
+   app.libraryLoading=false;
+   if(app.nav==='library')render();
+  }
+ }
+}
+async function loadPlaylists(force=false){
+ if(app.playlistsCache&&Date.now()-app.playlistsCache.time<120000&&!force){
+  app.playlists=app.playlistsCache.items;app.playlistsLoading=false;
+  if(app.nav==='playlists'||app.nav==='library')render();return;
+ }
+ app.playlistsLoading=!app.playlistsCache;
+ if(app.playlistsCache)app.playlists=app.playlistsCache.items;
+ if(app.nav==='playlists'||app.nav==='library')render();
+ try{
+  const d=await api('playlists',{},true);
+  app.playlists=sliceItems(d,'playlists');
+  app.playlistsCache={items:app.playlists,time:Date.now()};
+ }catch(e){
+  if(!app.playlistsCache)app.playlists=[];
+  showToast(e.message);
+ }finally{app.playlistsLoading=false;
+  if(app.nav==='playlists'||(app.nav==='library'&&app.libType==='playlists'))render();
+ }
+}
 async function openArtist(id){if(!id)return;window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
 async function openArtistFor(entity){
  if(!entity){showToast('No artist metadata for this track');return}
@@ -548,7 +605,7 @@ $('#mini').addEventListener('click',e=>{if(e.target.closest('button'))return;app
      try{app.session=await nativeCall('validateSession')}catch(_){}
    }
    render();
-   if(hasAuth()){nativeCall('playerState').catch(()=>{});loadHome()}
+   if(hasAuth()){nativeCall('playerState').catch(()=>{});if(app.nav==='home')loadHome()}
  }
  catch(e){app.session={loggedIn:false,profile:{}};renderLogin();if(!window.AurelNative)showToast('Visual preview only — Qobuz requests require the Android application',7000)}
 })();
