@@ -45,8 +45,19 @@ public final class MainActivity extends Activity {
     private JSONObject fileInfo=new JSONObject();
     private String codec="", sourceLabel="";
     private boolean sourceVerified=false;
-    private int decoderSampleRateHz=0, decoderChannels=0;
+    private int decoderSampleRateHz=0, decoderChannels=0, decoderBitrateKbps=0;
     private String decoderMime="";
+    /** Small bounded metadata cache: revisit/repeat displays without fresh
+     * network calls, and prefetch one next track while audio already plays. */
+    private final java.util.Map<String,JSONObject> trackCache=
+        java.util.Collections.synchronizedMap(
+            new java.util.LinkedHashMap<String,JSONObject>(128,0.75f,true){
+                @Override protected boolean removeEldestEntry(
+                    java.util.Map.Entry<String,JSONObject> item){return size()>128;}
+            });
+    private final java.util.Set<String> detailsInFlight=
+        java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
     private int queueIndex=-1;
     private int playGeneration=0;
     private int repeatMode=0; // 0 off, 1 list, 2 one
@@ -706,7 +717,7 @@ public final class MainActivity extends Activity {
 
     /** Track parameters from Android's parsed stream headers; not a DAC measurement. */
     private void inspectPreparedTrack(MediaPlayer mp) {
-        decoderSampleRateHz=0;decoderChannels=0;decoderMime="";
+        decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
         try {
             MediaPlayer.TrackInfo[] tracks=mp.getTrackInfo();
             if(tracks==null)return;
@@ -723,6 +734,11 @@ public final class MainActivity extends Activity {
                     if(ch>=1&&ch<=32)decoderChannels=ch;
                 }
                 if(format.containsKey(MediaFormat.KEY_MIME))decoderMime=format.getString(MediaFormat.KEY_MIME);
+                if(format.containsKey(MediaFormat.KEY_BIT_RATE)){
+                    int bitrate=format.getInteger(MediaFormat.KEY_BIT_RATE);
+                    if(bitrate>=8000&&bitrate<=50_000_000)
+                        decoderBitrateKbps=(bitrate+500)/1000;
+                }
                 break;
             }
         }catch(Exception ignored){/* Android does not expose track format on every decoder. */}
@@ -738,25 +754,32 @@ public final class MainActivity extends Activity {
         playGeneration++;
         final int generation=playGeneration;
         cleanupPlayer();
-        current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";decoderSampleRateHz=0;decoderChannels=0;decoderMime="";buffering=true;playerError="";
-        emit("player",playerState());
+        current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";
+        decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
+        buffering=true;playerError="";
         final String id=current.optString("id","");
-        // Qobuz catalogue fields (credits, ISRC, release information and
-        // maximum offered format) are fetched separately from the media URL.
-        // Playback never depends on this metadata request.
-        if(id.matches("[0-9]{1,20}")){
+        JSONObject cached=trackCache.get(id);
+        if(cached!=null){
+            try{copyMetadata(current,cached);}catch(Exception ignored){}
+        }
+        // Show already known catalogue quality and cover immediately, before
+        // the two network requests for a signed audio stream complete.
+        emit("player",playerState());
+        if(id.matches("[0-9]{1,20}") && cached==null && detailsInFlight.add(id)){
             jobs.execute(()->{
                 try{
                     JSONObject full=trackDetails(id);
+                    trackCache.put(id,full);
                     ui.post(()->{
                         if(generation!=playGeneration||current==null)return;
-                        try{
+                        try {
                             copyMetadata(current,full);
                             queue.set(queueIndex,current);
                             emit("player",playerState());
                         }catch(Exception ignored){}
                     });
                 }catch(Exception ignored){}
+                finally {detailsInFlight.remove(id);}
             });
         }
         jobs.execute(()->{
@@ -786,6 +809,9 @@ public final class MainActivity extends Activity {
                     if(generation!=playGeneration)return;
                     try {
                         fileInfo=metadata;
+                        // Report supplier metadata before MediaPlayer.prepareAsync
+                        // starts waiting for an HTTP stream/decoder.
+                        emit("player",playerState());
                         sourceVerified=metadata.optBoolean("source_verified",false);
                         sourceLabel=metadata.optString("source_label","Qobuz API");
                         codec=metadata.optString("codec","");
@@ -795,6 +821,19 @@ public final class MainActivity extends Activity {
                             if(generation!=playGeneration)return;
                             prepared=true;buffering=false;
                             inspectPreparedTrack(mp);
+                            // Cache just one next-track catalogue entry. No Zarz
+                            // ticket/stream prefetch: respects server rate limits.
+                            if(queueIndex+1<queue.size()){
+                                final String upcomingId=queue.get(queueIndex+1).optString("id","");
+                                if(upcomingId.matches("[0-9]{1,20}")&&
+                                    !trackCache.containsKey(upcomingId)&&detailsInFlight.add(upcomingId)){
+                                    jobs.execute(()->{
+                                        try{trackCache.put(upcomingId,api.preferredTrackDetails(upcomingId));}
+                                        catch(Exception ignored){}
+                                        finally{detailsInFlight.remove(upcomingId);}
+                                    });
+                                }
+                            }
                             try{mp.start();}catch(Exception ignored){}
                             // The successful start of an actual Qobuz stream is
                             // stronger evidence than an optional login endpoint.
@@ -861,6 +900,15 @@ public final class MainActivity extends Activity {
             state.put("decoderSampleRateHz",decoderSampleRateHz);
             state.put("decoderChannels",decoderChannels);
             state.put("decoderMime",decoderMime);
+            state.put("decoderBitrateKbps",decoderBitrateKbps);
+            state.put("sourceBitrateKbps",fileInfo.optLong("source_bitrate_kbps",0));
+            long fileSize=fileInfo.optLong("file_size",0);
+            long durationMs=player!=null&&prepared?player.getDuration():
+                current.optLong("duration",0)*1000L;
+            long estimated=0;
+            if(fileSize>0&&durationMs>0)
+                estimated=Math.round(fileSize*8.0/durationMs);
+            state.put("estimatedAvgBitrateKbps",estimated>0&&estimated<50000?estimated:0);
             state.put("sourceLabel",sourceLabel);
             state.put("mimeType",fileInfo.optString("mime_type",""));
             state.put("fileSize",fileInfo.optLong("file_size",0));
