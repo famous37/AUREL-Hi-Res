@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.2 Beta
+# AUREL Hi-Res · 1.0.3 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -52,3 +52,20 @@ The account screen now offers two separate sign-in methods both for the **stream
 - No downloader or offline-export UI has been reintroduced.
 
 **Limitations:** AUREL does not possess a Qobuz-issued developer App Secret, and thus signed audio URL requests may still require your own compatible secret. Password login and public web App ID discovery depend on Qobuz's currently supported infrastructure and are not guaranteed. Live authorization against your personal account cannot be performed during GitHub CI builds.
+
+## v1.0.3 — Interactive Qobuz Web / CAPTCHA and Mornye compatibility monitor
+
+The sign-in screen offers **three methods** for both the streaming and optional library account: Session token, Email/password, and Web/CAPTCHA.
+
+**Web/CAPTCHA** opens the **official** `https://play.qobuz.com/login` page in a separate Android WebView. The user completes the provider's login and any presented CAPTCHA. When the user explicitly presses **Use this session**, AUREL reads only known Qobuz token fields from that page's own localStorage; the app never intercepts or saves the user's password or CAPTCHA answer. When possible AUREL also observes the public `X-App-Id` supplied by the *same browser session*, reducing token/App-ID mismatches. The resulting token is revalidated with Qobuz before being saved by Android Keystore. No JavaScript interface is injected into the remote web page. The browser may not succeed if Qobuz prohibits embedded WebViews, uses an unsupported identity-provider redirect, or changes its local storage format. In that case use a supported external browser and manually paste the session token.
+
+If the direct email/password API indicates CAPTCHA/browser verification, AUREL switches to the interactive Web/CAPTCHA method instead of silently retrying passwords. The native browser offers a link to the official external browser as a fallback.
+
+**Mornye extension compatibility:** The upstream open-source Qobuz Web extension is a metadata/download provider, *not* a standalone login implementation. Its manifest requires `signedSession@3` and `sessionGrant@1` supplied by the Mornye host and Zarz gateway. AUREL does **not** have those runtime features. AUREL automatically checks the official Mornye Extension Registry when launched (at most once per 24 h) and shows the current `qobuz-web` version in the Web/CAPTCHA tab; **it does not install or execute downloaded extension code**. Running that extension inside AUREL or automatically updating its executable code is **not implemented** and must not be confused with the implemented, independent Qobuz Web login.
+
+Upstream sources:
+- [Qobuz Web extension manifest and source](https://github.com/mornyeapp/Mornye-Extension/tree/main/sources/qobuz-web) (LGPL-3.0-only)
+- [Mornye extension registry](https://github.com/mornyeapp/Mornye-Extension/blob/main/registry.json)
+- [Mornye signed-session host implementation](https://github.com/mornyeapp/Mornye/tree/main/rust_backend/crates/extensions/src)
+
+No music-download features have been restored to AUREL. A real-device Qobuz login and CAPTCHA check remains necessary; CI cannot simulate the external website.
