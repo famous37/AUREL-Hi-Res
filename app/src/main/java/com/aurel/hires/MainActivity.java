@@ -35,6 +35,8 @@ public final class MainActivity extends Activity {
     private WebView web;
     private SecureStore secure;
     private QobuzApi api;
+    private MornyeCatalog mornyeCatalog;
+    private static final int QOBUZ_WEB_REQUEST=4103;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -61,6 +63,7 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         api=new QobuzApi(secure);
+        mornyeCatalog=new MornyeCatalog(this);
         web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
         WebSettings s=web.getSettings();
         s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
@@ -107,6 +110,17 @@ public final class MainActivity extends Activity {
         }
     };
 
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=QOBUZ_WEB_REQUEST||resultCode!=RESULT_OK||data==null)return;
+        String token=data.getStringExtra(QobuzWebLoginActivity.EXTRA_TOKEN);
+        if(token==null||token.length()<10)return;
+        boolean library=data.getBooleanExtra(QobuzWebLoginActivity.EXTRA_LIBRARY,false);
+        try{
+            // Only the packaged file:// WebView receives this event.
+            emit("webLoginResult",new JSONObject().put("token",token).put("libraryOnly",library));
+        }catch(Exception ignored){}
+    }
     @Override public void onBackPressed() {
         if(web!=null)web.evaluateJavascript("window.AurelBack ? window.AurelBack() : null",null);
         else super.onBackPressed();
@@ -230,6 +244,18 @@ public final class MainActivity extends Activity {
                     JSONObject data;
                     switch(action) {
                         case "session": data=session();break;
+                        case "mornyeExtensionStatus": {
+                            data=mornyeCatalog.status(p.optBoolean("force",false));break;
+                        }
+                        case "startQobuzWeb": {
+                            final boolean library=p.optBoolean("libraryOnly",false);
+                            ui.post(()->{
+                                Intent launch=new Intent(MainActivity.this,QobuzWebLoginActivity.class);
+                                launch.putExtra(QobuzWebLoginActivity.EXTRA_LIBRARY,library);
+                                startActivityForResult(launch,QOBUZ_WEB_REQUEST);
+                            });
+                            data=new JSONObject().put("started",true);break;
+                        }
                         case "openQobuzWeb": {
                             ui.post(()->{
                                 try{
