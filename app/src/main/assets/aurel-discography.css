@@ -326,8 +326,16 @@
   background:var(--aurel-theme-surface);
   color:var(--aurel-theme-accent);
 }
+.aurel-artist-initial{
+  grid-area:1/1;display:grid;place-items:center;
+  width:100%;height:100%;border-radius:50%;
+  font-size:32px;font-weight:730;line-height:1;
+  color:var(--aurel-theme-accent);
+  background:color-mix(in srgb,var(--aurel-theme-accent) 9%,var(--aurel-theme-surface));
+}
 .aurel-artist-portrait{
-  display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;
+  grid-area:1/1;display:block;width:100%;height:100%;object-fit:cover;
+  border-radius:50%;position:relative;z-index:1;
 }
 .aurel-similar-artist strong{
   font-size:12.5px;font-weight:730;max-width:100%;
