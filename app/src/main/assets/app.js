@@ -386,7 +386,7 @@ function togglePlayback(){if(!app.player)return;nativeCall(app.player.playing?'p
 // Delegated action handlers: all API-derived content is HTML-escaped before rendering.
 document.addEventListener('click',async ev=>{
  const b=ev.target.closest('button,[data-open-album],[data-open-artist],[data-play-index],[data-playlist-id]');if(!b)return;
- if(b.dataset.nav){navigate(b.dataset.nav);return}
+ if(b.dataset.nav){if(app.overlay){app.overlay=false;app.playerSheet='';drawOverlay();}navigate(b.dataset.nav);return}
  if(b.dataset.loginMode){
    app.loginMode=['token','password','mornye'].includes(b.dataset.loginMode)?b.dataset.loginMode:'token';
    renderLogin();return;
