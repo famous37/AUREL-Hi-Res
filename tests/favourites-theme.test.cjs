@@ -39,7 +39,8 @@ const control={
  setAttribute(k,v){if(k==='aria-pressed')controlState.pressed=v;},
  removeAttribute(){},
  classList:{
-  toggle(name,on){if(on)controlState.classes.add(name);else controlState.classes.delete(name);}
+  toggle(name,on){if(on)controlState.classes.add(name);else controlState.classes.delete(name);},
+  contains(name){return controlState.classes.has(name);}
  },
  querySelector(){return null},
  get textContent(){return controlState.text},
