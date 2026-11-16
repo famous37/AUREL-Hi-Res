@@ -193,7 +193,18 @@ final class QobuzApi {
     private String libraryToken(){String t=store.get("libraryToken");return t.isEmpty()?streamToken():t;}
 
     JSONObject catalog(String endpoint,JSONObject args)throws Exception{return request(endpoint,args,false,streamId(),streamToken());}
-    JSONObject library(String endpoint,JSONObject args)throws Exception{return request(endpoint,args,false,libraryId(),libraryToken());}
+    JSONObject library(String endpoint,JSONObject args)throws Exception{
+        JSONObject params=new JSONObject(args.toString());
+        // Qobuz requires user_id for some personal favourites/playlist lists.
+        // Use only the user ID associated with the selected library token.
+        if((endpoint.equals("favorite/getUserFavorites")||endpoint.equals("playlist/getUserPlaylists"))
+            &&!params.has("user_id")){
+            String uid=store.get("libraryToken").isEmpty()
+                ?store.get("streamUserId"):store.get("libraryUserId");
+            if(uid.matches("[0-9]{1,20}"))params.put("user_id",uid);
+        }
+        return request(endpoint,params,false,libraryId(),libraryToken());
+    }
     /** Public artist catalogue only. Do not use unauthenticated credentials for user data or streaming. */
     JSONObject publicArtist(String endpoint,JSONObject args)throws Exception{
         if(!endpoint.equals("artist/page")&&!endpoint.equals("artist/getSimilarArtists")
@@ -232,9 +243,10 @@ final class QobuzApi {
         if(profile==null){
             try{
                 // A user's favourites are never a public catalogue endpoint.
+                JSONObject favouritesParams=new JSONObject().put("type","albums").put("limit",1);
+                if(!uid.isEmpty())favouritesParams.put("user_id",uid);
                 JSONObject favourites=request("favorite/getUserFavorites",
-                    new JSONObject().put("type","albums").put("limit",1),
-                    false,appId,token);
+                    favouritesParams,false,appId,token);
                 if(!favourites.has("albums")&&!favourites.has("tracks")&&!favourites.has("artists"))
                     throw new Exception("Qobuz returned an unexpected library response");
             }catch(Exception favouriteError){
