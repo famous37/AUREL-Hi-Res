@@ -475,8 +475,8 @@ assert(playerHtml.indexOf('aurel-player-fit.js')>playerHtml.indexOf('aurel-disco
 
 const continuityJs=fs.readFileSync(base+'aurel-continuity.js','utf8');
 const continuityCss=fs.readFileSync(base+'aurel-continuity.css','utf8');
-assert(continuityJs.includes('aurel_view_state_v1')&&continuityJs.includes('restorePage(')&&continuityJs.includes('rememberPlayer('));
-assert(continuityJs.includes('pagehide')&&continuityJs.includes('hydrate('),'navigation and player view must resume');
+assert(continuityJs.includes('aurel_navigation_v2')&&continuityJs.includes('history.pop()')&&continuityJs.includes('restoreY(')&&continuityJs.includes('rememberPlayer('));
+assert(continuityJs.includes('pagehide')&&continuityJs.includes('boot')&&continuityJs.includes('restore('),'navigation and player view must resume');
 assert(continuityCss.includes('top:calc(env(safe-area-inset-top')&&continuityCss.includes('bottom:auto!important'),'alerts must float at the top');
 assert(!murglarJs.includes('<div class="playback-error" role="status">'),'do not duplicate playback errors inside the player');
 assert(playerHtml.includes('aurel-continuity.js')&&playerHtml.includes('aurel-continuity.css'));
