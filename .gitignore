@@ -4,3 +4,11 @@ local.properties
 **/build/
 *.iml
 .DS_Store
+# Private Android signing material. NEVER commit release keys or passwords.
+*.jks
+*.keystore
+*.p12
+*.pfx
+signing.properties
+*signing-secret*
+*keystore-password*

@@ -1,19 +1,48 @@
-name: Publish AUREL Hi-Res current release
+name: Publish permanently signed AUREL release
+
+# Deliberately manual: a release cannot be created without the private
+# signing material stored in GitHub Actions Secrets.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/release.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  publish:
+  release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      AUREL_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/aurel-signing/aurel-release.keystore
+      AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+      - name: Check required signing secrets (fail closed)
+        env:
+          AUREL_RELEASE_KEYSTORE_BASE64: ${{ secrets.AUREL_RELEASE_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${AUREL_RELEASE_KEYSTORE_BASE64:-}" || -z "${AUREL_RELEASE_PASSWORD:-}" ]]; then
+            echo "::error::Missing signing secrets. Configure AUREL_RELEASE_KEYSTORE_BASE64 and AUREL_RELEASE_PASSWORD in repository Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          mkdir -p "$(dirname "$AUREL_RELEASE_KEYSTORE_PATH")"
+          umask 077
+          printf '%s' "$AUREL_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$AUREL_RELEASE_KEYSTORE_PATH"
+          chmod 600 "$AUREL_RELEASE_KEYSTORE_PATH"
+          # Check that the developer-owned key has not been accidentally replaced.
+          ACTUAL_CERT="$(keytool -exportcert -rfc \
+            -keystore "$AUREL_RELEASE_KEYSTORE_PATH" \
+            -storepass "$AUREL_RELEASE_PASSWORD" \
+            -alias aurel-release | openssl x509 -noout -fingerprint -sha256 | \
+            sed 's/.*=//' | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          EXPECTED_CERT="C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA"
+          if [[ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
+            echo "::error::Signing certificate mismatch. Refusing to build an incompatible AUREL update."
+            exit 1
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -24,46 +53,98 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Check player UI before publication
+      - name: Install Android SDK 35
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Validate release version and prevent replacing signed artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          for file in app/src/main/assets/*.js; do node --check "$file"; done
+          set -euo pipefail
+          VERSION="$(sed -nE "s/.*versionName \\(project.hasProperty\\('aurelPreview'\\) \\? '[^']*' : '([^']+)'\\).*/\\1/p" app/build.gradle | head -n 1)"
+          if [[ ! "$VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
+            echo "::error::Could not identify an unambiguous AUREL release version."
+            exit 1
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Release v$VERSION already exists. Increase versionCode and versionName; never overwrite an existing signed release."
+            exit 1
+          fi
+          echo "AUREL_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "AUREL_TAG=v$VERSION" >> "$GITHUB_ENV"
+
+      - name: Check JavaScript, navigation, and audio format tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in app/src/main/assets/*.js; do node --check "$script"; done
           node test_ui.cjs
-      - name: Test artist-to-album Back navigation and artwork
-        run: node tests/navigation.test.cjs
-      - name: Verify FLAC and MP3 header parsing
-        run: |
+          node tests/navigation.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
-      - name: Build APK
-        run: gradle --no-daemon :app:assembleDebug
-      - name: Publish GitHub prerelease
+
+      - name: Build production-signed APK (not a debug APK)
+        shell: bash
+        run: gradle --no-daemon :app:assembleRelease
+
+      - name: Verify APK signature, certificate identity, and package ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          "${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          ACTUAL_CERT="$("${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | \
+            sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | \
+            head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          EXPECTED_CERT="C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA"
+          if [[ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
+            echo "::error::APK is not signed by the permanent AUREL release certificate."
+            exit 1
+          fi
+          "${ANDROID_HOME}/build-tools/35.0.0/aapt" dump badging "$APK" | \
+            grep -q "package: name='com.aurel.hires'"
+          mkdir -p build/signed-artifacts
+          cp "$APK" "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk"
+          (
+            cd build/signed-artifacts
+            sha256sum "AUREL-Hi-Res-v${AUREL_VERSION}.apk" > SHA256SUMS.txt
+          )
+          echo "Signature and package verified."
+
+      - name: Publish immutable signed GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          APK=app/build/outputs/apk/debug/app-debug.apk
-          TAG=v1.1.18
-          printf '%s\n' \
-            '**AUREL Hi-Res v1.1.18 — compact floating notifications**' \
-            '' \
-            'Changes:' \
-            '- Fixed oversized error notifications: the top floating message fits its text and buttons without stretching.' \
-            '- Alerts remain below the status bar; long messages are scrollable.' \
-            '- Preserved artist/album Back navigation, page scroll positions, library caching, and smaller list thumbnails from v1.1.17.' \
-            '- Preserved existing audio playback and stream-quality reporting.' \
-            '' \
-            'Verified by GitHub Actions: JavaScript, player UI, navigation, FLAC/MP3 parsing, and Android APK build.' \
-            '' \
-            'Known limitation: Mornye/Zarz HTTP 404 is an upstream gateway error, not fixed by this UI release.' \
-            '' \
-            'Install note: debug-signed prerelease APK; back up data if replacing a differently signed version.' > release-notes.md
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK#AUREL-Hi-Res-v1.1.18.apk" --clobber
-          else
-            gh release create "$TAG" "$APK#AUREL-Hi-Res-v1.1.18.apk" \
-              --target "$GITHUB_SHA" \
-              --title "AUREL Hi-Res v1.1.18" \
-              --notes-file release-notes.md \
-              --prerelease
-          fi
+          set -euo pipefail
+          cat > build/signed-artifacts/release-notes.md <<'NOTES'
+          **AUREL Hi-Res — first release with a permanent signing certificate**
+
+          - Future AUREL releases signed with this certificate can be installed over one another without deleting the app.
+          - All previous player, navigation, artwork, Qobuz and Mornye features are preserved.
+          - Signed APK integrity and the certificate fingerprint are verified before publishing.
+
+          **Migration:** builds through v1.1.18 used a temporary debug key. The first installation of this permanently signed APK may require a one-time uninstall of the older build. Back up important app settings first.
+
+          **Signing certificate SHA-256:**
+          C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA
+
+          **Known limitation:** the app's upstream Mornye/Zarz gateway errors are not changed by this release.
+          NOTES
+          gh release create "$AUREL_TAG" \
+            "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
+            "build/signed-artifacts/SHA256SUMS.txt" \
+            --target "$GITHUB_SHA" \
+            --title "AUREL Hi-Res v${AUREL_VERSION}" \
+            --notes-file build/signed-artifacts/release-notes.md \
+            --prerelease
+
+      - name: Keep the verified signed APK as a CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AurelHiRes-permanently-signed-release-apk
+          path: build/signed-artifacts/AUREL-Hi-Res-v*.apk
+          if-no-files-found: error

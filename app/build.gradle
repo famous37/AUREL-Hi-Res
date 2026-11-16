@@ -1,5 +1,13 @@
 plugins { id 'com.android.application' }
 
+// RELEASE SIGNING: no private keystore/password is checked into Git.
+// Both variables must come from GitHub Actions repository secrets or the
+// developer's local environment. Debug/Preview builds stay independent.
+def aurelKeyPath = System.getenv('AUREL_RELEASE_KEYSTORE_PATH')
+def aurelKeyPassword = System.getenv('AUREL_RELEASE_PASSWORD')
+def aurelHasSigning = aurelKeyPath && aurelKeyPassword
+def aurelSigningError = 'AUREL release signing is not configured. Add AUREL_RELEASE_KEYSTORE_BASE64 and AUREL_RELEASE_PASSWORD in GitHub Actions Secrets. Never publish a debug-signed APK as a release.'
+
 android {
     namespace 'com.aurel.hires'
     compileSdk 35
@@ -7,12 +15,45 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 26
         targetSdk 35
-        versionCode 37
-        versionName (project.hasProperty('aurelPreview') ? '1.1.18-preview' : '1.1.18')
+        versionCode 38
+        versionName (project.hasProperty('aurelPreview') ? '1.1.19-preview' : '1.1.19')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
+    }
+    signingConfigs {
+        aurelRelease {
+            if (aurelHasSigning) {
+                storeFile file(aurelKeyPath)
+                storePassword aurelKeyPassword
+                keyAlias 'aurel-release'
+                keyPassword aurelKeyPassword
+                storeType 'PKCS12'
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // APK signatures v2/v3 are produced by the Android Gradle plugin.
+            signingConfig signingConfigs.aurelRelease
+            debuggable false
+            minifyEnabled false
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Fail closed even when release tasks are requested transitively with 'assemble'.
+// Only signed AUREL release APKs may be distributed.
+afterEvaluate {
+    tasks.matching {
+        it.name in ['preReleaseBuild', 'packageRelease', 'assembleRelease', 'bundleRelease']
+    }.configureEach {
+        doFirst {
+            if (!aurelHasSigning || !file(aurelKeyPath).isFile()) {
+                throw new GradleException(aurelSigningError)
+            }
+        }
     }
 }
