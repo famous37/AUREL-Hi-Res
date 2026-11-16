@@ -22,3 +22,17 @@
 #toast .aurel-toast-close{flex:0 0 28px;width:28px;min-height:28px;padding:2px;border:0;background:transparent;color:#f3cbd8;font-size:24px;line-height:22px}
 #overlay .aurel-recovery-inline{display:block;margin:4px auto 0;padding:8px 13px;border:1px solid #ffffff4a;border-radius:10px;background:#ffffff12;color:var(--aurel-theme-accent,#e9b7be);font-size:13px;font-weight:700}
 @media(prefers-reduced-motion:reduce){.app #toast.toast{transition:none!important}}
+
+/* Content-sized top toast. Legacy overlay styles also pin a bottom offset;
+ * if both top and bottom are active, a fixed element stretches vertically.
+ * Explicitly unset every bottom inset with an overlay-specific selector. */
+.app #toast.toast,
+.app:has(.mini:not(.hidden)) #toast.toast,
+.app:has(#overlay:not(.hidden)) #toast.toast{
+ bottom:auto!important;
+ inset-block-end:auto!important;
+ height:fit-content!important;
+ min-height:0!important;
+ max-height:min(35dvh,230px)!important;
+ align-self:flex-start;
+}

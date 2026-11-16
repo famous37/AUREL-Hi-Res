@@ -7,8 +7,8 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 26
         targetSdk 35
-        versionCode 36
-        versionName (project.hasProperty('aurelPreview') ? '1.1.17-preview' : '1.1.17')
+        versionCode 37
+        versionName (project.hasProperty('aurelPreview') ? '1.1.18-preview' : '1.1.18')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     compileOptions {
