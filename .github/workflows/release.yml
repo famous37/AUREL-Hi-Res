@@ -4,6 +4,9 @@ name: Publish permanently signed AUREL release
 # signing material stored in GitHub Actions Secrets.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/release.yml']
 
 permissions:
   contents: write
@@ -121,20 +124,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > build/signed-artifacts/release-notes.md <<'NOTES'
-          **AUREL Hi-Res — first release with a permanent signing certificate**
-          
-          - Future AUREL releases signed with this certificate can be installed over one another without deleting the app.
-          - All previous player, navigation, artwork, Qobuz and Mornye features are preserved.
-          - Signed APK integrity and the certificate fingerprint are verified before publishing.
-          
-          **Migration:** builds through v1.1.18 used a temporary debug key. The first installation of this permanently signed APK may require a one-time uninstall of the older build. Back up important app settings first.
-          
-          **Signing certificate SHA-256:**
-          C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA
-          
-          **Known limitation:** the app's upstream Mornye/Zarz gateway errors are not changed by this release.
-                    NOTES
+          printf '%s\\n' \
+            '**AUREL Hi-Res v1.1.19 — permanently signed APK**' \
+            '' \
+            '- APK is signed using the permanent AUREL release certificate for future in-place updates.' \
+            '- Verified Android package identity, APK signing schemes, and signing certificate.' \
+            '- Preserves previous player, navigation, artwork, Qobuz, and Mornye features.' \
+            '' \
+            'Migration: Previous builds through v1.1.18 used an ephemeral debug key. Installing this first permanent release may require a one-time reinstall. Back up app data before removal.' \
+            '' \
+            'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
+            '' \
+            'Note: Mornye/Zarz HTTP 404 errors are upstream and not addressed by this signing release.' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \
@@ -142,6 +143,7 @@ jobs:
             --title "AUREL Hi-Res v${AUREL_VERSION}" \
             --notes-file build/signed-artifacts/release-notes.md \
             --prerelease
+          gh release view "$AUREL_TAG" --json tagName,url,assets --jq '.tagName + " " + .url + " " + ([.assets[].name] | join(", "))'
 
       - name: Keep the verified signed APK as a CI artifact
         uses: actions/upload-artifact@v4
