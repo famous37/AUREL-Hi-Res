@@ -168,10 +168,12 @@ final class QobuzApi {
                 // Root identifiers are Qobuz server trace IDs, not evidence of a valid session.
                 String detail=body.optString("message",body.optString("error","Request rejected"))
                     .replaceAll("\\s*\\(Root=[^)]*\\)","").trim();
-                if(status==401||status==403)
-                    throw new ApiException(status,endpoint,
-                        "Qobuz HTTP "+status+": token authentication rejected for this App ID. "+
-                        "Use the X-App-Id paired with your token, or obtain a fresh token.");
+                if(status==401||status==403){
+                    String authHint=endpoint.equals("user/login")&&token.isEmpty()?
+                        "Qobuz rejected email/password authentication or requires browser verification.":
+                        "Qobuz rejected the session for this App ID. Check the token and X-App-Id.";
+                    throw new ApiException(status,endpoint,"Qobuz HTTP "+status+": "+authHint);
+                }
                 throw new ApiException(status,endpoint,"Qobuz HTTP "+status+": "+detail);
             }
             return body;
@@ -334,7 +336,10 @@ final class QobuzApi {
         // may expose credentials to Qobuz's server request logs, so it is used
         // only after the user explicitly chose email/password authentication.
         try{
-            JSONObject response=request("user/login",params,false,appId,"");
+            // Some Qobuz legacy clients call this field "username", while
+            // others call it "email". Keep one bounded fallback request.
+            JSONObject legacy=new JSONObject(params.toString()).put("username",email.trim());
+            JSONObject response=request("user/login",legacy,false,appId,"");
             if(response.optString("user_auth_token").isEmpty())
                 throw new Exception("Qobuz did not issue a session token.");
             return response;
