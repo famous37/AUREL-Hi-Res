@@ -16,7 +16,7 @@
   }
   let navArtwork='';
   const themeByCover=new Map();
-  const baseTheme={bg:'#1E1B24',surface:'#302A35',accent:'#C9B7D5'};
+  const baseTheme={bg:'#160F15',surface:'#2B1A24',accent:'#DEA8B9'};
   let activeCover='';
   const validHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
   function coverNow(){return app.player?.track?image(app.player.track):'';}

@@ -344,5 +344,16 @@ assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
 assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.4"), 'APK version should advance');
-console.log('AUREL 1.1.4 checks passed — compact five-column nav, shared artwork theme, animated full-height info/audio drawers.');
+
+const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
+assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
+assert(atelier.includes('.quality.selected small'), 'selected quality descriptors need proper contrast');
+assert(atelier.includes('justify-content:space-between!important'), 'full player should distribute unused height');
+assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared album-derived palette');
+assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
+assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
+assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.5'"));
+assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
+console.log('AUREL 1.1.5 checks passed — darker artwork theme, compact player, high contrast settings and unified navigation.');
 

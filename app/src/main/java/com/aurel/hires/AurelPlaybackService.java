@@ -117,11 +117,11 @@ public final class AurelPlaybackService extends Service {
             sumCos+=Math.cos(angle)*weight;
             total+=weight;
         }
-        if(total<.01f)return new String[]{"#1E1B24","#302A35","#C9B7D5"};
+        if(total<.01f)return new String[]{"#160F15","#2B1A24","#DEA8B9"};
         float hue=(float)((Math.atan2(sumSin,sumCos)*180/Math.PI+360)%360);
-        int bg=Color.HSVToColor(new float[]{hue,.18f,.125f});
-        int surface=Color.HSVToColor(new float[]{hue,.20f,.195f});
-        int accent=Color.HSVToColor(new float[]{hue,.30f,.86f});
+        int bg=Color.HSVToColor(new float[]{hue,.24f,.085f});
+        int surface=Color.HSVToColor(new float[]{hue,.30f,.165f});
+        int accent=Color.HSVToColor(new float[]{hue,.27f,.86f});
         return new String[]{colorHex(bg),colorHex(surface),colorHex(accent)};
     }
     private void refreshCover(String url,int generation) {
