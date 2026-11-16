@@ -1175,6 +1175,11 @@ public final class MainActivity extends Activity {
                         // A 429 is a server-imposed rate limit, never a
                         // reason to request another quality or mint tickets.
                         if(viaMornye&&MornyeGateway.terminalStreamFailure(e))break;
+                        // Invalid/expired authorization and provider rate limits
+                        // are not a reason to request multiple format tickets.
+                        String failure=e.getMessage()==null?"":e.getMessage();
+                        if(!viaMornye&&(failure.contains("HTTP 429")
+                           ||failure.contains("HTTP 401")||failure.contains("HTTP 403")))break;
                     }
                 }
                 if(info==null)throw last!=null?last:new Exception("No available audio stream");
@@ -1248,6 +1253,17 @@ public final class MainActivity extends Activity {
                         });
                         player.setDataSource(streamUrl);
                         player.prepareAsync();
+                        final MediaPlayer expectedPlayer=player;
+                        // Bound a stalled prepareAsync; a dead HTTP request must
+                        // not leave the UI buffering forever.
+                        ui.postDelayed(()->{
+                            if(generation==playGeneration&&player==expectedPlayer
+                               &&!prepared&&!verificationInProgress){
+                                handlePlaybackFailure(expectedPlayer,generation,id,
+                                    MediaPlayer.MEDIA_ERROR_UNKNOWN,
+                                    MediaPlayer.MEDIA_ERROR_TIMED_OUT);
+                            }
+                        },25000);
                         emit("player",playerState());
                     }catch(Exception e){
                         // A failed setDataSource/prepareAsync can leave MediaPlayer unusable.
