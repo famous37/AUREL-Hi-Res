@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.7 Beta
+# AUREL Hi-Res · 1.0.8 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -110,3 +110,12 @@ Protocol reference: https://github.com/mornyeapp/Mornye/tree/main/rust_backend/c
 - Token / Password / Mornye and separate account library remain unchanged.
 
 A successful Android build **does not** prove the public Qobuz API will grant new-release access or that Zarz's rate limit has expired. Both are remote server policies.
+
+## v1.0.8 — Qobuz track details, independent library account and mobile layout
+
+- Playing track info is enriched asynchronously from Qobuz's public track widget, or preferably from the **separately authorized library account** for richer credits such as ISRC, release dates, copyright and composers. Mornye catalogue metadata remains an additional fallback. Metadata errors never stop a working stream.
+- **Source quality is not guessed.** Audio page distinguishes actual provider-reported bit depth/sample rate, Android parsed track parameters, and the maximum quality listed in the Qobuz catalogue. A catalogue maximum is never claimed to be the playing FLAC format or DAC bit-perfect output.
+- The separate library login now defaults to **Qobuz email or username + password**, with **no App ID input**; AUREL reuses a saved Qobuz App ID or resolves an appropriate public client ID. This secondary account stores only an encrypted issued token, never the password, and does not replace the Mornye stream session. Token login remains an alternative.
+- Password sign-in uses a POST body (including a bounded legacy username POST variant); no password is placed in a URL.
+- A final responsive stylesheet fixes overflows in auth, settings, small-screen tabs, the mini-player and full-player info/audio sheets. The full-player detail sheet remains scrollable independently above the navigation bar.
+- **Provider limitation:** Qobuz may reject third-party password authentication or require CAPTCHA. No client change can guarantee it, and a registered/authorized App ID is still required by Qobuz at the API level; the user simply no longer has to type one. Exact stream bit depth is shown only if the server supplies it.
