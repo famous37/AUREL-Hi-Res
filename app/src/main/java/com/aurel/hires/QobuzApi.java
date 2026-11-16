@@ -170,8 +170,8 @@ final class QobuzApi {
                     .replaceAll("\\s*\\(Root=[^)]*\\)","").trim();
                 if(status==401||status==403){
                     String authHint=endpoint.equals("user/login")&&token.isEmpty()?
-                        "Qobuz rejected email/password authentication or requires browser verification.":
-                        "Qobuz rejected the session for this App ID. Check the token and X-App-Id.";
+                        "Qobuz refused the client password-authentication request.":
+                        "Qobuz rejected this session or App ID.";
                     throw new ApiException(status,endpoint,"Qobuz HTTP "+status+": "+authHint);
                 }
                 throw new ApiException(status,endpoint,"Qobuz HTTP "+status+": "+detail);
@@ -397,35 +397,31 @@ final class QobuzApi {
         return verifyToken(appId,token,"",false);
     }
 
-    /** Passwords are used only for the HTTPS request and never persisted.
-     * Qobuz can require CAPTCHA/OAuth; do not mask those failures.
+    /** Qobuz's legacy user/login accepts an MD5 representation of the
+     * password. The raw password never enters URL params, GET requests or
+     * persistent storage. A 401 from Qobuz can also mean third-party login
+     * is disabled; do not brute-force different request variants.
      */
     JSONObject passwordLogin(String appId,String email,String password)throws Exception{
         if(appId==null||!appId.matches("[0-9]{6,15}")||
            email==null||email.trim().isEmpty()||password==null||password.isEmpty())
-            throw new Exception("Enter a Qobuz email and password; AUREL selects the App ID automatically.");
-        JSONObject params=new JSONObject().put("email",email.trim()).put("password",password);
-        Exception first;
-        try{
-            JSONObject response=request("user/login",params,true,appId,"");
+            throw new Exception("Enter your Qobuz email and password.");
+        String passwordHash=md5(password);
+        JSONObject body=new JSONObject().put("email",email.trim())
+            .put("password",passwordHash);
+        try {
+            JSONObject response=request("user/login",body,true,appId,"");
             if(response.optString("user_auth_token").isEmpty())
-                throw new Exception("Qobuz did not return a session token.");
+                throw new Exception("Qobuz did not return a library session token.");
             return response;
-        }catch(Exception e){first=e;}
-        // Legacy username fallback remains an HTTPS POST, not a URL containing credentials.
-        try{
-            // Some Qobuz legacy clients call this field "username", while
-            // others call it "email". Keep one bounded fallback request.
-            JSONObject legacy=new JSONObject(params.toString()).put("username",email.trim());
-            JSONObject response=request("user/login",legacy,true,appId,"");
-            if(response.optString("user_auth_token").isEmpty())
-                throw new Exception("Qobuz did not issue a session token.");
-            return response;
-        }catch(Exception e){
-            throw new Exception("Qobuz email/password sign-in was rejected. "+
-                "The service may require browser verification, a CAPTCHA or a fresh token. "+
-                "Qobuz may require CAPTCHA or reject password-based API access. ("+
-                e.getMessage()+")");
+        }catch(ApiException e){
+            if(e.status==401||e.status==403)
+                throw new ApiException(e.status,"user/login",
+                    "Qobuz returned HTTP "+e.status+" for password sign-in with App ID "+appId+
+                    ". The password format is correct, but the service may refuse third-party "+
+                    "login or require a different authorized client. Your existing music "+
+                    "session was not changed. Use an account session token if this persists.");
+            throw e;
         }
     }
     private String md5(String v)throws Exception{
