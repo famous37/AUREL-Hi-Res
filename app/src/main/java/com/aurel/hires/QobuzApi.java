@@ -36,10 +36,16 @@ final class QobuzApi {
     private static final Pattern WEB_JS=Pattern.compile(
         "(?:src|href)\\s*=\\s*[\\\"']([^\\\"']*?/resources/[^\\\"']*?\\.js)[\\\"']",
         Pattern.CASE_INSENSITIVE);
+    private static final Pattern WEB_PRODUCTION_APP_ID=Pattern.compile(
+        "production:\\{api:\\{appId:\\"([0-9]{9})\\"");
     private static final Pattern WEB_APP_ID=Pattern.compile(
         "(?:appId|app_id|appId\\s*=)\\s*[:=]\\s*[\\\"']?([0-9]{6,15})[\\\"']?");
     private static String lastWebAppId="";
     private String loadPublicPage(URL url,int maxBytes)throws Exception {
+        return loadPublicPage(url,maxBytes,0);
+    }
+    private String loadPublicPage(URL url,int maxBytes,int depth)throws Exception {
+        if(depth>3)throw new Exception("Too many Qobuz web redirects");
         if(!"https".equalsIgnoreCase(url.getProtocol())||
             !"play.qobuz.com".equalsIgnoreCase(url.getHost()))
             throw new Exception("Unexpected Qobuz web address");
@@ -50,6 +56,11 @@ final class QobuzApi {
         c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36");
         try{
             int status=c.getResponseCode();
+            if(status>=300&&status<400){
+                String location=c.getHeaderField("Location");
+                if(location==null||location.isEmpty())throw new Exception("Missing Qobuz redirect target");
+                return loadPublicPage(new URL(url,location),maxBytes,depth+1);
+            }
             if(status!=200)throw new Exception("Qobuz web page returned "+status);
             ByteArrayOutputStream out=new ByteArrayOutputStream();
             try(InputStream in=c.getInputStream()){
@@ -93,6 +104,8 @@ final class QobuzApi {
             "Open Advanced and enter X-App-Id from play.qobuz.com Network requests.");
     }
     private static String findPublicAppId(String text){
+        Matcher preferred=WEB_PRODUCTION_APP_ID.matcher(text);
+        if(preferred.find())return preferred.group(1);
         Matcher m=WEB_APP_ID.matcher(text);
         while(m.find()){
             String id=m.group(1);
