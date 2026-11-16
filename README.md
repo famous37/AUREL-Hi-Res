@@ -1,6 +1,14 @@
-# AUREL Hi-Res · 1.1.10 Beta
+# AUREL Hi-Res · 1.1.14 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
+
+## v1.1.14 — Qobuz account connection repair
+
+- **Session token**: accept your own Qobuz X-User-Auth-Token with a corresponding App ID, optional App Secret and User ID for both the streaming and independently connected personal library accounts. A manually entered App ID is now honored in every mode, including password login to the separate library.
+- **Password**: preserve Qobuz's legacy HTTPS password-API attempt with an explicitly chosen App ID, but report Qobuz HTTP 401/403 as rejection. If Qobuz requires browser CAPTCHA/OAuth, the user can open official Qobuz sign-in and then enter a session token. No third-party password flow is represented as guaranteed.
+- Qobuz favourites and user playlists now receive a known user_id where supplied/verified. Previous encrypted session tokens are not overwritten by a failed login; tokens and the optional library App Secret remain encrypted with Android Keystore, while plaintext passwords are never stored.
+- Mornye/Zarz signed streaming verification and playback remain independent. No music-download features are added. Live token validity and audio playback need authorized on-device testing.
+- **Security:** do not commit or distribute session tokens or App Secrets. Publicly shared credentials should be treated as exposed and rotated by the account owner. The APK contains no user-provided credentials.
 
 ## Interface
 
