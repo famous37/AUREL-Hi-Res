@@ -185,6 +185,7 @@ function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
 function renderLogin(){
   const secondary=app.loginTarget==='library';
   const savedAppId=secondary?app.session?.libraryAppId:app.session?.appId;
+  const savedUserId=secondary?app.session?.libraryUserId:app.session?.streamUserId;
   const rejected=secondary?app.session?.libraryValidation==='rejected':app.session?.streamValidation==='rejected';
   const appId=rejected?'':(savedAppId||'');
   const passwordMode=app.loginMode==='password';
@@ -230,26 +231,27 @@ function renderLogin(){
           <input id="password" type="password" autocomplete="current-password" placeholder="Enter Qobuz password" required>
           <button type="button" data-toggle-password aria-label="Show password">${ic('eye',22)}</button>
         </div>
-        <p class="aurel-method-help">${secondary?'AUREL automatically uses the configured Qobuz App ID. This account is only for your personal favourites, albums, artists and playlists; Mornye playback stays independent.':'Qobuz may require CAPTCHA or reject password sign-in from third-party apps. Your password is not saved.'}</p>`:`
+        <p class="aurel-method-help">${secondary?'For your personal library only. The Qobuz password API may return HTTP 401; enter an App ID below if needed, or use a session token. Mornye playback stays independent.':'Qobuz may require CAPTCHA or reject password sign-in from third-party apps. Your password is not saved.'}</p>`:`
         <label class="aurel-token-label" for="token">Qobuz session token</label>
         <div class="aurel-token-input">
           <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste X-User-Auth-Token" required>
           <button type="button" data-toggle-token aria-label="Show token">${ic('eye',22)}</button>
         </div>
         <p class="aurel-method-help">For a token from play.qobuz.com, leave App ID blank to detect the current web client automatically. Tokens from other apps may need their specific App ID.</p>`}
-      ${secondary&&passwordMode?'':`      <details class="aurel-signin-advanced" ${rejected?'open':''}>
-        <summary>${ic('settings',19)} Advanced · App ID ${secondary?'':'&amp; App Secret'} ${ic('chevron',17)}</summary>
+            <details class="aurel-signin-advanced" ${(rejected||passwordMode)?'open':''}>
+        <summary>${ic('settings',19)} Advanced · App ID, App Secret &amp; User ID ${ic('chevron',17)}</summary>
         <div class="aurel-advanced-fields">
           <label for="appId">App ID <small>Leave blank for automatic detection from Qobuz's current web player</small></label>
           <input id="appId" type="text" inputmode="numeric" autocomplete="off" value="${html(appId)}" placeholder="Auto-detect from Qobuz website">
-          ${secondary?'':`<label for="appSecret">App Secret <small>Optional for sign-in; a compatible secret may be required for signed playback URLs</small></label>
-          <div class="aurel-token-input"><input id="appSecret" type="password" autocomplete="off" placeholder="${app.session?.hasSecret?'Saved on device · leave blank to keep':'Optional App Secret'}"><button type="button" data-toggle-secret aria-label="Show App Secret">${ic('eye',22)}</button></div>`}
+          <label for="appSecret">App Secret <small>Optional for token/password login; only needed for compatible signed stream requests</small></label>
+          <div class="aurel-token-input"><input id="appSecret" type="password" autocomplete="off" placeholder="${(secondary?app.session?.hasLibrarySecret:app.session?.hasSecret)?'Saved on device · leave blank to keep':'Optional App Secret'}"><button type="button" data-toggle-secret aria-label="Show App Secret">${ic('eye',22)}</button></div>
           <label for="userId">User ID <small>Optional; leave blank unless needed by your Qobuz integration</small></label>
-          <input id="userId" type="text" inputmode="numeric" autocomplete="off" placeholder="Optional account ID">
+          <input id="userId" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${html(savedUserId||'')}" placeholder="Optional account ID">
         </div>
-      </details>`}
+      </details>
       <div class="aurel-signin-info">${ic('shield-check',18)} <span>${secondary?'Library login uses your own Qobuz credentials. The separate library token is encrypted on this device; the password is not stored.':'Qobuz checks credentials. AUREL encrypts the issued token and never saves your password.'}</span></div>
       <div id="loginError" class="aurel-signin-error hidden" role="alert"></div>
+      <div class="aurel-login-footer"><button type="button" class="small-link" data-open-qobuz-web>Open official Qobuz sign-in</button> · <button type="button" class="small-link" data-login-mode="token">Use session token</button></div>
       <button id="loginSubmit" type="submit" class="aurel-signin-submit">${secondary?'Connect library account':'Connect Qobuz'} ${ic('chevron',21)}</button>
     </form>
     <div class="aurel-login-footer">${secondary?'<button class="small-link" data-cancel-library>Back to settings</button>':''}</div>
@@ -267,7 +269,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div class="info-row"><span>Connection type</span><strong>${app.session.mornyeConnected?'Mornye signed gateway':'Qobuz account'}</strong></div>
   <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
  <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button>${app.session.mornyeConfigured?'<button class="pill secondary" data-reverify-mornye>Reverify Mornye</button>':''}<button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
- <div class="panel"><h3>Personal Qobuz library</h3><p class="subline">Connect your own Qobuz account by email and password without entering an App ID. Its playlists, saved releases, albums, artists and favourites are independent of your Mornye streaming session.</p>
+ <div class="panel"><h3>Personal Qobuz library</h3><p class="subline">Connect a personal Qobuz library with a session token (recommended) or email/password (only if Qobuz accepts this API). Optional App ID, App Secret and User ID are available for both methods. Mornye streaming stays independent.</p>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
  ${app.session.libraryConnected?'<button class="small-link" data-logout-library style="margin-left:18px">Disconnect library</button>':''}</div>
@@ -373,7 +375,7 @@ async function login(form){
  const passwordMode=app.loginMode==='password';
  const data={
   appId:$('#appId')?.value?.trim()||'',
-  appSecret:secondary?'':($('#appSecret')?.value?.trim()||''),
+  appSecret:$('#appSecret')?.value?.trim()||'',
   userId:$('#userId')?.value?.trim()||'',
   libraryOnly:secondary
  };
