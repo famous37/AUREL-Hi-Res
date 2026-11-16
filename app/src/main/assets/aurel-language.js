@@ -276,7 +276,7 @@ renderSettings=function(){
  return result;
 };
 var observer=new MutationObserver(function(mutations){
- var settingsNeeded=false;
+ var settingsNeeded=false,loginNeeded=false;
  for(var i=0;i<mutations.length;i++){
   var change=mutations[i];
   if(change.type==='characterData'){if(current==='uk')translateNode(change.target);continue;}
@@ -285,11 +285,14 @@ var observer=new MutationObserver(function(mutations){
   for(var j=0;j<nodes.length;j++){
    var n=nodes[j];
    if(current==='uk')visit(n);
-   if(n.nodeType===1&&(n.id==='screen'||(n.querySelector&&n.querySelector('.aurel-settings-heading'))))settingsNeeded=true;
+   if(n.nodeType===1){
+     if(n.id==='screen'||n.matches?.('.aurel-settings-heading')||n.querySelector?.('.aurel-settings-heading'))settingsNeeded=true;
+     if(n.id==='screen'||n.matches?.('.aurel-signin')||n.querySelector?.('.aurel-signin'))loginNeeded=true;
+   }
   }
  }
- if(settingsNeeded||document.querySelector('.aurel-settings-heading'))createLanguagePanel();
- createLoginLanguageSwitch();
+ if(settingsNeeded)createLanguagePanel();
+ if(loginNeeded)createLoginLanguageSwitch();
 });
 observer.observe(document.body,{childList:true,characterData:true,subtree:true});
 createLanguagePanel();

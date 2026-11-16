@@ -44,6 +44,7 @@
           <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-label="Track details" title="Credits">${ic('info',25)}<span>Info</span></button>
           <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-label="Source quality details" title="Audio">${ic('audio',25)}<span>Audio</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',26)}<span>Favourite</span></button>
+          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.2"/><circle cx="5.5" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m7.5 11 8.4-4.9M7.5 13l8.4 4.9"/></svg><span>Share</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>

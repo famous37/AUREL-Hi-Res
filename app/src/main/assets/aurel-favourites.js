@@ -242,7 +242,12 @@ function schedule(){
  },0);
 }
 if(typeof MutationObserver==='function'){
- const observer=new MutationObserver(schedule);
+ const observer=new MutationObserver(function(records){
+   // Playback timer updates only text nodes; ignore those mutations instead
+   // of rescanning every button on every second of music.
+   if(records.some(change=>Array.from(change.addedNodes).some(n=>n.nodeType===1)))
+     schedule();
+ });
  const screen=document.getElementById('screen');
  const overlay=document.getElementById('overlay');
  if(screen)observer.observe(screen,{childList:true,subtree:true});

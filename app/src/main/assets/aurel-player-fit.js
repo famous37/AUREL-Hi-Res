@@ -13,11 +13,13 @@
     const view=document.querySelector('#overlay:not(.hidden) .murglar-view');
     const content=view?.querySelector('.murglar-player-content');
     if(!content)return;
-    if(observed!==content&&typeof ResizeObserver==='function'){
+    // Do not observe the content whose cover dimensions this function changes.
+    // That feedback created a resize -> recalculate -> resize jitter loop.
+    if(observed!==view&&typeof ResizeObserver==='function'){
       if(observer)observer.disconnect();
-      observed=content;
+      observed=view;
       observer=new ResizeObserver(schedule);
-      observer.observe(content);
+      observer.observe(view);
     }
     const landscape=window.matchMedia('(orientation:landscape) and (max-height:510px)').matches;
     if(landscape){
@@ -47,7 +49,10 @@
     const minCover=104;
     const cover=Math.max(minCover,Math.min(ideal,remainder));
     const pixel=Math.floor(Math.max(0,cover));
-    if(view.style.getPropertyValue('--aurel-fit-art')!==pixel+'px')view.style.setProperty('--aurel-fit-art',pixel+'px');
+    // Avoid flickering due to +/-1px viewport rounding while playing.
+    const previous=number(view.style.getPropertyValue('--aurel-fit-art'));
+    if(!previous||Math.abs(previous-pixel)>2)
+      view.style.setProperty('--aurel-fit-art',pixel+'px');
     view.classList.toggle('aurel-fit-scroll',remainder<minCover);
   }
   function schedule(){

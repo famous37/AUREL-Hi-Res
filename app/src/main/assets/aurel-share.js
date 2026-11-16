@@ -96,7 +96,11 @@ function scheduleDecorate(){
  },0);
 }
 if(typeof MutationObserver==='function'){
- const observer=new MutationObserver(scheduleDecorate);
+ const observer=new MutationObserver(function(records){
+   // The elapsed-time counter is not a new shareable item.
+   if(records.some(change=>Array.from(change.addedNodes).some(n=>n.nodeType===1)))
+     scheduleDecorate();
+ });
  for(const id of ['screen','overlay']){
   const el=document.getElementById(id);
   if(el)observer.observe(el,{childList:true,subtree:true});
