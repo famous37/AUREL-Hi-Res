@@ -42,6 +42,8 @@ public final class MainActivity extends Activity {
     private int verificationRetryGeneration=-1;
     private boolean automaticVerificationRecovery=false;
     private long lastAutomaticVerificationAt=0L;
+    // A valid catalogue session does not guarantee an accepted stream ticket.
+    private volatile boolean gatewayPlaybackRejected=false;
     private static final long AUTO_REVERIFY_COOLDOWN_MS=90_000L;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
@@ -175,6 +177,7 @@ public final class MainActivity extends Activity {
         buffering=false;
         playerError="Mornye session requires verification. Confirm to resume playback.";
         emit("player",playerState());
+        gatewayPlaybackRejected=true;
         verificationRetryGeneration=generation;
         beginAutomaticReverification();
     }
@@ -198,12 +201,25 @@ public final class MainActivity extends Activity {
             // Keep manually triggered Connect Mornye available for a fresh attempt.
             if(verificationRetryGeneration==playGeneration&&queueIndex>=0){
                 buffering=false;
-                playerError="Gateway rejected the renewed session. Open Settings to retry verification.";
+                playerError="Zarz rejected playback after renewal. Tap Verify Mornye to request a fresh grant.";
                 emit("player",playerState());
             }
             return;
         }
-        lastAutomaticVerificationAt=now;
+        launchMornyeReverification();
+    }
+
+    /** A user-initiated verification is allowed even during automatic recovery's
+     *  cooldown. It always discards the old HMAC material before bootstrapping. */
+    private void beginManualReverification(){
+        if(!mornyeMode()||verificationInProgress)return;
+        verificationRetryGeneration=queueIndex>=0?playGeneration:-1;
+        launchMornyeReverification();
+    }
+
+    private void launchMornyeReverification(){
+        if(verificationInProgress||!mornyeMode())return;
+        lastAutomaticVerificationAt=android.os.SystemClock.elapsedRealtime();
         verificationInProgress=true;
         automaticVerificationRecovery=true;
         jobs.execute(()->{
@@ -359,12 +375,15 @@ public final class MainActivity extends Activity {
     private JSONObject session() throws Exception {
         JSONObject j=new JSONObject();
         boolean gateway=mornyeActive();
+        boolean configured=mornyeMode();
         boolean stream=!streamToken().isEmpty()||gateway;
         boolean hasLibrary=!secure.get("libraryToken").isEmpty();
         j.put("loggedIn",stream||hasLibrary);
         j.put("streamConnected",stream);
         j.put("mornyeConnected",gateway);
-        j.put("authMode",gateway?"mornye":"qobuz");
+        j.put("mornyeConfigured",configured);
+        j.put("gatewayPlaybackRejected",configured&&gatewayPlaybackRejected);
+        j.put("authMode",configured?"mornye":"qobuz");
         j.put("libraryConnected",hasLibrary);
         j.put("separateLibrary",hasLibrary);
         j.put("quality",quality());
@@ -450,6 +469,15 @@ public final class MainActivity extends Activity {
                                     .put("verificationStarted",true)
                                     .put("reason","Complete the Zarz session grant inside AUREL.");
                             }else data=result;
+                            break;
+                        }
+                        case "reverifyMornye": {
+                            if(!mornyeMode())throw new Exception("Connect a Mornye streaming session first.");
+                            // This is an explicit user action, not an unrestricted
+                            // background retry. The provider chooses if CAPTCHA is needed.
+                            ui.post(()->beginManualReverification());
+                            data=new JSONObject().put("verificationStarted",true)
+                                .put("reason","Requesting a fresh Zarz signed session.");
                             break;
                         }
                         case "mornyeStatus": {
@@ -1067,6 +1095,10 @@ public final class MainActivity extends Activity {
                         player.setOnPreparedListener(mp->{
                             if(generation!=playGeneration)return;
                             prepared=true;buffering=false;
+                            if(mornyeMode()&&gatewayPlaybackRejected){
+                                gatewayPlaybackRejected=false;
+                                try{emit("session",session());}catch(Exception ignored){}
+                            }
                             inspectPreparedTrack(mp);
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
