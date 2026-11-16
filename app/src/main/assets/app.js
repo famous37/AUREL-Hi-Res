@@ -82,7 +82,7 @@ window.AurelEvent=(kind,data)=>{
          }
        }
      }else{
-       app.session={...(app.session||{}),gatewayPlaybackRejected:true};
+       app.session={...(app.session||{}),...data,gatewayPlaybackRejected:true};
        showToast(data?.error||'Mornye verification did not complete',6500);
        if(app.nav==='settings')renderSettings();
      }
