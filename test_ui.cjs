@@ -303,6 +303,25 @@ assert(gateway.includes('status==401||status==403||status==428||status==429'),
   '428 must terminate stream quality fallback');
 assert(gateway.includes('requiresVerification(Exception error)')&&gateway.includes('failure.status==428'),
   'Zarz 428 must request session verification');
+assert(gateway.includes('"SESSION_INVALID".equalsIgnoreCase(code)')&&
+       gateway.includes('failure.status==401'), '401 SESSION_INVALID must trigger re-verification');
+assert(gateway.includes('"SESSION_EXPIRED".equalsIgnoreCase(code)'),
+  'expired signed sessions must trigger renewal');
+assert(gateway.includes('if(requiresVerification(e))throw e'),
+  'manual sign-in must preserve stale-session error codes');
+assert(java.includes('scheduleCatalogueReverification(error)'),
+  '401 from catalogue requests must automatically start verification');
+assert(java.includes('AUTO_REVERIFY_COOLDOWN_MS')&&
+       java.includes('verificationInProgress'),
+  'only one automatic verification attempt should be active at a time');
+assert(java.includes('mornyeMode()&&!mornyeActive()'),
+  'locally expired signed sessions must not silently fall back to Qobuz');
+assert(java.includes('put("catalogRecovery",catalogueRecovery)'),
+  'successful catalogue recovery should preserve the current screen');
+assert(fs.readFileSync(base+'app.js','utf8').includes('if(data?.catalogRecovery)'),
+  'artist/search views must be retried after verification');
+assert(discoJs.includes('AurelResetArtistMetadata'),
+  'previously rejected artist metadata must not be cached as empty');
 assert(gateway.includes('reconnectAfterVerificationRequired()')&&gateway.includes('clearPending()'),
   'stream verification must discard the old signed session and restart bootstrap');
 assert(java.includes('beginStreamReverification(generation)'),
@@ -356,7 +375,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.9"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.10"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -366,7 +385,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.9'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.10'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -398,7 +417,7 @@ assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artis
 assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
   'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.9'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.10'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -410,6 +429,6 @@ assert(artistHtml.includes('data-open-album="abc"'), 'release cards must link to
 assert(artistHtml.includes('No popular tracks returned')||artistHtml.includes('Loading popular tracks'), 'do not invent popularity');
 assert(!artistHtml.includes('undefined'), 'artist UI should not leak undefined fields');
 run("app.selected=null;app.selectedKind='';");
-console.log('AUREL 1.1.9 checks passed — live artist rendering, global theme and native catalogue sections.');
+console.log('AUREL 1.1.10 checks passed — live artist rendering, global theme and native catalogue sections.');
 
 
