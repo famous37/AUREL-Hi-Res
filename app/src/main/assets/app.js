@@ -60,10 +60,27 @@ window.AurelReceive=(id,reply)=>{
 window.AurelEvent=(kind,data)=>{
  if(kind==='mornyeVerificationResult'){
    if(data?.streamRecovery){
-     // Automatic re-verification must not navigate away from Now Playing.
+     // Automatic re-verification keeps the same screen, queue and selection.
      if(data?.connected){
        app.session=data;
-       showToast('Mornye session verified · resuming playback',4500);
+       showToast('Mornye session verified',4500);
+       if(data?.catalogRecovery){
+         // Retry whichever catalogue view was visible before the session
+         // expired. Artist extras have a separate cache that must be cleared.
+         if(app.selected?.id&&app.selectedKind==='artist'){
+           const id=String(app.selected.id);
+           window.AurelResetArtistMetadata?.(id);
+           openArtist(id);
+         }else if(app.selected?.id&&app.selectedKind==='album'){
+           openAlbum(String(app.selected.id));
+         }else if(app.nav==='search'&&app.searchQuery){
+           search();
+         }else if(app.nav==='home'){
+           loadHome();
+         }else{
+           render();
+         }
+       }
      }else{
        showToast(data?.error||'Mornye verification did not complete',6500);
      }
