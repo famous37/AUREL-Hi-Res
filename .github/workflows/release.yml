@@ -1,7 +1,8 @@
 name: Publish permanently signed AUREL release
 
-# Deliberately manual: a release cannot be created without the private
-# signing material stored in GitHub Actions Secrets.
+# Release signing always requires private GitHub Actions Secrets.
+# Push triggers here only when the release workflow itself changes; other
+# source commits run the ordinary test build, never an unsigned release.
 on:
   workflow_dispatch:
   push:
@@ -85,6 +86,7 @@ jobs:
           for script in app/src/main/assets/*.js; do node --check "$script"; done
           node test_ui.cjs
           node tests/navigation.test.cjs
+          node tests/updates.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -125,17 +127,20 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.19 — permanently signed APK**' \
+            '**AUREL Hi-Res v1.1.20 — built-in signed updates**' \
             '' \
-            '- APK is signed using the permanent AUREL release certificate for future in-place updates.' \
+            '- Added Settings > App updates with daily GitHub release checks and optional APK downloads.' \
+            '- Built-in progress indicator and release notes; Android asks before every installation.' \
+            '- SHA-256 verification, fixed AUREL signing certificate pin, exact package check and increasing Android versionCode.' \
+            '- Same permanent signing certificate as v1.1.19; compatible in-place upgrade.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
             '- Preserves previous player, navigation, artwork, Qobuz, and Mornye features.' \
             '' \
-            'Migration: Previous builds through v1.1.18 used an ephemeral debug key. Installing this first permanent release may require a one-time reinstall. Back up app data before removal.' \
+            'Install: v1.1.19 and later use the same long-term certificate, so installing v1.1.20 over signed v1.1.19 preserves your local settings and Qobuz sessions.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
-            'Note: Mornye/Zarz HTTP 404 errors are upstream and not addressed by this signing release.' > build/signed-artifacts/release-notes.md
+            'Note: Upstream Mornye/Zarz errors are outside the scope of the updater; audio playback code remains unchanged.' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \
