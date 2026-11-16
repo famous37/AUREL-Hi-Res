@@ -384,6 +384,13 @@ async function login(form){
  }catch(e){
   const error=$('#loginError');
   const msg=e?.message||'Qobuz refused the login. Check credentials and try again.';
+  if(passwordMode&&/captcha|challenge|browser verification|web sign-in|two.factor/i.test(msg)){
+    // Only the interactive Qobuz website can present and complete challenges.
+    app.loginMode='web';renderLogin();
+    nativeCall('startQobuzWeb',{libraryOnly:secondary})
+      .catch(webError=>showToast(webError.message||'Cannot open Qobuz verification',6500));
+    return;
+  }
   if(error){error.textContent=msg;error.classList.remove('hidden')}else showToast(msg,6500);
   const advanced=document.querySelector('.aurel-signin-advanced');
   if(advanced&&/App ID|X-App-Id|web app|401|403/i.test(msg))advanced.open=true;
