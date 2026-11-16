@@ -35,8 +35,7 @@ public final class MainActivity extends Activity {
     private WebView web;
     private SecureStore secure;
     private QobuzApi api;
-    private MornyeCatalog mornyeCatalog;
-    private static final int QOBUZ_WEB_REQUEST=4103;
+    private MornyeGateway mornye;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -63,7 +62,7 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         api=new QobuzApi(secure);
-        mornyeCatalog=new MornyeCatalog(this);
+        mornye=new MornyeGateway(secure);
         web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
         WebSettings s=web.getSettings();
         s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
@@ -96,11 +95,6 @@ public final class MainActivity extends Activity {
         }
         setContentView(content);
         content.requestApplyInsets();
-        // Check the official extension registry at most once every 24 hours.
-        // Never download or execute unsigned remote JavaScript.
-        jobs.execute(()->{
-            try{mornyeCatalog.status(false);}catch(Exception ignored){}
-        });
         web.loadUrl("file:///android_asset/index.html");
         ui.postDelayed(ticker,1000);
     }
@@ -115,20 +109,6 @@ public final class MainActivity extends Activity {
         }
     };
 
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
-        super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode!=QOBUZ_WEB_REQUEST||resultCode!=RESULT_OK||data==null)return;
-        String token=data.getStringExtra(QobuzWebLoginActivity.EXTRA_TOKEN);
-        if(token==null||token.length()<10)return;
-        boolean library=data.getBooleanExtra(QobuzWebLoginActivity.EXTRA_LIBRARY,false);
-        try{
-            // Only the packaged file:// WebView receives this event.
-            String appId=data.getStringExtra(QobuzWebLoginActivity.EXTRA_APP_ID);
-            JSONObject result=new JSONObject().put("token",token).put("libraryOnly",library);
-            if(appId!=null&&appId.matches("[0-9]{6,15}"))result.put("appId",appId);
-            emit("webLoginResult",result);
-        }catch(Exception ignored){}
-    }
     @Override public void onBackPressed() {
         if(web!=null)web.evaluateJavascript("window.AurelBack ? window.AurelBack() : null",null);
         else super.onBackPressed();
@@ -183,6 +163,14 @@ public final class MainActivity extends Activity {
         try {int q=Integer.parseInt(secure.get("quality")); return q==5||q==6||q==7||q==27?q:27;}
         catch(Exception ignored){return 27;}
     }
+    private boolean mornyeActive(){return "mornye".equals(secure.get("authMode"))&&mornye.isConnected();}
+    private JSONObject catalog(String endpoint,JSONObject params)throws Exception{
+        return mornyeActive()?mornye.metadata(endpoint,params):api.catalog(endpoint,params);
+    }
+    private void needLibrary()throws Exception{
+        if(mornyeActive()&&secure.get("libraryToken").isEmpty())
+            throw new Exception("Connect a separate Qobuz account in Settings to access your personal library.");
+    }
     private String streamToken(){String t=secure.get("streamToken");return t.isEmpty()?secure.get("token"):t;}
     // Default App ID shown in the user's original AUREL configuration.
     // Not a secret; callers can override it in Advanced account settings.
@@ -195,10 +183,13 @@ public final class MainActivity extends Activity {
     private String streamSecret(){String t=secure.get("streamAppSecret");return t.isEmpty()?secure.get("appSecret"):t;}
     private JSONObject session() throws Exception {
         JSONObject j=new JSONObject();
-        boolean stream=!streamToken().isEmpty();
+        boolean gateway=mornyeActive();
+        boolean stream=!streamToken().isEmpty()||gateway;
         boolean hasLibrary=!secure.get("libraryToken").isEmpty();
         j.put("loggedIn",stream||hasLibrary);
         j.put("streamConnected",stream);
+        j.put("mornyeConnected",gateway);
+        j.put("authMode",gateway?"mornye":"qobuz");
         j.put("libraryConnected",hasLibrary);
         j.put("separateLibrary",hasLibrary);
         j.put("quality",quality());
@@ -214,10 +205,13 @@ public final class MainActivity extends Activity {
         j.put("previewBuild",getPackageName().contains(".preview"));
         String streamValidation=secure.get("streamValidation");
         String libraryValidation=secure.get("libraryValidation");
-        j.put("streamValidation",streamValidation.isEmpty()?"unknown":streamValidation);
+        j.put("streamValidation",gateway?"verified":streamValidation.isEmpty()?"unknown":streamValidation);
         j.put("libraryValidation",libraryValidation.isEmpty()?"unknown":libraryValidation);
         try { j.put("profile",new JSONObject(secure.get("profile"))); }
         catch(Exception ignored) {j.put("profile",new JSONObject());}
+        if(gateway)j.put("profile",new JSONObject().put("displayName","Mornye Qobuz Gateway")
+            .put("subscription","Gateway access, not a Qobuz user account")
+            .put("verifiedSubscription",false));
         try{j.put("libraryProfile",new JSONObject(secure.get("libraryProfile")));}
         catch(Exception ignored){j.put("libraryProfile",new JSONObject());}
         return j;
@@ -252,29 +246,36 @@ public final class MainActivity extends Activity {
                     JSONObject data;
                     switch(action) {
                         case "session": data=session();break;
-                        case "mornyeExtensionStatus": {
-                            data=mornyeCatalog.status(p.optBoolean("force",false));break;
+                        case "connectMornye": {
+                            JSONObject result=mornye.connect();
+                            if(result.optBoolean("connected",false)){
+                                secure.put("authMode","mornye");
+                                data=session();
+                                data.put("mornyeMessage",result.optString("message","Gateway authenticated"));
+                            }else data=result;
+                            break;
                         }
-                        case "startQobuzWeb": {
-                            final boolean library=p.optBoolean("libraryOnly",false);
-                            ui.post(()->{
-                                Intent launch=new Intent(MainActivity.this,QobuzWebLoginActivity.class);
-                                launch.putExtra(QobuzWebLoginActivity.EXTRA_LIBRARY,library);
-                                startActivityForResult(launch,QOBUZ_WEB_REQUEST);
-                            });
-                            data=new JSONObject().put("started",true);break;
+                        case "mornyeStatus": {
+                            data=new JSONObject().put("connected",mornyeActive());
+                            break;
                         }
-                        case "openQobuzWeb": {
-                            ui.post(()->{
-                                try{
-                                    Intent browser=new Intent(Intent.ACTION_VIEW,
-                                        Uri.parse("https://play.qobuz.com/login"));
-                                    startActivity(browser);
-                                }catch(Exception ignored){}
-                            });
-                            data=new JSONObject().put("opened",true);break;
+                        case "disconnectMornye": {
+                            mornye.disconnect();
+                            secure.put("authMode","");
+                            data=session();
+                            break;
                         }
                         case "validateSession": {
+                            if(mornyeActive()){
+                                try{
+                                    mornye.metadata("track/search",new JSONObject().put("query","music").put("limit",1));
+                                    data=session();
+                                }catch(Exception issue){
+                                    data=session();
+                                    data.put("authError","Mornye gateway verification failed: "+issue.getMessage());
+                                }
+                                break;
+                            }
                             String token=streamToken();
                             if(token.isEmpty()){data=session();data.put("authError","No streaming token saved.");break;}
                             try {
@@ -332,6 +333,7 @@ public final class MainActivity extends Activity {
                                 if(!suppliedSecret.isEmpty())secure.put("streamAppSecret",suppliedSecret);
                                 else if(!appId.equals(previousAppId))secure.put("streamAppSecret","");
                                 secure.put("streamToken",token);
+                                secure.put("authMode","qobuz");
                                 secure.put("streamUserId",p.optString("userId","").trim());
                                 secure.put("streamValidation",validation);
                                 secure.put("profile",prof.toString());
@@ -357,17 +359,21 @@ public final class MainActivity extends Activity {
                             if(p.has("appSecret"))secure.put("streamAppSecret",p.optString("appSecret").trim());
                             data=session();break;
                         }
-                        case "discover": data=api.discoverReleases(24);break;
+                        case "discover":
+                            data=mornyeActive()?mornye.metadata("album/getFeatured",
+                                new JSONObject().put("type","new-releases").put("limit",24))
+                                :api.discoverReleases(24);
+                            break;
                         case "search": {
                             String q=p.optString("query").trim();
                             if(q.isEmpty())throw new Exception("Enter a search term");
                             String type=p.optString("type","tracks");
                             String endpoint=type.equals("albums")?"album/search":type.equals("artists")?"artist/search":"track/search";
-                            data=api.catalog(endpoint,new JSONObject().put("query",q).put("limit",35));break;
+                            data=catalog(endpoint,new JSONObject().put("query",q).put("limit",35));break;
                         }
-                        case "album":data=api.catalog("album/get",new JSONObject().put("album_id",p.getString("id")).put("limit",100));break;
+                        case "album":data=catalog("album/get",new JSONObject().put("album_id",p.getString("id")).put("limit",100));break;
                         case "artist": {
-                            data=api.catalog("artist/get",new JSONObject().put("artist_id",p.getString("id"))
+                            data=catalog("artist/get",new JSONObject().put("artist_id",p.getString("id"))
                                 .put("extra","albums").put("limit",100).put("offset",0));
                             data=withArtistReleases(data,p.getString("id"),0,100);
                             break;
@@ -376,25 +382,25 @@ public final class MainActivity extends Activity {
                             int offset=Math.max(0,p.optInt("offset",0));
                             int limit=Math.max(1,Math.min(100,p.optInt("limit",100)));
                             String artistId=p.getString("id");
-                            data=api.catalog("artist/get",new JSONObject().put("artist_id",artistId)
+                            data=catalog("artist/get",new JSONObject().put("artist_id",artistId)
                                 .put("extra","albums").put("limit",limit).put("offset",offset));
                             data=withArtistReleases(data,artistId,offset,limit);
                             break;
                         }
                         case "resolveArtist": data=resolveArtist(p);break;
-                        case "favorites": {
+                        case "favorites": {needLibrary();
                             String type=p.optString("type","albums");
                             if(!type.equals("albums")&&!type.equals("tracks")&&!type.equals("artists"))type="albums";
                             data=api.library("favorite/getUserFavorites",new JSONObject().put("type",type).put("limit",100));break;
                         }
-                        case "favoriteAdd": {
+                        case "favoriteAdd": {needLibrary();
                             String type=p.optString("type","tracks");
                             String field=type.equals("albums")?"album_ids":type.equals("artists")?"artist_ids":"track_ids";
                             JSONObject body=new JSONObject().put("track_ids","").put("album_ids","").put("artist_ids","");
                             body.put(field,p.getString("id"));data=api.libraryPost("favorite/create",body);break;
                         }
-                        case "playlists":data=api.library("playlist/getUserPlaylists",new JSONObject().put("limit",100));break;
-                        case "playlist":data=api.library("playlist/get",new JSONObject().put("playlist_id",p.getString("id")).put("extra","tracks").put("limit",100));break;
+                        case "playlists":needLibrary();data=api.library("playlist/getUserPlaylists",new JSONObject().put("limit",100));break;
+                        case "playlist":needLibrary();data=api.library("playlist/get",new JSONObject().put("playlist_id",p.getString("id")).put("extra","tracks").put("limit",100));break;
                         case "play":{
                             final JSONArray list=p.getJSONArray("tracks");final int index=p.optInt("index",0);
                             if(list.length()==0||list.length()>400||index<0||index>=list.length())throw new Exception("Invalid playlist queue");
@@ -487,7 +493,7 @@ public final class MainActivity extends Activity {
         JSONArray items=albums==null?null:albums.optJSONArray("items");
         if(items!=null&&items.length()>0) {enrichAlbumArtists(artist,items);return artist;}
         try {
-            JSONObject latest=api.catalog("artist/getReleasesList",new JSONObject()
+            JSONObject latest=catalog("artist/getReleasesList",new JSONObject()
                 .put("artist_id",id).put("release_type","all").put("sort","release_date_by_priority")
                 .put("offset",offset).put("limit",limit));
             JSONObject block=latest.optJSONObject("albums");
@@ -537,7 +543,7 @@ public final class MainActivity extends Activity {
         String name=input.optString("name", "").trim();
         if(trackId.matches("[0-9]+")) {
             try {
-                JSONObject track=api.catalog("track/get",new JSONObject().put("track_id",trackId));
+                JSONObject track=catalog("track/get",new JSONObject().put("track_id",trackId));
                 String found=artistIdFrom(track);
                 if(found.matches("[0-9]+"))return new JSONObject().put("id",found).put("matchedBy","track");
                 JSONObject album=track.optJSONObject("album");
@@ -546,13 +552,13 @@ public final class MainActivity extends Activity {
         }
         if(albumId.matches("[0-9]+")) {
             try {
-                JSONObject album=api.catalog("album/get",new JSONObject().put("album_id",albumId));
+                JSONObject album=catalog("album/get",new JSONObject().put("album_id",albumId));
                 String found=artistIdFrom(album);
                 if(found.matches("[0-9]+"))return new JSONObject().put("id",found).put("matchedBy","album");
             } catch(Exception ignored) {}
         }
         if(!name.isEmpty()&&!name.equalsIgnoreCase("Artist information unavailable")&&!name.equalsIgnoreCase("Unknown artist")) {
-            JSONObject found=api.catalog("artist/search",new JSONObject().put("query",name).put("limit",30));
+            JSONObject found=catalog("artist/search",new JSONObject().put("query",name).put("limit",30));
             JSONObject artists=found.optJSONObject("artists");
             JSONArray items=artists==null?found.optJSONArray("items"):artists.optJSONArray("items");
             if(items!=null)for(int i=0;i<items.length();i++) {
@@ -624,7 +630,7 @@ public final class MainActivity extends Activity {
         if(id.matches("[0-9]+") && !hasArtistName(current)) {
             jobs.execute(()->{
                 try {
-                    JSONObject full=api.catalog("track/get",new JSONObject().put("track_id",id));
+                    JSONObject full=catalog("track/get",new JSONObject().put("track_id",id));
                     ui.post(()->{
                         if(generation!=playGeneration || current==null)return;
                         try {
@@ -656,7 +662,7 @@ public final class MainActivity extends Activity {
                 int requested=quality();
                 int[] formats=requested==27?new int[]{27,7,6,5}:requested==7?new int[]{7,6,5}:requested==6?new int[]{6,5}:new int[]{5};
                 for(int fmt:formats) {
-                    try {info=api.streamInfo(id,fmt);break;}
+                    try {info=mornyeActive()?mornye.streamInfo(id,fmt):api.streamInfo(id,fmt);break;}
                     catch(Exception e) {last=e;}
                 }
                 if(info==null)throw last!=null?last:new Exception("No available audio stream");
