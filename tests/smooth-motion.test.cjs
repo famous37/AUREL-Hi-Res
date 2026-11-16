@@ -1,4 +1,4 @@
-/* AUREL v1.1.25 smooth-motion regression: not connected to real Qobuz. */
+/* AUREL v1.1.26 smooth-motion regression: not connected to real Qobuz. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'..');
@@ -12,7 +12,7 @@ const share=source('app/src/main/assets/aurel-share.js');
 const murglar=source('app/src/main/assets/murglar.js');
 const html=source('app/src/main/assets/index.html');
 const gradle=source('app/build.gradle');
-assert(gradle.includes('versionCode 44')&&gradle.includes("'1.1.25'"));
+assert(gradle.includes('versionCode 45')&&gradle.includes("'1.1.26'"));
 assert(html.includes('<link rel="stylesheet" href="aurel-smooth.css"></head>'));
 assert(html.includes('<script src="aurel-motion.js"></script></body>'));
 assert(html.indexOf('aurel-graphite.css')<html.indexOf('aurel-smooth.css'));
@@ -59,7 +59,7 @@ for(let i=0;i<15;i++){ctx.render();ctx.renderLibrary();}
 assert.equal(animations.length,0,'Repeated catalogue/library redraw must not animate');
 app.nav='library';ctx.render();
 assert.equal(animations.length,1,'One animation for one route change');
-assert.equal(animations[0].opts.duration,125);
+assert.equal(animations[0].opts.duration,190);
 for(let i=0;i<20;i++)ctx.renderLibrary();
 assert.equal(animations.length,1,'Data updates should not replay animations');
 app.selected={id:'1234'};app.selectedKind='artist';ctx.renderArtist();

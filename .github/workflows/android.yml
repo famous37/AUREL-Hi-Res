@@ -37,6 +37,8 @@ jobs:
         run: node tests/share.test.cjs
       - name: Verify smooth navigation and player stability
         run: node tests/smooth-motion.test.cjs
+      - name: Verify pre-release track restrictions and published singles
+        run: node tests/release-availability.test.cjs
       - name: Regression-test navigation and artwork loading
         run: node tests/navigation.test.cjs
       - name: Verify signed in-app updater safeguards

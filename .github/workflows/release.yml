@@ -89,6 +89,7 @@ jobs:
           node tests/favourites-theme.test.cjs
           node tests/share.test.cjs
           node tests/smooth-motion.test.cjs
+          node tests/release-availability.test.cjs
           # Share styles load last; existing graphite and favourite assets remain enabled.
           # Favourite mutation/rollback, status loading, and session separation are validated above.
           # DOM mock includes classList.contains, matching Android WebView's Element API.
@@ -134,16 +135,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.25 — Smooth, stable playback interface**' \
+            '**AUREL Hi-Res v1.1.26 — Ultra-smooth UI and release-aware playback**' \
             '' \
-            '- Fixed the player artwork resize feedback loop and +/-1 px layout jitter.' \
-            '- Eliminated repeated panel-entry animations during Qobuz catalogue and library refreshes.' \
-            '- Only an extremely soft opacity fade on real navigation, with static buttons and stable controls.' \
-            '- Reduced background DOM work on playback timer updates. Share, favourites, localization and streaming remain.' \
+            '- Improved player smoothness: bitrate/decoder updates no longer rebuild the artwork and controls.' \
+            '- Added per-track Qobuz availability checks: unreleased songs remain listed but cannot be played.' \
+            '- Play Album, queues, skip, shuffle and repeat avoid scheduled and non-streamable tracks.' \
+            '- Already released singles remain playable from an album scheduled for a later date.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
             '- Preserves signed in-app updates, player, navigation, artwork, and audio metadata.' \
             '' \
-            'Install: v1.1.25 over the signed v1.1.24 preserves settings and credentials, using the same package and signing certificate.' \
+            'Install: v1.1.26 over the signed v1.1.25 preserves credentials and settings; package and permanent signing certificate are unchanged.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
