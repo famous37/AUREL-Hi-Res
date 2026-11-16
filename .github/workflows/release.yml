@@ -1,4 +1,4 @@
-name: Publish AUREL Hi-Res alpha release
+name: Publish AUREL Hi-Res current release
 on:
   push:
     branches: [main]
@@ -25,6 +25,10 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Check player UI before publication
+        run: |
+          for file in app/src/main/assets/*.js; do node --check "$file"; done
+          node test_ui.cjs
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Publish GitHub prerelease
@@ -32,13 +36,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
-          TAG=v0.4.0-alpha
+          TAG=v1.1.11
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK#AUREL-Hi-Res-v0.4.0-alpha-debug.apk" --clobber
+            gh release upload "$TAG" "$APK#AUREL-Hi-Res-v1.1.11.apk" --clobber
           else
-            gh release create "$TAG" "$APK#AUREL-Hi-Res-v0.4.0-alpha-debug.apk" \
+            gh release create "$TAG" "$APK#AUREL-Hi-Res-v1.1.11.apk" \
               --target "$GITHUB_SHA" \
-              --title "AUREL Hi-Res v0.4.0 Alpha" \
-              --notes "AUREL Hi-Res v0.4 audiophile alpha by famous37: revamped high-contrast artwork-first player, source audio metadata with verified sample-rate conversion, no equalizer, custom launcher icon, purchased-track/album/artist downloads when authorized by Qobuz, and local purchased-file playback. Direct HTTPS audio only; encrypted segmented streams unsupported. Qobuz login and downloads require real account validation. Unofficial independent application, not affiliated with Qobuz." \
+              --title "AUREL Hi-Res v1.1.11" \
+              --notes "AUREL Hi-Res v1.1.11: artwork dynamically fits the available Android screen height, responsive portrait and landscape layouts, preserved five-tab navigation, adaptive cover sizing and accessible playback controls. Album palette, Qobuz streaming and source-quality reporting remain unchanged. Independent unofficial app." \
               --prerelease
           fi
