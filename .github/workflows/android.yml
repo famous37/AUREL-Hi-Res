@@ -33,6 +33,8 @@ jobs:
         run: node tests/account-language.test.cjs
       - name: Validate Qobuz favourites toggle and graphite theme
         run: node tests/favourites-theme.test.cjs
+      - name: Verify public Qobuz sharing and Android chooser
+        run: node tests/share.test.cjs
       - name: Regression-test navigation and artwork loading
         run: node tests/navigation.test.cjs
       - name: Verify signed in-app updater safeguards

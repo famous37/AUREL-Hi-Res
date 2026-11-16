@@ -87,6 +87,7 @@ jobs:
           node test_ui.cjs
           node tests/account-language.test.cjs
           node tests/favourites-theme.test.cjs
+          node tests/share.test.cjs
           # Favourite mutation/rollback, status loading, and session separation are validated above.
           # DOM mock includes classList.contains, matching Android WebView's Element API.
           node tests/navigation.test.cjs
@@ -131,16 +132,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.23 — Graphite UI and two-way favourites**' \
+            '**AUREL Hi-Res v1.1.24 — Share Qobuz tracks, albums and artists**' \
             '' \
-            '- Neutral graphite appearance by default, subtly rounded borders, larger readable labels and soft motion.' \
-            '- Optional album artwork colours remain available in Settings, off by default.' \
-            '- Add and remove track, album and artist favourites with immediate UI feedback and rollback on failure.' \
-            '- Favourites membership is loaded from authenticated Qobuz, with a paginated fallback and account isolation.' \
+            '- Added native Android sharing for official Qobuz track, album and artist links.' \
+            '- Share directly from Now Playing, album pages, artist pages and catalogue/library lists.' \
+            '- Shared public links contain no account tokens or private streaming URLs.' \
+            '- Retains graphite UI, English/Ukrainian localization, reversible favourites and signed in-app updates.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
             '- Preserves signed in-app updates, player, navigation, artwork, and audio metadata.' \
             '' \
-            'Install: v1.1.23 over the signed v1.1.22 preserves app settings and credentials. Android verifies package ID and permanent certificate.' \
+            'Install: v1.1.24 over the signed v1.1.23 preserves settings and credentials. Android verifies the same package and permanent certificate.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
