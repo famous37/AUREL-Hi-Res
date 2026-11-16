@@ -8,6 +8,17 @@
         android:supportsRtl="true">
         <service android:name=".AurelPlaybackService" android:exported="false"
             android:foregroundServiceType="mediaPlayback"/>
+        <!-- Supports the original Mornye/Zarz one-time grant callback. Only
+             the short-lived nonce from encrypted local state authorizes it. -->
+        <activity android:name=".MornyeGrantCallbackActivity"
+            android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="mornye" android:host="session-grant"/>
+            </intent-filter>
+        </activity>
         <activity android:name=".MornyeVerificationActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".MainActivity" android:exported="true"
