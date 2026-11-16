@@ -194,8 +194,8 @@ function renderLogin(){
     </div>
     <form id="loginForm" class="aurel-signin-form">
       ${passwordMode?`
-        <label class="aurel-token-label" for="email">Qobuz email</label>
-        <input id="email" class="aurel-login-textbox" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="you@example.com" required>
+        <label class="aurel-token-label" for="email">Qobuz email or username</label>
+        <input id="email" class="aurel-login-textbox" type="text" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Email or Qobuz username" required>
         <label class="aurel-token-label" for="password">Password</label>
         <div class="aurel-token-input">
           <input id="password" type="password" autocomplete="current-password" placeholder="Enter Qobuz password" required>
