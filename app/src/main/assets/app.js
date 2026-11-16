@@ -303,6 +303,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div class="info-row"><span>Connection type</span><strong>${app.session.mornyeConnected?'Mornye signed gateway':'Qobuz account'}</strong></div>
   <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
  <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button>${app.session.mornyeConfigured?'<button class="pill secondary" data-reverify-mornye>Reverify Mornye</button>':''}<button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
+ ${app.session.libraryConnected&&!app.session.streamConnected?'<div class="auth-status-banner" role="status"><strong>Account connected but streaming was not verified. You can browse your library; connect a compatible playback account to listen.</strong></div>':''}
  <div class="panel"><h3>Personal Qobuz library</h3><p class="subline">Connect your personal Qobuz library by email or username and password, or by a session token with a compatible App ID. A successful Qobuz login disconnects Mornye; only verified credentials are saved.</p>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
@@ -312,7 +313,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.21</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.22</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -615,8 +616,13 @@ $('#mini').addEventListener('click',e=>{if(e.target.closest('button'))return;app
    if(app.session?.streamConnected){
      try{app.session=await nativeCall('validateSession')}catch(_){}
    }
+   if(app.session?.libraryConnected&&!app.session?.streamConnected)app.nav='library';
    render();
-   if(hasAuth()){nativeCall('playerState').catch(()=>{});if(app.nav==='home')loadHome()}
+   if(hasAuth()){
+     nativeCall('playerState').catch(()=>{});
+     if(app.nav==='home')loadHome();
+     else if(app.nav==='library')loadLibrary();
+   }
  }
  catch(e){app.session={loggedIn:false,profile:{}};renderLogin();if(!window.AurelNative)showToast('Visual preview only — Qobuz requests require the Android application',7000)}
 })();

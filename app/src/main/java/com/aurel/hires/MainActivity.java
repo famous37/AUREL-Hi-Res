@@ -140,6 +140,7 @@ public final class MainActivity extends Activity {
      *  completion path. Only a successful server grant may resume playback. */
     private void reportMornyeVerification(boolean connected,String reason){
         ui.post(()->{
+            if(connected&&!mornyeActive()&&!mornyeMode())return; // stale grant after switch
             if(!connected&&mornyeActive())return; // late browser-cancel event after a valid grant
             final int retryGeneration=verificationRetryGeneration;
             final boolean catalogueRecovery=automaticVerificationRecovery&&retryGeneration<0;
@@ -655,6 +656,12 @@ public final class MainActivity extends Activity {
                                     }
                                 }
                             }else{
+                                // A new primary Qobuz account must own its own
+                                // favourites. Do not reuse the previous account's
+                                // separately connected library token.
+                                for(String key:new String[]{"libraryAppId","libraryAppSecret",
+                                    "libraryUserId","libraryToken","libraryProfile",
+                                    "libraryValidation"})secure.put(key,"");
                                 String previousAppId=streamAppId();
                                 String suppliedSecret=p.optString("appSecret","").trim();
                                 secure.put("streamAppId",appId);

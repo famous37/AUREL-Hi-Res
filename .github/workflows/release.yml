@@ -127,20 +127,20 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.21 — refined interface and Ukrainian localization**' \
+            '**AUREL Hi-Res v1.1.22 — Qobuz account switching and full Ukrainian interface**' \
             '' \
-            '- Refined album-responsive controls, typography, navigation, cards and player visuals.' \
-            '- Added English (default) and Ukrainian (Skrypnykivka) language selection in Settings.' \
-            '- Preserved player, Qobuz, Mornye, history, album palette and verified signed updates.' \
-            '- Same permanent signing certificate as v1.1.20; compatible in-place upgrade.' \
+            '- Expanded Ukrainian translation across login, menus, library, player, account and updater.' \
+            '- English remains default. Language switch is now available on login and in Settings.' \
+            '- Qobuz accepts email or username/password, or a matching session token with App ID.' \
+            '- Verified Qobuz login ends Mornye and clears the old account library cache.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
-            '- Preserves previous player, navigation, artwork, Qobuz, and Mornye features.' \
+            '- Preserves signed in-app updates, player, navigation, artwork, and audio metadata.' \
             '' \
-            'Install: v1.1.21 over the signed v1.1.20 retains your local settings and Qobuz sessions.' \
+            'Install: v1.1.22 over the signed v1.1.21 retains device settings and encrypted accounts until you choose to change the account.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
-            'Note: Upstream Mornye/Zarz errors are outside the scope of the updater; audio playback code remains unchanged.' > build/signed-artifacts/release-notes.md
+            'Note: Qobuz can reject legacy password API requests. Use a compatible App ID or account session token. A failed login leaves the current session unchanged.' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \
