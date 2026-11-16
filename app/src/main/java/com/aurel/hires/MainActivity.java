@@ -11,7 +11,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.MediaFormat;
+import androidx.media3.common.Format;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -48,9 +48,12 @@ public final class MainActivity extends Activity {
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
-    private MediaPlayer player;
+    private AurelMediaPlayer player;
     private JSONObject current=new JSONObject();
     private JSONObject fileInfo=new JSONObject();
+    // Verified FLAC parameters parsed from bytes served by the active playback URL.
+    // UI thread only; never persist URLs or credentials in event payloads.
+    private JSONObject actualStream=null;
     private String codec="", sourceLabel="";
     private boolean sourceVerified=false;
     private int decoderSampleRateHz=0, decoderChannels=0, decoderBitrateKbps=0;
@@ -73,6 +76,9 @@ public final class MainActivity extends Activity {
     private boolean prepared=false, buffering=false;
     private String playerError="";
     private long lastStateSent=0;
+    // One bounded recovery attempt per user-selected track. UI thread only.
+    private int decoderRecoveryCount=0;
+    private int resolvedStreamFormat=0;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -995,46 +1001,74 @@ public final class MainActivity extends Activity {
         }
     }
 
-    /** Track parameters from Android's parsed stream headers; not a DAC measurement. */
-    private void inspectPreparedTrack(MediaPlayer mp) {
-        decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
-        try {
-            MediaPlayer.TrackInfo[] tracks=mp.getTrackInfo();
-            if(tracks==null)return;
-            for(MediaPlayer.TrackInfo track:tracks) {
-                if(track.getTrackType()!=MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO)continue;
-                MediaFormat format=track.getFormat();
-                if(format==null)continue;
-                if(format.containsKey(MediaFormat.KEY_SAMPLE_RATE)){
-                    int sample= format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-                    if(sample>=8000&&sample<=768000) decoderSampleRateHz=sample;
-                }
-                if(format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)){
-                    int ch=format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                    if(ch>=1&&ch<=32)decoderChannels=ch;
-                }
-                if(format.containsKey(MediaFormat.KEY_MIME))decoderMime=format.getString(MediaFormat.KEY_MIME);
-                if(format.containsKey(MediaFormat.KEY_BIT_RATE)){
-                    int bitrate=format.getInteger(MediaFormat.KEY_BIT_RATE);
-                    if(bitrate>=8000&&bitrate<=50_000_000)
-                        decoderBitrateKbps=(bitrate+500)/1000;
-                }
-                break;
-            }
-        }catch(Exception ignored){/* Android does not expose track format on every decoder. */}
+    /** Track information produced by Media3's actual stream extractor. */
+    private void inspectDecodedTrack(Format format) {
+        if (format == null) return;
+        if (format.sampleRate >= 8000 && format.sampleRate <= 768000)
+            decoderSampleRateHz = format.sampleRate;
+        if (format.channelCount >= 1 && format.channelCount <= 32)
+            decoderChannels = format.channelCount;
+        if (format.sampleMimeType != null) decoderMime = format.sampleMimeType;
+        if (format.bitrate >= 8000 && format.bitrate <= 50_000_000)
+            decoderBitrateKbps = (format.bitrate + 500) / 1000;
     }
 
     private void cleanupPlayer() {
-        prepared=false;buffering=false;
+        prepared=false;buffering=false;actualStream=null;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
     }
 
+    /**
+     * Recover an invalid MediaPlayer by releasing it and requesting a fresh
+     * stream URL. At most one automatic attempt per user-selected track.
+     * The gateway can rate-limit tickets, so never spin or use cached URLs.
+     */
+    private void handlePlaybackFailure(AurelMediaPlayer failed, int generation,
+                                       String trackId, int what, int extra) {
+        if(generation!=playGeneration||player!=failed)return;
+        int resumeAtMs=0;
+        try {
+            if(prepared)resumeAtMs=Math.max(0,failed.getCurrentPosition()-1000);
+        }catch(Exception ignored){}
+        final boolean mayRetry=decoderRecoveryCount==0&&!verificationInProgress
+            &&queueIndex>=0&&trackId.equals(current.optString("id",""));
+        final int fallback=resolvedStreamFormat==27?7:
+            resolvedStreamFormat==7?6:
+            resolvedStreamFormat==5?5:6;
+        cleanupPlayer(); // MediaPlayer must never be reused after onError.
+        if(mayRetry) {
+            decoderRecoveryCount=1;
+            buffering=true;
+            playerError="";
+            emit("player",playerState());
+            final int restorePosition=resumeAtMs;
+            ui.postDelayed(()->{
+                if(generation==playGeneration&&queueIndex>=0
+                   &&trackId.equals(current.optString("id",""))
+                   &&!verificationInProgress) {
+                    startAtCurrentInternal(fallback,restorePosition);
+                }
+            },1100);
+        } else {
+            buffering=false;
+            playerError="Stream could not be decoded ("+what+" / "+extra+
+                "). Tap Play to retry with a fresh link. If Mornye rejects it, verify your session.";
+            emit("player",playerState());
+        }
+    }
+
     private void startAtCurrent() {
+        decoderRecoveryCount=0;
+        startAtCurrentInternal(0,0);
+    }
+
+    private void startAtCurrentInternal(int forcedQuality, int resumeAtMs) {
         if(queueIndex<0||queueIndex>=queue.size())return;
         playGeneration++;
         final int generation=playGeneration;
         cleanupPlayer();
         current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";
+        resolvedStreamFormat=0;
         decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
         buffering=true;playerError="";
         // Selecting a different track during CAPTCHA must not use an unrelated
@@ -1078,7 +1112,7 @@ public final class MainActivity extends Activity {
         jobs.execute(()->{
             try {
                 JSONObject info=null;Exception last=null;
-                int requested=quality();
+                int requested=forcedQuality>0?forcedQuality:quality();
                 boolean viaMornye=mornyeMode();
                 // The gateway's CD tier is lossless; it does not offer the
                 // Qobuz MP3 (format 5) tier. Do not mislabel CD as MP3.
@@ -1092,6 +1126,11 @@ public final class MainActivity extends Activity {
                         // A 429 is a server-imposed rate limit, never a
                         // reason to request another quality or mint tickets.
                         if(viaMornye&&MornyeGateway.terminalStreamFailure(e))break;
+                        // Invalid/expired authorization and provider rate limits
+                        // are not a reason to request multiple format tickets.
+                        String failure=e.getMessage()==null?"":e.getMessage();
+                        if(!viaMornye&&(failure.contains("HTTP 429")
+                           ||failure.contains("HTTP 401")||failure.contains("HTTP 403")))break;
                     }
                 }
                 if(info==null)throw last!=null?last:new Exception("No available audio stream");
@@ -1105,19 +1144,47 @@ public final class MainActivity extends Activity {
                         sourceVerified=metadata.optBoolean("source_verified",false);
                         sourceLabel=metadata.optString("source_label","Qobuz API");
                         codec=metadata.optString("codec","");
+                        resolvedStreamFormat=metadata.optInt("format_id",requested);
                         // Report supplier metadata before MediaPlayer.prepareAsync
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
-                        player=new MediaPlayer();
-                        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                        player=new AurelMediaPlayer(this);
+                        final AurelMediaPlayer expectedPlayer=player;
+                        // No secondary HTTP request: this is a callback from the
+                        // same byte stream ExoPlayer is decoding and playing.
+                        player.setOnFlacListener(flacInfo->{
+                            if(generation!=playGeneration||player!=expectedPlayer)return;
+                            try {
+                                actualStream=new JSONObject()
+                                    .put("trackId",id)
+                                    .put("codec","FLAC")
+                                    .put("sampleRateHz",flacInfo.sampleRateHz)
+                                    .put("bitsPerSample",flacInfo.bitsPerSample)
+                                    .put("channels",flacInfo.channels)
+                                    .put("verifiedFromBytes",true);
+                                emit("player",playerState());
+                            }catch(Exception ignored){}
+                        });
+                        player.setOnFormatListener(format->{
+                            if(generation!=playGeneration||player!=expectedPlayer)return;
+                            int oldRate=decoderSampleRateHz;
+                            int oldChannels=decoderChannels;
+                            String oldMime=decoderMime;
+                            inspectDecodedTrack(format);
+                            if(oldRate!=decoderSampleRateHz||oldChannels!=decoderChannels||
+                               !oldMime.equals(decoderMime))emit("player",playerState());
+                        });
+                        player.setOnStateListener(()->{
+                            if(generation==playGeneration&&player==expectedPlayer&&prepared)
+                                emit("player",playerState());
+                        });
                         player.setOnPreparedListener(mp->{
-                            if(generation!=playGeneration)return;
+                            if(generation!=playGeneration||mp!=player)return;
                             prepared=true;buffering=false;
                             if(mornyeMode()&&gatewayPlaybackRejected){
                                 gatewayPlaybackRejected=false;
                                 try{emit("session",session());}catch(Exception ignored){}
                             }
-                            inspectPreparedTrack(mp);
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
                             if(queueIndex+1<queue.size()){
@@ -1131,7 +1198,16 @@ public final class MainActivity extends Activity {
                                     });
                                 }
                             }
-                            try{mp.start();}catch(Exception ignored){}
+                            try{
+                                if(resumeAtMs>0)mp.seekTo(resumeAtMs);
+                                mp.start();
+                                // FLAC bytes are read inline by the ExoPlayer
+                                // DataSource, including on Mornye/Zarz playback.
+                            }catch(Exception startError){
+                                handlePlaybackFailure(mp,generation,id,
+                                    MediaPlayer.MEDIA_ERROR_UNKNOWN,Integer.MIN_VALUE);
+                                return;
+                            }
                             // The successful start of an actual Qobuz stream is
                             // stronger evidence than an optional login endpoint.
                             if("unverified".equals(secure.get("streamValidation"))){
@@ -1144,17 +1220,38 @@ public final class MainActivity extends Activity {
                             }
                             emit("player",playerState());
                         });
-                        player.setOnCompletionListener(mp->advance(1,true));
+                        player.setOnCompletionListener(mp->{
+                            if(generation==playGeneration&&mp==player)advance(1,true);
+                        });
                         player.setOnErrorListener((mp,what,extra)->{
-                            if(generation!=playGeneration)return true;
-                            prepared=false;buffering=false;
-                            playerError="Media decoder error ("+what+" / "+extra+")";
-                            emit("player",playerState());return true;
+                            handlePlaybackFailure(mp,generation,id,what,extra);
+                            // Returning true prevents onCompletion from firing for an error.
+                            return true;
                         });
                         player.setDataSource(streamUrl);
                         player.prepareAsync();
+                        // Bound a stalled prepareAsync; a dead HTTP request must
+                        // not leave the UI buffering forever.
+                        ui.postDelayed(()->{
+                            if(generation==playGeneration&&player==expectedPlayer
+                               &&!prepared&&!verificationInProgress){
+                                handlePlaybackFailure(expectedPlayer,generation,id,
+                                    MediaPlayer.MEDIA_ERROR_UNKNOWN,
+                                    MediaPlayer.MEDIA_ERROR_TIMED_OUT);
+                            }
+                        },25000);
                         emit("player",playerState());
-                    }catch(Exception e){buffering=false;playerError=e.getMessage();emit("player",playerState());}
+                    }catch(Exception e){
+                        // A failed setDataSource/prepareAsync can leave MediaPlayer unusable.
+                        if(player!=null){
+                            handlePlaybackFailure(player,generation,id,
+                                MediaPlayer.MEDIA_ERROR_UNKNOWN,Integer.MIN_VALUE);
+                        }else{
+                            buffering=false;
+                            playerError="Could not initialize this audio source. Tap Play to retry.";
+                            emit("player",playerState());
+                        }
+                    }
                 });
             }catch(Exception e){
                 ui.post(()->{
@@ -1203,6 +1300,7 @@ public final class MainActivity extends Activity {
             state.put("channels",fileInfo.optInt("n_channels",0));
             state.put("codec",codec);
             state.put("sourceVerified",sourceVerified);
+            if(actualStream!=null)state.put("actualStream",actualStream);
             state.put("decoderSampleRateHz",decoderSampleRateHz);
             state.put("decoderChannels",decoderChannels);
             state.put("decoderMime",decoderMime);

@@ -21,14 +21,21 @@ jobs:
           packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-      - name: Install Android SDK 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          gradle-version: '8.11.1'
+      - name: Install Android SDK 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Validate all player scripts
         run: |
           for file in app/src/main/assets/*.js; do node --check "$file"; done
       - name: Verify player UI and source metadata
         run: node test_ui.cjs
+      - name: Verify FLAC STREAMINFO parser
+        run: |
+          mkdir -p /tmp/aurel-flac-tests
+          javac -encoding UTF-8 -d /tmp/aurel-flac-tests \
+            app/src/main/java/com/aurel/hires/RealStreamQualityProbe.java \
+            tests/ProbeSelfTest.java
+          java -cp /tmp/aurel-flac-tests com.aurel.hires.ProbeSelfTest
       - name: Assemble isolated Preview APK
         run: |
           gradle --no-daemon :app:assembleDebug -PaurelPreview --rerun-tasks

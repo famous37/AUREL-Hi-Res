@@ -2,17 +2,24 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'com.aurel.hires'
-    compileSdk 35
+    compileSdk 36
     defaultConfig {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 26
         targetSdk 35
-        versionCode 33
-        versionName (project.hasProperty('aurelPreview') ? '1.1.14-preview' : '1.1.14')
+        versionCode 37
+        versionName (project.hasProperty('aurelPreview') ? '1.1.19-preview' : '1.1.19')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+
+dependencies {
+    // Extract FLAC STREAMINFO from the same bytes used for playback.
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-datasource:1.11.1'
 }
