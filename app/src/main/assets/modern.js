@@ -9,7 +9,10 @@ app.lastQueueFingerprint='';
 const trackSource=()=>app.selected?app.selectedTracks:(app.nav==='library'?app.libraryItems:app.results)||[];
 function remembered(){try{const v=JSON.parse(localStorage.getItem('aurel_recent_searches')||'[]');return Array.isArray(v)?v.filter(x=>typeof x==='string').slice(0,10):[]}catch(_){return []}}
 window.AurelSearchHistory=(query)=>{if(!query||query.length>120)return;const next=[query,...remembered().filter(s=>s.toLowerCase()!==query.toLowerCase())].slice(0,10);try{localStorage.setItem('aurel_recent_searches',JSON.stringify(next))}catch(_){}};
-const fmtTrack=(t,i)=>`<button class="queue-item ${i===app.player?.index?'current':''}" data-queue-play="${i}"><span class="queue-cover">${art(t,'queue-image')||'<span>♪</span>'}</span><span class="queue-text"><strong>${html(t.title||'Untitled')}</strong><small>${html(artistLabel(t))}</small></span>${i===app.player?.index?'<span class="playing-indicator">♫</span>':''}</button>`;
+const fmtTrack=(t,i)=>{
+ const state=window.AurelTrackAccess?.status(t)||{playable:true};
+ return `<button class="queue-item ${i===app.player?.index?'current':''}" data-queue-play="${i}" ${state.playable?'':'disabled'}><span class="queue-cover">${art(t,'queue-image')||'<span>♪</span>'}</span><span class="queue-text"><strong>${html(t.title||'Untitled')}</strong><small>${html(state.playable?artistLabel(t):'Unavailable for streaming')}</small></span>${i===app.player?.index?'<span class="playing-indicator">♫</span>':''}</button>`;
+};
 function albumShelf(items){if(!items.length)return '<div class="empty">No releases have been returned by the connected account.</div>';return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">♪</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
 renderHome=function(){
  const name=app.session?.profile?.displayName||'Listener';
@@ -261,7 +264,12 @@ document.addEventListener('click',function(ev){const b=ev.target.closest('button
  if(b.dataset.queueMove!==undefined){ev.stopImmediatePropagation();const from=Number(b.dataset.queueMove),to=from+Number(b.dataset.queueDir);nativeCall('queueMove',{from,to}).catch(e=>showToast(e.message));return}
  if(b.dataset.queueRemove!==undefined){ev.stopImmediatePropagation();nativeCall('queueRemove',{index:Number(b.dataset.queueRemove)}).catch(e=>showToast(e.message));return}
  if(b.dataset.miniFav){ev.stopImmediatePropagation();like('tracks',b.dataset.miniFav);return}
- if(action('data-add-to-queue')||action('data-play-next')){ev.stopImmediatePropagation();const items=trackSource(),i=Number(b.dataset.addToQueue??b.dataset.playNext);const chosen=items[i];if(chosen)nativeCall('queueAdd',{tracks:[chosen],next:action('data-play-next')}).then(()=>showToast('Added to play queue')).catch(e=>showToast(e.message));return}
+ if(action('data-add-to-queue')||action('data-play-next')){ev.stopImmediatePropagation();const items=trackSource(),i=Number(b.dataset.addToQueue??b.dataset.playNext);const chosen=items[i];if(chosen){
+   const access=window.AurelTrackAccess?.status(chosen)||{playable:true};
+   if(!access.playable){showToast(access.reason,5000);return;}
+   nativeCall('queueAdd',{tracks:[chosen],next:action('data-play-next')})
+     .then(()=>showToast('Added to play queue')).catch(e=>showToast(e.message));
+ }return}
 },true);
 document.addEventListener('change',e=>{if(e.target.id==='libSort'){app.libSort=e.target.value;renderLibrary();}});
 document.addEventListener('error',e=>{if(e.target.tagName==='IMG'){e.target.style.display='none';const parent=e.target.parentElement;if(parent&&parent.classList.contains('shelf-image'))parent.textContent='♪';}},true);

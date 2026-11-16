@@ -159,13 +159,23 @@ function albumCards(items){if(!items.length)return `<div class="empty"><strong>N
    return `<article class="albumcard" data-open-album="${rawId}"><div class="cover">${cd}<span class="hoverplay">▶</span></div><div class="album-title">${html(name)}</div><div class="album-artist">${html(artistLabel(o))}</div>${o.hires||Number(o.maximum_bit_depth)>16?`<span class="audio-badge">HI-RES AUDIO</span>`:''}</article>`;
  }).join('')}</div>`
 }
-function listTracks(items){if(!items.length)return `<div class="empty">No tracks found.</div>`;
- return `<div class="tracklist">${items.map((o,i)=>{
-  return `<div class="track" data-aurel-track-id="${html(o.id||'')}"><span class="index">${i+1}</span>${art(o,'track-art')||'<div class="track-art"></div>'}
-   <div class="track-details" data-play-index="${i}"><div class="track-title">${html(o.title||'Untitled')}</div><div class="track-meta">${html(artistLabel(o))}${o.album?.title?' · '+html(o.album.title):''}</div></div>
-   <span class="track-length">${duration(o.duration)}</span><button class="icon-btn" title="Add to favorites" data-like-track="${html(o.id)}">♡</button>
-   <button class="icon-btn queue-add-icon" data-play-next="${i}" title="Play next">＋</button><button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
- }).join('')}</div>`;
+function listTracks(items){if(!items.length)return '<div class="empty">No tracks found.</div>';
+ return '<div class="tracklist">'+items.map((o,i)=>{
+  const access=window.AurelTrackAccess?.status(o)||{playable:true,reason:''};
+  const unavailable=!access.playable;
+  const reason=html(access.reason||'Not available for streaming');
+  const status=unavailable?'<div class="aurel-track-unavailable" role="note">'+
+    (access.future?'Coming soon':'Unavailable')+
+    (access.date?' · '+html(access.date):'')+'</div>':'';
+  return '<div class="track '+(unavailable?'aurel-unavailable-track':'')+'" data-aurel-track-id="'+html(o.id||'')+'">'+
+   '<span class="index">'+(i+1)+'</span>'+(art(o,'track-art')||'<div class="track-art"></div>')+
+   '<div class="track-details" '+(unavailable?'':'data-play-index="'+i+'"')+'><div class="track-title">'+html(o.title||'Untitled')+'</div>'+
+   '<div class="track-meta">'+html(artistLabel(o))+(o.album?.title?' · '+html(o.album.title):'')+'</div>'+status+'</div>'+
+   '<span class="track-length">'+duration(o.duration)+'</span>'+
+   '<button class="icon-btn" title="Add to favorites" data-like-track="'+html(o.id||'')+'">♡</button>'+
+   '<button class="icon-btn queue-add-icon" data-play-next="'+i+'" title="'+(unavailable?reason:'Play next')+'" '+(unavailable?'disabled':'')+'>＋</button>'+
+   '<button class="icon-btn" data-play-index="'+i+'" title="'+(unavailable?reason:'Play')+'" '+(unavailable?'disabled':'')+'>▶</button></div>';
+ }).join('')+'</div>';
 }
 function render(){
  $$('.nav,.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===app.nav));
@@ -444,7 +454,26 @@ async function openAlbum(id){if(!id)return;window.AurelBeforeOpenEntity?.();$('#
  try{let d=await api('album',{id});app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
 async function openPlaylist(id){window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
  try{let d=await api('playlist',{id});app.selected=d;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
-async function playFromTracks(items,index=0){if(!items.length)return;await api('play',{tracks:items,index});app.overlay=true;drawOverlay()}
+async function playFromTracks(items,index=0){
+ if(!Array.isArray(items)||!items.length){showToast('No tracks available for streaming');return false;}
+ const check=window.AurelTrackAccess?.status||(()=>({playable:true,reason:''}));
+ const selected=items[index];
+ if(!selected){showToast('Track information unavailable');return false;}
+ const state=check(selected);
+ if(!state.playable){showToast(state.reason,5000);return false;}
+ const playable=[];let mapped=-1;
+ items.forEach((track,i)=>{
+   if(check(track).playable){
+     if(i===index)mapped=playable.length;
+     playable.push(track);
+   }
+ });
+ if(mapped<0||!playable.length){showToast('No released tracks available for streaming');return false;}
+ try{
+   await api('play',{tracks:playable,index:mapped});
+   app.overlay=true;drawOverlay();return true;
+ }catch(e){return false;}
+}
 async function like(type,id){try{await api('favoriteAdd',{type,id});showToast('Added to your Qobuz favourites ♡')}catch(e){}}
 async function login(form){
  const button=$('#loginSubmit');
@@ -559,7 +588,13 @@ document.addEventListener('click',async ev=>{
  if(b.hasAttribute('data-load-more-artist')){loadMoreArtistAlbums();return}
  if(b.dataset.playlistId){openPlaylist(b.dataset.playlistId);return}
  if(b.hasAttribute('data-back')){app.selected=null;app.selectedTracks=[];render();return}
- if(b.hasAttribute('data-play-all')){playFromTracks(app.selectedTracks,0);return}
+ if(b.hasAttribute('data-play-all')){
+   const tracks=app.selectedTracks||[];
+   const first=tracks.findIndex(t=>window.AurelTrackAccess?.canPlay(t)!==false);
+   if(first<0)showToast('No released tracks available for streaming',5000);
+   else void playFromTracks(tracks,first);
+   return;
+  }
  if(b.hasAttribute('data-play-index')){
   const source=app.selected?app.selectedTracks:app.nav==='library'?app.libraryItems:app.results;
   playFromTracks(source||[],Number(b.dataset.playIndex));return;
