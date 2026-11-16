@@ -375,7 +375,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.10"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.11"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -385,7 +385,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.10'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.11'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -417,7 +417,7 @@ assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artis
 assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
   'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.10'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.11'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -429,6 +429,16 @@ assert(artistHtml.includes('data-open-album="abc"'), 'release cards must link to
 assert(artistHtml.includes('No popular tracks returned')||artistHtml.includes('Loading popular tracks'), 'do not invent popularity');
 assert(!artistHtml.includes('undefined'), 'artist UI should not leak undefined fields');
 run("app.selected=null;app.selectedKind='';");
-console.log('AUREL 1.1.10 checks passed — live artist rendering, global theme and native catalogue sections.');
+
+const playerFitCss=fs.readFileSync(base+'aurel-player-fit.css','utf8');
+const playerFitJs=fs.readFileSync(base+'aurel-player-fit.js','utf8');
+const playerHtml=fs.readFileSync(base+'index.html','utf8');
+assert(playerFitCss.includes('--aurel-fit-art')&&playerFitCss.includes('overflow-y:auto!important'), 'art and controls need bounded responsive layout');
+assert(playerFitJs.includes('getBoundingClientRect().height')&&playerFitJs.includes('ResizeObserver'), 'fit must measure real metadata heights and react to layout changes');
+assert(playerFitJs.includes('orientation:landscape')&&playerFitCss.includes('grid-template-columns:min(30vw,180px)'), 'landscape layout should keep two columns');
+assert(playerHtml.indexOf('aurel-player-fit.css')>playerHtml.indexOf('aurel-discography.css'), 'responsive styles must override older styles');
+assert(playerHtml.indexOf('aurel-player-fit.js')>playerHtml.indexOf('aurel-discography.js'), 'fit must wrap the final player renderer');
+
+console.log('AUREL 1.1.11 checks passed — live artist rendering, global theme and native catalogue sections.');
 
 
