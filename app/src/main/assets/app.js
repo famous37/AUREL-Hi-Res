@@ -58,6 +58,10 @@ window.AurelReceive=(id,reply)=>{
  reply?.ok?pending.resolve(reply.data):pending.reject(new Error(reply?.error||'Unknown API error'));
 };
 window.AurelEvent=(kind,data)=>{
+ if(kind==='webLoginResult'){
+   if(typeof window.AurelWebLoginResult==='function')window.AurelWebLoginResult(data);
+   return;
+ }
  if(kind==='session'){
   app.session=data;
   if(app.nav==='home'||app.nav==='settings')render();
@@ -70,6 +74,39 @@ window.AurelEvent=(kind,data)=>{
   if(app.overlay){if(changed)drawOverlay();else updateOverlayState()}
   if(data?.error && data?.error!==app.lastPlayerError){app.lastPlayerError=data.error;showToast(data.error,6000)}
  }
+};
+async function loadMornyeStatus(force=false){
+  try{
+    const d=await nativeCall('mornyeExtensionStatus',{force});
+    const field=$('#mornyeVersion');
+    if(field){
+      field.textContent=d.version?
+        'Upstream version: '+d.version+' · checked automatically'+(d.error?' · registry unavailable':''):
+        'No verified extension version available'+(d.error?' · '+d.error:'');
+    }
+  }catch(e){
+    const field=$('#mornyeVersion');
+    if(field)field.textContent='Could not check Mornye registry: '+e.message;
+  }
+}
+window.AurelWebLoginResult=async(data)=>{
+  if(!data?.token)return;
+  const library=!!data.libraryOnly;
+  const error=$('#webLoginError');
+  if(error)error.classList.add('hidden');
+  try{
+    // The token came only from the interactive official Qobuz Web session.
+    // Authentication is still checked by the existing native login handler.
+    app.session=await nativeCall('loginToken',{token:data.token,
+      appId:data.appId||'',libraryOnly:library,userId:'',appSecret:''});
+    app.results=[];app.albums=[];app.loginTarget='stream';
+    showToast(library?'Library account authorized':'Qobuz web session authorized',5100);
+    navigate(library?'library':'home');
+  }catch(e){
+    const message=e?.message||'Qobuz rejected this session; use Token login instead.';
+    if(error){error.textContent=message;error.classList.remove('hidden');}
+    else showToast(message,7000);
+  }finally{data.token='';}
 };
 window.AurelBack=()=>{if(app.overlay){app.overlay=false;drawOverlay();return;}if(app.selected){app.selected=null;app.selectedTracks=[];render();return;}navigate('home')};
 function showToast(msg,ms=3600){const t=$('#toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(showToast.t);showToast.t=setTimeout(()=>t.classList.add('hidden'),ms)}
@@ -147,6 +184,36 @@ function renderLogin(){
   const rejected=secondary?app.session?.libraryValidation==='rejected':app.session?.streamValidation==='rejected';
   const appId=rejected?'':(savedAppId||'');
   const passwordMode=app.loginMode==='password';
+  const webMode=app.loginMode==='web';
+  if(webMode){
+    $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
+      <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
+      <div class="eyebrow">AUREL / QOBUZ WEB</div>
+      <h1>${secondary?'Library sign-in in browser.':'Sign in with CAPTCHA.'}</h1>
+      <p class="aurel-signin-subtitle">Open the official Qobuz website inside a separate browser window. Sign in normally, solve any CAPTCHA, then tap <strong>Use this session</strong>.</p>
+      <div class="aurel-login-methods" role="tablist" aria-label="Sign-in method">
+        <button type="button" role="tab" aria-selected="false" data-login-mode="token">${ic('key',19)} Token</button>
+        <button type="button" role="tab" aria-selected="false" data-login-mode="password">${ic('user',19)} Password</button>
+        <button type="button" role="tab" aria-selected="true" class="active" data-login-mode="web">${ic('globe',19)} Web / CAPTCHA</button>
+      </div>
+      <div class="aurel-web-auth">
+        <button class="aurel-signin-submit" type="button" data-start-web-login>${ic('globe',23)} Open official Qobuz sign-in</button>
+        <div class="aurel-method-help">If Qobuz blocks embedded browsers, choose the Browser button in the sign-in window, then return and use Token login. AUREL never bypasses CAPTCHA.</div>
+      </div>
+      <div id="webLoginError" class="aurel-signin-error hidden" role="alert"></div>
+      <section class="aurel-mornye-status" aria-label="Mornye Qobuz extension compatibility">
+        <div class="aurel-mornye-header">
+          <strong>Mornye Qobuz Web</strong>
+          <button type="button" data-mornye-refresh aria-label="Check extension version">${ic('refresh',19)} Check</button>
+        </div>
+        <p id="mornyeVersion">Checking the official extension registry…</p>
+        <p>Mornye's Qobuz extension uses a signed-session runtime that AUREL does not yet provide. The registry version is checked automatically; third-party extension code is not installed or executed. This sign-in uses Qobuz's official website instead.</p>
+      </section>
+      ${secondary?'<button class="small-link" data-cancel-library>Back to Settings</button>':''}
+    </div>`;
+    loadMornyeStatus(false);
+    return;
+  }
   $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
     <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
     <div class="eyebrow">AUREL / QOBUZ</div>
@@ -156,7 +223,8 @@ function renderLogin(){
     ${app.session?.previewBuild?'<p class="auth-preview-note">This Preview is installed separately and cannot read credentials stored by other AUREL installations.</p>':''}
     <div class="aurel-login-methods" role="tablist" aria-label="Sign-in method">
       <button type="button" role="tab" aria-selected="${!passwordMode}" class="${passwordMode?'':'active'}" data-login-mode="token">${ic('key',19)} Session token</button>
-      <button type="button" role="tab" aria-selected="${passwordMode}" class="${passwordMode?'active':''}" data-login-mode="password">${ic('user',19)} Email / password</button>
+      <button type="button" role="tab" aria-selected="${passwordMode}" class="${passwordMode?'active':''}" data-login-mode="password">${ic('user',19)} Password</button>
+      <button type="button" role="tab" aria-selected="false" data-login-mode="web">${ic('globe',19)} Web / CAPTCHA</button>
     </div>
     <form id="loginForm" class="aurel-signin-form">
       ${passwordMode?`
@@ -211,7 +279,7 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.0.2 Beta</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.0.3 Beta</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -320,6 +388,13 @@ async function login(form){
  }catch(e){
   const error=$('#loginError');
   const msg=e?.message||'Qobuz refused the login. Check credentials and try again.';
+  if(passwordMode&&/captcha|challenge|browser verification|web sign-in|two.factor/i.test(msg)){
+    // Only the interactive Qobuz website can present and complete challenges.
+    app.loginMode='web';renderLogin();
+    nativeCall('startQobuzWeb',{libraryOnly:secondary})
+      .catch(webError=>showToast(webError.message||'Cannot open Qobuz verification',6500));
+    return;
+  }
   if(error){error.textContent=msg;error.classList.remove('hidden')}else showToast(msg,6500);
   const advanced=document.querySelector('.aurel-signin-advanced');
   if(advanced&&/App ID|X-App-Id|web app|401|403/i.test(msg))advanced.open=true;
@@ -336,7 +411,19 @@ function togglePlayback(){if(!app.player)return;nativeCall(app.player.playing?'p
 document.addEventListener('click',async ev=>{
  const b=ev.target.closest('button,[data-open-album],[data-open-artist],[data-play-index],[data-playlist-id]');if(!b)return;
  if(b.dataset.nav){navigate(b.dataset.nav);return}
- if(b.dataset.loginMode){app.loginMode=b.dataset.loginMode==='password'?'password':'token';renderLogin();return}
+ if(b.dataset.loginMode){
+   app.loginMode=['token','password','web'].includes(b.dataset.loginMode)?b.dataset.loginMode:'token';
+   renderLogin();return;
+ }
+ if(b.hasAttribute('data-start-web-login')){
+   ev.preventDefault();
+   nativeCall('startQobuzWeb',{libraryOnly:app.loginTarget==='library'})
+     .catch(e=>showToast(e.message||'Cannot open Qobuz sign-in',6500));
+   return;
+ }
+ if(b.hasAttribute('data-mornye-refresh')){
+   ev.preventDefault();loadMornyeStatus(true);return;
+ }
  if(b.hasAttribute('data-toggle-token')||b.hasAttribute('data-toggle-secret')||b.hasAttribute('data-toggle-password')){
     ev.preventDefault();
     const secret=b.hasAttribute('data-toggle-secret');
