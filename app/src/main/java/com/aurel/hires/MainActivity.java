@@ -402,8 +402,10 @@ public final class MainActivity extends Activity {
                             data=session();break;
                         }
                         case "discover":
-                            data=mornyeActive()?mornye.metadata("album/getFeatured",
-                                new JSONObject().put("type","new-releases").put("limit",24))
+                            // The Zarz metadata gateway does not guarantee
+                            // album/getFeatured authorization (HTTP 403).
+                            // Use Qobuz's separate public editorial endpoint.
+                            data=mornyeActive()?api.publicFeaturedReleases(24)
                                 :api.discoverReleases(24);
                             break;
                         case "search": {
@@ -702,10 +704,20 @@ public final class MainActivity extends Activity {
             try {
                 JSONObject info=null;Exception last=null;
                 int requested=quality();
-                int[] formats=requested==27?new int[]{27,7,6,5}:requested==7?new int[]{7,6,5}:requested==6?new int[]{6,5}:new int[]{5};
+                boolean viaMornye=mornyeActive();
+                // The gateway's CD tier is lossless; it does not offer the
+                // Qobuz MP3 (format 5) tier. Do not mislabel CD as MP3.
+                int[] formats=viaMornye
+                    ?(requested==27?new int[]{27,7,6}:requested==7?new int[]{7,6}:new int[]{6})
+                    :(requested==27?new int[]{27,7,6,5}:requested==7?new int[]{7,6,5}:requested==6?new int[]{6,5}:new int[]{5});
                 for(int fmt:formats) {
-                    try {info=mornyeActive()?mornye.streamInfo(id,fmt):api.streamInfo(id,fmt);break;}
-                    catch(Exception e) {last=e;}
+                    try {info=viaMornye?mornye.streamInfo(id,fmt):api.streamInfo(id,fmt);break;}
+                    catch(Exception e) {
+                        last=e;
+                        // A 429 is a server-imposed rate limit, never a
+                        // reason to request another quality or mint tickets.
+                        if(viaMornye&&MornyeGateway.terminalStreamFailure(e))break;
+                    }
                 }
                 if(info==null)throw last!=null?last:new Exception("No available audio stream");
                 final JSONObject metadata=info;
