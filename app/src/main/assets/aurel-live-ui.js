@@ -87,8 +87,12 @@
     const route=app.overlay?'playing':app.nav==='playlists'?'library':app.nav==='magazine'?'home':app.nav;
     tabs.querySelectorAll('button').forEach(function(b){
       const active=b.hasAttribute('data-open-player-nav')?route==='playing':b.dataset.nav===route;
-      b.classList.toggle('active',active);
-      if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+      // Native player progress arrives every second. Do not repaint stable
+      // navigation buttons when neither the route nor the artwork changed.
+      if(b.classList.contains('active')!==active)b.classList.toggle('active',active);
+      const current=b.getAttribute('aria-current')==='page';
+      if(active&&!current)b.setAttribute('aria-current','page');
+      else if(!active&&current)b.removeAttribute('aria-current');
     });
   }
   if(tabs){
