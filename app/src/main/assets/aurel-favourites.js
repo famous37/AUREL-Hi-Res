@@ -32,6 +32,7 @@ function idsFrom(value){
  return list.map(v=>idOf(typeof v==='object'&&v!==null?(v.id??v.item_id):v)).filter(Boolean);
 }
 function isSaved(type,id){return !!(saved[type]&&saved[type].has(idOf(id)));}
+function local(en,uk){return window.AurelLanguage?.get?.()==='uk'?uk:en;}
 function matchingControls(root=document){
  if(!root||typeof root.querySelectorAll!=='function')return [];
  const all=Array.from(root.querySelectorAll('[data-like-track],[data-like-album],[data-like-artist],[data-artist-follow],[data-mini-fav]'));
@@ -53,29 +54,32 @@ function updateButton(b){
  b.classList.toggle('aurel-is-favourite',on);
  b.classList.toggle('aurel-favourite-pending',pending);
  b.setAttribute('aria-pressed',String(on));
- b.setAttribute('aria-label',(on?'Remove from favourites':'Add to favourites'));
+ b.setAttribute('aria-label',on?local('Remove from favourites','Вилучити з вибраного'):local('Add to favourites','Додати до вибраного'));
  if(pending)b.setAttribute('aria-busy','true');else b.removeAttribute('aria-busy');
  if(b.classList.contains('aurel-artist-follow')){
    const label=b.querySelector('span');
-   if(label&&label.textContent!==(on?'Following':'Follow'))label.textContent=on?'Following':'Follow';
+   const next=on?local('Following','Відстежується'):local('Follow','Стежити');
+   if(label&&label.textContent!==next)label.textContent=next;
    return;
  }
  if(b.classList.contains('aurel-favourite-control')){
    if(b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
-   b.setAttribute('title',on?'Remove from favourites':'Add to favourites');
+   b.setAttribute('title',on?local('Remove from favourites','Вилучити з вибраного'):local('Add to favourites','Додати до вибраного'));
    return;
  }
  if(b.hasAttribute('data-mini-fav'))return;
  if(b.classList.contains('aurel-fav-button')||b.closest('.murglar-quick-actions')){
    const label=b.querySelector('span');
-   if(label&&label.textContent!==(on?'Saved':'Favourite'))label.textContent=on?'Saved':'Favourite';
+   const next=on?local('Saved','Збережено'):local('Favourite','Вибране');
+   if(label&&label.textContent!==next)label.textContent=next;
    return;
  }
  if(b.hasAttribute('data-like-track')&&!b.querySelector('svg')){
    if(b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
-   b.setAttribute('title',on?'Remove from favourites':'Add to favourites');
+   b.setAttribute('title',on?local('Remove from favourites','Вилучити з вибраного'):local('Add to favourites','Додати до вибраного'));
  }else if(b.hasAttribute('data-like-album')&&!b.querySelector('svg')){
-   if(b.textContent!==(on?'♥ Saved':'♡ Save'))b.textContent=on?'♥ Saved':'♡ Save';
+   const next=on?local('♥ Saved','♥ Збережено'):local('♡ Save','♡ Зберегти');
+   if(b.textContent!==next)b.textContent=next;
  }
 }
 function syncAll(){

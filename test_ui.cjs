@@ -372,7 +372,7 @@ assert(fineCss.includes('.aurel-tab-label'), 'long nav labels need their own siz
 assert(fineCss.includes('var(--aurel-theme-accent)'), 'UI elements must consume shared artwork palette');
 assert(fineCss.includes('.aurel-detail-drawer'), 'information panel must be a full-height drawer');
 assert(fineCss.includes('prefers-reduced-motion:reduce'), 'animations need a reduced-motion mode');
-assert(liveJs.includes('function syncTheme()'), 'theme must follow track changes');
+assert(liveJs.includes('function syncTheme(force=false)'), 'theme must offer neutral base and optional artwork palette');
 assert(liveJs.includes("root.style.setProperty('--aurel-theme-bg'"), 'palette should update all application screens');
 assert(liveJs.includes("window.AurelCoverPalette=function("), 'native artwork callback must be connected');
 assert(liveJs.includes("if(app.overlay&&app.playerSheet)"), 'Android back should close details first');
