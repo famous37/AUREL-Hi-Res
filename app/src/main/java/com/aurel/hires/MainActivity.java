@@ -36,6 +36,7 @@ public final class MainActivity extends Activity {
     private SecureStore secure;
     private QobuzApi api;
     private MornyeGateway mornye;
+    private static final int MORNYE_VERIFICATION_REQUEST=4104;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -109,6 +110,35 @@ public final class MainActivity extends Activity {
         }
     };
 
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=MORNYE_VERIFICATION_REQUEST)return;
+        if(resultCode!=RESULT_OK||data==null){
+            try{emit("mornyeVerificationResult",new JSONObject()
+                .put("connected",false).put("error","Verification cancelled."));}
+            catch(Exception ignored){}
+            return;
+        }
+        final String state=data.getStringExtra(MornyeVerificationActivity.EXTRA_STATE);
+        final String grant=data.getStringExtra(MornyeVerificationActivity.EXTRA_GRANT);
+        jobs.execute(()->{
+            try{
+                JSONObject completed=mornye.completeGrant(state,grant);
+                if(!completed.optBoolean("connected"))
+                    throw new Exception("Gateway did not verify the session after grant exchange.");
+                secure.put("authMode","mornye");
+                JSONObject status=session();
+                status.put("connected",true);
+                status.put("mornyeMessage","Mornye gateway verification completed");
+                emit("mornyeVerificationResult",status);
+            }catch(Exception issue){
+                try{emit("mornyeVerificationResult",new JSONObject()
+                    .put("connected",false)
+                    .put("error",issue.getMessage()==null?"Gateway grant exchange failed":issue.getMessage()));}
+                catch(Exception ignored){}
+            }
+        });
+    }
     @Override public void onBackPressed() {
         if(web!=null)web.evaluateJavascript("window.AurelBack ? window.AurelBack() : null",null);
         else super.onBackPressed();
@@ -252,6 +282,18 @@ public final class MainActivity extends Activity {
                                 secure.put("authMode","mornye");
                                 data=session();
                                 data.put("mornyeMessage",result.optString("message","Gateway authenticated"));
+                            }else if(result.optBoolean("verificationRequired",false)){
+                                final String url=mornye.challengeUrl();
+                                final String state=mornye.pendingState();
+                                ui.post(()->{
+                                    Intent intent=new Intent(MainActivity.this,MornyeVerificationActivity.class);
+                                    intent.putExtra(MornyeVerificationActivity.EXTRA_URL,url);
+                                    intent.putExtra(MornyeVerificationActivity.EXTRA_STATE,state);
+                                    startActivityForResult(intent,MORNYE_VERIFICATION_REQUEST);
+                                });
+                                data=new JSONObject().put("connected",false)
+                                    .put("verificationStarted",true)
+                                    .put("reason","Complete the Zarz session grant inside AUREL.");
                             }else data=result;
                             break;
                         }
