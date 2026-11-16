@@ -141,7 +141,7 @@ public final class MainActivity extends Activity {
             automaticVerificationRecovery=false;
             verificationInProgress=false;
             try {
-                JSONObject status=connected?session():new JSONObject();
+                JSONObject status=session(); // report the real configured gateway state on failure too
                 status.put("connected",connected).put("streamRecovery",recovery)
                     .put("catalogRecovery",catalogueRecovery);
                 if(connected){
