@@ -10,7 +10,7 @@
     return `<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${paths[key]||''}</svg>`;
   };
   const stateCaption=p=>p?.error?'UNAVAILABLE':p?.buffering?'BUFFERING':p?.playing?'PLAYING':'PAUSED';
-  const sourceCaption=p=>p?.sourceVerified?'Stream format reported by provider':p?.decoderSampleRateHz?'Android parsed track':p?.catalogMaxBits?'Qobuz catalogue maximum, not stream quality':p?.playing?'Playing · exact format not reported':'Stream details pending';
+  const sourceCaption=p=>p?.sourceVerified?'Stream format reported by provider':p?.decoderSampleRateHz?'Android parsed track':p?.catalogMaxBits?'Qobuz catalogue maximum, not stream quality':p?.playing?'Provider did not report exact audio format':'Stream details pending';
   drawOverlay=function(){
     const overlay=$('#overlay');
     if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
