@@ -356,7 +356,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.8"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.9"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -366,7 +366,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.8'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.9'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -385,8 +385,20 @@ assert(java.includes('artistInformation("artist/page"')&&java.includes('artistIn
 assert(java.includes('artistPageReleases('), 'limited Qobuz artist preview fallback must be available');
 assert(java.includes('api.library(endpoint,parameters)'), 'independent library authentication must be preferred');
 assert(discoJs.includes('data-artist-retry')&&discoJs.includes('s.pageError'), 'failed requests should allow retry instead of looking like empty results');
+assert(!fs.readFileSync(base+'index.html','utf8').includes('class="avatar" data-nav="settings"'),
+  'redundant upper-right account button must be absent');
+assert(!fs.readFileSync(base+'app.js','utf8').includes("$('#headerName').textContent"),
+  'header render must not access removed account button');
+assert(java.includes('case "artistPortrait":')&&java.includes('artistInformation("artist/get"'),
+  'artist-specific portrait lookup must be supported by the native bridge');
+assert(discoJs.includes("nativeCall('artistPortrait',{id})")&&discoJs.includes('portraitCache'),
+  'missing similar artist portraits should be hydrated asynchronously and cached');
+assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artist-initial'),
+  'missing artist photos should have a readable initials fallback');
+assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
+  'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.8'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.9'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -398,6 +410,6 @@ assert(artistHtml.includes('data-open-album="abc"'), 'release cards must link to
 assert(artistHtml.includes('No popular tracks returned')||artistHtml.includes('Loading popular tracks'), 'do not invent popularity');
 assert(!artistHtml.includes('undefined'), 'artist UI should not leak undefined fields');
 run("app.selected=null;app.selectedKind='';");
-console.log('AUREL 1.1.8 checks passed — live artist rendering, global theme and native catalogue sections.');
+console.log('AUREL 1.1.9 checks passed — live artist rendering, global theme and native catalogue sections.');
 
 
