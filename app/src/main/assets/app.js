@@ -113,7 +113,26 @@ window.AurelEvent=(kind,data)=>{
  }
 };
 window.AurelBack=()=>{if(app.overlay){app.overlay=false;drawOverlay();return;}if(app.selected){app.selected=null;app.selectedTracks=[];render();return;}navigate('home')};
-function showToast(msg,ms=3600){const t=$('#toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(showToast.t);showToast.t=setTimeout(()=>t.classList.add('hidden'),ms)}
+function showToast(msg,ms=3600){
+ const t=$('#toast'),message=String(msg??'').trim();if(!t||!message)return;
+ const now=Date.now();if(showToast.previous===message&&now-showToast.when<1800)return;
+ showToast.previous=message;showToast.when=now;
+ t.replaceChildren();
+ const label=document.createElement('span');label.className='aurel-toast-message';label.textContent=message;t.appendChild(label);
+ if((app.session?.mornyeConnected||app.session?.mornyeConfigured)&&/mornye|zarz|gateway|verification|session grant/i.test(message)&&!/rate limit|try again|too many requests|cooldown/i.test(message)){
+  const action=document.createElement('button');action.type='button';action.textContent='Verify';
+  action.className='aurel-toast-action';action.setAttribute('data-reverify-mornye','');t.appendChild(action);
+ }
+ const close=document.createElement('button');close.type='button';close.className='aurel-toast-close';
+ close.textContent='×';close.setAttribute('aria-label','Dismiss notification');
+ close.setAttribute('data-dismiss-aurel-toast','');t.appendChild(close);
+ t.setAttribute('role',/error|fail|unavailable|limit|rejected|expired|verification|try again/i.test(message)?'alert':'status');
+ t.classList.remove('hidden');t.classList.add('aurel-toast-visible');
+ clearTimeout(showToast.t);
+ showToast.t=setTimeout(()=>{t.classList.remove('aurel-toast-visible');setTimeout(()=>{
+  if(!t.classList.contains('aurel-toast-visible'))t.classList.add('hidden');
+ },240);},Math.max(3000,Math.min(12000,Number(ms)||3600)));
+}
 async function api(action,params={},quiet=false){try{return await nativeCall(action,params)}catch(e){if(!quiet)showToast(e.message,6000);throw e}}
 const sliceItems=(body,key)=>{if(!body)return[];const o=key?body[key]:body;return Array.isArray(o)?o:Array.isArray(o?.items)?o.items:Array.isArray(body.items)?body.items:[]};
 const hasAuth=()=>!!app.session?.streamConnected&&app.session?.streamValidation!=='rejected';
@@ -278,7 +297,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.14</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.15</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -314,7 +333,7 @@ async function navigate(page){
  if(focus&&typeof focus.blur==='function')focus.blur();
  app.selected=null;app.selectedTracks=[];app.nav=page;
  render();
- if(typeof window.scrollTo==='function')window.scrollTo(0,0);
+ // Restore saved vertical position after switching to this route.
  if(document.documentElement)document.documentElement.scrollLeft=0;
  if(document.body)document.body.scrollLeft=0;
  try{
@@ -333,7 +352,7 @@ async function loadLibrary(){app.libraryLoading=true;render();try{let d=await ap
  catch(e){app.libraryItems=[];showToast(e.message)}finally{app.libraryLoading=false;if(app.nav==='library')render();}}
 async function loadPlaylists(){app.playlistsLoading=true;render();try{let d=await api('playlists',{},true);app.playlists=sliceItems(d,'playlists');}
  catch(e){app.playlists=[];showToast(e.message)}finally{app.playlistsLoading=false;if(app.nav==='playlists'||(app.nav==='library'&&app.libType==='playlists'))render();}}
-async function openArtist(id){if(!id)return;$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
+async function openArtist(id){if(!id)return;window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
 async function openArtistFor(entity){
  if(!entity){showToast('No artist metadata for this track');return}
  app.overlay=false;drawOverlay();
@@ -363,9 +382,9 @@ async function loadMoreArtistAlbums(){
   if(!fresh.length)showToast('No further releases returned by Qobuz');
  }catch(e){showToast('Unable to load more releases: '+e.message)}
 }
-async function openAlbum(id){if(!id)return;$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
+async function openAlbum(id){if(!id)return;window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
  try{let d=await api('album',{id});app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
-async function openPlaylist(id){$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
+async function openPlaylist(id){window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
  try{let d=await api('playlist',{id});app.selected=d;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
 async function playFromTracks(items,index=0){if(!items.length)return;await api('play',{tracks:items,index});app.overlay=true;drawOverlay()}
 async function like(type,id){try{await api('favoriteAdd',{type,id});showToast('Added to your Qobuz favourites ♡')}catch(e){}}

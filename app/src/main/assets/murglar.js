@@ -60,7 +60,7 @@
         <button class="murglar-source-line aurel-source-pill" data-player-sheet="audio" aria-label="See audio source details">
           ${ic('audio',18)}<span>${html(source)}</span>
         </button>
-        ${p.error?`<div class="playback-error" role="status">${html(p.error)}${(app.session?.mornyeConfigured||app.session?.mornyeConnected)&&/mornye|zarz|gateway|verif|session/i.test(p.error)?'<button type="button" class="aurel-reverify-button" data-reverify-mornye>Verify Mornye session</button>':''}</div>`:''}
+         ${p.error&&(app.session?.mornyeConfigured||app.session?.mornyeConnected)&&/mornye|zarz|gateway|verif|session/i.test(p.error)&&!/rate limit|try again/i.test(p.error)?'<button type="button" class="aurel-recovery-inline" data-reverify-mornye>Verify Mornye session</button>':''}
         <span class="murglar-state" id="playingStatus" aria-live="polite">${stateCaption(p)}</span>
       </div>
       ${active?`<button type="button" class="aurel-detail-dimmer" data-close-detail aria-label="Close details"></button>

@@ -1,0 +1,24 @@
+
+/* Single floating alert, placed below the status bar, above the player. */
+.app #toast.toast{
+ position:fixed!important;z-index:150!important;
+ top:calc(env(safe-area-inset-top,0px) + 12px)!important;bottom:auto!important;
+ left:clamp(12px,4vw,28px)!important;right:clamp(12px,4vw,28px)!important;
+ width:auto!important;max-width:540px!important;max-height:min(35dvh,230px);
+ margin:0 auto!important;padding:12px 13px!important;
+ display:flex;align-items:flex-start;gap:9px;overflow-y:auto;overflow-wrap:anywhere;
+ border:1px solid rgba(240,181,187,.35)!important;border-radius:16px!important;
+ color:#fff!important;background:rgba(34,27,34,.97)!important;
+ box-shadow:0 18px 45px rgba(0,0,0,.5)!important;
+ font-size:14px!important;line-height:1.45;
+ transform:translateY(-10px)!important;opacity:0;pointer-events:none;
+ transition:transform .22s ease,opacity .22s ease;
+ -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+}
+.app #toast.toast.hidden{display:none!important}
+.app #toast.toast.aurel-toast-visible{transform:translateY(0)!important;opacity:1;pointer-events:auto}
+#toast .aurel-toast-message{flex:1;min-width:0;white-space:normal}
+#toast .aurel-toast-action{padding:7px 9px;border:1px solid #ffffff55;border-radius:10px;background:#ffffff1e;color:white;font-weight:700;font-size:12px}
+#toast .aurel-toast-close{flex:0 0 28px;width:28px;min-height:28px;padding:2px;border:0;background:transparent;color:#f3cbd8;font-size:24px;line-height:22px}
+#overlay .aurel-recovery-inline{display:block;margin:4px auto 0;padding:8px 13px;border:1px solid #ffffff4a;border-radius:10px;background:#ffffff12;color:var(--aurel-theme-accent,#e9b7be);font-size:13px;font-weight:700}
+@media(prefers-reduced-motion:reduce){.app #toast.toast{transition:none!important}}

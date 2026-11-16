@@ -137,3 +137,5 @@
 #overlay .murglar-view .playback-error .aurel-reverify-button:disabled{
   opacity:.55;
 }
+
+/* AUREL notification styling lives in the final continuity stylesheet. */
