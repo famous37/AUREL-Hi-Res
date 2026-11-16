@@ -226,6 +226,25 @@ public final class MainActivity extends Activity {
                     JSONObject data;
                     switch(action) {
                         case "session": data=session();break;
+                        case "validateSession": {
+                            String token=streamToken();
+                            if(token.isEmpty()){data=session();data.put("authError","No streaming token saved.");break;}
+                            try {
+                                api.validateLiveToken(streamAppId(),token,secure.get("streamUserId"));
+                                secure.put("streamValidation","verified");
+                                data=session();
+                            }catch(Exception issue){
+                                String message=issue.getMessage()==null?"Qobuz connection unavailable":issue.getMessage();
+                                boolean rejected=message.contains("HTTP 401")||message.contains("HTTP 403");
+                                // Only definitive authentication errors invalidate the
+                                // saved session; retain credentials for reconnection.
+                                if(rejected)secure.put("streamValidation","rejected");
+                                data=session();
+                                data.put("authError",message);
+                                data.put("authRejected",rejected);
+                            }
+                            break;
+                        }
                         case "loginToken": case "loginPassword": {
                             boolean secondary=p.optBoolean("libraryOnly",false);
                             String appId=p.optString("appId","").trim();
@@ -236,20 +255,20 @@ public final class MainActivity extends Activity {
                             String token;
                             if(action.equals("loginToken")){
                                 token=p.optString("token","").trim();
-                                // Token-first flow like Murglar's UI: no fragile
-                                // profile or favourites preflight blocking sign-in.
-                                // The token remains unverified until Qobuz playback works.
-                                raw=api.verifyToken(appId,token,p.optString("userId",""),true);
+                                // Keep existing credentials unchanged if the pair
+                                // is rejected: the token and App ID must agree.
+                                raw=api.validateLiveToken(appId,token,p.optString("userId",""));
                             }else{
                                 raw=api.passwordLogin(appId,p.optString("email").trim(),p.optString("password"));
                                 token=raw.optString("user_auth_token",raw.optString("token",""));
                                 if(token.isEmpty())throw new Exception("Qobuz did not issue an auth token. Use session-token login or the official sign-in.");
                             }
                             JSONObject prof=profile(raw,p);
-                            boolean validated=action.equals("loginPassword")&&raw.has("user");
+                            boolean validated=raw.optBoolean("validated",action.equals("loginPassword")&&raw.has("user"));
                             String validation=validated?"verified":"unverified";
                             if(secondary){
                                 secure.put("libraryAppId",appId);
+                                secure.put("libraryUserId",p.optString("userId","").trim());
                                 secure.put("libraryToken",token);
                                 secure.put("libraryValidation",validation);
                                 secure.put("libraryProfile",prof.toString());
@@ -262,16 +281,17 @@ public final class MainActivity extends Activity {
                                 if(!suppliedSecret.isEmpty())secure.put("streamAppSecret",suppliedSecret);
                                 else if(!appId.equals(previousAppId))secure.put("streamAppSecret","");
                                 secure.put("streamToken",token);
+                                secure.put("streamUserId",p.optString("userId","").trim());
                                 secure.put("streamValidation",validation);
                                 secure.put("profile",prof.toString());
                             }
-                            // No API request is made merely to save a token; actual
-                            // catalogue and stream requests still require Qobuz authorization.
+                            // New tokens are saved only after a live authenticated
+                            // Qobuz endpoint confirms the token/App ID pairing.
                             // Password is never stored; source and library tokens are distinct.
                             data=session();break;
                         }
                         case "logoutLibrary": {
-                            secure.put("libraryAppId","");secure.put("libraryToken","");secure.put("libraryProfile","");secure.put("libraryValidation","");
+                            secure.put("libraryAppId","");secure.put("libraryUserId","");secure.put("libraryToken","");secure.put("libraryProfile","");secure.put("libraryValidation","");
                             data=session();break;
                         }
                         case "logout": {
@@ -286,7 +306,7 @@ public final class MainActivity extends Activity {
                             if(p.has("appSecret"))secure.put("streamAppSecret",p.optString("appSecret").trim());
                             data=session();break;
                         }
-                        case "discover": data=api.get("discover/newReleases",param("limit",24));break;
+                        case "discover": data=api.discoverReleases(24);break;
                         case "search": {
                             String q=p.optString("query").trim();
                             if(q.isEmpty())throw new Exception("Enter a search term");
