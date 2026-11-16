@@ -13,7 +13,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      AUREL_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/aurel-signing/aurel-release.keystore
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +26,8 @@ jobs:
             echo "::error::Missing signing secrets. Configure AUREL_RELEASE_KEYSTORE_BASE64 and AUREL_RELEASE_PASSWORD in repository Settings > Secrets and variables > Actions."
             exit 1
           fi
+          AUREL_RELEASE_KEYSTORE_PATH="$RUNNER_TEMP/aurel-signing/aurel-release.keystore"
+          echo "AUREL_RELEASE_KEYSTORE_PATH=$AUREL_RELEASE_KEYSTORE_PATH" >> "$GITHUB_ENV"
           mkdir -p "$(dirname "$AUREL_RELEASE_KEYSTORE_PATH")"
           umask 077
           printf '%s' "$AUREL_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$AUREL_RELEASE_KEYSTORE_PATH"
@@ -62,8 +63,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(sed -nE "s/.*versionName \\(project.hasProperty\\('aurelPreview'\\) \\? '[^']*' : '([^']+)'\\).*/\\1/p" app/build.gradle | head -n 1)"
-          if [[ ! "$VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
+          VERSION="$(grep 'versionName ' app/build.gradle | grep -oE '[0-9]+[.][0-9]+[.][0-9]+' | tail -n 1)"
+          if [[ ! "$VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
             echo "::error::Could not identify an unambiguous AUREL release version."
             exit 1
           fi
@@ -122,18 +123,18 @@ jobs:
           set -euo pipefail
           cat > build/signed-artifacts/release-notes.md <<'NOTES'
           **AUREL Hi-Res — first release with a permanent signing certificate**
-
+          
           - Future AUREL releases signed with this certificate can be installed over one another without deleting the app.
           - All previous player, navigation, artwork, Qobuz and Mornye features are preserved.
           - Signed APK integrity and the certificate fingerprint are verified before publishing.
-
+          
           **Migration:** builds through v1.1.18 used a temporary debug key. The first installation of this permanently signed APK may require a one-time uninstall of the older build. Back up important app settings first.
-
+          
           **Signing certificate SHA-256:**
           C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA
-
+          
           **Known limitation:** the app's upstream Mornye/Zarz gateway errors are not changed by this release.
-          NOTES
+                    NOTES
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \
