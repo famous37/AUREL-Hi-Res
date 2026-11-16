@@ -314,4 +314,35 @@ assert(!gateway.includes('addJavascriptInterface'));
 assert(!fs.readFileSync(base+'app.js','utf8').includes('startQobuzWeb'));
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('connectMornye')"));
 
-console.log('AUREL 1.1.0 checks passed — one shared four-tab nav, album-cover mini player, early source metadata and safe bitrate labels.');
+
+const fineCss=fs.readFileSync(base+'aurel-fine-ui.css','utf8');
+const liveJs=fs.readFileSync(base+'aurel-live-ui.js','utf8');
+const murglarJs=fs.readFileSync(base+'murglar.js','utf8');
+assert(fineCss.includes('grid-template-columns:repeat(5,minmax(0,1fr))!important'), 'all five nav tabs must fit in equal columns');
+assert(fineCss.includes('--aurel-shared-nav:64px'), 'footer must be compact');
+assert(fineCss.includes('.aurel-tab-label'), 'long nav labels need their own sizing rules');
+assert(fineCss.includes('var(--aurel-theme-accent)'), 'UI elements must consume shared artwork palette');
+assert(fineCss.includes('.aurel-detail-drawer'), 'information panel must be a full-height drawer');
+assert(fineCss.includes('prefers-reduced-motion:reduce'), 'animations need a reduced-motion mode');
+assert(liveJs.includes('function syncTheme()'), 'theme must follow track changes');
+assert(liveJs.includes("root.style.setProperty('--aurel-theme-bg'"), 'palette should update all application screens');
+assert(liveJs.includes("window.AurelCoverPalette=function("), 'native artwork callback must be connected');
+assert(liveJs.includes("if(app.overlay&&app.playerSheet)"), 'Android back should close details first');
+assert(liveJs.includes('dismissDetails'), 'drawer must offer a functioning close control');
+assert(murglarJs.includes('aurel-detail-dimmer'), 'drawer should dim underlying player');
+assert(murglarJs.includes('aurel-detail-scroll'), 'all credits and audio details must scroll inside the drawer');
+run("app.playerSheet='audio';app.overlay=true;drawOverlay()");
+let drawer=nodes.get('#overlay').innerHTML;
+assert(drawer.includes('aurel-detail-drawer'), 'open Audio menu must use the drawer');
+assert(drawer.includes('data-close-detail'), 'Audio menu must have a close button');
+assert(drawer.includes('Provider bitrate'), 'Audio metadata fields must remain available');
+run("app.playerSheet='credits';drawOverlay()");
+drawer=nodes.get('#overlay').innerHTML;
+assert(drawer.includes('Qobuz recording information'), 'Info menu must preserve track metadata');
+run("app.playerSheet='upnext';drawOverlay()");
+assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
+run("app.playerSheet='';drawOverlay()");
+assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.4"), 'APK version should advance');
+console.log('AUREL 1.1.4 checks passed — compact five-column nav, shared artwork theme, animated full-height info/audio drawers.');
+
