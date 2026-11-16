@@ -118,7 +118,10 @@ public final class MainActivity extends Activity {
         boolean library=data.getBooleanExtra(QobuzWebLoginActivity.EXTRA_LIBRARY,false);
         try{
             // Only the packaged file:// WebView receives this event.
-            emit("webLoginResult",new JSONObject().put("token",token).put("libraryOnly",library));
+            String appId=data.getStringExtra(QobuzWebLoginActivity.EXTRA_APP_ID);
+            JSONObject result=new JSONObject().put("token",token).put("libraryOnly",library);
+            if(appId!=null&&appId.matches("[0-9]{6,15}"))result.put("appId",appId);
+            emit("webLoginResult",result);
         }catch(Exception ignored){}
     }
     @Override public void onBackPressed() {
