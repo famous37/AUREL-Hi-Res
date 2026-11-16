@@ -21,14 +21,14 @@
     const played=total?Math.min(100,Math.round(position/total*100)):0;
     const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" aria-label="No cover art available">♫</div>';
     const source=actualSource(p);
-    const navItems=[['library','Library'],['search','Search'],['playing','Now playing'],['settings','Settings']];
+    // Persistent app bottom navigation remains mounted outside this overlay.
     overlay.classList.remove('hidden');
     overlay.style.setProperty('--cover-image','none');
     overlay.innerHTML=`<div class="aurel-listening-screen murglar-view">
       <div class="aurel-art-backdrop" aria-hidden="true"></div>
       <header class="murglar-header aurel-listening-nav">
         <button data-close-overlay class="murglar-header-button" aria-label="Minimize player">${ic('down',26)}</button>
-        <strong>Now Playing</strong>
+        <strong class="murglar-now-heading">${src?`<img class="murglar-heading-cover" src="${html(src)}" alt="Album cover" loading="eager">`:`<span class="murglar-heading-cover placeholder">♪</span>`}<span>Now Playing</span></strong>
         <button data-player-sheet="audio" class="murglar-header-button" aria-label="Audio information">${ic('more',27)}</button>
       </header>
       <div class="murglar-player-content">
@@ -63,9 +63,7 @@
         ${active?`<div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
         <span class="murglar-state" id="playingStatus" aria-live="polite">${stateCaption(p)}</span>
       </div>
-      <nav class="murglar-footer" aria-label="Player navigation">
-        ${navItems.map(([key,label])=>`<button data-player-nav="${key}" class="${key==='playing'?'active':''}" aria-label="${label}" ${key==='playing'?'aria-current="page"':''}>${navigationIcon(key)}<span>${label}</span></button>`).join('')}
-      </nav>
+
     </div>`;
     const scroller=overlay.querySelector('.murglar-player-content');
     if(scroller){
@@ -97,20 +95,5 @@
     }
     if($('#playingStatus'))$('#playingStatus').textContent=stateCaption(p);
   };
-  document.addEventListener('click',event=>{
-    const button=event.target.closest('[data-player-nav]');
-    if(!button)return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const destination=button.dataset.playerNav;
-    if(destination==='playing'){
-      app.playerSheet=app.playerSheet==='upnext'?'':'upnext';
-      drawOverlay();
-    }else{
-      app.playerSheet='';
-      app.overlay=false;
-      drawOverlay();
-      navigate(destination);
-    }
-  },true);
+
 })();
