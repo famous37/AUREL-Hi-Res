@@ -338,13 +338,27 @@ final class QobuzApi {
     /** Reuse the installed Qobuz App ID for a separate personal library.
      * Mornye gateway identity itself is not a Qobuz user App ID.
      */
-    String automaticLibraryAppId(){
-        for(String name:new String[]{"libraryAppId","streamAppId","appId"}){
-            String id=store.get(name);
-            if(id.matches("[0-9]{6,15}"))return id;
+    String automaticLibraryAppId()throws Exception{
+        // A previously verified separate library token has priority.
+        if(!store.get("libraryToken").isEmpty()){
+            String prior=store.get("libraryAppId");
+            if(prior.matches("[0-9]{6,15}"))return prior;
         }
-        try{return resolveAppId("");}
-        catch(Exception ignored){return "312369995";}
+        // For a new password login prefer the currently published web client,
+        // not a stale streaming token's unrelated integration App ID.
+        try{
+            String current=resolveAppId("");
+            if(current.matches("[0-9]{6,15}"))return current;
+        }catch(Exception ignored){
+            // Existing locally configured integration is an explicit fallback.
+        }
+        for(String name:new String[]{"streamAppId","appId"}){
+            String saved=store.get(name);
+            if(saved.matches("[0-9]{6,15}"))return saved;
+        }
+        throw new Exception("No suitable Qobuz App ID was detected. "+
+            "AUREL could not access Qobuz's public client configuration. "+
+            "You can still connect your library using a session token.");
     }
 
     JSONObject post(String endpoint, JSONObject params)throws Exception{return libraryPost(endpoint,params);}
