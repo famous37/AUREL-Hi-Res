@@ -1,6 +1,7 @@
 package com.aurel.hires;
 
 import android.util.Base64;
+import android.net.Uri;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -35,6 +36,8 @@ final class MornyeGateway {
     private static final String SCHEME="ZARZ-HMAC-V1";
     private static final String PREFIX="X-Zarz-";
     private static final int MAX_BYTES=1_500_000;
+    private static final long CHALLENGE_TTL_MS=180_000L;
+    private static final String CALLBACK="mornye://session-grant";
     private static final SecureRandom RAND=new SecureRandom();
     private final SecureStore store;
 
@@ -90,6 +93,89 @@ final class MornyeGateway {
         store.put("mornyeSessionId","");
         store.put("mornyeSecret","");
         store.put("mornyeExpiry","");
+        clearPending();
+    }
+    private void clearPending()throws Exception{
+        store.put("mornyePendingState","");
+        store.put("mornyePendingAt","");
+        store.put("mornyePendingUrl","");
+    }
+    private String requireState()throws Exception{
+        String state=store.get("mornyePendingState");
+        long created=0;
+        try{created=Long.parseLong(store.get("mornyePendingAt"));}
+        catch(Exception ignored){}
+        if(state.isEmpty()||state.length()>4096||created<=0||
+            System.currentTimeMillis()-created<0||
+            System.currentTimeMillis()-created>=CHALLENGE_TTL_MS)
+            throw new Exception("Mornye verification expired. Please connect again.");
+        return state;
+    }
+    boolean awaitingVerification(){
+        try{return !requireState().isEmpty();}
+        catch(Exception ignored){return false;}
+    }
+    String challengeUrl()throws Exception{
+        requireState();
+        return store.get("mornyePendingUrl");
+    }
+    private JSONObject challenge(JSONObject result)throws Exception{
+        String challengeId=result.optString("challenge_id","").trim();
+        String authUrl=result.optString("auth_url","").trim();
+        if(authUrl.isEmpty())authUrl=result.optString("challenge_url","").trim();
+        String state=randomHex(24);
+        if(!authUrl.isEmpty()){
+            Uri original=Uri.parse(authUrl);
+            if(!"https".equalsIgnoreCase(original.getScheme()))
+                throw new Exception("Gateway verification requires a non-HTTPS page");
+            // Reuse the server supplied state, including one nested in cb.
+            String serverState=original.getQueryParameter("state");
+            if((serverState==null||serverState.isEmpty())){
+                String cb=original.getQueryParameter("cb");
+                if(cb!=null&&!cb.isEmpty())
+                    serverState=Uri.parse(cb).getQueryParameter("state");
+            }
+            if(serverState!=null&&!serverState.trim().isEmpty())state=serverState.trim();
+            else authUrl=original.buildUpon().appendQueryParameter("state",state).build().toString();
+        }else if(!challengeId.isEmpty()){
+            String cb=Uri.parse(CALLBACK).buildUpon()
+                .appendQueryParameter("cb_version","v2grant")
+                .appendQueryParameter("state",state).build().toString();
+            authUrl=BASE+"/challenge?id="+encoded(challengeId)+"&cb="+encoded(cb);
+        }
+        if(authUrl.isEmpty()){
+            clearPending();
+            return new JSONObject().put("connected",false).put("verificationRequired",false)
+                .put("reason","Zarz bootstrap did not return a session or verification link.");
+        }
+        Uri parsed=Uri.parse(authUrl);
+        if(!"https".equalsIgnoreCase(parsed.getScheme())||
+             parsed.getHost()==null||parsed.getHost().isEmpty())
+            throw new Exception("Untrusted Mornye verification URL");
+        // The initial page is the Zarz verification service, not Qobuz Web Player.
+        if(!"api.zarz.moe".equalsIgnoreCase(parsed.getHost()))
+            throw new Exception("Gateway supplied a non-Zarz verification URL.");
+        store.put("mornyePendingState",state);
+        store.put("mornyePendingAt",Long.toString(System.currentTimeMillis()));
+        store.put("mornyePendingUrl",authUrl);
+        return new JSONObject().put("connected",false)
+            .put("verificationRequired",true)
+            .put("verificationUrl",authUrl)
+            .put("reason","Complete the Mornye gateway verification in the in-app window.");
+    }
+    JSONObject completeGrant(String state,String grant)throws Exception{
+        if(grant==null||grant.trim().isEmpty()||grant.length()>16384)
+            throw new Exception("Mornye callback did not include a valid session grant.");
+        if(!requireState().equals(state))
+            throw new Exception("Mornye callback state mismatch; sign-in was not accepted.");
+        JSONObject exchange=http("POST","/session/exchange",
+            new JSONObject().put("grant",grant.trim())
+                .put("install_id",installId())
+                .put("app_version",APP_VERSION)
+                .put("platform",PLATFORM).toString(),null);
+        remember(exchange);
+        clearPending();
+        return verifySession();
     }
     private JSONObject http(String method,String relative,String body,String[][] headers)throws Exception{
         if(!relative.startsWith("/")||relative.startsWith("//")||
@@ -175,24 +261,22 @@ final class MornyeGateway {
                 "&install_id="+encoded(installId()),"",null);
             if(result.has("session_id")&&result.has("session_secret")){
                 remember(result);
+                clearPending();
             }else{
-                String verify=result.optString("auth_url",result.optString("challenge_url",""));
-                return new JSONObject()
-                    .put("connected",false)
-                    .put("verificationRequired",!verify.isEmpty()||result.has("challenge_id"))
-                    .put("reason","Mornye gateway requires a session grant or additional verification. "+
-                        "It did not issue a session; no browser-based Qobuz sign-in is attempted.");
+                return challenge(result);
             }
         }
+        return verifySession();
+    }
+    private JSONObject verifySession()throws Exception{
         try {
-            // Verify a signed metadata request, not just a syntactically valid session.
             JSONObject probe=metadata("track/search",new JSONObject()
                 .put("query","music").put("limit",1));
             if(!probe.has("tracks")&&!probe.has("items"))
                 throw new Exception("Gateway metadata response is missing tracks");
             store.put("mornyeActive","1");
             return new JSONObject().put("connected",true).put("verified",true)
-                .put("message","Mornye signed gateway verified for Qobuz catalogue");
+                .put("message","Mornye gateway verified using authenticated catalogue request");
         }catch(Exception e){
             store.put("mornyeActive","");
             throw new Exception("Mornye signed-session verification failed: "+e.getMessage());
