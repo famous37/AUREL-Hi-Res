@@ -70,9 +70,10 @@
 #overlay .murglar-view .murglar-source-line{
   box-sizing:border-box!important;
   flex:0 0 auto!important;
-  margin:2px auto 0!important;
-  min-height:33px!important;
-  padding:5px 8px 3px!important;
+  /* Lower the compact, single-line source badge below the transport row. */
+  margin:clamp(12px,1.8dvh,20px) auto 0!important;
+  min-height:42px!important;
+  padding:8px 10px!important;
 }
 #overlay .murglar-view .murglar-source-line small{
   margin:0!important;
