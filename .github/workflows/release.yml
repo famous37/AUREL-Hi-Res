@@ -88,6 +88,7 @@ jobs:
           node tests/account-language.test.cjs
           node tests/favourites-theme.test.cjs
           node tests/share.test.cjs
+          # Share styles load last; existing graphite and favourite assets remain enabled.
           # Favourite mutation/rollback, status loading, and session separation are validated above.
           # DOM mock includes classList.contains, matching Android WebView's Element API.
           node tests/navigation.test.cjs
