@@ -183,7 +183,7 @@ function renderLogin(){
   $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
     <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
     <div class="eyebrow">AUREL / QOBUZ</div>
-    <h1>${secondary?'Connect your library.':'Welcome back to music.'}</h1>
+    <h1>${secondary?'Connect your Qobuz library.':'Welcome back to music.'}</h1>
     <p class="aurel-signin-subtitle">${secondary?'Sign in with a separate Qobuz account for favourites, saved releases, artists and playlists. Playback remains tied to your primary account.':'Choose a Qobuz session token or sign in with your email and password. AUREL checks your account before connecting.'}</p>
     ${rejected?'<div class="aurel-auth-warning" role="alert"><strong>Previous Qobuz authorization was rejected.</strong><span>Try the current web App ID automatically, a fresh token, or email/password sign-in. Your previous account data has not been erased.</span></div>':''}
     ${app.session?.previewBuild?'<p class="auth-preview-note">This Preview is installed separately and cannot read credentials stored by other AUREL installations.</p>':''}
@@ -201,14 +201,14 @@ function renderLogin(){
           <input id="password" type="password" autocomplete="current-password" placeholder="Enter Qobuz password" required>
           <button type="button" data-toggle-password aria-label="Show password">${ic('eye',22)}</button>
         </div>
-        <p class="aurel-method-help">Qobuz may require CAPTCHA or browser verification. If direct sign-in is refused, use Session token instead. Your password is not stored.</p>`:`
+        <p class="aurel-method-help">${secondary?'AUREL automatically uses the configured Qobuz App ID. This account is only for your personal favourites, albums, artists and playlists; Mornye playback stays independent.':'Qobuz may require CAPTCHA or reject password sign-in from third-party apps. Your password is not saved.'}</p>`:`
         <label class="aurel-token-label" for="token">Qobuz session token</label>
         <div class="aurel-token-input">
           <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste X-User-Auth-Token" required>
           <button type="button" data-toggle-token aria-label="Show token">${ic('eye',22)}</button>
         </div>
         <p class="aurel-method-help">For a token from play.qobuz.com, leave App ID blank to detect the current web client automatically. Tokens from other apps may need their specific App ID.</p>`}
-      <details class="aurel-signin-advanced" ${rejected?'open':''}>
+      ${secondary?'':`      <details class="aurel-signin-advanced" ${rejected?'open':''}>
         <summary>${ic('settings',19)} Advanced · App ID ${secondary?'':'&amp; App Secret'} ${ic('chevron',17)}</summary>
         <div class="aurel-advanced-fields">
           <label for="appId">App ID <small>Leave blank for automatic detection from Qobuz's current web player</small></label>
@@ -218,8 +218,8 @@ function renderLogin(){
           <label for="userId">User ID <small>Optional; leave blank unless needed by your Qobuz integration</small></label>
           <input id="userId" type="text" inputmode="numeric" autocomplete="off" placeholder="Optional account ID">
         </div>
-      </details>
-      <div class="aurel-signin-info">${ic('shield-check',18)} <span>Qobuz checks your credentials. AUREL stores the issued session token in Android encrypted storage, never your password.</span></div>
+      </details>`}
+      <div class="aurel-signin-info">${ic('shield-check',18)} <span>${secondary?'Library login uses your own Qobuz credentials. The separate library token is encrypted on this device; the password is not stored.':'Qobuz checks credentials. AUREL encrypts the issued token and never saves your password.'}</span></div>
       <div id="loginError" class="aurel-signin-error hidden" role="alert"></div>
       <button id="loginSubmit" type="submit" class="aurel-signin-submit">${secondary?'Connect library account':'Connect Qobuz'} ${ic('chevron',21)}</button>
     </form>
@@ -237,7 +237,7 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  <div class="info-row"><span>Connection type</span><strong>${app.session.mornyeConnected?'Mornye signed gateway':'Qobuz account'}</strong></div>
   <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
  <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button><button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
- <div class="panel"><h3>Additional library account</h3><p class="subline">Use a different Qobuz token for favourites, saved albums, artists and playlists. Playback always uses your primary streaming account.</p>
+ <div class="panel"><h3>Personal Qobuz library</h3><p class="subline">Connect your own Qobuz account by email and password without entering an App ID. Its playlists, saved releases, albums, artists and favourites are independent of your Mornye streaming session.</p>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
  ${app.session.libraryConnected?'<button class="small-link" data-logout-library style="margin-left:18px">Disconnect library</button>':''}</div>
@@ -429,7 +429,7 @@ document.addEventListener('click',async ev=>{
  if(b.dataset.likeAlbum){like('albums',b.dataset.likeAlbum);return}
  if(b.dataset.quality){setQuality(Number(b.dataset.quality));return}
  if(b.hasAttribute('data-save-secret')){setSecret();return}
- if(b.hasAttribute('data-add-library')){app.loginTarget='library';app.loginMode='token';renderLogin();return}
+ if(b.hasAttribute('data-add-library')){app.loginTarget='library';app.loginMode='password';renderLogin();return}
  if(b.hasAttribute('data-validate-stream')){
    try{
      app.session=await nativeCall('validateSession');render();
