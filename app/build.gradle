@@ -9,6 +9,7 @@ android {
         targetSdk 35
         versionCode 19
         versionName (project.hasProperty('aurelPreview') ? '1.0.8-beta-preview' : '1.0.8-beta')
+        resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
