@@ -1152,15 +1152,15 @@ public final class MainActivity extends Activity {
                         final AurelMediaPlayer expectedPlayer=player;
                         // No secondary HTTP request: this is a callback from the
                         // same byte stream ExoPlayer is decoding and playing.
-                        player.setOnFlacListener(info->{
+                        player.setOnFlacListener(flacInfo->{
                             if(generation!=playGeneration||player!=expectedPlayer)return;
                             try {
                                 actualStream=new JSONObject()
                                     .put("trackId",id)
                                     .put("codec","FLAC")
-                                    .put("sampleRateHz",info.sampleRateHz)
-                                    .put("bitsPerSample",info.bitsPerSample)
-                                    .put("channels",info.channels)
+                                    .put("sampleRateHz",flacInfo.sampleRateHz)
+                                    .put("bitsPerSample",flacInfo.bitsPerSample)
+                                    .put("channels",flacInfo.channels)
                                     .put("verifiedFromBytes",true);
                                 emit("player",playerState());
                             }catch(Exception ignored){}
