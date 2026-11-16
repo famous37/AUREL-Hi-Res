@@ -536,6 +536,18 @@ public final class MainActivity extends Activity {
                             break;
                         }
 
+                        case "artistPortrait": {
+                            // Lightweight, individual official Qobuz artist lookup.
+                            // Similar-artist recommendations frequently contain only id/name,
+                            // whereas the full artist record includes the portrait.
+                            String artistId=p.getString("id");
+                            if(!artistId.matches("[0-9]{1,20}"))
+                                throw new Exception("Invalid artist ID");
+                            data=artistInformation("artist/get",
+                                new JSONObject().put("artist_id",artistId));
+                            break;
+                        }
+
                         case "artistExtras": {
                             String artistId=p.getString("id");
                             JSONObject extras=new JSONObject();
@@ -693,7 +705,8 @@ public final class MainActivity extends Activity {
     private JSONObject artistInformation(String endpoint,JSONObject parameters)throws Exception {
         Exception latest=null;
         boolean publicMetadata=endpoint.equals("artist/page")
-            ||endpoint.equals("artist/getSimilarArtists");
+            ||endpoint.equals("artist/getSimilarArtists")
+            ||endpoint.equals("artist/get");
         if(!secure.get("libraryToken").isEmpty()) {
             try{return api.library(endpoint,parameters);}
             catch(Exception failure){latest=failure;}
