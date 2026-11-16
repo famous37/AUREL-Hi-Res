@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const base=__dirname+'/app/src/main/assets/';
 const elem=()=>({
  innerHTML:'',value:'',type:'password',textContent:'',dataset:{},scrollTop:0,
- classList:{add(){},remove(){},toggle(){}},addEventListener(){},
+ classList:{add(){},remove(){},toggle(){},contains(){return false}},addEventListener(){},
  querySelector(){return null},querySelectorAll(){return[]},
  setAttribute(){},appendChild(){},replaceChildren(){},style:{setProperty(){}}
 });

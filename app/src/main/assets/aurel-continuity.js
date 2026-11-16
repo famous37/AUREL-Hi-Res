@@ -16,7 +16,7 @@ function rememberPage(){if(!shown||app.overlay)return;state.positions[shown]=num
 function rememberPlayer(){
  const el=document.querySelector('#overlay .murglar-player-content');
  if(!el)return;
- state.playerTrack=String(app.player?.track?.id||'');
+ state.playerTrack=String(document.getElementById('overlay')?.dataset?.openTrack||app.player?.track?.id||'');
  state.playerScroll=num(el.scrollTop);
  const detail=document.querySelector('#overlay .aurel-detail-scroll');
  if(detail)state.detailScroll=num(detail.scrollTop);
