@@ -1003,7 +1003,8 @@ public final class MainActivity extends Activity {
 
     /** Track parameters from Android's parsed stream headers; not a DAC measurement. */
     private void inspectPreparedTrack(MediaPlayer mp) {
-        decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
+        // Keep earlier valid values when Android exposes track format only
+        // during a later read; this method does not fetch media over HTTP.
         try {
             MediaPlayer.TrackInfo[] tracks=mp.getTrackInfo();
             if(tracks==null)return;
@@ -1207,6 +1208,19 @@ public final class MainActivity extends Activity {
                                 try{emit("session",session());}catch(Exception ignored){}
                             }
                             inspectPreparedTrack(mp);
+                            // Some Android MediaPlayer implementations populate
+                            // TrackInfo after onPrepared. Try two local-only reads.
+                            for(long delayMs:new long[]{1200L,3500L}){
+                                ui.postDelayed(()->{
+                                    if(generation!=playGeneration||player!=mp||!prepared)return;
+                                    int beforeHz=decoderSampleRateHz;
+                                    String beforeMime=decoderMime;
+                                    inspectPreparedTrack(mp);
+                                    if(beforeHz!=decoderSampleRateHz||
+                                       !beforeMime.equals(decoderMime))
+                                        emit("player",playerState());
+                                },delayMs);
+                            }
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
                             if(queueIndex+1<queue.size()){
