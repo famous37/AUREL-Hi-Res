@@ -119,6 +119,7 @@ final class MornyeGateway {
         requireState();
         return store.get("mornyePendingUrl");
     }
+    String pendingState()throws Exception{return requireState();}
     private JSONObject challenge(JSONObject result)throws Exception{
         String challengeId=result.optString("challenge_id","").trim();
         String authUrl=result.optString("auth_url","").trim();
