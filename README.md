@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.5 Beta
+# AUREL Hi-Res · 1.0.6 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -88,3 +88,14 @@ No music-download features have been restored to AUREL. A real-device Qobuz logi
 - No automatic extension installation or execution is attempted. The gateway session keys are encrypted using Android Keystore.
 
 Reference: https://github.com/mornyeapp/Mornye/tree/main/rust_backend/crates/extensions/src/signed_session (LGPL-3.0-only), https://github.com/mornyeapp/Mornye-Extension/tree/main/sources/qobuz-web .
+
+## v1.0.6 — Complete Mornye session-grant handshake
+
+- Fixed v1.0.5 stopping on `verificationRequired` after `GET /bootstrap`.
+- Implemented Mornye-compatible one-time Zarz verification in a **private in-app window** (not the Qobuz desktop Web Player), with a `mornye://session-grant?state=...&grant=...` callback.
+- Verified callback `state` and enforced a 180-second one-time challenge window. Exchange the grant using `POST /session/exchange` (install ID and extension protocol scope).
+- Save the signed session only after successful exchange, then check a signed `track/search` request. Report server errors or an expired grant explicitly; never mark an unverified connection as connected.
+- Removed the obsolete Android Qobuz WebView sign-in activity and the misleading extension version-only checker. Token and Password logins remain; personal Qobuz favourites/playlists still require a separate library account.
+- Integration tests check JavaScript, Android compilation, callback routing and source protocol. **Server-side grant/CAPTCHA completion and real playback have not been verified on a device.** The gateway can still refuse verification; server restrictions cannot be bypassed by the client.
+
+Protocol reference: https://github.com/mornyeapp/Mornye/tree/main/rust_backend/crates/extensions/src/signed_session
