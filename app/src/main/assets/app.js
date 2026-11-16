@@ -218,12 +218,13 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  $('#screen').innerHTML=title('ACCOUNT & AUDIO','Your listening space.')+`<div class="panel"><h3>Streaming account</h3>
  <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
- <div class="info-row"><span>Session verification</span><strong>${app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':app.session.streamValidation==='rejected'?'Rejected · check token and App ID':'Not checked'}</strong></div>
+ <div class="info-row"><span>Session verification</span><strong>${app.session.mornyeConnected?'Verified by Mornye gateway':app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':app.session.streamValidation==='rejected'?'Rejected · check token and App ID':'Not checked'}</strong></div>
  <div class="info-row"><span>Profile</span><strong>${html(p.displayName||'—')}</strong></div>
  <div class="info-row"><span>User ID</span><strong>${html(p.userId||'Not verified')}</strong></div>
  <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?' ✓':''}</strong></div>
- <div class="info-row"><span>App ID</span><strong>${html(app.session.appId||'—')}</strong></div>
- <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>Check Qobuz connection</button><button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
+ <div class="info-row"><span>Connection type</span><strong>${app.session.mornyeConnected?'Mornye signed gateway':'Qobuz account'}</strong></div>
+  <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
+ <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button><button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
  <div class="panel"><h3>Additional library account</h3><p class="subline">Use a different Qobuz token for favourites, saved albums, artists and playlists. Playback always uses your primary streaming account.</p>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
@@ -362,14 +363,25 @@ document.addEventListener('click',async ev=>{
    app.loginMode=['token','password','mornye'].includes(b.dataset.loginMode)?b.dataset.loginMode:'token';
    renderLogin();return;
  }
- if(b.hasAttribute('data-start-web-login')){
+ if(b.hasAttribute('data-connect-mornye')){
    ev.preventDefault();
-   nativeCall('startQobuzWeb',{libraryOnly:app.loginTarget==='library'})
-     .catch(e=>showToast(e.message||'Cannot open Qobuz sign-in',6500));
+   const error=$('#mornyeLoginError');
+   if(error){error.textContent='';error.classList.add('hidden');}
+   b.disabled=true;b.textContent='Connecting to Mornye gateway…';
+   try{
+     const result=await nativeCall('connectMornye');
+     if(!result?.mornyeConnected)throw new Error(result?.reason||'Mornye signed session was not authorized.');
+     app.session=result;app.results=[];app.albums=[];app.loginTarget='stream';
+     showToast('Mornye signed session verified',4000);
+     navigate('home');
+   }catch(ex){
+     const message=ex?.message||'Mornye signed session failed';
+     if(error){error.textContent=message;error.classList.remove('hidden');}
+     else showToast(message,7000);
+   }finally{
+     b.disabled=false;b.innerHTML=ic('shield-check',23)+' Connect Mornye session';
+   }
    return;
- }
- if(b.hasAttribute('data-mornye-refresh')){
-   ev.preventDefault();loadMornyeStatus(true);return;
  }
  if(b.hasAttribute('data-toggle-token')||b.hasAttribute('data-toggle-secret')||b.hasAttribute('data-toggle-password')){
     ev.preventDefault();
