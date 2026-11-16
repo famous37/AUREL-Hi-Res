@@ -383,6 +383,10 @@ final class MornyeGateway {
                 .put("message","Mornye gateway verified using authenticated catalogue request");
         }catch(Exception e){
             store.put("mornyeActive","");
+            // Keep the typed 401/428 error so explicit Connect Mornye can
+            // start a fresh bootstrap rather than treating an expired session
+            // as a generic sign-in failure.
+            if(requiresVerification(e))throw e;
             throw new Exception("Mornye signed-session verification failed: "+e.getMessage());
         }
     }
