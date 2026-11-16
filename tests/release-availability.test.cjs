@@ -18,7 +18,7 @@ assert(page.indexOf('aurel-access.js')<page.indexOf('app.js'));
 assert(page.includes('aurel-release.css'));
 assert(page.indexOf('aurel-smooth.css')<page.indexOf('aurel-release.css'));
 assert(app.includes('data-play-index')&&app.includes('aurel-unavailable-track'));
-assert(app.includes('aurel-track-unavailable')&&app.includes("status.future?'Coming soon':'Unavailable'"));
+assert(app.includes('aurel-track-unavailable')&&app.includes("access.future?'Coming soon':'Unavailable'"));
 assert(app.includes('if(!state.playable){showToast(state.reason'));
 assert(app.includes("const playable=[];let mapped=-1"));
 assert(app.includes('if(i===index)mapped=playable.length'));

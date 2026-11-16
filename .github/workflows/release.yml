@@ -91,6 +91,7 @@ jobs:
           node tests/smooth-motion.test.cjs
           node tests/release-availability.test.cjs
           # Release status CSS loads after motion styles without replacing them.
+          # Availability assertions reference the actual access-status variable.
           # Share styles load last; existing graphite and favourite assets remain enabled.
           # Favourite mutation/rollback, status loading, and session separation are validated above.
           # DOM mock includes classList.contains, matching Android WebView's Element API.
