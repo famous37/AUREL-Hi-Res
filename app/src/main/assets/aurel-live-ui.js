@@ -15,10 +15,41 @@
     }).join('');
   }
   let navArtwork='';
+  const themeByCover=new Map();
+  const baseTheme={bg:'#1E1B24',surface:'#302A35',accent:'#C9B7D5'};
+  let activeCover='';
+  const validHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
+  function coverNow(){return app.player?.track?image(app.player.track):'';}
+  function setTheme(colors){
+    const root=document.documentElement;
+    if(!root||!root.style)return;
+    root.style.setProperty('--aurel-theme-bg',colors.bg);
+    root.style.setProperty('--aurel-theme-surface',colors.surface);
+    root.style.setProperty('--aurel-theme-accent',colors.accent);
+    // Keep the full player and the rest of AUREL on exactly one palette.
+    root.style.setProperty('--aurel-palette-bg',colors.bg);
+    root.style.setProperty('--aurel-palette-surface',colors.surface);
+    root.style.setProperty('--aurel-palette-accent',colors.accent);
+    const overlay=document.querySelector('#overlay');
+    if(overlay&&overlay.style){
+      overlay.style.setProperty('--aurel-palette-bg',colors.bg);
+      overlay.style.setProperty('--aurel-palette-surface',colors.surface);
+      overlay.style.setProperty('--aurel-palette-accent',colors.accent);
+    }
+    const themeMeta=document.querySelector('meta[name="theme-color"]');
+    if(themeMeta)themeMeta.setAttribute('content',colors.bg);
+  }
+  function syncTheme(){
+    const next=coverNow();
+    if(next===activeCover)return;
+    activeCover=next;
+    setTheme(themeByCover.get(next)||baseTheme);
+  }
   function navSync(){
     if(!tabs)return;
     const track=app.player&&app.player.track;
     const url=track?image(track):'';
+    syncTheme();
     const icon=tabs.querySelector('[data-open-player-nav] .aurel-tab-icon');
     if(icon&&url!==navArtwork){
       navArtwork=url;
@@ -53,30 +84,48 @@
   render=function(){const v=oldRender.apply(this,arguments);navSync();return v;};
   const oldOverlay=drawOverlay;
   drawOverlay=function(){
-    const overlay=document.querySelector('#overlay');
-    const current=app.player&&app.player.track?image(app.player.track):'';
-    if(overlay&&overlay.dataset.paletteArtwork!==current){
-      overlay.style.setProperty('--aurel-palette-bg','#1E1B24');
-      overlay.style.setProperty('--aurel-palette-surface','#302A35');
-      overlay.style.setProperty('--aurel-palette-accent','#C9B7D5');
-      overlay.dataset.paletteArtwork='';
-    }
-    const v=oldOverlay.apply(this,arguments);
+    const result=oldOverlay.apply(this,arguments);
     navSync();
-    return v;
+    return result;
   };
   window.AurelCoverPalette=function(url,bg,surface,accent){
-    const current=app.player&&app.player.track?image(app.player.track):'';
-    if(!url||url!==current)return;
-    const overlay=document.querySelector('#overlay');
-    if(!overlay)return;
-    const valid=function(value){return /^#[0-9a-fA-F]{6}$/.test(value)};
-    if(!valid(bg)||!valid(surface)||!valid(accent))return;
-    overlay.style.setProperty('--aurel-palette-bg',bg);
-    overlay.style.setProperty('--aurel-palette-surface',surface);
-    overlay.style.setProperty('--aurel-palette-accent',accent);
-    overlay.dataset.paletteArtwork=url;
+    if(!url||!validHex(bg)||!validHex(surface)||!validHex(accent))return;
+    const colors={bg,surface,accent};
+    themeByCover.set(url,colors);
+    if(themeByCover.size>36)themeByCover.delete(themeByCover.keys().next().value);
+    if(coverNow()===url){
+      activeCover=url;
+      setTheme(colors);
+    }
   };
+  // Physical Android Back should close the information drawer before
+  // minimizing the entire player.
+  const previousBack=window.AurelBack;
+  window.AurelBack=function(){
+    if(app.overlay&&app.playerSheet){
+      app.playerSheet='';
+      drawOverlay();
+      return;
+    }
+    if(typeof previousBack==='function')return previousBack();
+  };
+  function dismissDetails(ev){
+    const button=ev.target.closest?.('[data-close-detail]');
+    if(!button)return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    if(!app.playerSheet)return;
+    app.playerSheet='';
+    drawOverlay();
+  }
+  document.addEventListener('click',dismissDetails,true);
+  document.addEventListener('keydown',function(ev){
+    if(ev.key==='Escape'&&app.overlay&&app.playerSheet){
+      ev.preventDefault();
+      app.playerSheet='';
+      drawOverlay();
+    }
+  },true);
   // Fast in-place suggestions, no input focus loss and no screen rerender on keystrokes.
   let timer=0,serial=0;
   const cache=new Map();
