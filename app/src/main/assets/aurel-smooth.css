@@ -1,0 +1,98 @@
+/* AUREL 1.1.25 — calm motion.
+   No repeated entrance animations during asynchronous rerenders, no scale-on-tap.
+   Only short opacity transitions for actual navigation and tiny paint-only
+   feedback on buttons. Layout, size and scroll positions never animate. */
+
+/* The legacy "soft enter" was attached to elements freshly recreated on every
+   catalogue/library refresh, so they bounced even while staying on one page. */
+#screen > .page-heading,
+#screen > .panel,
+#screen > .album-shelf,
+#screen > .cards,
+#screen > .aurel-artist-page,
+#screen > .spotlight,
+#screen > .albumhero,
+#screen > .sectionhead,
+#overlay .aurel-detail-drawer {
+  animation:none!important;
+}
+
+/* Never animate the album cover, the layout-fitting container, or any fixed
+   player/navbar geometry when metadata, quality probes, or the timer update. */
+#overlay .murglar-view,
+#overlay .murglar-player-content,
+#overlay .murglar-art-wrap,
+#overlay .murglar-cover,
+#overlay .murglar-header,
+#overlay .murglar-track-data,
+#overlay .murglar-progress-row,
+#overlay .murglar-transport,
+#overlay .murglar-quick-actions,
+#overlay .aurel-detail-drawer,
+.app .mini,
+.app .bottom-nav,
+.app .bottom-nav .aurel-tab-icon,
+.app .bottom-nav .aurel-nav-cover,
+#screen .albumcard,
+#screen .shelf-card,
+#screen .aurel-release-card,
+#screen .aurel-artist-page{
+  animation:none!important;
+  transition:none!important;
+}
+
+/* Touch feedback should not physically move the layout: the old rules scale
+   many buttons and their icon bounds, creating a vibrating effect on WebView. */
+.app .screen button:active,
+.app .screen .albumcard:active,
+.app .screen .shelf-card:active,
+.app .bottom-nav button:active,
+#overlay .murglar-transport button:active,
+#overlay .murglar-quick-actions button:active,
+#overlay .murglar-header-button:active,
+#overlay .murglar-source-line:active,
+#overlay .aurel-transport:active,
+.app .screen .aurel-share-control:active,
+.app .screen .aurel-favourite-control:active{
+  transform:none!important;
+}
+/* The password visibility toggle is vertically centered via translation.
+   Preserve that positioning while suppressing additional active scale. */
+.app .screen .aurel-token-input button:active{
+  transform:translateY(-50%)!important;
+}
+
+/* Keep a gentle tactile response, paint-only, with no animated width,
+   padding, box shadows, transforms or font sizes. */
+.app .screen button,
+.app .bottom-nav button,
+#overlay .murglar-view button,
+.app .screen .aurel-share-control,
+.app .screen .aurel-favourite-control {
+  transition:background-color .12s ease-out,
+             color .12s ease-out,
+             border-color .12s ease-out!important;
+}
+#overlay .murglar-view .murglar-quick-actions button,
+#overlay .murglar-view .murglar-transport .murglar-control{
+  transition:background-color .12s ease-out,color .12s ease-out,
+             border-color .12s ease-out!important;
+}
+
+/* Source status, the seek bar and the mini-player progress must not catch
+   repeated opacity/transform animations while audio is playing. */
+#overlay .murglar-progress-row *,
+#overlay .murglar-progress-row,
+.app .mini .mini-progress,
+#overlay .murglar-source-line,
+#overlay .murglar-state{
+  animation:none!important;
+  transition:none!important;
+}
+@media (prefers-reduced-motion:reduce){
+ #screen *,#overlay *, .app .mini *, .app .bottom-nav *{
+   animation:none!important;
+   transition:none!important;
+   scroll-behavior:auto!important;
+ }
+}
