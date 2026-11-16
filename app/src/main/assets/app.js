@@ -82,7 +82,9 @@ window.AurelEvent=(kind,data)=>{
          }
        }
      }else{
+       app.session={...(app.session||{}),gatewayPlaybackRejected:true};
        showToast(data?.error||'Mornye verification did not complete',6500);
+       if(app.nav==='settings')renderSettings();
      }
      return;
    }
@@ -253,17 +255,18 @@ function renderLogin(){
     <div class="aurel-login-footer">${secondary?'<button class="small-link" data-cancel-library>Back to settings</button>':''}</div>
   </div>`;
 }
-function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();return;}
+function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back',25)}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel"><h3>Streaming account</h3>
- <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
+ ${app.session.gatewayPlaybackRejected?`<div class="aurel-gateway-warning" role="status"><strong>Streaming verification needed</strong><span>The Zarz gateway rejected audio playback. Catalogue access alone does not confirm streaming authorization.</span><button class="pill secondary" data-reverify-mornye>Verify Mornye session</button></div>`:'' }
+<div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
  <div class="info-row"><span>Session verification</span><strong>${app.session.mornyeConnected?'Mornye catalogue verified · playback depends on Zarz':app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':app.session.streamValidation==='rejected'?'Rejected · check token and App ID':'Not checked'}</strong></div>
  <div class="info-row"><span>Profile</span><strong>${html(p.displayName||'—')}</strong></div>
  <div class="info-row"><span>User ID</span><strong>${html(p.userId||'Not verified')}</strong></div>
  <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?' ✓':''}</strong></div>
  <div class="info-row"><span>Connection type</span><strong>${app.session.mornyeConnected?'Mornye signed gateway':'Qobuz account'}</strong></div>
   <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
- <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button><button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
+ <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button>${app.session.mornyeConfigured?'<button class="pill secondary" data-reverify-mornye>Reverify Mornye</button>':''}<button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
  <div class="panel"><h3>Personal Qobuz library</h3><p class="subline">Connect your own Qobuz account by email and password without entering an App ID. Its playlists, saved releases, albums, artists and favourites are independent of your Mornye streaming session.</p>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
@@ -418,6 +421,17 @@ document.addEventListener('click',async ev=>{
    app.loginMode=['token','password','mornye'].includes(b.dataset.loginMode)?b.dataset.loginMode:'token';
    renderLogin();return;
  }
+ if(b.hasAttribute('data-reverify-mornye')){
+    ev.preventDefault();
+    if(b.disabled)return;
+    b.disabled=true;
+    try{
+      await nativeCall('reverifyMornye');
+      showToast('Requesting a fresh Zarz session grant…',4200);
+    }catch(e){showToast(e?.message||'Mornye verification could not start',6500)}
+    finally{b.disabled=false;}
+    return;
+ }
  if(b.hasAttribute('data-connect-mornye')){
    ev.preventDefault();
    const error=$('#mornyeLoginError');
@@ -476,7 +490,9 @@ document.addEventListener('click',async ev=>{
  if(b.hasAttribute('data-validate-stream')){
    try{
      app.session=await nativeCall('validateSession');render();
-     showToast(app.session.authRejected?'Qobuz rejected this token/App ID':app.session.authError?'Connection check unavailable: '+app.session.authError:'Qobuz verified',6500);
+     showToast(app.session.mornyeConfigured
+       ?(app.session.gatewayPlaybackRejected?'Catalogue may be available, but the audio grant was rejected. Tap Reverify Mornye.':app.session.authError||'Mornye catalogue checked; playback rights are verified separately.')
+       :(app.session.authRejected?'Qobuz rejected this token/App ID':app.session.authError?'Connection check unavailable: '+app.session.authError:'Qobuz verified'),6500);
    }catch(e){showToast(e.message||'Qobuz connection check failed',6500)}
    return;
  }
