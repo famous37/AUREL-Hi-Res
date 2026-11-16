@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.9 Beta
+# AUREL Hi-Res · 1.1.0 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -130,3 +130,12 @@ A successful Android build **does not** prove the public Qobuz API will grant ne
 - Tests cover source-level behavior and Android compilation. Qobuz and Zarz server authorization and specific-device display remain unverified until an actual phone test.
 
 References: https://developers.cloudflare.com/turnstile/get-started/mobile-implementation/ ; https://github.com/nathom/streamrip/issues/956
+
+## v1.1.0 — Stable navigation, album art, early quality/bitrate
+
+- The same persistent **Discover / Search / Library / Settings** bottom navigation is used in all screens, including Now Playing. There is no separately rendered full-player nav with different height, order or route handlers. The full-player content stops above the 70 px shared footer.
+- Stronger, consistent foreground/background and selected-tab contrast; the mini-player stays a fixed 72 px and displays the current album cover, title, artist, and previous/play/next controls. Artwork is requested eagerly and displayed as a 31 px thumbnail beside the full-player heading.
+- Existing track/album catalogue information is displayed immediately when playback begins. A bounded in-memory cache (128 tracks) serves repeated/revisited tracks without refetching; the next track's catalogue metadata may be prefetched after successful playback starts. It **does not** request future audio tickets or stream URLs, respecting Zarz's rate limits.
+- When an audio URL is resolved, stream metadata is emitted before waiting for Android MediaPlayer.prepareAsync. If present, source-reported bitrate/size are exposed, Android's parsed track bitrate may be shown after prepare, and file-size/duration can provide a clearly marked **estimated average bitrate** for VBR audio. If no credible source is available, bitrate remains unknown. Quality presets and Qobuz catalogue maximum never masquerade as measured stream bitrate.
+- No changes to the existing Mornye authentication, personal library credentials, or streaming protocol. Playback availability remains subject to Zarz/Qobuz; catalogue calls and bitrates may still take network time and cannot be guaranteed instant by the Android UI.
+- Run JavaScript regression checks, Gradle debug builds, and small-screen layout checks. Testing on the user's handset remains the final verification.
