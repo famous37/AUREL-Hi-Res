@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.8 Beta
+# AUREL Hi-Res · 1.0.9 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -119,3 +119,14 @@ A successful Android build **does not** prove the public Qobuz API will grant ne
 - Password sign-in uses a POST body (including a bounded legacy username POST variant); no password is placed in a URL.
 - A final responsive stylesheet fixes overflows in auth, settings, small-screen tabs, the mini-player and full-player info/audio sheets. The full-player detail sheet remains scrollable independently above the navigation bar.
 - **Provider limitation:** Qobuz may reject third-party password authentication or require CAPTCHA. No client change can guarantee it, and a registered/authorized App ID is still required by Qobuz at the API level; the user simply no longer has to type one. Exact stream bit depth is shown only if the server supplies it.
+
+## v1.0.9 — Qobuz authentication and safe mobile UI
+
+- Qobuz password API requests now use the legacy MD5 representation rather than sending a raw password, and no redundant login requests are made after HTTP 401. The Qobuz server can continue rejecting direct third-party password sign-in, as widely reported since April 2026. AUREL does NOT bypass that restriction. For a personal library, an independent Session Token remains available without changing the Mornye streaming session.
+- An App ID is selected automatically for library authentication: use the currently available Qobuz client configuration or an existing configured integration, rather than silently assuming a hardcoded ID.
+- Zarz in-app verification now has Android status/navigation/IME insets and stable WebView settings for Cloudflare. The browser fallback is for the Zarz challenge ONLY, never the Qobuz desktop player. Returned one-time grants are checked against encrypted short-lived state before exchange.
+- Corrected double safe-area handling: the native Android root already consumes system-bar insets; the web bottom bar now uses a fixed 70 px height and four full-width cells without an additional CSS inset. Horizontal panning from keyboard focus is reset after navigating.
+- Both regular and independent AUREL Preview APKs are produced. Installing Preview does not replace a previously working player.
+- Tests cover source-level behavior and Android compilation. Qobuz and Zarz server authorization and specific-device display remain unverified until an actual phone test.
+
+References: https://developers.cloudflare.com/turnstile/get-started/mobile-implementation/ ; https://github.com/nathom/streamrip/issues/956
