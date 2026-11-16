@@ -326,9 +326,16 @@ public final class MainActivity extends Activity {
         try {int q=Integer.parseInt(secure.get("quality")); return q==5||q==6||q==7||q==27?q:27;}
         catch(Exception ignored){return 27;}
     }
-    private boolean mornyeActive(){return "mornye".equals(secure.get("authMode"))&&mornye.isConnected();}
+    private boolean mornyeMode(){return "mornye".equals(secure.get("authMode"));}
+    private boolean mornyeActive(){return mornyeMode()&&mornye.isConnected();}
     private JSONObject catalog(String endpoint,JSONObject params)throws Exception{
-        if(!mornyeActive())return api.catalog(endpoint,params);
+        if(!mornyeMode())return api.catalog(endpoint,params);
+        // An expired gateway session must not silently fall back to unrelated
+        // Qobuz credentials: that path surfaces 401 without Zarz verification.
+        if(!mornyeActive()){
+            ui.post(()->beginAutomaticReverification());
+            throw new Exception("Mornye signed session expired; verification required.");
+        }
         try{return mornye.metadata(endpoint,params);}
         catch(MornyeGateway.GatewayException error){
             scheduleCatalogueReverification(error);
@@ -413,7 +420,12 @@ public final class MainActivity extends Activity {
                     JSONObject p=args(payload);
                     JSONObject data;
                     switch(action) {
-                        case "session": data=session();break;
+                        case "session": {
+                            data=session();
+                            if(mornyeMode()&&!mornyeActive())
+                                ui.post(()->beginAutomaticReverification());
+                            break;
+                        }
                         case "connectMornye": {
                             JSONObject result;
                             try{result=mornye.connect();}
@@ -451,7 +463,7 @@ public final class MainActivity extends Activity {
                             break;
                         }
                         case "validateSession": {
-                            if(mornyeActive()){
+                            if(mornyeMode()){
                                 try{
                                     catalog("track/search",new JSONObject().put("query","music").put("limit",1));
                                     data=session();
@@ -981,11 +993,15 @@ public final class MainActivity extends Activity {
         buffering=true;playerError="";
         // Selecting a different track during CAPTCHA must not use an unrelated
         // account or create further Zarz tickets before verification completes.
-        if(verificationInProgress&&"mornye".equals(secure.get("authMode"))){
+        if(verificationInProgress&&mornyeMode()){
             verificationRetryGeneration=playGeneration;
             buffering=false;
             playerError="Complete Mornye verification to resume playback.";
             emit("player",playerState());
+            return;
+        }
+        if(mornyeMode()&&!mornyeActive()){
+            beginStreamReverification(generation);
             return;
         }
         final String id=current.optString("id","");
@@ -1017,7 +1033,7 @@ public final class MainActivity extends Activity {
             try {
                 JSONObject info=null;Exception last=null;
                 int requested=quality();
-                boolean viaMornye=mornyeActive();
+                boolean viaMornye=mornyeMode();
                 // The gateway's CD tier is lossless; it does not offer the
                 // Qobuz MP3 (format 5) tier. Do not mislabel CD as MP3.
                 int[] formats=viaMornye
