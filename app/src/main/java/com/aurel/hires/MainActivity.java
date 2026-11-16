@@ -485,22 +485,29 @@ public final class MainActivity extends Activity {
                         }
 
                         case "artistExtras": {
-                            // Public catalogue metadata; failures are nonfatal to artist browsing.
                             String artistId=p.getString("id");
                             JSONObject extras=new JSONObject();
                             try {
-                                extras=catalog("artist/page",new JSONObject().put("artist_id",artistId));
-                            }catch(Exception ignored) {}
+                                extras=artistInformation("artist/page",
+                                    new JSONObject().put("artist_id",artistId));
+                            }catch(Exception error) {
+                                // A failed endpoint must be distinguishable from an empty Qobuz catalogue.
+                                extras.put("_pageError","Qobuz artist page request failed");
+                            }
                             Object similar=extras.opt("similar_artists");
-                            if(similar==null || similar==JSONObject.NULL
-                                || (similar instanceof JSONObject
-                                    && ((JSONObject)similar).optJSONArray("items")==null)) {
+                            JSONArray relatedItems=similar instanceof JSONObject
+                                ?((JSONObject)similar).optJSONArray("items"):null;
+                            if(similar==null||similar==JSONObject.NULL
+                                ||relatedItems==null||relatedItems.length()==0) {
                                 try {
-                                    JSONObject result=catalog("artist/getSimilarArtists",
+                                    JSONObject result=artistInformation("artist/getSimilarArtists",
                                         new JSONObject().put("artist_id",artistId).put("limit",25));
                                     JSONObject related=result.optJSONObject("artists");
                                     if(related!=null)extras.put("similar_artists",related);
-                                }catch(Exception ignored) {}
+                                }catch(Exception error) {
+                                    if(relatedItems==null||relatedItems.length()==0)
+                                        extras.put("_similarError","Qobuz related-artists request failed");
+                                }
                             }
                             data=extras;break;
                         }
@@ -510,10 +517,19 @@ public final class MainActivity extends Activity {
                                 && !releaseType.equals("album"))
                                 throw new Exception("Unsupported release type");
                             String artistId=p.getString("id");
-                            // Keep IDs and rights exactly as provided by the catalogue.
-                            data=catalog("artist/getReleasesList",new JSONObject()
-                                .put("artist_id",artistId).put("release_type",releaseType)
-                                .put("sort","release_date_by_priority").put("offset",0).put("limit",60));
+                            try {
+                                data=artistInformation("artist/getReleasesList",new JSONObject()
+                                    .put("artist_id",artistId).put("release_type",releaseType)
+                                    .put("sort","release_date_by_priority").put("offset",0).put("limit",60));
+                            }catch(Exception listError) {
+                                // Qobuz may restrict the complete releases endpoint. A limited,
+                                // correctly typed artist-page preview is better than a fabricated list.
+                                try {data=artistPageReleases(artistId,releaseType);}
+                                catch(Exception fallbackError) {
+                                    throw new Exception("Qobuz release list unavailable: "
+                                        +listError.getMessage());
+                                }
+                            }
                             break;
                         }
                         case "resolveArtist": data=resolveArtist(p);break;
@@ -613,6 +629,56 @@ public final class MainActivity extends Activity {
                 }
             });
         }
+    }
+
+    /** Read artist metadata through an authorized Qobuz library account where available.
+     *  In Mornye mode the Zarz gateway may not support artist/page or getReleasesList;
+     *  only public artist metadata is retried anonymously (never private library data). */
+    private JSONObject artistInformation(String endpoint,JSONObject parameters)throws Exception {
+        Exception latest=null;
+        boolean publicMetadata=endpoint.equals("artist/page")
+            ||endpoint.equals("artist/getSimilarArtists");
+        if(!secure.get("libraryToken").isEmpty()) {
+            try{return api.library(endpoint,parameters);}
+            catch(Exception failure){latest=failure;}
+        }
+        if(mornyeActive()&&publicMetadata) {
+            try{return api.publicArtist(endpoint,parameters);}
+            catch(Exception failure){latest=failure;}
+        }
+        try{return catalog(endpoint,parameters);}
+        catch(Exception failure){latest=failure;}
+        if(!mornyeActive()&&publicMetadata) {
+            try{return api.publicArtist(endpoint,parameters);}
+            catch(Exception failure){latest=failure;}
+        }
+        if(latest!=null)throw latest;
+        throw new Exception("Qobuz artist metadata unavailable");
+    }
+
+    /** Use Qobuz's typed, limited artist/page preview only when its full
+     *  getReleasesList request is blocked. The UI never invents release IDs. */
+    private JSONObject artistPageReleases(String artistId,String releaseType)throws Exception {
+        JSONObject page=artistInformation("artist/page",
+            new JSONObject().put("artist_id",artistId));
+        JSONArray sections=page.optJSONArray("releases");
+        if(sections==null)throw new Exception("Artist page has no release sections");
+        JSONArray matches=new JSONArray();
+        for(int i=0;i<sections.length();i++) {
+            JSONObject section=sections.optJSONObject(i);
+            if(section==null)continue;
+            String type=section.optString("type",section.optString("release_type",""));
+            boolean matchesType=type.equals(releaseType)
+                ||(releaseType.equals("epSingle")&&(type.equals("single")||type.equals("ep")));
+            if(!matchesType)continue;
+            JSONArray items=section.optJSONArray("items");
+            if(items==null)continue;
+            for(int n=0;n<items.length();n++) {
+                JSONObject item=items.optJSONObject(n);
+                if(item!=null)matches.put(item);
+            }
+        }
+        return new JSONObject().put("items",matches).put("_partial",true);
     }
 
     /** A release list may be an artist/get albums block, or the newer getReleasesList.
