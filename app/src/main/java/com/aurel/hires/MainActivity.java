@@ -235,7 +235,7 @@ public final class MainActivity extends Activity {
         j.put("previewBuild",getPackageName().contains(".preview"));
         String streamValidation=secure.get("streamValidation");
         String libraryValidation=secure.get("libraryValidation");
-        j.put("streamValidation",gateway?"verified":streamValidation.isEmpty()?"unknown":streamValidation);
+        j.put("streamValidation",gateway?"catalogue":streamValidation.isEmpty()?"unknown":streamValidation);
         j.put("libraryValidation",libraryValidation.isEmpty()?"unknown":libraryValidation);
         try { j.put("profile",new JSONObject(secure.get("profile"))); }
         catch(Exception ignored) {j.put("profile",new JSONObject());}
