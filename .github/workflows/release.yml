@@ -90,6 +90,7 @@ jobs:
           node tests/share.test.cjs
           node tests/smooth-motion.test.cjs
           node tests/release-availability.test.cjs
+          # Release status CSS loads after motion styles without replacing them.
           # Share styles load last; existing graphite and favourite assets remain enabled.
           # Favourite mutation/rollback, status loading, and session separation are validated above.
           # DOM mock includes classList.contains, matching Android WebView's Element API.
