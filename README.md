@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.3 Beta
+# AUREL Hi-Res · 1.0.4 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -69,3 +69,11 @@ Upstream sources:
 - [Mornye signed-session host implementation](https://github.com/mornyeapp/Mornye/tree/main/rust_backend/crates/extensions/src)
 
 No music-download features have been restored to AUREL. A real-device Qobuz login and CAPTCHA check remains necessary; CI cannot simulate the external website.
+
+## v1.0.4 — Qobuz Web/CAPTCHA session import repair
+
+- Fixed a sign-in failure caused by handing HTTPS identity-provider redirects off to an external browser (whose cookies are isolated from the AUREL WebView).
+- While the user signs in, the isolated WebView can capture the issued `X-User-Auth-Token` and public `X-App-Id` from requests to Qobuz's HTTPS API; credentials are never collected from external sites or logged. AUREL still requires explicit **Use this session** and validates the token with Qobuz before saving it.
+- Retained the existing on-demand first-party localStorage extraction fallback. This is **not** an implementation of Mornye's signed-session host, and is not a promise that Qobuz will permit Android WebView authentication.
+- The old Mornye version-only status panel was misleading and has been replaced with an explanation. No executable third-party extension code or music-download capabilities have been added.
+- **Real-account verification required:** Qobuz may change its login flow or reject WebView, and a usable Qobuz account token is different from a Mornye/Zarz signed gateway session.
