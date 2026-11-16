@@ -320,7 +320,7 @@ assert(java.includes('put("catalogRecovery",catalogueRecovery)'),
   'successful catalogue recovery should preserve the current screen');
 assert(fs.readFileSync(base+'app.js','utf8').includes('if(data?.catalogRecovery)'),
   'artist/search views must be retried after verification');
-assert(discoJs.includes('AurelResetArtistMetadata'),
+assert(fs.readFileSync(base+'aurel-discography.js','utf8').includes('AurelResetArtistMetadata'),
   'previously rejected artist metadata must not be cached as empty');
 assert(gateway.includes('reconnectAfterVerificationRequired()')&&gateway.includes('clearPending()'),
   'stream verification must discard the old signed session and restart bootstrap');
