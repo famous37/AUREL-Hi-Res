@@ -88,6 +88,19 @@
     const top=extend(id,token,'artistExtras',{},function(s,data){
       s.top=asList(data?.top_tracks||data?.topTracks).filter(x=>safeId(x)&&x.title);
       s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x));
+      // The current artist/page API also returns typed release previews. Render
+      // them immediately while separately requested complete lists are loading.
+      for(const group of asList(data?.releases)){
+        const kind=String(group?.type||group?.release_type||'');
+        const releases=asList(group).map(x=>normalizedRelease(x,kind)).filter(Boolean);
+        if(kind==='epSingle'||kind==='single'||kind==='ep')
+          s.ep=unique([...s.ep,...releases]);
+        else if(kind==='compilation')
+          s.compilation=unique([...s.compilation,...releases]);
+        else if(kind==='album')
+          s.pageAlbums=unique([...(s.pageAlbums||[]),...releases]);
+      }
+      s.lastRelease=normalizedRelease(data?.last_release);
       const biography=data?.biography?.content||data?.biography?.text||data?.biography;
       s.biography=typeof biography==='string'?biography.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim():'';
       s.pageError=String(data?._pageError||'');
@@ -95,12 +108,12 @@
       s.pageDone=true;
     },(s)=>{s.pageDone=true;s.pageError='Request failed';s.similarError='Request failed';});
     const ep=extend(id,token,'artistReleaseType',{releaseType:'epSingle'},function(s,data){
-      s.ep=unique(asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'epSingle')).filter(Boolean));
+      s.ep=unique([...s.ep,...asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'epSingle')).filter(Boolean)]);
       s.epDone=true;
       s.epError='';
     },(s)=>{s.epDone=true;s.epError='Request failed';});
     const compilations=extend(id,token,'artistReleaseType',{releaseType:'compilation'},function(s,data){
-      s.compilation=unique(asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'compilation')).filter(Boolean));
+      s.compilation=unique([...s.compilation,...asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'compilation')).filter(Boolean)]);
       s.compDone=true;
     });
     Promise.allSettled([top,ep,compilations]).then(()=>{
@@ -176,14 +189,14 @@
     const o=app.selected||{},id=safeId(o);
     if(!id)return;
     const state=detailFor(id);
-    const base=unique(asList(o.albums).map(x=>normalizedRelease(x)).filter(Boolean));
+    const base=unique([...asList(o.albums),...(state.pageAlbums||[])].map(x=>normalizedRelease(x)).filter(Boolean));
     const epFromBase=base.filter(x=>typeOf(x)==='epSingle');
     const compFromBase=base.filter(x=>typeOf(x)==='compilation');
     const eps=unique([...state.ep,...epFromBase]);
     const compilations=unique([...state.compilation,...compFromBase]);
     const separate=new Set([...eps,...compilations].map(safeId));
     const albums=base.filter(x=>!separate.has(safeId(x)));
-    const all=unique([...base,...eps,...compilations]);
+    const all=unique([...base,...eps,...compilations,...(state.lastRelease?[state.lastRelease]:[])]);
     const last=all.slice().sort((a,b)=>releaseDate(b).localeCompare(releaseDate(a)))[0];
     const top=state.top||[];
     const avatar=art(o,'aurel-artist-photo')||'<span class="aurel-artist-photo aurel-art-placeholder">♪</span>';
