@@ -93,16 +93,26 @@ function catalogueMaxText(p){
  if(bits&&rate)return `${bits}-bit / ${rate}${p?.catalogMaxFromAlbum?' (album)':''}`;
  return 'Not reported';
 }
+function bitrateDisplay(p){
+ const value=Number(p?.sourceBitrateKbps)||0;
+ if(value>=8&&value<=50000)return `${Math.round(value)} kbps · provider`;
+ const decoder=Number(p?.decoderBitrateKbps)||0;
+ if(decoder>=8&&decoder<=50000)return `${Math.round(decoder)} kbps · Android`;
+ const estimate=Number(p?.estimatedAvgBitrateKbps)||0;
+ if(estimate>=8&&estimate<=50000)return `≈ ${Math.round(estimate)} kbps · estimated average`;
+ return '';
+}
 function actualSource(p){
  if(!p)return 'Format not available';
  const bits=Number(p.bits)||0,rate=kHzLabel(p.sampleRateHz);
  const parsedRate=kHzLabel(p.decoderSampleRateHz);
  const codec=p.codec||((p.decoderMime||'').toLowerCase().includes('flac')?'FLAC':'');
- if(p.sourceVerified&&bits&&rate)return `${codec?codec+' · ':''}${bits}-bit / ${rate}`;
- if(parsedRate)return `${codec?codec+' · ':''}${parsedRate} · parsed by Android`;
+ const bitrate=bitrateDisplay(p);
+ if(p.sourceVerified&&bits&&rate)return `${codec?codec+' · ':''}${bits}-bit / ${rate}${bitrate?' · '+bitrate:''}`;
+ if(parsedRate)return `${codec?codec+' · ':''}${parsedRate} · parsed by Android${bitrate?' · '+bitrate:''}`;
  if(p.playing&&p.catalogMaxBits&&p.catalogMaxSampleRateHz)
-   return `Playing · Qobuz up to ${catalogueMaxText(p)}`;
- if(p.playing)return 'Playing · exact stream format not reported';
+   return `Playing · Qobuz up to ${catalogueMaxText(p)}${bitrate?' · '+bitrate:''}`;
+ if(p.playing)return bitrate||'Playing · exact stream format not reported';
  if(p.buffering)return 'Checking audio source…';
  return 'Stream format not reported';
 }
@@ -113,6 +123,9 @@ function audioPanel(p){
  const fields=[
   ['Current stream',p?.sourceVerified?`${p.bits}-bit / ${kHzLabel(p.sampleRateHz)}`:'Exact bit depth / rate not verified'],
   ['Qobuz catalogue maximum',catalogueMaxText(p)],
+  ['Provider bitrate',p?.sourceBitrateKbps?Math.round(p.sourceBitrateKbps)+' kbps':'Not reported'],
+  ['Android track bitrate',p?.decoderBitrateKbps?Math.round(p.decoderBitrateKbps)+' kbps':'Not reported'],
+  ['Estimated average bitrate',p?.estimatedAvgBitrateKbps?'≈ '+Math.round(p.estimatedAvgBitrateKbps)+' kbps (from file size / duration)':'Unavailable'],
   ['Provider',p?.sourceLabel||'Not reported'],
   ['Source provenance',source],
   ['Source codec',p?.codec||'Not reported'],
@@ -213,7 +226,7 @@ const formerEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const old=app.lastQueueFingerprint;formerEvent(kind,data);if(kind==='player'){
  const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
- const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz]);
+ const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz,data?.sourceBitrateKbps,data?.decoderBitrateKbps,data?.estimatedAvgBitrateKbps]);
  const trackSignature=JSON.stringify([data?.track?.id,data?.track?.title,artistLabel(data?.track||{}),data?.track?.album?.title,image(data?.track||{}),data?.track?.isrc,data?.track?.composers,data?.track?.performers,data?.track?.album?.label,data?.track?.album?.release_date_original]);
  if(app.overlay&&(old!==fingerprint||app.lastSourceSignature!==sourceSignature||app.lastVisualSignature!==trackSignature)){
     app.lastSourceSignature=sourceSignature;app.lastVisualSignature=trackSignature;drawOverlay();
