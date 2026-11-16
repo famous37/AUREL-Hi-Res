@@ -203,7 +203,7 @@ assert(streamingPlayer.includes('ExoPlayer.Builder(context)'));
 assert(!streamingPlayer.includes('HttpURLConnection'),
        'Playback quality inspection must reuse ExoPlayer HTTP response');
 
-assert(java.includes('if(generation!=playGeneration||player!=mp||!prepared)return;'));
+assert(java.includes('if(generation!=playGeneration||player!=expectedPlayer)return;'), 'Ignore stale Media3 format/stream metadata');
 assert(java.includes('estimatedAvgBitrateKbps'));
 assert(java.includes('sourceBitrateKbps'));
 assert(java.includes('trackCache.put(id,full)'));
