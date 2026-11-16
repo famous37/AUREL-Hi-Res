@@ -275,7 +275,16 @@ function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.clas
  <div class="playing-foot"><span id="playingStatus">${p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED'}</span><span>QUEUE ${p.count?`${p.index+1} / ${p.count}`:'—'}</span></div>
  ${p.error?`<div class="playback-error">${html(p.error)}</div>`:''}</div>`;
 }
-async function navigate(page){app.selected=null;app.selectedTracks=[];app.nav=page;render();
+async function navigate(page){
+ // Android WebView can retain horizontal panning after a keyboard/input is
+ // focused. Reset it on navigation so fixed tabs are not painted offscreen.
+ const focus=document.activeElement;
+ if(focus&&typeof focus.blur==='function')focus.blur();
+ app.selected=null;app.selectedTracks=[];app.nav=page;
+ render();
+ if(typeof window.scrollTo==='function')window.scrollTo(0,0);
+ if(document.documentElement)document.documentElement.scrollLeft=0;
+ if(document.body)document.body.scrollLeft=0;
  try{
  if(page==='home'&&!app.albums.length&&hasAuth())await loadHome();
  else if(page==='library')await (app.libType==='playlists'?loadPlaylists():loadLibrary());
@@ -355,7 +364,14 @@ async function login(form){
  }catch(e){
   const error=$('#loginError');
   const msg=e?.message||'Qobuz refused the login. Check credentials and try again.';
-  if(error){error.textContent=msg;error.classList.remove('hidden')}else showToast(msg,6500);
+  if(error){
+   error.textContent=msg;error.classList.remove('hidden');
+   // Keep the actionable server error and reconnect button in view after
+   // the keyboard is dismissed; do not overlay the mini player.
+   if(typeof document.activeElement?.blur==='function')document.activeElement.blur();
+   if(typeof error.scrollIntoView==='function')
+      error.scrollIntoView({block:'nearest',behavior:'smooth'});
+ }else showToast(msg,6500);
   const advanced=document.querySelector('.aurel-signin-advanced');
   if(advanced&&/App ID|X-App-Id|web app|401|403/i.test(msg))advanced.open=true;
   if(button){button.disabled=false;button.innerHTML=(secondary?'Connect library account':'Connect Qobuz')+' '+ic('chevron',21)}
