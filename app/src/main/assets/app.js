@@ -59,6 +59,16 @@ window.AurelReceive=(id,reply)=>{
 };
 window.AurelEvent=(kind,data)=>{
  if(kind==='mornyeVerificationResult'){
+   if(data?.streamRecovery){
+     // Automatic re-verification must not navigate away from Now Playing.
+     if(data?.connected){
+       app.session=data;
+       showToast('Mornye session verified · resuming playback',4500);
+     }else{
+       showToast(data?.error||'Mornye verification did not complete',6500);
+     }
+     return;
+   }
    if(data?.connected){
      app.session=data;app.results=[];app.albums=[];app.loginTarget='stream';
      showToast('Mornye gateway session verified',4500);
