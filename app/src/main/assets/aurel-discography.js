@@ -96,7 +96,13 @@
     Promise.allSettled([top,ep,compilations]).then(()=>{
       if(token!==requestToken)return;
       const latest=byArtist.get(id);
-      if(latest){latest.loading=false;rerender(id);}
+      if(latest){
+        latest.loading=false;
+        latest.pageDone=true;
+        latest.epDone=true;
+        latest.compDone=true;
+        rerender(id);
+      }
     });
   }
   function releaseCard(o){
