@@ -4,12 +4,13 @@ const elem=()=>({
  innerHTML:'',value:'',type:'password',textContent:'',dataset:{},scrollTop:0,
  classList:{add(){},remove(){},toggle(){}},addEventListener(){},
  querySelector(){return null},querySelectorAll(){return[]},
- setAttribute(){},style:{setProperty(){}}
+ setAttribute(){},appendChild(){},replaceChildren(){},style:{setProperty(){}}
 });
 const nodes=new Map(),listeners={};
 const doc={
  querySelector(s){if(!nodes.has(s))nodes.set(s,elem());return nodes.get(s)},
  querySelectorAll(){return[]},
+ createElement(){return elem()},
  addEventListener(n,fn){(listeners[n]??=[]).push(fn)}
 };
 const values=new Map();
