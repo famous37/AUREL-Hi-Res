@@ -15,7 +15,7 @@
     const overlay=$('#overlay');
     if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
     const priorScroll=overlay.querySelector('.murglar-player-content')?.scrollTop||0;
-    const priorDetailScroll=overlay.querySelector('.murglar-detail-sheet')?.scrollTop||0;
+    const priorDetailScroll=overlay.querySelector('.aurel-detail-scroll')?.scrollTop||0;
     const priorSheet=overlay.dataset.openSheet||'';
     const priorTrack=overlay.dataset.openTrack||'';
     const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
@@ -26,7 +26,7 @@
     // Persistent app bottom navigation remains mounted outside this overlay.
     overlay.classList.remove('hidden');
     overlay.style.setProperty('--cover-image','none');
-    overlay.innerHTML=`<div class="aurel-listening-screen murglar-view">
+    overlay.innerHTML=`<div class="aurel-listening-screen murglar-view ${active?'murglar-sheet-open':''}">
       <div class="aurel-art-backdrop" aria-hidden="true"></div>
       <header class="murglar-header aurel-listening-nav">
         <button data-close-overlay class="murglar-header-button" aria-label="Minimize player">${ic('down',26)}</button>
@@ -62,13 +62,22 @@
           ${ic('audio',18)}<span>${html(source)}</span><small>· ${html(sourceCaption(p))}</small>
         </button>
         ${p.error?`<div class="playback-error" role="status">${html(p.error)}</div>`:''}
-        ${active?`<div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
         <span class="murglar-state" id="playingStatus" aria-live="polite">${stateCaption(p)}</span>
       </div>
-
+      ${active?`<button type="button" class="aurel-detail-dimmer" data-close-detail aria-label="Close details"></button>
+      <section class="aurel-detail-drawer" role="dialog" aria-modal="true" aria-label="${active==='upnext'?'Queue':active==='credits'?'Track information':'Audio information'}">
+        <header class="aurel-drawer-header">
+          <span class="aurel-drawer-handle" aria-hidden="true"></span>
+          <h2>${active==='upnext'?'Queue':active==='credits'?'Track information':'Audio information'}</h2>
+          <button type="button" data-close-detail aria-label="Close information panel">&times;</button>
+        </header>
+        <div class="aurel-detail-scroll">
+          <div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>
+        </div>
+      </section>`:''}
     </div>`;
     const scroller=overlay.querySelector('.murglar-player-content');
-    const detail=overlay.querySelector('.murglar-detail-sheet');
+    const detail=overlay.querySelector('.aurel-detail-scroll');
     const sameTrack=priorTrack===String(t.id||'');
     if(scroller)scroller.scrollTop=(sameTrack&&active===priorSheet)?priorScroll:0;
     if(detail)detail.scrollTop=(sameTrack&&active===priorSheet)?priorDetailScroll:0;
