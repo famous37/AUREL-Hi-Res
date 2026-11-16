@@ -37,7 +37,7 @@ final class QobuzApi {
         "(?:src|href)\\s*=\\s*[\\\"']([^\\\"']*?/resources/[^\\\"']*?\\.js)[\\\"']",
         Pattern.CASE_INSENSITIVE);
     private static final Pattern WEB_PRODUCTION_APP_ID=Pattern.compile(
-        "production:\\{api:\\{appId:\\"([0-9]{9})\\"");
+        "production:\\{api:\\{appId:[^0-9]{0,3}([0-9]{9})");
     private static final Pattern WEB_APP_ID=Pattern.compile(
         "(?:appId|app_id|appId\\s*=)\\s*[:=]\\s*[\\\"']?([0-9]{6,15})[\\\"']?");
     private static String lastWebAppId="";
