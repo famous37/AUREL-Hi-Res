@@ -115,7 +115,11 @@ final class QobuzApi {
     private JSONObject request(String endpoint, JSONObject data, boolean post, String appId, String token) throws Exception {
         if(!endpoint.matches("[a-zA-Z]+/[a-zA-Z]+"))throw new IllegalArgumentException("Invalid API endpoint");
         if(appId.isEmpty())throw new IllegalArgumentException("App ID is required for the selected account");
-        String payload=query(data);
+        // Some Qobuz API variants require app_id in the request parameters as
+        // well as the X-App-Id header; do not rely on the header alone.
+        JSONObject params=new JSONObject(data.toString());
+        params.put("app_id",appId);
+        String payload=query(params);
         URL url=new URL(BASE+endpoint+(post?"":payload.isEmpty()?"":"?"+payload));
         HttpURLConnection c=(HttpURLConnection)url.openConnection();
         c.setConnectTimeout(12000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);
@@ -123,7 +127,7 @@ final class QobuzApi {
         c.setUseCaches(false);
         c.setRequestProperty("Cache-Control","no-store");
         c.setRequestProperty("X-App-Id",appId);
-        c.setRequestProperty("User-Agent","AurelHiRes/0.6 Android");
+        c.setRequestProperty("User-Agent","AurelHiRes/1.0 Android");
         if(!token.isEmpty())c.setRequestProperty("X-User-Auth-Token",token);
         if(post){
             c.setRequestMethod("POST");c.setDoOutput(true);
@@ -138,7 +142,14 @@ final class QobuzApi {
                 while((n=input.read(buf))>=0){if(out.size()+n>5_000_000)throw new Exception("API response too large");out.write(buf,0,n);}
             }
             String text=out.toString("UTF-8");
-            JSONObject body=text.isEmpty()?new JSONObject():new JSONObject(text);
+            JSONObject body;
+            try{body=text.isEmpty()?new JSONObject():new JSONObject(text);}
+            catch(Exception invalid){
+                throw new ApiException(code,endpoint,
+                    code>=300?"Qobuz API returned HTTP "+code+
+                      " instead of a JSON response. Check connectivity and App ID.":
+                    "Qobuz returned a non-JSON response.");
+            }
             if(code>=300||"error".equalsIgnoreCase(body.optString("status"))){
                 int status=code>=300?code:body.optInt("code",500);
                 // Root identifiers are Qobuz server trace IDs, not evidence of a valid session.
