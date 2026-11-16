@@ -120,6 +120,19 @@ final class MornyeGateway {
         return store.get("mornyePendingUrl");
     }
     String pendingState()throws Exception{return requireState();}
+    private static String callbackState(Uri uri,int depth){
+        if(uri==null||depth>3)return "";
+        String state=uri.getQueryParameter("state");
+        if(state!=null&&!state.trim().isEmpty())return state.trim();
+        for(String key:new String[]{"cb","callback","callback_url","redirect_uri"}){
+            String nested=uri.getQueryParameter(key);
+            if(nested!=null&&!nested.isEmpty()){
+                String value=callbackState(Uri.parse(nested),depth+1);
+                if(!value.isEmpty())return value;
+            }
+        }
+        return "";
+    }
     private JSONObject challenge(JSONObject result)throws Exception{
         String challengeId=result.optString("challenge_id","").trim();
         String authUrl=result.optString("auth_url","").trim();
@@ -129,14 +142,9 @@ final class MornyeGateway {
             Uri original=Uri.parse(authUrl);
             if(!"https".equalsIgnoreCase(original.getScheme()))
                 throw new Exception("Gateway verification requires a non-HTTPS page");
-            // Reuse the server supplied state, including one nested in cb.
-            String serverState=original.getQueryParameter("state");
-            if((serverState==null||serverState.isEmpty())){
-                String cb=original.getQueryParameter("cb");
-                if(cb!=null&&!cb.isEmpty())
-                    serverState=Uri.parse(cb).getQueryParameter("state");
-            }
-            if(serverState!=null&&!serverState.trim().isEmpty())state=serverState.trim();
+            // Preserve the server's callback state, including nested redirect URLs.
+            String serverState=callbackState(original,0);
+            if(!serverState.isEmpty())state=serverState;
             else authUrl=original.buildUpon().appendQueryParameter("state",state).build().toString();
         }else if(!challengeId.isEmpty()){
             String cb=Uri.parse(CALLBACK).buildUpon()
@@ -154,8 +162,9 @@ final class MornyeGateway {
              parsed.getHost()==null||parsed.getHost().isEmpty())
             throw new Exception("Untrusted Mornye verification URL");
         // The initial page is the Zarz verification service, not Qobuz Web Player.
-        if(!"api.zarz.moe".equalsIgnoreCase(parsed.getHost()))
-            throw new Exception("Gateway supplied a non-Zarz verification URL.");
+        if(!"api.zarz.moe".equalsIgnoreCase(parsed.getHost())||
+           parsed.getPath()==null||!parsed.getPath().startsWith("/v2/"))
+            throw new Exception("Gateway supplied an unsupported verification URL.");
         store.put("mornyePendingState",state);
         store.put("mornyePendingAt",Long.toString(System.currentTimeMillis()));
         store.put("mornyePendingUrl",authUrl);
