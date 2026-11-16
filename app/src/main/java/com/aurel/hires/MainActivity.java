@@ -524,6 +524,21 @@ public final class MainActivity extends Activity {
         return j;
     }
 
+    /** Public, non-expiring catalog link. Never includes the user's token,
+     * App ID, signed streaming URL, email or other account state. */
+    private static String publicQobuzLink(JSONObject params)throws Exception {
+        String type=params.optString("type","").trim();
+        String id=params.optString("id","").trim();
+        if(type.equals("track")||type.equals("artist")){
+            if(!id.matches("[0-9]{1,20}"))
+                throw new IllegalArgumentException("Invalid Qobuz "+type+" ID");
+        }else if(type.equals("album")){
+            if(!id.matches("[a-zA-Z0-9]{1,64}"))
+                throw new IllegalArgumentException("Invalid Qobuz album ID");
+        }else throw new IllegalArgumentException("Unsupported Qobuz share type");
+        return "https://open.qobuz.com/"+type+"/"+id;
+    }
+
     private final class Bridge {
         @JavascriptInterface public void call(String requestId,String action,String payload) {
             if(requestId==null||requestId.length()>72)return;
@@ -627,6 +642,26 @@ public final class MainActivity extends Activity {
                                 data.put("authError",message);
                                 data.put("authRejected",rejected);
                             }
+                            break;
+                        }
+                        case "shareQobuzLink": {
+                            // Always use Android's native chooser, not a WebView
+                            // redirect. The URL is rebuilt from a validated Qobuz ID.
+                            final String url=publicQobuzLink(p);
+                            final String chooser="uk".equals(p.optString("locale",""))
+                                ?"Поширити посилання":"Share link";
+                            ui.post(()->{
+                                try {
+                                    Intent send=new Intent(Intent.ACTION_SEND);
+                                    send.setType("text/plain");
+                                    send.putExtra(Intent.EXTRA_TEXT,url);
+                                    startActivity(Intent.createChooser(send,chooser));
+                                }catch(Exception error){
+                                    android.widget.Toast.makeText(MainActivity.this,
+                                        "Unable to open Android sharing",android.widget.Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            data=new JSONObject().put("url",url).put("requested",true);
                             break;
                         }
                         case "openQobuzWeb": {

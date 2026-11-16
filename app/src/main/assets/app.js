@@ -161,7 +161,7 @@ function albumCards(items){if(!items.length)return `<div class="empty"><strong>N
 }
 function listTracks(items){if(!items.length)return `<div class="empty">No tracks found.</div>`;
  return `<div class="tracklist">${items.map((o,i)=>{
-  return `<div class="track"><span class="index">${i+1}</span>${art(o,'track-art')||'<div class="track-art"></div>'}
+  return `<div class="track" data-aurel-track-id="${html(o.id||'')}"><span class="index">${i+1}</span>${art(o,'track-art')||'<div class="track-art"></div>'}
    <div class="track-details" data-play-index="${i}"><div class="track-title">${html(o.title||'Untitled')}</div><div class="track-meta">${html(artistLabel(o))}${o.album?.title?' · '+html(o.album.title):''}</div></div>
    <span class="track-length">${duration(o.duration)}</span><button class="icon-btn" title="Add to favorites" data-like-track="${html(o.id)}">♡</button>
    <button class="icon-btn queue-add-icon" data-play-next="${i}" title="Play next">＋</button><button class="icon-btn" data-play-index="${i}" title="Play">▶</button></div>`;
