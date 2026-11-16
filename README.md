@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.1.8 Beta
+# AUREL Hi-Res · 1.1.9 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -157,3 +157,10 @@ References: [Qobuz artist API documentation](https://minim.readthedocs.io/en/dev
 - Once the server validates the grant, AUREL retries the same queued track automatically. The current Now Playing screen, queue and player palette remain in place.
 - One verification window is allowed at a time; failures and cancellations are reported without an endless retry loop. Playback controls can retry after the session problem is resolved.
 - This behavior is covered by source regression checks and a GitHub Actions Android build. Live gateway CAPTCHA/grant behavior still requires testing on the user's device.
+
+## v1.1.9 — Official portraits for similar artists
+
+- Similar-artist recommendations sometimes contain only an artist ID and name. AUREL now requests each initially visible artist's own Qobuz `artist/get` record and displays its official photograph when supplied.
+- Portraits are cached in memory; further photos load when the user expands **Similar artists**. Restricted/missing images show a themed initial instead of fabricated album covers.
+- Removed the redundant circular **Account** button in the top-right header. Settings remains available in the consistent bottom navigation.
+- Artist data and playback/authentication flows remain unchanged outside the portrait lookup. On-device image availability is still subject to the actual Qobuz API response.
