@@ -40,6 +40,9 @@ public final class MainActivity extends Activity {
     // Only UI-thread callbacks mutate these fields. One verification window at a time.
     private boolean verificationInProgress=false;
     private int verificationRetryGeneration=-1;
+    private boolean automaticVerificationRecovery=false;
+    private long lastAutomaticVerificationAt=0L;
+    private static final long AUTO_REVERIFY_COOLDOWN_MS=90_000L;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -130,12 +133,15 @@ public final class MainActivity extends Activity {
         ui.post(()->{
             if(!connected&&mornyeActive())return; // late browser-cancel event after a valid grant
             final int retryGeneration=verificationRetryGeneration;
-            final boolean recovery=retryGeneration>=0;
+            final boolean catalogueRecovery=automaticVerificationRecovery&&retryGeneration<0;
+            final boolean recovery=automaticVerificationRecovery||retryGeneration>=0;
             verificationRetryGeneration=-1;
+            automaticVerificationRecovery=false;
             verificationInProgress=false;
             try {
                 JSONObject status=connected?session():new JSONObject();
-                status.put("connected",connected).put("streamRecovery",recovery);
+                status.put("connected",connected).put("streamRecovery",recovery)
+                    .put("catalogRecovery",catalogueRecovery);
                 if(connected){
                     status.put("mornyeMessage","Mornye gateway session verified");
                     // Preserve the Now Playing screen, queue and current track.
@@ -161,22 +167,51 @@ public final class MainActivity extends Activity {
         });
     }
 
-    /** A 428 from an audio ticket requires a NEW bootstrap; a catalogue
-     *  probe of the old session would incorrectly appear to be connected. */
+    /** HTTP 428 VERIFY_REQUIRED and HTTP 401 SESSION_INVALID both require a
+     *  fresh signed session, not a retry of the expired HMAC credentials.
+     *  Metadata and playback failures share one verification window. */
     private void beginStreamReverification(int generation){
         if(generation!=playGeneration)return;
         buffering=false;
-        playerError="Mornye verification required. Complete the verification to resume playback.";
+        playerError="Mornye session requires verification. Confirm to resume playback.";
         emit("player",playerState());
         verificationRetryGeneration=generation;
+        beginAutomaticReverification();
+    }
+
+    private void scheduleCatalogueReverification(Exception error){
+        if(!MornyeGateway.requiresVerification(error)||
+            !"mornye".equals(secure.get("authMode")))return;
+        ui.post(()->beginAutomaticReverification());
+    }
+
+    /** Only called from the Android main thread. Avoid simultaneous prompts,
+     *  and do not automatically reopen a CAPTCHA in a tight session-invalid
+     *  loop if the gateway rejects a recently verified connection again. */
+    private void beginAutomaticReverification(){
         if(verificationInProgress)return;
+        if(!"mornye".equals(secure.get("authMode")))return;
+        long now=android.os.SystemClock.elapsedRealtime();
+        if(lastAutomaticVerificationAt>0 &&
+            now-lastAutomaticVerificationAt>=0 &&
+            now-lastAutomaticVerificationAt<AUTO_REVERIFY_COOLDOWN_MS){
+            // Keep manually triggered Connect Mornye available for a fresh attempt.
+            if(verificationRetryGeneration==playGeneration&&queueIndex>=0){
+                buffering=false;
+                playerError="Gateway rejected the renewed session. Open Settings to retry verification.";
+                emit("player",playerState());
+            }
+            return;
+        }
+        lastAutomaticVerificationAt=now;
         verificationInProgress=true;
+        automaticVerificationRecovery=true;
         jobs.execute(()->{
             try{
                 JSONObject outcome=mornye.reconnectAfterVerificationRequired();
                 if(outcome.optBoolean("verificationRequired",false)){
-                    String url=mornye.challengeUrl();
-                    String state=mornye.pendingState();
+                    final String url=mornye.challengeUrl();
+                    final String state=mornye.pendingState();
                     ui.post(()->{
                         if(!verificationInProgress)return;
                         Intent intent=new Intent(MainActivity.this,MornyeVerificationActivity.class);
@@ -189,11 +224,12 @@ public final class MainActivity extends Activity {
                     reportMornyeVerification(true,"");
                 }else{
                     reportMornyeVerification(false,
-                        outcome.optString("reason","Zarz did not issue a new session or verification link."));
+                        outcome.optString("reason","Zarz did not issue a verification link."));
                 }
             }catch(Exception failure){
                 reportMornyeVerification(false,
-                    failure.getMessage()==null?"Could not start Mornye verification.":failure.getMessage());
+                    failure.getMessage()==null?
+                        "Could not open Zarz verification.":failure.getMessage());
             }
         });
     }
@@ -292,7 +328,12 @@ public final class MainActivity extends Activity {
     }
     private boolean mornyeActive(){return "mornye".equals(secure.get("authMode"))&&mornye.isConnected();}
     private JSONObject catalog(String endpoint,JSONObject params)throws Exception{
-        return mornyeActive()?mornye.metadata(endpoint,params):api.catalog(endpoint,params);
+        if(!mornyeActive())return api.catalog(endpoint,params);
+        try{return mornye.metadata(endpoint,params);}
+        catch(MornyeGateway.GatewayException error){
+            scheduleCatalogueReverification(error);
+            throw error;
+        }
     }
     private void needLibrary()throws Exception{
         if(mornyeActive()&&secure.get("libraryToken").isEmpty())
@@ -374,7 +415,12 @@ public final class MainActivity extends Activity {
                     switch(action) {
                         case "session": data=session();break;
                         case "connectMornye": {
-                            JSONObject result=mornye.connect();
+                            JSONObject result;
+                            try{result=mornye.connect();}
+                            catch(Exception stale){
+                                if(!MornyeGateway.requiresVerification(stale))throw stale;
+                                result=mornye.reconnectAfterVerificationRequired();
+                            }
                             if(result.optBoolean("connected",false)){
                                 secure.put("authMode","mornye");
                                 data=session();
@@ -407,7 +453,7 @@ public final class MainActivity extends Activity {
                         case "validateSession": {
                             if(mornyeActive()){
                                 try{
-                                    mornye.metadata("track/search",new JSONObject().put("query","music").put("limit",1));
+                                    catalog("track/search",new JSONObject().put("query","music").put("limit",1));
                                     data=session();
                                 }catch(Exception issue){
                                     data=session();
