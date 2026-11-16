@@ -58,6 +58,10 @@ window.AurelReceive=(id,reply)=>{
  reply?.ok?pending.resolve(reply.data):pending.reject(new Error(reply?.error||'Unknown API error'));
 };
 window.AurelEvent=(kind,data)=>{
+ if(kind==='webLoginResult'){
+   if(typeof window.AurelWebLoginResult==='function')window.AurelWebLoginResult(data);
+   return;
+ }
  if(kind==='session'){
   app.session=data;
   if(app.nav==='home'||app.nav==='settings')render();
