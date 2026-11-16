@@ -315,6 +315,26 @@ final class QobuzApi {
             throw new Exception("Qobuz did not return track details");
         return track;
     }
+    /** First use the independent authenticated library account for rich
+     * credits/ISRC, otherwise use Qobuz's public track widget.
+     * Does not use the Mornye gateway for user-specific metadata.
+     */
+    JSONObject preferredTrackDetails(String trackId)throws Exception{
+        if(trackId==null||!trackId.matches("[0-9]{1,20}"))
+            throw new Exception("Invalid track ID");
+        String token=store.get("libraryToken");
+        if(!token.isEmpty()){
+            try{
+                JSONObject details=request("track/get",
+                    new JSONObject().put("track_id",trackId),false,libraryId(),token);
+                JSONObject wrapped=details.optJSONObject("track");
+                if(wrapped!=null)return wrapped;
+                if(details.has("id")||details.has("album"))return details;
+            }catch(Exception ignored){/* Public source remains an option. */}
+        }
+        return publicTrackDetails(trackId);
+    }
+
     /** Reuse the installed Qobuz App ID for a separate personal library.
      * Mornye gateway identity itself is not a Qobuz user App ID.
      */
