@@ -37,6 +37,9 @@ public final class MainActivity extends Activity {
     private QobuzApi api;
     private MornyeGateway mornye;
     private static final int MORNYE_VERIFICATION_REQUEST=4104;
+    // Only UI-thread callbacks mutate these fields. One verification window at a time.
+    private boolean verificationInProgress=false;
+    private int verificationRetryGeneration=-1;
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
@@ -121,42 +124,96 @@ public final class MainActivity extends Activity {
         }
     };
 
+    /** The browser callback and the in-app grant exchange share exactly one
+     *  completion path. Only a successful server grant may resume playback. */
+    private void reportMornyeVerification(boolean connected,String reason){
+        ui.post(()->{
+            if(!connected&&mornyeActive())return; // late browser-cancel event after a valid grant
+            final int retryGeneration=verificationRetryGeneration;
+            final boolean recovery=retryGeneration>=0;
+            verificationRetryGeneration=-1;
+            verificationInProgress=false;
+            try {
+                JSONObject status=connected?session():new JSONObject();
+                status.put("connected",connected).put("streamRecovery",recovery);
+                if(connected){
+                    status.put("mornyeMessage","Mornye gateway session verified");
+                    // Preserve the Now Playing screen, queue and current track.
+                    if(recovery&&retryGeneration==playGeneration&&mornyeActive()
+                        &&queueIndex>=0&&queueIndex<queue.size())startAtCurrent();
+                }else{
+                    String message=reason==null||reason.isEmpty()?
+                        "Zarz verification was not completed.":reason;
+                    status.put("error",message);
+                    if(recovery&&retryGeneration==playGeneration){
+                        buffering=false;
+                        playerError="Mornye verification not completed: "+message;
+                        emit("player",playerState());
+                    }
+                }
+                emit("mornyeVerificationResult",status);
+            }catch(Exception e){
+                try{emit("mornyeVerificationResult",new JSONObject()
+                    .put("connected",false).put("streamRecovery",recovery)
+                    .put("error","Gateway verification state could not refresh."));}
+                catch(Exception ignored){}
+            }
+        });
+    }
+
+    /** A 428 from an audio ticket requires a NEW bootstrap; a catalogue
+     *  probe of the old session would incorrectly appear to be connected. */
+    private void beginStreamReverification(int generation){
+        if(generation!=playGeneration)return;
+        buffering=false;
+        playerError="Mornye verification required. Complete the verification to resume playback.";
+        emit("player",playerState());
+        verificationRetryGeneration=generation;
+        if(verificationInProgress)return;
+        verificationInProgress=true;
+        jobs.execute(()->{
+            try{
+                JSONObject outcome=mornye.reconnectAfterVerificationRequired();
+                if(outcome.optBoolean("verificationRequired",false)){
+                    String url=mornye.challengeUrl();
+                    String state=mornye.pendingState();
+                    ui.post(()->{
+                        if(!verificationInProgress)return;
+                        Intent intent=new Intent(MainActivity.this,MornyeVerificationActivity.class);
+                        intent.putExtra(MornyeVerificationActivity.EXTRA_URL,url);
+                        intent.putExtra(MornyeVerificationActivity.EXTRA_STATE,state);
+                        startActivityForResult(intent,MORNYE_VERIFICATION_REQUEST);
+                    });
+                }else if(outcome.optBoolean("connected",false)){
+                    secure.put("authMode","mornye");
+                    reportMornyeVerification(true,"");
+                }else{
+                    reportMornyeVerification(false,
+                        outcome.optString("reason","Zarz did not issue a new session or verification link."));
+                }
+            }catch(Exception failure){
+                reportMornyeVerification(false,
+                    failure.getMessage()==null?"Could not start Mornye verification.":failure.getMessage());
+            }
+        });
+    }
+
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);
         setIntent(intent);
         if(intent==null||!MornyeGrantCallbackActivity.ACTION_RESULT.equals(intent.getAction()))
             return;
-        // External Zarz verification may return through a browser. Complete
-        // nonce validation in the native callback Activity before this event.
-        if(intent.getBooleanExtra("connected",false)){
-            try{
-                JSONObject data=session();
-                data.put("connected",data.optBoolean("mornyeConnected",false));
-                emit("mornyeVerificationResult",data);
-            }
-            catch(Exception e){try{emit("mornyeVerificationResult",
-                new JSONObject().put("connected",false).put("error",
-                    "Gateway connected but account view could not refresh."));}
-                catch(Exception ignored){}}
-        }else{
-            try{emit("mornyeVerificationResult",new JSONObject()
-                .put("connected",false)
-                .put("error",intent.getStringExtra("error")==null?
-                    "Zarz verification was not completed.":intent.getStringExtra("error")));}
-            catch(Exception ignored){}
-        }
+        reportMornyeVerification(intent.getBooleanExtra("connected",false),
+            intent.getStringExtra("error"));
     }
 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
         if(requestCode!=MORNYE_VERIFICATION_REQUEST)return;
-        // Returning from the external browser clears the old WebView screen;
-        // that produces RESULT_CANCELED after a valid grant. Ignore it.
+        // An external browser may deliver its grant through onNewIntent first.
         if(resultCode!=RESULT_OK&&mornyeActive())return;
         if(resultCode!=RESULT_OK||data==null){
-            try{emit("mornyeVerificationResult",new JSONObject()
-                .put("connected",false).put("error","Verification cancelled."));}
-            catch(Exception ignored){}
+            reportMornyeVerification(false,"Verification cancelled.");
             return;
         }
         final String state=data.getStringExtra(MornyeVerificationActivity.EXTRA_STATE);
@@ -165,17 +222,12 @@ public final class MainActivity extends Activity {
             try{
                 JSONObject completed=mornye.completeGrant(state,grant);
                 if(!completed.optBoolean("connected"))
-                    throw new Exception("Gateway did not verify the session after grant exchange.");
+                    throw new Exception("Gateway did not approve this session grant.");
                 secure.put("authMode","mornye");
-                JSONObject status=session();
-                status.put("connected",true);
-                status.put("mornyeMessage","Mornye gateway verification completed");
-                emit("mornyeVerificationResult",status);
+                reportMornyeVerification(true,"");
             }catch(Exception issue){
-                try{emit("mornyeVerificationResult",new JSONObject()
-                    .put("connected",false)
-                    .put("error",issue.getMessage()==null?"Gateway grant exchange failed":issue.getMessage()));}
-                catch(Exception ignored){}
+                reportMornyeVerification(false,
+                    issue.getMessage()==null?"Gateway grant exchange failed":issue.getMessage());
             }
         });
     }
@@ -557,7 +609,11 @@ public final class MainActivity extends Activity {
                             data=param("queued",list.length());break;
                         }
                         case "pause":ui.post(()->{if(player!=null&&prepared&&player.isPlaying())player.pause();emit("player",playerState());});data=new JSONObject();break;
-                        case "resume":ui.post(()->{if(player!=null&&prepared&&!player.isPlaying())player.start();emit("player",playerState());});data=new JSONObject();break;
+                        case "resume":ui.post(()->{
+                            if(player!=null&&prepared&&!player.isPlaying())player.start();
+                            else if(!buffering&&queueIndex>=0&&player==null)startAtCurrent();
+                            emit("player",playerState());
+                        });data=new JSONObject();break;
                         case "next":ui.post(()->advance(1,false));data=new JSONObject();break;
                         case "previous":ui.post(()->{
                             if(player!=null&&prepared&&player.getCurrentPosition()>3500)player.seekTo(0);
@@ -861,6 +917,15 @@ public final class MainActivity extends Activity {
         current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";
         decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
         buffering=true;playerError="";
+        // Selecting a different track during CAPTCHA must not use an unrelated
+        // account or create further Zarz tickets before verification completes.
+        if(verificationInProgress&&"mornye".equals(secure.get("authMode"))){
+            verificationRetryGeneration=playGeneration;
+            buffering=false;
+            playerError="Complete Mornye verification to resume playback.";
+            emit("player",playerState());
+            return;
+        }
         final String id=current.optString("id","");
         JSONObject cached=trackCache.get(id);
         if(cached!=null){
@@ -964,7 +1029,16 @@ public final class MainActivity extends Activity {
                     }catch(Exception e){buffering=false;playerError=e.getMessage();emit("player",playerState());}
                 });
             }catch(Exception e){
-                ui.post(()->{if(generation==playGeneration){buffering=false;playerError=e.getMessage();emit("player",playerState());}});
+                ui.post(()->{
+                    if(generation!=playGeneration)return;
+                    if(MornyeGateway.requiresVerification(e)){
+                        beginStreamReverification(generation);
+                    }else{
+                        buffering=false;
+                        playerError=e.getMessage();
+                        emit("player",playerState());
+                    }
+                });
             }
         });
     }
