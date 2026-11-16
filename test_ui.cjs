@@ -211,7 +211,7 @@ assert(gateway.includes('"/bootstrap?app_version="'));
 assert(gateway.includes('"/tickets"'));
 assert(gateway.includes('"/dl/qbz"'));
 assert(gateway.includes('session_secret'));
-assert(gateway.includes('mornyeActive')===false);
+assert(gateway.includes('boolean isConnected()'));
 assert(gateway.includes('store.put("mornyeActive","1")'));
 assert(gateway.includes('track/search'));
 assert(!gateway.includes('addJavascriptInterface'));
