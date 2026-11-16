@@ -299,7 +299,20 @@ assert(gateway.includes('.put("file_size",bytes)'));
 assert(gateway.includes('if(cooldown>0)throw new StreamRateLimitException(cooldown);'));
 assert(gateway.includes('.put("bits_depth",verified?depth:0)'));
 assert(gateway.includes('.put("sample_rate_hz",verified?(long)rate:0)'));
-assert(gateway.includes('status==401||status==403||status==429'));
+assert(gateway.includes('status==401||status==403||status==428||status==429'),
+  '428 must terminate stream quality fallback');
+assert(gateway.includes('requiresVerification(Exception error)')&&gateway.includes('failure.status==428'),
+  'Zarz 428 must request session verification');
+assert(gateway.includes('reconnectAfterVerificationRequired()')&&gateway.includes('clearPending()'),
+  'stream verification must discard the old signed session and restart bootstrap');
+assert(java.includes('beginStreamReverification(generation)'),
+  'playback 428 should open re-verification automatically');
+assert(java.includes('verificationRetryGeneration')&&java.includes('startAtCurrent();'),
+  'verified session must replay the selected track');
+assert(java.includes('put("streamRecovery",recovery)'),
+  'verification UI must distinguish playback recovery from initial login');
+assert(fs.readFileSync(base+'app.js','utf8').includes('if(data?.streamRecovery)'),
+  'Now Playing must remain open during stream verification');
 assert(gateway.includes('JSONObject completeGrant(String state,String grant)'));
 assert(gateway.includes('"/session/exchange"'));
 assert(gateway.includes('callbackState(original,0)'));
@@ -343,7 +356,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.7"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.8"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -353,7 +366,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.7'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.8'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -373,7 +386,7 @@ assert(java.includes('artistPageReleases('), 'limited Qobuz artist preview fallb
 assert(java.includes('api.library(endpoint,parameters)'), 'independent library authentication must be preferred');
 assert(discoJs.includes('data-artist-retry')&&discoJs.includes('s.pageError'), 'failed requests should allow retry instead of looking like empty results');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.7'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.8'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -385,6 +398,6 @@ assert(artistHtml.includes('data-open-album="abc"'), 'release cards must link to
 assert(artistHtml.includes('No popular tracks returned')||artistHtml.includes('Loading popular tracks'), 'do not invent popularity');
 assert(!artistHtml.includes('undefined'), 'artist UI should not leak undefined fields');
 run("app.selected=null;app.selectedKind='';");
-console.log('AUREL 1.1.7 checks passed — live artist rendering, global theme and native catalogue sections.');
+console.log('AUREL 1.1.8 checks passed — live artist rendering, global theme and native catalogue sections.');
 
 
