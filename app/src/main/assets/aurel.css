@@ -238,3 +238,41 @@ button:disabled{opacity:.38}
 .screen .aurel-signin-error{white-space:normal;overflow-wrap:anywhere}
 
 .screen .aurel-signin-appid-note{font-size:13px;line-height:1.55;color:#dccde8;border-left:3px solid #bca0e7;padding:8px 11px;background:#352c41;border-radius:3px 9px 9px 3px;margin:0 0 9px}
+
+/* v1.0.2 · parallel Qobuz authentication, large accessible targets. */
+.screen .aurel-login-methods{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ gap:8px;max-width:100%;margin:8px 0 19px;padding:5px;
+ border:1px solid #675879;border-radius:15px;background:#211c29;
+}
+.screen .aurel-login-methods button{
+ display:flex;justify-content:center;align-items:center;gap:8px;
+ min-height:51px;min-width:0;padding:9px 9px;
+ border-radius:11px;color:#d8c9e5;background:transparent;
+ font-size:14px;font-weight:770;line-height:1.2;
+}
+.screen .aurel-login-methods button.active{
+ background:#d7c0ff;color:#24182d;box-shadow:0 3px 12px #0006;
+}
+.screen .aurel-login-methods button .ui-icon{width:19px;height:19px;flex:0 0 auto}
+.screen .aurel-login-textbox{
+ box-sizing:border-box;width:100%;min-height:55px;max-width:100%;
+ padding:12px 15px;border:1px solid #827092;border-radius:13px;
+ background:#201c28;color:#fff;font-size:16px;
+}
+.screen .aurel-login-textbox:focus{border-color:#e0c8ff;box-shadow:0 0 0 2px #d4baff40}
+.screen .aurel-method-help{
+ color:#d8ccdf;font-size:14px;line-height:1.5;
+ padding:1px 2px 5px;margin:0!important;
+}
+.screen .aurel-login-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:13px}
+.screen .aurel-login-footer button{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:720;color:#dbc3ff}
+.screen .aurel-signin-info span{flex:1}
+.screen .aurel-signin-advanced{margin:8px 0}
+.screen .aurel-advanced-fields{gap:9px}
+.screen .aurel-auth-warning{padding:13px 15px;line-height:1.5}
+@media(max-width:365px){
+ .screen .aurel-login-methods button{gap:5px;padding:8px 5px;font-size:12px}
+ .screen .aurel-login-methods button .ui-icon{width:17px;height:17px}
+ .screen .aurel-login-footer button{font-size:13px}
+}

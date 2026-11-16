@@ -10,6 +10,9 @@ import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.security.MessageDigest;
 import java.util.Iterator;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.Locale;
 
 /** Separate rights-bearing streaming credentials from the optional collection account.
  *  Qobuz API access is subject to the provider's developer terms and authorizations.
@@ -27,6 +30,91 @@ final class QobuzApi {
     }
     QobuzApi(SecureStore store) {this.store=store;}
 
+    // The web-player App ID is public configuration, not the application secret.
+    // Never extract, ship, cache, or forward a third-party App Secret.
+    private static final String WEB_LOGIN="https://play.qobuz.com/login";
+    private static final Pattern WEB_JS=Pattern.compile(
+        "(?:src|href)\\s*=\\s*[\\\"']([^\\\"']*?/resources/[^\\\"']*?\\.js)[\\\"']",
+        Pattern.CASE_INSENSITIVE);
+    private static final Pattern WEB_PRODUCTION_APP_ID=Pattern.compile(
+        "production:\\{api:\\{appId:[^0-9]{0,3}([0-9]{9})");
+    private static final Pattern WEB_APP_ID=Pattern.compile(
+        "(?:appId|app_id|appId\\s*=)\\s*[:=]\\s*[\\\"']?([0-9]{6,15})[\\\"']?");
+    private static String lastWebAppId="";
+    private String loadPublicPage(URL url,int maxBytes)throws Exception {
+        return loadPublicPage(url,maxBytes,0);
+    }
+    private String loadPublicPage(URL url,int maxBytes,int depth)throws Exception {
+        if(depth>3)throw new Exception("Too many Qobuz web redirects");
+        if(!"https".equalsIgnoreCase(url.getProtocol())||
+            !"play.qobuz.com".equalsIgnoreCase(url.getHost()))
+            throw new Exception("Unexpected Qobuz web address");
+        HttpURLConnection c=(HttpURLConnection)url.openConnection();
+        c.setConnectTimeout(10000);c.setReadTimeout(15000);
+        c.setInstanceFollowRedirects(false);
+        c.setRequestProperty("Accept","text/html,application/javascript");
+        c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36");
+        try{
+            int status=c.getResponseCode();
+            if(status>=300&&status<400){
+                String location=c.getHeaderField("Location");
+                if(location==null||location.isEmpty())throw new Exception("Missing Qobuz redirect target");
+                return loadPublicPage(new URL(url,location),maxBytes,depth+1);
+            }
+            if(status!=200)throw new Exception("Qobuz web page returned "+status);
+            ByteArrayOutputStream out=new ByteArrayOutputStream();
+            try(InputStream in=c.getInputStream()){
+                byte[] buf=new byte[16384];int n;
+                while((n=in.read(buf))!=-1){
+                    if(out.size()+n>maxBytes)throw new Exception("Qobuz web resource too large");
+                    out.write(buf,0,n);
+                }
+            }
+            return out.toString("UTF-8");
+        }finally{c.disconnect();}
+    }
+    String resolveAppId(String entered)throws Exception{
+        String input=entered==null?"":entered.trim();
+        if(!input.isEmpty()){
+            if(!input.matches("[0-9]{6,15}"))throw new Exception("App ID must contain 6–15 digits");
+            return input;
+        }
+        if(!lastWebAppId.isEmpty())return lastWebAppId;
+        try{
+            String page=loadPublicPage(new URL(WEB_LOGIN),2_000_000);
+            String id=findPublicAppId(page);
+            if(!id.isEmpty()){lastWebAppId=id;return id;}
+            Matcher scripts=WEB_JS.matcher(page);
+            int examined=0;
+            while(scripts.find()&&examined++<5){
+                URL js=new URL(new URL(WEB_LOGIN),scripts.group(1));
+                try{
+                    id=findPublicAppId(loadPublicPage(js,14_000_000));
+                    if(!id.isEmpty()){lastWebAppId=id;return id;}
+                }catch(Exception ignored){
+                    // A different bundle may expose the public web configuration.
+                }
+            }
+        }catch(Exception e){
+            throw new Exception("Could not determine the current Qobuz Web App ID. "+
+                "Enter the X-App-Id from the same browser session as your token. ("+
+                e.getMessage()+")");
+        }
+        throw new Exception("Qobuz changed its web App ID configuration. "+
+            "Open Advanced and enter X-App-Id from play.qobuz.com Network requests.");
+    }
+    private static String findPublicAppId(String text){
+        Matcher preferred=WEB_PRODUCTION_APP_ID.matcher(text);
+        if(preferred.find())return preferred.group(1);
+        Matcher m=WEB_APP_ID.matcher(text);
+        while(m.find()){
+            String id=m.group(1);
+            if(id!=null&&id.matches("[0-9]{6,15}"))return id;
+        }
+        return "";
+    }
+
+
     private String encode(String s) throws Exception {return URLEncoder.encode(s,"UTF-8");}
     private String query(JSONObject data) throws Exception {
         StringBuilder b=new StringBuilder();
@@ -40,13 +128,19 @@ final class QobuzApi {
     private JSONObject request(String endpoint, JSONObject data, boolean post, String appId, String token) throws Exception {
         if(!endpoint.matches("[a-zA-Z]+/[a-zA-Z]+"))throw new IllegalArgumentException("Invalid API endpoint");
         if(appId.isEmpty())throw new IllegalArgumentException("App ID is required for the selected account");
-        String payload=query(data);
+        // Some Qobuz API variants require app_id in the request parameters as
+        // well as the X-App-Id header; do not rely on the header alone.
+        JSONObject params=new JSONObject(data.toString());
+        params.put("app_id",appId);
+        String payload=query(params);
         URL url=new URL(BASE+endpoint+(post?"":payload.isEmpty()?"":"?"+payload));
         HttpURLConnection c=(HttpURLConnection)url.openConnection();
         c.setConnectTimeout(12000);c.setReadTimeout(18000);c.setInstanceFollowRedirects(false);
         c.setRequestProperty("Accept","application/json");
+        c.setUseCaches(false);
+        c.setRequestProperty("Cache-Control","no-store");
         c.setRequestProperty("X-App-Id",appId);
-        c.setRequestProperty("User-Agent","AurelHiRes/0.6 Android");
+        c.setRequestProperty("User-Agent","AurelHiRes/1.0 Android");
         if(!token.isEmpty())c.setRequestProperty("X-User-Auth-Token",token);
         if(post){
             c.setRequestMethod("POST");c.setDoOutput(true);
@@ -61,16 +155,25 @@ final class QobuzApi {
                 while((n=input.read(buf))>=0){if(out.size()+n>5_000_000)throw new Exception("API response too large");out.write(buf,0,n);}
             }
             String text=out.toString("UTF-8");
-            JSONObject body=text.isEmpty()?new JSONObject():new JSONObject(text);
+            JSONObject body;
+            try{body=text.isEmpty()?new JSONObject():new JSONObject(text);}
+            catch(Exception invalid){
+                throw new ApiException(code,endpoint,
+                    code>=300?"Qobuz API returned HTTP "+code+
+                      " instead of a JSON response. Check connectivity and App ID.":
+                    "Qobuz returned a non-JSON response.");
+            }
             if(code>=300||"error".equalsIgnoreCase(body.optString("status"))){
                 int status=code>=300?code:body.optInt("code",500);
                 // Root identifiers are Qobuz server trace IDs, not evidence of a valid session.
                 String detail=body.optString("message",body.optString("error","Request rejected"))
                     .replaceAll("\\s*\\(Root=[^)]*\\)","").trim();
-                if(status==401||status==403)
-                    throw new ApiException(status,endpoint,
-                        "Qobuz HTTP "+status+": token authentication rejected for this App ID. "+
-                        "Use the X-App-Id paired with your token, or obtain a fresh token.");
+                if(status==401||status==403){
+                    String authHint=endpoint.equals("user/login")&&token.isEmpty()?
+                        "Qobuz rejected email/password authentication or requires browser verification.":
+                        "Qobuz rejected the session for this App ID. Check the token and X-App-Id.";
+                    throw new ApiException(status,endpoint,"Qobuz HTTP "+status+": "+authHint);
+                }
                 throw new ApiException(status,endpoint,"Qobuz HTTP "+status+": "+detail);
             }
             return body;
@@ -97,41 +200,58 @@ final class QobuzApi {
      *  recording a login as verified. A token without a matching App ID can be
      *  syntactically valid yet receive 401 for every Qobuz API request.
      */
+
+    /** Confirm the token through a user-specific endpoint, and the catalogue
+     * separately for playback accounts. Favourites entitlement must not be
+     * confused with the ability to search or stream.
+     */
     JSONObject validateLiveToken(String appId,String token,String optionalUserId)throws Exception{
-        if(appId==null||!appId.matches("[0-9]{3,15}"))
-            throw new Exception("Enter the numeric X-App-Id that belongs to the token source.");
+        return validateLiveToken(appId,token,optionalUserId,false);
+    }
+    JSONObject validateLiveToken(String appId,String token,String optionalUserId,boolean libraryOnly)throws Exception{
+        if(appId==null||!appId.matches("[0-9]{6,15}"))
+            throw new Exception("Enter a valid Qobuz X-App-Id or leave it blank to find the web ID.");
         if(token==null||token.trim().length()<10)
             throw new Exception("Paste the complete Qobuz X-User-Auth-Token.");
-        JSONObject args=new JSONObject().put("type","albums").put("limit",1);
         String uid=optionalUserId==null?"":optionalUserId.trim();
-        if(!uid.isEmpty()){
-            if(!uid.matches("[0-9]{1,20}"))throw new Exception("User ID must contain digits only.");
-            args.put("user_id",uid);
-        }
+        if(!uid.isEmpty()&&!uid.matches("[0-9]{1,20}"))
+            throw new Exception("User ID must contain digits only.");
+        JSONObject profile=null;
+        Exception userError=null;
         try{
-            JSONObject result=request("favorite/getUserFavorites",args,false,appId,token);
-            if(!result.has("albums")&&!result.has("tracks")&&!result.has("artists"))
-                throw new Exception("Qobuz did not return a recognizable authenticated library response.");
-            // Some Qobuz backends treat favourites differently from catalogue
-            // routes. Both user entitlement AND App ID catalogue access are
-            // required, otherwise a misleading login-success leads to 401
-            // on the first search/album page.
-            JSONObject catalogue=request("album/getFeatured",
-                new JSONObject().put("type","new-releases").put("limit",1),
-                false,appId,token);
-            if(!catalogue.has("albums")&&!catalogue.has("items"))
-                throw new Exception("Qobuz did not return a recognizable catalogue response for this App ID.");
-            return new JSONObject().put("validated",true)
-                .put("validation_status","verified")
-                .put("profile_unavailable",true);
-        }catch(ApiException e){
-            if(e.status==401||e.status==403)
-                throw new Exception("Qobuz rejected this token with App ID "+appId+
-                    " (HTTP "+e.status+"). AUREL cannot authenticate using an unrelated "+
-                    "App ID. Use the matching X-App-Id from the service that issued "+
-                    "the token, or obtain a new token and its matching App ID.");
-            throw e;
+            profile=request("user/login",new JSONObject().put("extra","partner"),true,appId,token);
+            if(!profile.has("user"))profile=null;
+        }catch(Exception e){userError=e;}
+        if(profile==null){
+            try{
+                // A user's favourites are never a public catalogue endpoint.
+                JSONObject favourites=request("favorite/getUserFavorites",
+                    new JSONObject().put("type","albums").put("limit",1),
+                    false,appId,token);
+                if(!favourites.has("albums")&&!favourites.has("tracks")&&!favourites.has("artists"))
+                    throw new Exception("Qobuz returned an unexpected library response");
+            }catch(Exception favouriteError){
+                throw new Exception("Qobuz has not authorized this account with App ID "+appId+
+                    ". Check that the token is current and the App ID belongs to its source. "+
+                    "If the account uses a password or captcha, try official web sign-in and copy a fresh token. "+
+                    "API: "+favouriteError.getMessage());
+            }
         }
+        if(!libraryOnly){
+            try{
+                // Search is used by the player. Failure here must be shown as a
+                // catalogue/integration error, not silently accepted as a login.
+                request("track/search",new JSONObject().put("query","music").put("limit",1),
+                    false,appId,token);
+            }catch(Exception e){
+                throw new Exception("Qobuz accepted the user session but rejected "+
+                    "catalogue access for App ID "+appId+". "+e.getMessage());
+            }
+        }
+        JSONObject result=profile!=null?new JSONObject(profile.toString()):new JSONObject();
+        result.put("validated",true).put("validation_status","verified");
+        if(profile==null)result.put("profile_unavailable",true);
+        return result;
     }
     /** Fallback to documented album discovery when a newer discover endpoint
      *  is restricted to some Qobuz client capabilities.
@@ -196,15 +316,39 @@ final class QobuzApi {
     JSONObject verifyToken(String appId,String token)throws Exception{
         return verifyToken(appId,token,"",false);
     }
+
+    /** Passwords are used only for the HTTPS request and never persisted.
+     * Qobuz can require CAPTCHA/OAuth; do not mask those failures.
+     */
     JSONObject passwordLogin(String appId,String email,String password)throws Exception{
-        if(!appId.matches("\\d{3,15}")||email.trim().isEmpty()||password.isEmpty())
-            throw new Exception("Enter account name, password and App ID");
-        // Direct password login is legacy, optional and can fail with CAPTCHA/OAuth challenges.
-        Exception original;
-        try{return request("user/login",new JSONObject().put("email",email).put("password",password),true,appId,"");}
-        catch(Exception e){original=e;}
-        try{return request("user/login",new JSONObject().put("username",email).put("password",password),true,appId,"");}
-        catch(Exception e){throw new Exception("Qobuz did not accept direct password login (browser verification may be required): "+e.getMessage());}
+        if(appId==null||!appId.matches("[0-9]{6,15}")||
+           email==null||email.trim().isEmpty()||password==null||password.isEmpty())
+            throw new Exception("Enter a Qobuz email, password, and valid App ID.");
+        JSONObject params=new JSONObject().put("email",email.trim()).put("password",password);
+        Exception first;
+        try{
+            JSONObject response=request("user/login",params,true,appId,"");
+            if(response.optString("user_auth_token").isEmpty())
+                throw new Exception("Qobuz did not return a session token.");
+            return response;
+        }catch(Exception e){first=e;}
+        // Older Qobuz integrations accept login as a GET. This HTTPS fallback
+        // may expose credentials to Qobuz's server request logs, so it is used
+        // only after the user explicitly chose email/password authentication.
+        try{
+            // Some Qobuz legacy clients call this field "username", while
+            // others call it "email". Keep one bounded fallback request.
+            JSONObject legacy=new JSONObject(params.toString()).put("username",email.trim());
+            JSONObject response=request("user/login",legacy,false,appId,"");
+            if(response.optString("user_auth_token").isEmpty())
+                throw new Exception("Qobuz did not issue a session token.");
+            return response;
+        }catch(Exception e){
+            throw new Exception("Qobuz email/password sign-in was rejected. "+
+                "The service may require browser verification, a CAPTCHA or a fresh token. "+
+                "Use Token login from play.qobuz.com if this continues. ("+
+                e.getMessage()+")");
+        }
     }
     private String md5(String v)throws Exception{
         byte[] raw=MessageDigest.getInstance("MD5").digest(v.getBytes(StandardCharsets.UTF_8));

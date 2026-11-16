@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.1 Beta
+# AUREL Hi-Res · 1.0.2 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -40,3 +40,15 @@ Android 8+ (minSdk 26). APKs built by separate GitHub Actions runs may use diffe
 - When the modern `discover/newReleases` endpoint is restricted, AUREL tries the documented `album/getFeatured?type=new-releases` alternative. Authentication failures still propagate if both require a valid session.
 - The Settings screen has **Check Qobuz connection**. AUREL uses the existing Android encrypted credential store; never logs or displays the token.
 - This update does not bundle other apps' App Secret credentials, bypass user authentication, or guarantee playback without a supported Qobuz integration. Automated test/build checks cannot validate a user's personal token.
+
+## v1.0.2 — parallel token + email/password sign-in
+
+The account screen now offers two separate sign-in methods both for the **streaming account** and for the independent **library account**:
+- **Session token**: paste your official Qobuz token. Leave **App ID** empty to attempt to fetch the current **public** web client App ID from play.qobuz.com (no secret is extracted or bundled). Tokens from Murglar or another application might require the App ID of the application that issued them.
+- **Email / password**: AUREL attempts Qobuz's legacy `user/login` endpoint via HTTPS. On API method incompatibility it also attempts the older HTTPS GET variant. This flow can fail if Qobuz requires CAPTCHA, OAuth, 2FA or browser verification; use **Official Qobuz login** and a session token in that case. The password is not saved; only the issued token and App ID are encrypted on-device. Note: legacy GET login sends password as an HTTPS query argument which Qobuz's server may log; token login avoids this legacy request.
+- The **library account** independently accepts a token or password login and is used only for favourites, saved releases, artists and playlists. Playback always uses the streaming account.
+- Every account is tested against an authenticated Qobuz user endpoint before the new credentials replace the previous encrypted session. The primary account also checks catalogue access. If credentials fail validation, AUREL preserves old credentials and displays a detailed error.
+- All API calls include the `X-App-Id` header and `app_id` parameter for compatibility with client versions. The user can always enter their authorized App ID manually.
+- No downloader or offline-export UI has been reintroduced.
+
+**Limitations:** AUREL does not possess a Qobuz-issued developer App Secret, and thus signed audio URL requests may still require your own compatible secret. Password login and public web App ID discovery depend on Qobuz's currently supported infrastructure and are not guaranteed. Live authorization against your personal account cannot be performed during GitHub CI builds.

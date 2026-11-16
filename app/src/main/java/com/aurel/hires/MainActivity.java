@@ -180,7 +180,11 @@ public final class MainActivity extends Activity {
         j.put("libraryConnected",hasLibrary);
         j.put("separateLibrary",hasLibrary);
         j.put("quality",quality());
-        j.put("appId",streamAppId());
+        // Do not suggest an obsolete legacy App ID to new accounts.
+        String storedId=secure.get("streamAppId");
+        if(storedId.isEmpty())storedId=secure.get("appId");
+        j.put("appId",storedId);
+        j.put("webAppIdAuto",true);
         j.put("libraryAppId",secure.get("libraryAppId"));
         j.put("hasSecret",!streamSecret().isEmpty());
         // The preview package has isolated encrypted storage; it cannot reuse
@@ -226,11 +230,21 @@ public final class MainActivity extends Activity {
                     JSONObject data;
                     switch(action) {
                         case "session": data=session();break;
+                        case "openQobuzWeb": {
+                            ui.post(()->{
+                                try{
+                                    Intent browser=new Intent(Intent.ACTION_VIEW,
+                                        Uri.parse("https://play.qobuz.com/login"));
+                                    startActivity(browser);
+                                }catch(Exception ignored){}
+                            });
+                            data=new JSONObject().put("opened",true);break;
+                        }
                         case "validateSession": {
                             String token=streamToken();
                             if(token.isEmpty()){data=session();data.put("authError","No streaming token saved.");break;}
                             try {
-                                api.validateLiveToken(streamAppId(),token,secure.get("streamUserId"));
+                                api.validateLiveToken(streamAppId(),token,secure.get("streamUserId"),false);
                                 secure.put("streamValidation","verified");
                                 data=session();
                             }catch(Exception issue){
@@ -247,21 +261,24 @@ public final class MainActivity extends Activity {
                         }
                         case "loginToken": case "loginPassword": {
                             boolean secondary=p.optBoolean("libraryOnly",false);
-                            String appId=p.optString("appId","").trim();
-                            if(appId.isEmpty())appId=secondary?
-                                (!secure.get("libraryAppId").isEmpty()?secure.get("libraryAppId"):streamAppId()):
-                                streamAppId();
+                            // No stale hardcoded App ID: blank means resolve public
+                            // Web App ID from the current official Qobuz client.
+                            String appId=api.resolveAppId(p.optString("appId",""));
                             JSONObject raw;
                             String token;
                             if(action.equals("loginToken")){
                                 token=p.optString("token","").trim();
                                 // Keep existing credentials unchanged if the pair
                                 // is rejected: the token and App ID must agree.
-                                raw=api.validateLiveToken(appId,token,p.optString("userId",""));
+                                raw=api.validateLiveToken(appId,token,p.optString("userId",""),secondary);
                             }else{
                                 raw=api.passwordLogin(appId,p.optString("email").trim(),p.optString("password"));
                                 token=raw.optString("user_auth_token",raw.optString("token",""));
                                 if(token.isEmpty())throw new Exception("Qobuz did not issue an auth token. Use session-token login or the official sign-in.");
+                                // A password login response is not sufficient when
+                                // the client App ID cannot access the catalog/library.
+                                api.validateLiveToken(appId,token,p.optString("userId",""),secondary);
+                                raw.put("validated",true);
                             }
                             JSONObject prof=profile(raw,p);
                             boolean validated=raw.optBoolean("validated",action.equals("loginPassword")&&raw.has("user"));
@@ -285,9 +302,9 @@ public final class MainActivity extends Activity {
                                 secure.put("streamValidation",validation);
                                 secure.put("profile",prof.toString());
                             }
-                            // New tokens are saved only after a live authenticated
-                            // Qobuz endpoint confirms the token/App ID pairing.
-                            // Password is never stored; source and library tokens are distinct.
+                            // Store only the issued token, never the password.
+                            // The user and catalogue/library scopes were verified
+                            // before modifying the previous encrypted credentials.
                             data=session();break;
                         }
                         case "logoutLibrary": {
