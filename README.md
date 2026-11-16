@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.1.7 Beta
+# AUREL Hi-Res · 1.1.8 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -149,3 +149,11 @@ References: https://developers.cloudflare.com/turnstile/get-started/mobile-imple
 - Qobuz can require user authentication for the complete release-list endpoint. An APK build alone cannot verify your account's access, guarantee all sections will be returned, or bypass Qobuz restrictions. No music download functionality was added.
 
 References: [Qobuz artist API documentation](https://minim.readthedocs.io/en/dev/api-ref/minim.api.qobuz.PrivateArtistsAPI.html) and [Qobuz artist-page schema](https://github.com/arthursoares/qobuz_tidal_api_client/blob/main/docs/api-spec.md).
+
+## v1.1.8 — Automatic verification after HTTP 428
+
+- On a **Mornye/Zarz HTTP 428 (VERIFY_REQUIRED)** response while resolving the current audio stream, AUREL now stops additional quality-tier attempts and automatically requests a new signed-session bootstrap and Zarz verification challenge.
+- The verification window opens without having to disconnect or sign in again manually. The official Zarz grant is still required; the client cannot bypass CAPTCHA or server verification.
+- Once the server validates the grant, AUREL retries the same queued track automatically. The current Now Playing screen, queue and player palette remain in place.
+- One verification window is allowed at a time; failures and cancellations are reported without an endless retry loop. Playback controls can retry after the session problem is resolved.
+- This behavior is covered by source regression checks and a GitHub Actions Android build. Live gateway CAPTCHA/grant behavior still requires testing on the user's device.
