@@ -36,3 +36,30 @@
  max-height:min(35dvh,230px)!important;
  align-self:flex-start;
 }
+
+
+/* Responsive, album-theme-aware native APK update controls. */
+.aurel-update-panel{padding-bottom:18px}
+.aurel-update-head{display:flex;align-items:flex-start;gap:14px;justify-content:space-between}
+.aurel-update-head h3{margin:0 0 5px}
+.aurel-update-head .subline{margin:0}
+.aurel-update-version{white-space:nowrap;border:1px solid var(--line,#ffffff2c);
+ border-radius:12px;padding:7px 10px;font-weight:750;font-size:13px;color:var(--text,#fff)}
+.aurel-update-message{margin:14px 0 12px;font-size:14px;line-height:1.5}
+.aurel-update-release{display:flex;gap:10px;align-items:center;justify-content:space-between;
+ padding:10px 12px;margin-bottom:10px;background:rgba(255,255,255,.05);border-radius:12px}
+.aurel-update-release small{color:var(--muted,#bbb);white-space:nowrap}
+.aurel-update-controls{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.aurel-update-controls .pill{min-height:43px}
+.aurel-update-controls button:disabled{opacity:.55}
+.aurel-update-toggle{display:flex;align-items:center;gap:10px;min-height:42px;font-size:13px;line-height:1.35}
+.aurel-update-toggle input{height:18px;width:18px;accent-color:var(--aurel-theme-accent,#e8b6bd);flex:0 0 18px}
+.aurel-update-progress{width:100%;height:10px;accent-color:var(--aurel-theme-accent,#e8b6bd)}
+.aurel-update-percent{text-align:right;font-size:12px;color:var(--muted,#bbb)}
+.aurel-update-notes{margin:8px 0;font-size:13px}
+.aurel-update-notes summary{cursor:pointer;font-weight:650}
+.aurel-update-notes p{white-space:pre-line;overflow-wrap:anywhere;line-height:1.5}
+.aurel-update-error{color:#ffb9c2;line-height:1.5;overflow-wrap:anywhere;font-size:13px}
+.aurel-update-disclaimer{font-size:12px;line-height:1.55;color:var(--muted,#aaa);margin:6px 0 0}
+@media(max-width:350px){.aurel-update-controls{flex-direction:column}
+ .aurel-update-controls .pill{width:100%}.aurel-update-head{flex-wrap:wrap}}
