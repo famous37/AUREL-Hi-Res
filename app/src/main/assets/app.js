@@ -208,7 +208,7 @@ function renderLogin(){
           <button type="button" data-toggle-token aria-label="Show token">${ic('eye',22)}</button>
         </div>
         <p class="aurel-method-help">For a token from play.qobuz.com, leave App ID blank to detect the current web client automatically. Tokens from other apps may need their specific App ID.</p>`}
-      ${secondary?'':`      <details class="aurel-signin-advanced" ${rejected?'open':''}>
+      ${secondary&&passwordMode?'':`      <details class="aurel-signin-advanced" ${rejected?'open':''}>
         <summary>${ic('settings',19)} Advanced · App ID ${secondary?'':'&amp; App Secret'} ${ic('chevron',17)}</summary>
         <div class="aurel-advanced-fields">
           <label for="appId">App ID <small>Leave blank for automatic detection from Qobuz's current web player</small></label>
