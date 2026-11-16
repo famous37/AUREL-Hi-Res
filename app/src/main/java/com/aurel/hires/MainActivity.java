@@ -641,7 +641,7 @@ public final class MainActivity extends Activity {
     private JSONObject trackDetails(String trackId)throws Exception {
         Exception first=null;
         if(mornyeActive()){
-            try{return api.publicTrackDetails(trackId);}
+            try{return api.preferredTrackDetails(trackId);}
             catch(Exception e){first=e;}
         }
         try{
@@ -649,7 +649,7 @@ public final class MainActivity extends Activity {
             JSONObject nested=result.optJSONObject("track");
             return nested==null?result:nested;
         }catch(Exception e){
-            if(!mornyeActive())return api.publicTrackDetails(trackId);
+            if(!mornyeActive())return api.preferredTrackDetails(trackId);
             throw first==null?e:first;
         }
     }
