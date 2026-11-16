@@ -36,13 +36,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
-          TAG=v1.1.12
+          TAG=v1.1.13
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK#AUREL-Hi-Res-v1.1.12.apk" --clobber
+            gh release upload "$TAG" "$APK#AUREL-Hi-Res-v1.1.13.apk" --clobber
           else
-            gh release create "$TAG" "$APK#AUREL-Hi-Res-v1.1.12.apk" \
+            gh release create "$TAG" "$APK#AUREL-Hi-Res-v1.1.13.apk" \
               --target "$GITHUB_SHA" \
-              --title "AUREL Hi-Res v1.1.12" \
-              --notes "AUREL Hi-Res v1.1.12: audio source badge moved slightly lower; removed unnecessary catalogue-maximum-versus-stream-quality disclaimer, preserving live source status. Adaptive Now Playing layout, playback functions and five-tab navigation are unchanged." \
+              --title "AUREL Hi-Res v1.1.13" \
+              --notes "AUREL Hi-Res v1.1.13: fixes expired/rejected Mornye signed-session recovery; automatic Zarz verification when the gateway supplies a challenge, one-tap manual re-verification from the player or Settings, accurate playback authorization status, and preserved playback queue. The existing responsive layout and album palette are unchanged." \
               --prerelease
           fi
