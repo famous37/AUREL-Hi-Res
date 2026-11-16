@@ -300,6 +300,33 @@ final class QobuzApi {
         }
     }
 
+    /** Public track credits and catalogue capabilities from Qobuz's widget
+     * endpoint. Never confuse catalogue max bit depth with actual stream quality.
+     * No personal library token, password or stream secret is sent.
+     */
+    JSONObject publicTrackDetails(String trackId)throws Exception{
+        if(trackId==null||!trackId.matches("[0-9]{1,20}"))
+            throw new Exception("Invalid Qobuz track identifier");
+        JSONObject response=request("widget/getTrackById",
+            new JSONObject().put("track_id",trackId),false,"735532640","");
+        JSONObject track=response.optJSONObject("track");
+        if(track==null)track=response;
+        if(!track.has("id")&&!track.has("album")&&!track.has("title"))
+            throw new Exception("Qobuz did not return track details");
+        return track;
+    }
+    /** Reuse the installed Qobuz App ID for a separate personal library.
+     * Mornye gateway identity itself is not a Qobuz user App ID.
+     */
+    String automaticLibraryAppId(){
+        for(String name:new String[]{"libraryAppId","streamAppId","appId"}){
+            String id=store.get(name);
+            if(id.matches("[0-9]{6,15}"))return id;
+        }
+        try{return resolveAppId("");}
+        catch(Exception ignored){return "312369995";}
+    }
+
     JSONObject post(String endpoint, JSONObject params)throws Exception{return libraryPost(endpoint,params);}
 
     /** Validate an existing browser session token without reusing password login.
@@ -356,7 +383,7 @@ final class QobuzApi {
     JSONObject passwordLogin(String appId,String email,String password)throws Exception{
         if(appId==null||!appId.matches("[0-9]{6,15}")||
            email==null||email.trim().isEmpty()||password==null||password.isEmpty())
-            throw new Exception("Enter a Qobuz email, password, and valid App ID.");
+            throw new Exception("Enter a Qobuz email and password; AUREL selects the App ID automatically.");
         JSONObject params=new JSONObject().put("email",email.trim()).put("password",password);
         Exception first;
         try{
@@ -365,21 +392,19 @@ final class QobuzApi {
                 throw new Exception("Qobuz did not return a session token.");
             return response;
         }catch(Exception e){first=e;}
-        // Older Qobuz integrations accept login as a GET. This HTTPS fallback
-        // may expose credentials to Qobuz's server request logs, so it is used
-        // only after the user explicitly chose email/password authentication.
+        // Legacy username fallback remains an HTTPS POST, not a URL containing credentials.
         try{
             // Some Qobuz legacy clients call this field "username", while
             // others call it "email". Keep one bounded fallback request.
             JSONObject legacy=new JSONObject(params.toString()).put("username",email.trim());
-            JSONObject response=request("user/login",legacy,false,appId,"");
+            JSONObject response=request("user/login",legacy,true,appId,"");
             if(response.optString("user_auth_token").isEmpty())
                 throw new Exception("Qobuz did not issue a session token.");
             return response;
         }catch(Exception e){
             throw new Exception("Qobuz email/password sign-in was rejected. "+
                 "The service may require browser verification, a CAPTCHA or a fresh token. "+
-                "Use Token login from play.qobuz.com if this continues. ("+
+                "Qobuz may require CAPTCHA or reject password-based API access. ("+
                 e.getMessage()+")");
         }
     }
