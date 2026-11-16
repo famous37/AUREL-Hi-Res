@@ -190,7 +190,7 @@ assert(media.includes('new MediaSession(this'));
 const webActivity=fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzWebLoginActivity.java','utf8');
 const extensionStatus=fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/MornyeCatalog.java','utf8');
 const manifest=fs.readFileSync(__dirname+'/app/src/main/AndroidManifest.xml','utf8');
-assert(manifest.includes('android:name=".QobuzWebLoginActivity" android:exported="false"'));
+assert(manifest.includes('android:name="com.aurel.hires.QobuzWebLoginActivity" android:exported="false"'));
 assert(java.includes('case "startQobuzWeb"'));
 assert(java.includes('case "mornyeExtensionStatus"'));
 assert(java.includes('emit("webLoginResult",result)'));
