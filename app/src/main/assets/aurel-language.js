@@ -1,4 +1,4 @@
-/* AUREL 1.1.21 — English default, optional Ukrainian (Skrypnykivka).
+/* AUREL 1.1.22 — English default, complete Ukrainian interface.
    UI-only translations; Qobuz catalogue metadata is never translated. */
 (function installAurelLanguages(){
 'use strict';
@@ -149,10 +149,11 @@ var dictionary={
  'Your queue is empty.':'Черга відтворення порожня.',
  'Language':'Мова інтерфейсу',
  'Choose the application language. Music metadata remains unchanged.':'Оберіть мову застосунку. Метадані музики залишаться без змін.',
- 'Default':'Усталено','Ukrainian (Skrypnykivka)':'Українська (скрипниківка)',
+ 'Default':'Усталено','Ukrainian':'Українська',
  'English':'Англійська','Ukrainian':'Українська'
 };
-var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.info-row strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice';
+Object.assign(dictionary,{"HI-RES WITHOUT COMPROMISE":"HI-RES БЕЗ КОМПРОМІСІВ","Hear the music.":"Відчуйте музику.","Feel everything.":"Відчуйте кожну мить.","Uncompressed detail, thoughtful discovery and a listening space made for music lovers.":"Висока деталізація, музичні відкриття та простір для поціновувачів музики.","Explore music":"Відкрити музику","Nothing to show yet":"Поки немає що показати","Search for your favourite artists or explore another section.":"Шукайте улюблених виконавців або перейдіть до іншого розділу.","No tracks found.":"Треків не знайдено.","WELCOME TO YOUR LISTENING ROOM":"ЛАСКАВО ПРОСИМО ДО МУЗИЧНОГО ПРОСТОРУ","Discover something":"Відкрийте щось","extraordinary":"надзвичайне","Editorial warmth. Exceptional sound. Your music, your way.":"Виняткове звучання й музичні відкриття на ваш смак.","Fresh releases":"Нові релізи","LOSSLESS & HI-RES":"БЕЗ ВТРАТ ТА HI-RES","Your discovery feed":"Ваша стрічка відкриттів","Sign in with a working Qobuz token to load recent releases.":"Увійдіть із чинним токеном Qobuz, щоб побачити нові релізи.","Try again":"Спробувати ще раз","Streaming and available quality depend on your active Qobuz subscription, the catalogue and API access.":"Потокове відтворення та доступна якість залежать від підписки Qobuz і каталогу.","Artists, albums, and every track worth hearing.":"Виконавці, альбоми та треки, варті уваги.","Find your next favourite":"Знайдіть нову улюблену музику","Search Qobuz by artist, album or track.":"Шукайте в Qobuz за виконавцем, альбомом або треком.","No results. Try a different search.":"Нічого не знайдено. Змініть запит.","Artist · Discography":"Виконавець · дискографія","Your Qobuz favourites, always close.":"Ваша улюблена музика Qobuz завжди під рукою.","Loading favourites…":"Завантаження вибраного…","Made by you. Collected for every mood.":"Ваші добірки на будь-який настрій.","My playlists":"Мої плейлисти","Loading playlists…":"Завантаження плейлистів…","No Qobuz playlists returned by your account.":"Для облікового запису не знайдено плейлистів Qobuz.","‹ Back":"‹ Назад","Play album":"Відтворити альбом","Availability and stream quality are verified when playback is requested. Direct-file streaming only in this alpha build.":"Доступність і якість потоку перевіряються під час запуску відтворення.","ARTIST":"ВИКОНАВЕЦЬ","Browse albums and listen using your connected streaming account.":"Переглядайте альбоми та слухайте музику через під’єднаний обліковий запис.","Discography":"Дискографія","Show more releases":"Показати більше релізів","Connect with Mornye.":"Під’єднати Mornye","Direct Mornye signed session, with no Qobuz browser sign-in.":"Підписаний сеанс Mornye без входу через браузер Qobuz.","Sign-in method":"Спосіб входу","Session token":"Токен сеансу","Token":"Токен","Password":"Пароль","Connect Mornye session":"Під’єднати сеанс Mornye","Native signed session":"Підписаний сеанс","For personal playlists and favourites, connect a separate Qobuz account in Settings.":"Для особистих плейлистів і вибраного під’єднайте обліковий запис Qobuz у налаштуваннях.","Connect your Qobuz library.":"Під’єднати бібліотеку Qobuz","Welcome back to music.":"З поверненням до музики","Previous Qobuz authorization was rejected.":"Попередню авторизацію Qobuz відхилено.","Try the current web App ID automatically, a fresh token, or email/password sign-in. Your previous account data has not been erased.":"Спробуйте автоматично визначити App ID, використати новий токен або ввійти за логіном і паролем. Попередні дані збережено.","This Preview is installed separately and cannot read credentials stored by other AUREL installations.":"Попередня збірка встановлюється окремо й не має доступу до облікових даних інших збірок AUREL.","Qobuz email or username":"Електронна пошта або ім’я користувача Qobuz","Email or Qobuz username":"Електронна пошта або логін Qobuz","Enter Qobuz password":"Введіть пароль Qobuz","Qobuz session token":"Токен сеансу Qobuz","Paste X-User-Auth-Token":"Вставте X-User-Auth-Token","Advanced · App ID, App Secret & User ID":"Додатково · App ID, App Secret та User ID","Leave blank for automatic detection from Qobuz's current web player":"Залиште порожнім для автоматичного визначення через вебпрогравач Qobuz","Auto-detect from Qobuz website":"Визначити автоматично із сайту Qobuz","Optional for token/password login; only needed for compatible signed stream requests":"Необов’язково для входу; потрібно для сумісних підписаних запитів потоку","Optional App Secret":"Необов’язковий App Secret","Saved on device · leave blank to keep":"Збережено на пристрої · залиште порожнім, щоб не змінювати","Optional; leave blank unless needed by your Qobuz integration":"Необов’язково; заповнюйте лише за потреби інтеграції Qobuz","Optional account ID":"Необов’язковий ідентифікатор","Open official Qobuz sign-in":"Відкрити офіційну сторінку входу Qobuz","Use session token":"Увійти за токеном","Back to settings":"Назад до налаштувань","Connect library account":"Під’єднати бібліотеку","Sign in & load library":"Увійти та завантажити бібліотеку","Connected":"Під’єднано","● Saved":"● Збережено","Not connected":"Не під’єднано","Session verification":"Перевірка сеансу","Mornye catalogue verified · playback depends on Zarz":"Каталог Mornye підтверджено · відтворення залежить від Zarz","Verified by Qobuz":"Підтверджено Qobuz","Playback confirmed":"Відтворення підтверджено","Not verified · test playback":"Не підтверджено · перевірте відтворення","Rejected · check token and App ID":"Відхилено · перевірте токен та App ID","Not checked":"Не перевірено","Not verified":"Не підтверджено","Profile":"Профіль","Subscription":"Підписка","Connection type":"Тип з’єднання","Mornye signed gateway":"Підписаний шлюз Mornye","Qobuz account":"Обліковий запис Qobuz","Gateway-managed":"Керується шлюзом","Reverify Mornye":"Повторно підтвердити Mornye","Change streaming account":"Змінити обліковий запис для відтворення","Connect streaming account":"Під’єднати обліковий запис для відтворення","Personal Qobuz library":"Особиста бібліотека Qobuz","Library account":"Обліковий запис бібліотеки","Uses streaming account":"Використовується обліковий запис відтворення","Streaming verification needed":"Потрібна перевірка відтворення","The Zarz gateway rejected audio playback. Catalogue access alone does not confirm streaming authorization.":"Шлюз Zarz відхилив відтворення. Доступ до каталогу не підтверджує доступ до музичного потоку.","CD Lossless":"CD без втрат","Max Hi-Res":"Максимальна Hi-Res","/ Audio & Account":"/ Звук та обліковий запис","Signing in securely…":"Безпечний вхід…","Verifying token…":"Перевірка токена…","Qobuz library connected · loading your collection":"Бібліотеку Qobuz під’єднано · завантаження колекції","Qobuz connected · loading your library":"Qobuz під’єднано · завантаження бібліотеки","Qobuz refused the login. Check credentials and try again.":"Qobuz відхилив вхід. Перевірте дані й спробуйте знову.","Connecting to Mornye gateway…":"З’єднання зі шлюзом Mornye…","Complete the Zarz verification in the app window to continue.":"Пройдіть перевірку Zarz у вікні застосунку.","Mornye signed session was not authorized.":"Підписаний сеанс Mornye не авторизовано.","Mornye signed session verified":"Підписаний сеанс Mornye підтверджено","Mornye signed session failed":"Помилка підписаного сеансу Mornye","Mornye gateway did not authorize the session.":"Шлюз Mornye не дозволив сеанс.","Mornye session verified":"Сеанс Mornye підтверджено","Mornye gateway session verified":"Сеанс шлюзу Mornye підтверджено","Mornye verification did not complete":"Перевірку Mornye не завершено","Requesting a fresh Zarz session grant…":"Запит нового дозволу Zarz…","Mornye verification could not start":"Не вдалося розпочати перевірку Mornye","Show password":"Показати пароль","Hide password":"Приховати пароль","Show token":"Показати токен","Hide token":"Приховати токен","Show App Secret":"Показати App Secret","Hide App Secret":"Приховати App Secret","Refresh releases":"Оновити релізи","Verify":"Підтвердити","Dismiss notification":"Закрити сповіщення","Using primary library":"Використовується основна бібліотека","Quality preference saved":"Якість збережено","Enter a new secret":"Введіть новий секретний ключ","Secret encrypted and saved":"Секретний ключ зашифровано та збережено","Added to your Qobuz favourites ♡":"Додано до вибраного Qobuz ♡","Opening artist…":"Відкриття виконавця…","Opening album…":"Відкриття альбому…","Opening playlist…":"Відкриття плейлиста…","No cover art available":"Обкладинка недоступна","Play next":"Відтворити наступним","Add to favorites":"Додати до вибраного","Remove track":"Вилучити трек","Move up":"Перемістити вгору","Move down":"Перемістити вниз","Track progress":"Поступ відтворення","Seek within track":"Перейти до позиції треку","Fields come from Qobuz catalogue metadata when available. The catalogue's maximum audio quality is not proof of the currently decoded stream.":"Поля заповнюються метаданими Qobuz. Максимальна якість у каталозі не підтверджує фактичний формат потоку.","FLAC bit depth and sample rate can be verified from STREAMINFO using a short ranged read of the existing media URL. MP3 frame bitrate may vary. Qobuz catalogue maximum and Android mixer / DAC output are different measurements.":"Розрядність і частоту FLAC можна перевірити за STREAMINFO. Бітрейт MP3 може змінюватися. Якість у каталозі Qobuz та параметри ЦАП Android — різні вимірювання.","Session saved, not verified":"Сеанс збережено, але не підтверджено","The Qobuz API did not confirm this token. Try playing a track to check streaming access.":"API Qobuz не підтвердив токен. Запустіть трек, щоб перевірити відтворення."});
+var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
  var key=String(s||'').trim();
@@ -163,6 +164,10 @@ function translateEnglish(s){
  if(match)return match[1]+' альбомів';
  match=/^(\d+)\s+playlists$/i.exec(key);
  if(match)return match[1]+' плейлистів';
+ match=/^Open (.+) album$/i.exec(key);
+ if(match)return 'Відкрити альбом «'+match[1]+'»';
+ match=/^Cover art for (.+)$/i.exec(key);
+ if(match)return 'Обкладинка: '+match[1];
  match=/^Version\s+(\d+\.\d+\.\d+)$/i.exec(key);
  if(match)return 'Версія '+match[1];
  return null;
@@ -210,7 +215,24 @@ function syncLanguageButtons(){
  for(var i=0;i<choices.length;i++){
   var b=choices[i],selected=b.getAttribute('data-aurel-locale')===current;
   b.setAttribute('aria-checked',String(selected));
+  var name=b.querySelector('.aurel-language-name'),small=b.querySelector('small');
+  if(name&&b.getAttribute('data-aurel-locale')==='en')
+   name.textContent=current==='uk'?'Англійська':'English';
+  if(small&&b.getAttribute('data-aurel-locale')==='en')
+   small.textContent=current==='uk'?'Усталено':'Default';
  }
+}
+function createLoginLanguageSwitch(){
+ var root=document.querySelector('#screen .aurel-signin');
+ if(!root||root.querySelector('.aurel-auth-language'))return;
+ var wrap=document.createElement('div');
+ wrap.className='aurel-auth-language';
+ wrap.setAttribute('role','radiogroup');
+ wrap.setAttribute('aria-label','Language');
+ wrap.innerHTML='<button type="button" data-aurel-locale="en" role="radio" aria-checked="false">English</button>'+
+  '<button type="button" data-aurel-locale="uk" role="radio" aria-checked="false">Українська</button>';
+ root.insertBefore(wrap,root.firstChild);
+ syncLanguageButtons();
 }
 function createLanguagePanel(){
  var root=document.getElementById('screen');
@@ -222,7 +244,7 @@ function createLanguagePanel(){
   '<p class="aurel-language-intro">Choose the application language. Music metadata remains unchanged.</p>'+
   '<div class="aurel-language-options" role="radiogroup" aria-label="Language">'+
   '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="en" aria-checked="true"><span><span class="aurel-language-name">English</span><small>Default</small></span><span class="aurel-language-check" aria-hidden="true">✓</span></button>'+
-  '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="uk" aria-checked="false"><span><span class="aurel-language-name">Українська</span><small>Скрипниківка</small></span><span class="aurel-language-check" aria-hidden="true">✓</span></button>'+
+  '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="uk" aria-checked="false"><span><span class="aurel-language-name">Українська</span></span><span class="aurel-language-check" aria-hidden="true">✓</span></button>'+
   '</div>';
  var first=root.querySelector('.panel');
  if(first)root.insertBefore(panel,first);else root.appendChild(panel);
@@ -264,9 +286,11 @@ var observer=new MutationObserver(function(mutations){
   }
  }
  if(settingsNeeded||document.querySelector('.aurel-settings-heading'))createLanguagePanel();
+ createLoginLanguageSwitch();
 });
 observer.observe(document.body,{childList:true,characterData:true,subtree:true});
 createLanguagePanel();
+createLoginLanguageSwitch();
 if(current==='uk')visit(document.body);
 window.AurelLanguage={get:function(){return current;},set:setLanguage,translate:translateEnglish};
 })();

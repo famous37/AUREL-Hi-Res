@@ -218,3 +218,8 @@ body {font-size:var(--aurel-ui-text)!important;line-height:1.46}
 @media(prefers-reduced-motion:reduce) {
   .app .screen button,#overlay button,.app .mini,.app .bottom-nav button {transition:none!important}
 }
+
+/* AUREL 1.1.22 language picker visible on login and in Settings. */
+.aurel-auth-language{display:flex;justify-content:flex-end;gap:7px;align-items:center;margin:0 0 12px;flex-wrap:wrap}
+.aurel-auth-language button{border:1px solid var(--aurel-ui-line,#ffffff35)!important;background:var(--aurel-ui-fill,#242028)!important;color:var(--aurel-theme-secondary,#eee)!important;min-height:35px;padding:7px 11px!important;border-radius:11px!important;font-size:12.5px!important;font-weight:610!important}
+.aurel-auth-language button[aria-checked="true"]{border-color:var(--aurel-theme-accent,#d8b6c8)!important;color:var(--aurel-theme-on,#fff)!important;background:var(--aurel-theme-raised,#41333e)!important}
