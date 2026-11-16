@@ -116,3 +116,24 @@
   #overlay .murglar-view .murglar-transport{grid-column:2!important;grid-row:4!important;margin:2px 0!important}
   #overlay .murglar-view .murglar-source-line{grid-column:2!important;grid-row:5!important;margin:2px 0!important}
 }
+
+/* Verification actions appear only when signed gateway playback needs help. */
+.app .aurel-gateway-warning{
+  display:flex;flex-direction:column;align-items:flex-start;gap:9px;
+  margin:8px 0 14px;padding:13px 14px;border-radius:12px;
+  border:1px solid var(--aurel-theme-border,#74645e);
+  background:var(--aurel-theme-card,#30261f);
+  color:var(--aurel-theme-on,#fff);
+}
+.app .aurel-gateway-warning strong{font-size:15px;line-height:1.25}
+.app .aurel-gateway-warning span{font-size:13px;line-height:1.4;color:var(--aurel-theme-secondary,#ded5cd)}
+#overlay .murglar-view .playback-error .aurel-reverify-button{
+  display:block;min-height:44px;max-width:100%;
+  padding:9px 16px;margin:11px 0 0;border-radius:11px;
+  color:var(--aurel-theme-ink,#171018);
+  background:var(--aurel-theme-accent,#d8c5b9);
+  font-size:14px;font-weight:750;line-height:1.25;
+}
+#overlay .murglar-view .playback-error .aurel-reverify-button:disabled{
+  opacity:.55;
+}
