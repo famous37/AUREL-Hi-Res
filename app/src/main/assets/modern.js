@@ -58,39 +58,74 @@ renderLibrary=function(){
 };
 function queuePanel(p){const q=Array.isArray(p.queue)?p.queue:[];if(!q.length)return '<div class="empty">Your queue is empty.</div>';
  return `<div class="sheet-title">Play queue <span>${q.length} tracks</span></div><div class="queue-list">${q.map((t,i)=>`<div class="editable-queue">${fmtTrack(t,i)}<div class="queue-ops"><button data-queue-move="${i}" data-queue-dir="-1" aria-label="Move up" ${i===0?'disabled':''}>↑</button><button data-queue-move="${i}" data-queue-dir="1" aria-label="Move down" ${i===q.length-1?'disabled':''}>↓</button><button data-queue-remove="${i}" aria-label="Remove track">×</button></div></div>`).join('')}</div>`}
-function creditsPanel(p){const t=p.track||{},album=t.album||{};
- const value=(key,val)=>val?`<div class="credit"><span>${key}</span><strong>${html(val)}</strong></div>`:'';
- return `<div class="sheet-title">Recording details</div><div class="credits">${value('Track',t.title)}${value('Artist',artist(t))}${value('Album',album.title)}${value('Label',album.label?.name||album.label||t.label?.name)}${value('Released',album.release_date_original||album.release_date||album.releaseDate)}${value('Duration',t.duration?duration(t.duration):'')}${value('Copyright',album.copyright||album.copyright_label)}<p>Credits are displayed only when provided by Qobuz metadata.</p></div>`}
-// Truthful format display: Qobuz reports source specifications; Android reports a
-// parsed media track if MediaPlayer exposes one. Neither proves DAC bit-perfect output.
+function creditsPanel(p){
+ const t=p.track||{}, album=t.album||{};
+ const show=(key,val)=>{
+   if(val==null||val==='')return '';
+   if(Array.isArray(val))val=val.map(x=>typeof x==='string'?x:nameOf(x)).filter(Boolean).join(', ');
+   if(typeof val==='object')val=nameOf(val)||val.name||'';
+   return val?`<div class="credit"><span>${html(key)}</span><strong>${html(val)}</strong></div>`:'';
+ };
+ const credits=t.performers||t.composers||t.composer||album.performers;
+ return `<div class="sheet-title">Qobuz recording information</div>
+ <div class="credits">
+ ${show('Track',t.title)}
+ ${show('Artist',artist(t))}
+ ${show('Album',album.title)}
+ ${show('Composer',t.composer||t.composers)}
+ ${show('Performers / Credits',credits)}
+ ${show('Label',album.label?.name||album.label||t.label?.name||t.label)}
+ ${show('ISRC',t.isrc)}
+ ${show('Disc',t.media_number||t.disc_number)}
+ ${show('Track number',t.track_number)}
+ ${show('Original release',album.release_date_original||album.release_date||album.releaseDate)}
+ ${show('Release',album.release_date_stream||t.release_date)}
+ ${show('Duration',t.duration?duration(t.duration):'')}
+ ${show('Copyright',album.copyright||album.copyright_label||t.copyright)}
+ <p>Fields come from Qobuz catalogue metadata when available. The catalogue's maximum audio quality is not proof of the currently decoded stream.</p>
+ </div>`;
+}
+// Source bit depth and sample rate are not DAC measurements.
+// Qobuz catalogue maximum is kept separate from stream truth.
 const kHzLabel=hz=>{const n=Number(hz);if(!Number.isFinite(n)||n<8000)return '';const k=n/1000;return `${Number(k.toFixed(3))} kHz`};
+function catalogueMaxText(p){
+ const bits=Number(p?.catalogMaxBits)||0,rate=kHzLabel(p?.catalogMaxSampleRateHz);
+ if(bits&&rate)return `${bits}-bit / ${rate}${p?.catalogMaxFromAlbum?' (album)':''}`;
+ return 'Not reported';
+}
 function actualSource(p){
- if(!p)return 'Format unavailable';
+ if(!p)return 'Format not available';
  const bits=Number(p.bits)||0,rate=kHzLabel(p.sampleRateHz);
- const mediaRate=kHzLabel(p.decoderSampleRateHz);
+ const parsedRate=kHzLabel(p.decoderSampleRateHz);
  const codec=p.codec||((p.decoderMime||'').toLowerCase().includes('flac')?'FLAC':'');
- if(p.sourceVerified && bits && rate)return `${codec?codec+' · ':''}${bits}-bit / ${rate}`;
- if(mediaRate)return `${p.decoderMime?.includes('flac')?'FLAC · ':''}${mediaRate} · parsed track`;
+ if(p.sourceVerified&&bits&&rate)return `${codec?codec+' · ':''}${bits}-bit / ${rate}`;
+ if(parsedRate)return `${codec?codec+' · ':''}${parsedRate} · parsed by Android`;
+ if(p.playing&&p.catalogMaxBits&&p.catalogMaxSampleRateHz)
+   return `Playing · Qobuz up to ${catalogueMaxText(p)}`;
+ if(p.playing)return 'Playing · exact stream format not reported';
  if(p.buffering)return 'Checking audio source…';
- return 'Audio quality unavailable';
+ return 'Stream format not reported';
 }
 const bytesText=n=>Number(n)>0?`${(Number(n)/1048576).toFixed(1)} MB`:'Not reported';
 function audioPanel(p){
- const source=p?.sourceVerified?'Qobuz API (reported, not independently decoded)':'Not supplied by Qobuz API';
+ const source=p?.sourceVerified?(p?.sourceLabel||'Qobuz provider reported stream'):'Source bit depth not provided by streaming server';
  const decoderHz=kHzLabel(p?.decoderSampleRateHz);
  const fields=[
-  ['Qobuz source',p?.sourceVerified?`${p.bits}-bit / ${kHzLabel(p.sampleRateHz)}`:'Unknown'],
+  ['Current stream',p?.sourceVerified?`${p.bits}-bit / ${kHzLabel(p.sampleRateHz)}`:'Exact bit depth / rate not verified'],
+  ['Qobuz catalogue maximum',catalogueMaxText(p)],
+  ['Provider',p?.sourceLabel||'Not reported'],
   ['Source provenance',source],
   ['Source codec',p?.codec||'Not reported'],
-  ['MediaPlayer parsed format',p?.decoderMime||'Not reported'],
-  ['MediaPlayer track rate',decoderHz||'Not exposed by Android'],
+  ['Android parsed codec',p?.decoderMime||'Not exposed'],
+  ['Android parsed sample rate',decoderHz||'Not exposed'],
   ['MediaPlayer channels',p?.decoderChannels||'Not reported'],
-  ['Android default output property',p?.androidMixerHz?`${p.androidMixerHz} Hz (not DAC measurement)`:'Not reported'],
-  ['Qobuz file size',bytesText(p?.fileSize)],
-  ['Selected quality ceiling',qualityText(p?.quality)]
+  ['Android mixer property',p?.androidMixerHz?`${p.androidMixerHz} Hz (not DAC format)`:'Not reported'],
+  ['Media size',bytesText(p?.fileSize)],
+  ['Requested maximum',qualityText(p?.quality)]
  ];
- return `<div class="sheet-title">Audio signal information</div><div class="credits">${fields.map(([key,val])=>`<div class="credit"><span>${html(key)}</span><strong>${html(val)}</strong></div>`).join('')}
- <p>Bit depth is displayed only when returned by Qobuz. MediaPlayer can sometimes expose a parsed track sample rate and MIME type; this does not guarantee the physical DAC's output format or bit-perfect playback. Android may resample audio.</p></div>`;
+ return `<div class="sheet-title">Audio details · source vs catalogue</div>
+ <div class="credits">${fields.map(([key,val])=>`<div class="credit"><span>${html(key)}</span><strong>${html(val)}</strong></div>`).join('')}
+ <p>The Qobuz catalogue maximum does not describe the playing stream. Exact source quality is shown only when reported by the streaming service. Android MediaPlayer may not expose FLAC bit depth or physical DAC parameters.</p></div>`;
 }
 
 const ic=(key,size=24)=>{
