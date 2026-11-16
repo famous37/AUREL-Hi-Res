@@ -63,10 +63,15 @@ final class MornyeGateway {
         String code=failure.code.trim();
         return failure.status==428 ||
             "VERIFY_REQUIRED".equalsIgnoreCase(code) ||
-            (failure.status==401 && (
+            "VERIFICATION_REQUIRED".equalsIgnoreCase(code) ||
+            ((failure.status==401 || failure.status==403) && (
                 "SESSION_INVALID".equalsIgnoreCase(code) ||
                 "SESSION_EXPIRED".equalsIgnoreCase(code) ||
-                "INVALID_SESSION".equalsIgnoreCase(code)));
+                "INVALID_SESSION".equalsIgnoreCase(code) ||
+                "SESSION_REVOKED".equalsIgnoreCase(code) ||
+                "REVERIFY_REQUIRED".equalsIgnoreCase(code) ||
+                "AUTH_REQUIRED".equalsIgnoreCase(code))) ||
+            (failure.status==401 && code.isEmpty());
     }
     static boolean terminalStreamFailure(Exception error){
         if(error instanceof StreamRateLimitException)return true;
