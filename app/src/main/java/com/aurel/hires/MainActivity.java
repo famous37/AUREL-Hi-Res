@@ -96,6 +96,11 @@ public final class MainActivity extends Activity {
         }
         setContentView(content);
         content.requestApplyInsets();
+        // Check the official extension registry at most once every 24 hours.
+        // Never download or execute unsigned remote JavaScript.
+        jobs.execute(()->{
+            try{mornyeCatalog.status(false);}catch(Exception ignored){}
+        });
         web.loadUrl("file:///android_asset/index.html");
         ui.postDelayed(ticker,1000);
     }
