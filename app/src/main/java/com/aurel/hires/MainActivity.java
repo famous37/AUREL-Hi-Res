@@ -11,7 +11,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.MediaFormat;
+import androidx.media3.common.Format;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -48,7 +48,7 @@ public final class MainActivity extends Activity {
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
-    private MediaPlayer player;
+    private AurelMediaPlayer player;
     private JSONObject current=new JSONObject();
     private JSONObject fileInfo=new JSONObject();
     // Verified FLAC parameters parsed from bytes served by the active playback URL.
@@ -1001,34 +1001,16 @@ public final class MainActivity extends Activity {
         }
     }
 
-    /** Track parameters from Android's parsed stream headers; not a DAC measurement. */
-    private void inspectPreparedTrack(MediaPlayer mp) {
-        // Keep earlier valid values when Android exposes track format only
-        // during a later read; this method does not fetch media over HTTP.
-        try {
-            MediaPlayer.TrackInfo[] tracks=mp.getTrackInfo();
-            if(tracks==null)return;
-            for(MediaPlayer.TrackInfo track:tracks) {
-                if(track.getTrackType()!=MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO)continue;
-                MediaFormat format=track.getFormat();
-                if(format==null)continue;
-                if(format.containsKey(MediaFormat.KEY_SAMPLE_RATE)){
-                    int sample= format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-                    if(sample>=8000&&sample<=768000) decoderSampleRateHz=sample;
-                }
-                if(format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)){
-                    int ch=format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                    if(ch>=1&&ch<=32)decoderChannels=ch;
-                }
-                if(format.containsKey(MediaFormat.KEY_MIME))decoderMime=format.getString(MediaFormat.KEY_MIME);
-                if(format.containsKey(MediaFormat.KEY_BIT_RATE)){
-                    int bitrate=format.getInteger(MediaFormat.KEY_BIT_RATE);
-                    if(bitrate>=8000&&bitrate<=50_000_000)
-                        decoderBitrateKbps=(bitrate+500)/1000;
-                }
-                break;
-            }
-        }catch(Exception ignored){/* Android does not expose track format on every decoder. */}
+    /** Track information produced by Media3's actual stream extractor. */
+    private void inspectDecodedTrack(Format format) {
+        if (format == null) return;
+        if (format.sampleRate >= 8000 && format.sampleRate <= 768000)
+            decoderSampleRateHz = format.sampleRate;
+        if (format.channelCount >= 1 && format.channelCount <= 32)
+            decoderChannels = format.channelCount;
+        if (format.sampleMimeType != null) decoderMime = format.sampleMimeType;
+        if (format.bitrate >= 8000 && format.bitrate <= 50_000_000)
+            decoderBitrateKbps = (format.bitrate + 500) / 1000;
     }
 
     private void cleanupPlayer() {
@@ -1037,43 +1019,11 @@ public final class MainActivity extends Activity {
     }
 
     /**
-     * Optional, asynchronous, ONE-SHOT verification. A signed Mornye/Zarz URL
-     * may deny a second request; this never delays or retries MediaPlayer.
-     * The result belongs only to the exact player instance/generation.
-     */
-    private void probeCurrentStream(String streamUrl, String trackId,
-                                    int generation, MediaPlayer expectedPlayer) {
-        jobs.execute(()->{
-            try {
-                RealStreamQualityProbe.Result result=RealStreamQualityProbe.probe(streamUrl);
-                if(!result.verifiedFromBytes)return;
-                ui.post(()->{
-                    if(generation!=playGeneration||player!=expectedPlayer||!prepared||
-                       !trackId.equals(current.optString("id","")))return;
-                    try {
-                        actualStream=new JSONObject()
-                            .put("trackId",trackId)
-                            .put("codec",result.codec)
-                            .put("sampleRateHz",result.sampleRateHz)
-                            .put("bitsPerSample",result.bitsPerSample)
-                            .put("channels",result.channels)
-                            .put("verifiedFromBytes",true);
-                        emit("player",playerState());
-                    }catch(Exception ignored){}
-                });
-            }catch(Exception ignored){
-                // A one-time URL, missing Range support, timeouts or non-FLAC
-                // content must not break playback or show a fake quality claim.
-            }
-        });
-    }
-
-    /**
      * Recover an invalid MediaPlayer by releasing it and requesting a fresh
      * stream URL. At most one automatic attempt per user-selected track.
      * The gateway can rate-limit tickets, so never spin or use cached URLs.
      */
-    private void handlePlaybackFailure(MediaPlayer failed, int generation,
+    private void handlePlaybackFailure(AurelMediaPlayer failed, int generation,
                                        String trackId, int what, int extra) {
         if(generation!=playGeneration||player!=failed)return;
         int resumeAtMs=0;
@@ -1198,28 +1148,42 @@ public final class MainActivity extends Activity {
                         // Report supplier metadata before MediaPlayer.prepareAsync
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
-                        player=new MediaPlayer();
-                        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                        player=new AurelMediaPlayer(this);
+                        final AurelMediaPlayer expectedPlayer=player;
+                        // No secondary HTTP request: this is a callback from the
+                        // same byte stream ExoPlayer is decoding and playing.
+                        player.setOnFlacListener(info->{
+                            if(generation!=playGeneration||player!=expectedPlayer)return;
+                            try {
+                                actualStream=new JSONObject()
+                                    .put("trackId",id)
+                                    .put("codec","FLAC")
+                                    .put("sampleRateHz",info.sampleRateHz)
+                                    .put("bitsPerSample",info.bitsPerSample)
+                                    .put("channels",info.channels)
+                                    .put("verifiedFromBytes",true);
+                                emit("player",playerState());
+                            }catch(Exception ignored){}
+                        });
+                        player.setOnFormatListener(format->{
+                            if(generation!=playGeneration||player!=expectedPlayer)return;
+                            int oldRate=decoderSampleRateHz;
+                            int oldChannels=decoderChannels;
+                            String oldMime=decoderMime;
+                            inspectDecodedTrack(format);
+                            if(oldRate!=decoderSampleRateHz||oldChannels!=decoderChannels||
+                               !oldMime.equals(decoderMime))emit("player",playerState());
+                        });
+                        player.setOnStateListener(()->{
+                            if(generation==playGeneration&&player==expectedPlayer&&prepared)
+                                emit("player",playerState());
+                        });
                         player.setOnPreparedListener(mp->{
                             if(generation!=playGeneration||mp!=player)return;
                             prepared=true;buffering=false;
                             if(mornyeMode()&&gatewayPlaybackRejected){
                                 gatewayPlaybackRejected=false;
                                 try{emit("session",session());}catch(Exception ignored){}
-                            }
-                            inspectPreparedTrack(mp);
-                            // Some Android MediaPlayer implementations populate
-                            // TrackInfo after onPrepared. Try two local-only reads.
-                            for(long delayMs:new long[]{1200L,3500L}){
-                                ui.postDelayed(()->{
-                                    if(generation!=playGeneration||player!=mp||!prepared)return;
-                                    int beforeHz=decoderSampleRateHz;
-                                    String beforeMime=decoderMime;
-                                    inspectPreparedTrack(mp);
-                                    if(beforeHz!=decoderSampleRateHz||
-                                       !beforeMime.equals(decoderMime))
-                                        emit("player",playerState());
-                                },delayMs);
                             }
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
@@ -1237,9 +1201,8 @@ public final class MainActivity extends Activity {
                             try{
                                 if(resumeAtMs>0)mp.seekTo(resumeAtMs);
                                 mp.start();
-                                // Mornye/Zarz media URLs may be single-use. A second
-                                // HTTP probe must never compete with MediaPlayer.
-                                if(!mornyeMode())probeCurrentStream(streamUrl,id,generation,mp);
+                                // FLAC bytes are read inline by the ExoPlayer
+                                // DataSource, including on Mornye/Zarz playback.
                             }catch(Exception startError){
                                 handlePlaybackFailure(mp,generation,id,
                                     MediaPlayer.MEDIA_ERROR_UNKNOWN,Integer.MIN_VALUE);
@@ -1267,7 +1230,6 @@ public final class MainActivity extends Activity {
                         });
                         player.setDataSource(streamUrl);
                         player.prepareAsync();
-                        final MediaPlayer expectedPlayer=player;
                         // Bound a stalled prepareAsync; a dead HTTP request must
                         // not leave the UI buffering forever.
                         ui.postDelayed(()->{
