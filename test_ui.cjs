@@ -168,6 +168,19 @@ assert(java.includes('api.publicFeaturedReleases(24)'));
 assert(api.includes('JSONObject publicFeaturedReleases(int limit)'));
 assert(api.includes('false,"735532640",""'));
 assert(java.includes('terminalStreamFailure(e)'));
+assert(java.includes('private void handlePlaybackFailure('),
+       'Broken MediaPlayer should be released and recovered');
+assert(java.includes('decoderRecoveryCount==0'),
+       'Only one automatic retry must be allowed per track');
+assert(java.includes('startAtCurrentInternal(fallback,restorePosition)'),
+       'Retry must acquire a new quality-tier stream URL');
+assert(java.includes('if(!mornyeMode())probeCurrentStream('),
+       'Never consume a Mornye/Zarz stream URL via an extra FLAC probe');
+assert(java.includes('MediaPlayer.MEDIA_ERROR_TIMED_OUT'),
+       'Stalled stream preparation must be bounded');
+assert(java.includes('if(generation==playGeneration&&mp==player)advance(1,true);'),
+       'Stale completion callbacks must not skip tracks');
+
 assert(java.includes('if(viaMornye&&MornyeGateway.terminalStreamFailure(e))break;'));
 assert(java.includes('mornye.streamInfo(id,fmt)'));
 assert(java.includes('mornyeActive()'));
@@ -177,6 +190,8 @@ assert(java.includes('copyMetadata(current,full)'));
 assert(java.includes('catalogMaxBits'));
 assert(java.includes('catalogMaxSampleRateHz'));
 assert(java.includes('decoderBitrateKbps'));
+assert(java.includes('for(long delayMs:new long[]{1200L,3500L})'));
+assert(java.includes('if(generation!=playGeneration||player!=mp||!prepared)return;'));
 assert(java.includes('estimatedAvgBitrateKbps'));
 assert(java.includes('sourceBitrateKbps'));
 assert(java.includes('trackCache.put(id,full)'));
@@ -192,7 +207,17 @@ assert(java.includes('secure.put("libraryAppSecret",suppliedSecret)'));
 const modern=fs.readFileSync(base+'modern.js','utf8');
 assert(modern.includes('catalogueMaxText(p)'));
 assert(modern.includes("show('ISRC',t.isrc)"));
-assert(modern.includes('exact stream format not reported'));
+assert(modern.includes('function requestedStreamTier(p)'));
+assert(modern.includes('Requested stream tier (not measured)'));
+assert.strictEqual(run("actualSource({playing:true,quality:27,formatId:27})"),
+                   "Hi-Res Max up to 24/192 requested · source unverified");
+assert.strictEqual(run("actualSource({playing:true,quality:27,formatId:6})"),
+                   "FLAC CD 16/44.1 requested · source unverified");
+assert.strictEqual(run("actualSource({playing:true,quality:27,formatId:27,decoderSampleRateHz:48000,decoderMime:'audio/flac'})"),
+                   "FLAC · 48 kHz · parsed by Android");
+assert.strictEqual(run("actualSource({playing:true,quality:27,formatId:27,sourceVerified:true,bits:24,sampleRateHz:96000,codec:'FLAC'})"),
+                   "FLAC · 24-bit / 96 kHz");
+assert(modern.includes('source quality remains unverified'));
 assert(modern.includes('function bitrateDisplay(p)'));
 assert(modern.includes('sourceBitrateKbps'));
 assert(modern.includes('estimatedAvgBitrateKbps'));
@@ -381,7 +406,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.14"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.18"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -391,7 +416,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.14'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.18'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -423,7 +448,7 @@ assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artis
 assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
   'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.14'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.18'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -448,7 +473,7 @@ assert(gateway.includes('"VERIFICATION_REQUIRED".equalsIgnoreCase(code)')&&
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('reverifyMornye')"), 'settings/player must invoke re-verification');
 assert(fs.readFileSync(base+'app.js','utf8').includes('aurel-gateway-warning'), 'failed grants need a persistent warning');
 assert(murglarJs.includes('data-reverify-mornye'), 'Now Playing must expose verification instead of an inert error');
-assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.14</strong>'), 'Settings must show the installed version');
+assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.18</strong>'), 'Settings must show the installed version');
 
 const playerFitCss=fs.readFileSync(base+'aurel-player-fit.css','utf8');
 const playerFitJs=fs.readFileSync(base+'aurel-player-fit.js','utf8');
@@ -463,6 +488,6 @@ assert(playerFitJs.includes('orientation:landscape')&&playerFitCss.includes('gri
 assert(playerHtml.indexOf('aurel-player-fit.css')>playerHtml.indexOf('aurel-discography.css'), 'responsive styles must override older styles');
 assert(playerHtml.indexOf('aurel-player-fit.js')>playerHtml.indexOf('aurel-discography.js'), 'fit must wrap the final player renderer');
 
-console.log('AUREL 1.1.14 checks passed — live artist rendering, global theme and native catalogue sections.');
+console.log('AUREL 1.1.18 checks passed — live artist rendering, global theme and native catalogue sections.');
 
 

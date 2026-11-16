@@ -1,4 +1,42 @@
-# AUREL Hi-Res · 1.1.14 Beta
+# AUREL Hi-Res · 1.1.18 Beta
+
+## v1.1.18 — keep audio quality visible without inventing bit depth
+
+- Always display the **requested tier sent to the streaming provider** (MP3, FLAC CD, Hi-Res, Hi-Res Max), even when Mornye/Zarz returns no actual bit depth or sample rate. This is clearly labelled `requested · source unverified`, never presented as measured audio quality.
+- Display actual FLAC header values if verified from bytes for direct (non-Mornye) streams; otherwise use provider-confirmed parameters or local Android MediaPlayer TrackInfo with clear attribution.
+- Read Android TrackInfo locally again at 1.2s and 3.5s for devices that publish their decoder format late. No extra network requests or stream tickets are made, and updates are ignored if the track/player has changed.
+- Audio information drawer now separately shows requested streaming tier, catalogue maximum, decoder track information, and independent source verification.
+- Preserve all v1.1.17 playback recovery fixes and responsive player layout.
+
+**Important:** Requested Hi-Res Max (up to 24-bit / 192 kHz) does not prove those bits were delivered. Android MediaPlayer may not expose lossless bit depth. No second request is issued to one-time Mornye/Zarz URLs.
+
+
+
+## v1.1.17 — resilient streaming and Android decoder recovery
+
+- Treat Android MediaPlayer error \`1 / -2147483648\` as a generic failure, **not proof of corrupted audio**.
+- Release failed MediaPlayer immediately, never reuse an errored instance, and guard stale prepared/error/completion callbacks.
+- Attempt **at most one** automatic new-link recovery for the current user-selected track, with a conservative quality fallback (Hi-Res Max → Hi-Res → CD). This avoids infinite retrials or continuous streaming tickets.
+- Recover near the last playback position when possible; manual Play can try again if automatic recovery fails.
+- Abort stalled preparation after 25 seconds, releasing the player and respecting gateway/provider rate limits and required authorization.
+- Disable secondary FLAC HTTP source probing for Mornye/Zarz, whose signed stream links may be one-time. Do not sacrifice audio playback stability for bit-depth verification; missing metadata remains explicitly unverified.
+- Refresh player interface on changed error/buffering state so the recovery and final actionable error are visible. No UI redesign or changes to stored login credentials.
+
+**Validation:** GitHub Actions builds the Preview and standard APKs, executes existing JavaScript checks, and runs pure-Java FLAC parser tests. Live Mornye/Zarz streams require on-device verification. Decoding errors may still be caused by an upstream broken link, unsupported FLAC encoding or Android device-specific MediaPlayer limitations.
+
+
+
+## v1.1.16 — actual FLAC source verification (best effort)
+
+- Added native FLAC STREAMINFO parser for **bit depth, sample rate and channel count from bytes served by the final playback URL**. This is separate from Qobuz catalogue maxima, provider-reported parameters, Android decoder information and the physical DAC.
+- Verification runs once per newly opened track **after playback starts**, off the UI thread, using a bounded HTTPS Range request with a short timeout. Playback does not wait for the result.
+- Track ID, player identity and playback generation are checked before publishing the quality reading. Old-track results are discarded. Switching tracks clears the verified result.
+- When Mornye/Zarz gateways reject the additional request, or when the stream is MP3/AAC rather than native FLAC, AUREL displays an explicitly unverified source or available Android/provider metadata. No repeated attempts, permanent spinner or invented Hi-Res labels.
+- Audio panel and mini-player distinguish byte-verified data from provider claims. No streaming URL, session cookie or bearer token is sent to the web UI.
+- **Limitations:** The source probe requests a new response from the same playback URL. It does not directly inspect bytes consumed by MediaPlayer and may be refused by one-use URLs. It cannot prove that a 24/96 master was not upsampled, or that Android delivered bit-perfect output to a DAC. On-device tests with authorized playback sessions are still needed.
+- **Safety:** no changes to account login, Qobuz credentials, playback authorization, Mornye verification or downloader features.
+
+
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
