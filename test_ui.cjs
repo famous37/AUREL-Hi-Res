@@ -199,7 +199,10 @@ assert(webActivity.includes('setAcceptThirdPartyCookies'));
 assert(webActivity.includes('evaluateJavascript(js,response->'));
 assert(webActivity.includes('localStorage.getItem(\'localuser\')'));
 assert(webActivity.includes('request.getRequestHeaders()'));
-assert(webActivity.includes('observedAppId=candidate'));
+assert(webActivity.includes('observedToken=requestToken'));
+assert(webActivity.includes('observedAppId=requestAppId'));
+assert(webActivity.includes('finishWithSession(observedToken)'));
+assert(webActivity.includes('if(uri!=null&&"https".equalsIgnoreCase(uri.getScheme()))return false;'));
 assert(!webActivity.includes('addJavascriptInterface'));
 assert(extensionStatus.includes('mornyeapp/Mornye-Extension/main/registry.json'));
 assert(extensionStatus.includes('qobuz-web'));
@@ -208,4 +211,4 @@ assert(extensionStatus.includes('nativeRuntimeAvailable",false'));
 assert(!extensionStatus.includes('eval('));
 assert(fs.readFileSync(base+'app.js','utf8').includes("appId:data.appId||''"));
 
-console.log('AUREL 1.0.3 checks passed — three login options including first-party Web/CAPTCHA and read-only Mornye version monitoring.');
+console.log('AUREL 1.0.4 checks passed — Qobuz Web API token capture, HTTPS verification redirects and session validation.');
