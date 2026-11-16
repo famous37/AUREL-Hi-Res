@@ -161,6 +161,8 @@ var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
  var key=String(s||'').trim();
+ var upcoming=/^Available for streaming from (\d{4}-\d{2}-\d{2})\.$/.exec(key);
+ if(upcoming)return 'Доступно для прослуховування з '+upcoming[1]+'.';
  if(Object.prototype.hasOwnProperty.call(dictionary,key))return dictionary[key];
  var match=/^(\d+)\s+tracks$/i.exec(key);
  if(match)return match[1]+' треків';
