@@ -1,0 +1,220 @@
+/* AUREL 1.1.21 — restrained, album-aware visual system.
+   Last stylesheet. Presentation only: no player, auth or history logic. */
+:root {
+  --aurel-ui-font: Inter, Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --aurel-ui-radius: 14px;
+  --aurel-ui-radius-sm: 11px;
+  --aurel-ui-text: 15px;
+  --aurel-ui-caption: 13px;
+  --aurel-ui-line: color-mix(in srgb, var(--aurel-theme-accent, #c4a6cf) 18%, transparent);
+  --aurel-ui-fill: color-mix(in srgb, var(--aurel-theme-surface, #28202d) 75%, #16141a 25%);
+}
+html, body, .app, button, input, select, textarea {
+  font-family:var(--aurel-ui-font)!important;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+body {font-size:var(--aurel-ui-text)!important;line-height:1.46}
+.app .screen {font-size:var(--aurel-ui-text)!important}
+.app .screen h1, .app .screen h2, .app .screen h3,
+#overlay h1, #overlay h2 {font-family:var(--aurel-ui-font)!important;letter-spacing:-.023em!important}
+.app .screen .page-heading h1, .app .screen .aurel-settings-heading h1 {
+  font-size:clamp(25px,5.6vw,30px)!important;font-weight:730!important;line-height:1.18!important;
+}
+.app .screen .headline {font-size:clamp(29px,6vw,41px)!important;line-height:1.13!important;font-weight:740!important;letter-spacing:-.035em!important}
+.app .screen .sectionhead h2, .app .screen .recent-head h2,
+.app .screen .aurel-artist-section-heading h2 {
+  font-size:clamp(19px,4.4vw,22px)!important;line-height:1.25!important;font-weight:710!important;letter-spacing:-.022em!important;
+}
+.app .screen .panel h3 {font-size:19px!important;font-weight:700!important;letter-spacing:-.014em!important}
+.app .screen .sectionhead p,.app .screen .subline,
+.app .screen .album-artist,.app .screen .track-meta,
+.app .screen .shelf-card>span:last-of-type,
+.app .screen .aurel-artist-kind {
+  font-size:var(--aurel-ui-caption)!important;line-height:1.45!important;
+}
+.app .screen .album-title,.app .screen .track-title,.app .screen .shelf-card strong,
+.app .screen .aurel-popular-copy strong,.app .screen .library-album-row strong {
+  font-size:14.5px!important;font-weight:640!important;letter-spacing:-.008em!important;
+}
+.app .screen .kicker,.app .screen .eyebrow,.app .screen .tag,
+.app .screen .hires-tag,.app .screen .audio-badge {
+  font-size:11.5px!important;letter-spacing:.035em!important;font-weight:650!important;
+}
+.app .screen .panel,.app .screen .auth-shell,.app .screen .aurel-signin,
+.app .screen .welcome-panel,.app .screen .collection-note,
+.app .screen .spotlight,.app .screen .magazine-hero {
+  border:1px solid var(--aurel-ui-line)!important;
+  border-radius:18px!important;box-shadow:none!important;
+}
+.app .screen .spotlight, .app .screen .magazine-hero {
+  background-color:var(--aurel-ui-fill)!important;
+  background-blend-mode:soft-light;
+}
+.app .screen .spotlight h2,.app .screen .magazine-hero h2 {
+  font-size:clamp(27px,6.4vw,39px)!important;font-weight:720!important;letter-spacing:-.03em!important;
+}
+.app .screen .albumcard .cover,.app .screen .shelf-image,
+.app .screen .library-row-image,.app .screen .aurel-release-art,
+.app .screen .aurel-popular-art,.app .screen .artist-image {
+  border-radius:13px!important;box-shadow:none!important;
+}
+.app .screen .aurel-similar-portrait,.app .screen .aurel-artist-photo-frame {box-shadow:none!important}
+.app .screen .album-shelf,.app .screen .cards {column-gap:12px!important}
+.app .screen .tracklist,.app .screen .library-album-row,
+.app .screen .playlist-entry,.app .screen .track,.app .screen .searchbox {
+  border-color:var(--aurel-ui-line)!important;
+}
+.app .screen .track,.app .screen .playlist-entry,.app .screen .library-album-row {
+  min-height:59px!important;padding-block:9px!important;
+}
+.app .screen .track:hover,.app .screen .playlist-entry:hover {background:color-mix(in srgb,var(--aurel-theme-accent) 7%,transparent)!important}
+.app .screen .pill,.app .screen .action-pill,.app .screen .aurel-signin-submit,
+.app .screen .aurel-artist-play,.app .screen .aurel-artist-follow,
+.app .screen .aurel-artist-load-more,.app .screen .tab,
+.app .screen .chip,.app .screen .quicklinks button,
+.app .screen .view-switch button,.app .screen .search-submit,
+.app .screen .aurel-update-controls button,
+.app .screen .aurel-language-choice {
+  border-radius:var(--aurel-ui-radius)!important;
+  font-size:14px!important;font-weight:630!important;letter-spacing:0!important;
+  box-shadow:none!important;transition:background-color .18s ease,border-color .18s ease,opacity .18s ease,transform .14s ease!important;
+}
+.app .screen .pill,.app .screen .action-pill,.app .screen .aurel-artist-play,
+.app .screen .aurel-signin-submit {min-height:44px!important;padding:10px 15px!important}
+.app .screen .tabs{gap:7px!important}
+.app .screen .tabs .tab,.app .screen .home-chips .chip {
+  padding:9px 13px!important;min-height:39px!important;
+  color:var(--aurel-theme-secondary)!important;
+  background:color-mix(in srgb,var(--aurel-theme-surface) 80%,#100f14 20%)!important;
+  border:1px solid var(--aurel-ui-line)!important;
+}
+.app .screen .tabs .tab.active,.app .screen .home-chips .chip.selected {
+  color:var(--aurel-theme-on)!important;
+  background:var(--aurel-theme-raised)!important;
+  border-color:var(--aurel-theme-border)!important;
+}
+.app .screen .searchbox {border-radius:14px!important;min-height:50px!important}
+.app .screen .searchbox input {font-size:15px!important;min-height:49px!important}
+.app .screen .quality {min-height:69px!important;border-radius:14px!important}
+.app .screen .quality strong {font-size:15px!important;font-weight:700!important}
+.app .screen .quality small {font-size:13px!important}
+.app .screen .field input,.app .screen .field select,
+.app .screen input:not([type="checkbox"]):not([type="range"]) {
+  border-radius:12px!important;font-size:15px!important;
+}
+.app .screen .aurel-artist-hero {border-radius:17px!important}
+.app .screen .aurel-artist-actions {gap:9px!important}
+.app .screen .aurel-popular-track {border-radius:11px!important}
+.app .mini {
+  border-radius:16px!important;
+  background:color-mix(in srgb,var(--aurel-theme-card, #24202a) 94%,#101014 6%)!important;
+  border-color:var(--aurel-ui-line)!important;
+  box-shadow:0 5px 20px #0005!important;
+}
+.app .mini .title {font-size:14px!important;font-weight:680!important}
+.app .mini .artist {font-size:12.5px!important}
+.app .mini img,.app .mini .minicover {border-radius:10px!important}
+.app .bottom-nav,.app:has(#overlay:not(.hidden)) .bottom-nav {
+  box-shadow:none!important;
+  border-color:var(--aurel-ui-line)!important;
+}
+.app .bottom-nav button {
+  border-radius:12px!important;
+  font-size:11.5px!important;font-weight:590!important;
+  letter-spacing:0!important;
+}
+.app .bottom-nav button.active {font-weight:680!important}
+.app .bottom-nav .aurel-tab-label {font-size:11.5px!important;line-height:1.15!important}
+#overlay .murglar-view .murglar-header {
+  border-radius:15px!important;box-shadow:none!important;
+  background:var(--aurel-ui-fill)!important;
+}
+#overlay .murglar-view .murglar-now-heading {font-size:14px!important;font-weight:680!important}
+#overlay .murglar-view .murglar-cover {
+  border-radius:15px!important;box-shadow:0 7px 23px #0006!important;
+}
+#overlay .murglar-view .murglar-track-data h1 {
+  font-size:clamp(22px,5.8vw,29px)!important;font-weight:740!important;
+  line-height:1.18!important;letter-spacing:-.025em!important;
+}
+#overlay .murglar-view .player-artist-link {
+  font-size:clamp(16px,4.5vw,19px)!important;font-weight:590!important;
+}
+#overlay .murglar-view .murglar-album-link {font-size:13.5px!important;font-weight:520!important}
+#overlay .murglar-view .murglar-quick-actions button {
+  border-radius:13px!important;
+  background:var(--aurel-ui-fill)!important;
+  border-color:var(--aurel-ui-line)!important;
+  box-shadow:none!important;
+}
+#overlay .murglar-view .murglar-quick-actions button span {
+  font-size:12.5px!important;font-weight:610!important;
+}
+#overlay .murglar-view .murglar-transport .murglar-control {
+  border-radius:17px!important;
+  background:var(--aurel-ui-fill)!important;
+  border-color:var(--aurel-ui-line)!important;
+  box-shadow:none!important;
+}
+#overlay .murglar-view .murglar-transport .murglar-control.middle {
+  border-radius:50%!important;
+  background:var(--aurel-theme-accent)!important;
+  color:var(--aurel-theme-ink)!important;
+  box-shadow:0 3px 12px #0004!important;
+}
+#overlay .murglar-view .murglar-transport .murglar-control.peripheral {
+  background:transparent!important;
+  border:none!important;border-radius:50%!important;
+}
+#overlay .murglar-view .murglar-source-line {
+  border-radius:13px!important;font-size:12.5px!important;font-weight:590!important;
+  background:var(--aurel-ui-fill)!important;border-color:var(--aurel-ui-line)!important;
+}
+#overlay .murglar-view .murglar-progress-row>span {font-size:12.5px!important;font-weight:590!important}
+#overlay .murglar-view .aurel-detail-drawer {background:var(--aurel-theme-bg)!important}
+#overlay .murglar-view .aurel-detail-drawer h2 {font-size:18px!important;font-weight:690!important}
+#overlay .murglar-view .murglar-detail-sheet .credit span {
+  font-size:13px!important;line-height:1.4!important;
+}
+#overlay .murglar-view .murglar-detail-sheet .credit strong {
+  font-size:13.5px!important;line-height:1.45!important;
+}
+.app #toast.toast {
+  border-radius:13px!important;font-size:13.5px!important;
+  background:color-mix(in srgb,var(--aurel-theme-surface) 95%,#101015 5%)!important;
+  border-color:var(--aurel-ui-line)!important;
+}
+.app .screen .aurel-language-panel {padding:17px!important}
+.app .screen .aurel-language-intro {margin:0 0 13px!important;font-size:13.5px!important;color:var(--aurel-theme-secondary)!important}
+.app .screen .aurel-language-options {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.app .screen .aurel-language-choice {
+  display:flex;align-items:center;justify-content:space-between;text-align:left;
+  gap:8px;min-height:53px;padding:10px 12px!important;
+  background:var(--aurel-ui-fill)!important;color:var(--aurel-theme-on)!important;
+  border:1px solid var(--aurel-ui-line)!important;
+}
+.app .screen .aurel-language-choice[aria-checked="true"] {
+  background:var(--aurel-theme-raised)!important;border-color:var(--aurel-theme-accent)!important;
+}
+.app .screen .aurel-language-choice .aurel-language-name {font-weight:680;font-size:14px;line-height:1.25}
+.app .screen .aurel-language-choice small {display:block;font-size:12px;font-weight:480;color:var(--aurel-theme-secondary)}
+.app .screen .aurel-language-choice .aurel-language-check {
+  font-size:19px;color:var(--aurel-theme-accent);opacity:0;
+}
+.app .screen .aurel-language-choice[aria-checked="true"] .aurel-language-check {opacity:1}
+.app .screen button:focus-visible,#overlay button:focus-visible,.app .bottom-nav button:focus-visible {
+  outline:2px solid var(--aurel-theme-accent)!important;outline-offset:2px!important;
+}
+@media(max-width:390px) {
+  .app .screen .aurel-language-choice{padding:8px 10px!important}
+  .app .screen .aurel-language-choice .aurel-language-name{font-size:13.5px}
+  .app .bottom-nav .aurel-tab-label{font-size:11px!important}
+}
+@media(orientation:landscape) and (max-height:510px) {
+  #overlay .murglar-view .murglar-player-content {gap:2px!important}
+  #overlay .murglar-view .murglar-cover{border-radius:11px!important}
+}
+@media(prefers-reduced-motion:reduce) {
+  .app .screen button,#overlay button,.app .mini,.app .bottom-nav button {transition:none!important}
+}

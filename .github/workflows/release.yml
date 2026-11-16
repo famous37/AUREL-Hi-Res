@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/release.yml']
+    paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
   contents: write
@@ -127,16 +127,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.20 — built-in signed updates**' \
+            '**AUREL Hi-Res v1.1.21 — refined interface and Ukrainian localization**' \
             '' \
-            '- Added Settings > App updates with daily GitHub release checks and optional APK downloads.' \
-            '- Built-in progress indicator and release notes; Android asks before every installation.' \
-            '- SHA-256 verification, fixed AUREL signing certificate pin, exact package check and increasing Android versionCode.' \
-            '- Same permanent signing certificate as v1.1.19; compatible in-place upgrade.' \
+            '- Refined album-responsive controls, typography, navigation, cards and player visuals.' \
+            '- Added English (default) and Ukrainian (Skrypnykivka) language selection in Settings.' \
+            '- Preserved player, Qobuz, Mornye, history, album palette and verified signed updates.' \
+            '- Same permanent signing certificate as v1.1.20; compatible in-place upgrade.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
             '- Preserves previous player, navigation, artwork, Qobuz, and Mornye features.' \
             '' \
-            'Install: v1.1.19 and later use the same long-term certificate, so installing v1.1.20 over signed v1.1.19 preserves your local settings and Qobuz sessions.' \
+            'Install: v1.1.21 over the signed v1.1.20 retains your local settings and Qobuz sessions.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
