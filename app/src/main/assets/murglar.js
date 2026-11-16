@@ -10,10 +10,12 @@
     return `<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${paths[key]||''}</svg>`;
   };
   const stateCaption=p=>p?.error?'UNAVAILABLE':p?.buffering?'BUFFERING':p?.playing?'PLAYING':'PAUSED';
-  const sourceCaption=p=>p?.sourceVerified?'Qobuz metadata':p?.decoderSampleRateHz?'Android parsed track':'Unverified format';
+  const sourceCaption=p=>p?.sourceVerified?'Stream format reported by provider':p?.decoderSampleRateHz?'Android parsed track':p?.catalogMaxBits?'Qobuz catalogue maximum, not stream quality':p?.playing?'Playing · exact format not reported':'Stream details pending';
   drawOverlay=function(){
     const overlay=$('#overlay');
-    if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return}
+    if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
+    const priorScroll=overlay.querySelector('.murglar-player-content')?.scrollTop||0;
+    const priorSheet=overlay.dataset.openSheet||'';
     const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
     const total=Math.max(0,Number(p.duration)||0),position=Math.min(total,Math.max(0,Number(p.position)||0));
     const played=total?Math.min(100,Math.round(position/total*100)):0;
@@ -65,6 +67,12 @@
         ${navItems.map(([key,label])=>`<button data-player-nav="${key}" class="${key==='playing'?'active':''}" aria-label="${label}" ${key==='playing'?'aria-current="page"':''}>${navigationIcon(key)}<span>${label}</span></button>`).join('')}
       </nav>
     </div>`;
+    const scroller=overlay.querySelector('.murglar-player-content');
+    if(scroller){
+      if(active && active!==priorSheet)scroller.scrollTop=scroller.scrollHeight;
+      else scroller.scrollTop=Math.min(priorScroll,scroller.scrollHeight);
+    }
+    overlay.dataset.openSheet=active;
   };
   updateOverlayState=function(){
     const p=app.player;
