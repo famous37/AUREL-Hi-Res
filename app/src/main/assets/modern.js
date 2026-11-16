@@ -105,26 +105,40 @@ function bitrateDisplay(p){
 function actualSource(p){
  if(!p)return 'Format not available';
  const bits=Number(p.bits)||0,rate=kHzLabel(p.sampleRateHz);
- const parsedRate=kHzLabel(p.decoderSampleRateHz);
- const codec=p.codec||((p.decoderMime||'').toLowerCase().includes('flac')?'FLAC':'');
- const bitrate=bitrateDisplay(p);
- if(p.sourceVerified&&bits&&rate)return `${codec?codec+' · ':''}${bits}-bit / ${rate}${bitrate?' · '+bitrate:''}`;
- if(parsedRate)return `${codec?codec+' · ':''}${parsedRate} · parsed by Android${bitrate?' · '+bitrate:''}`;
- if(p.playing&&p.catalogMaxBits&&p.catalogMaxSampleRateHz)
-   return `Playing · Qobuz up to ${catalogueMaxText(p)}${bitrate?' · '+bitrate:''}`;
+ const androidRate=kHzLabel(p.decoderSampleRateHz);
+ const mime=(p.decoderMime||p.mimeType||'').toLowerCase();
+ const codec=p.codec||(mime.includes('flac')?'FLAC':mime.includes('mpeg')?'MP3':'');
+ const provider=Number(p.sourceBitrateKbps)||0,estimated=Number(p.estimatedAvgBitrateKbps)||0;
+ const androidBitrate=Number(p.decoderBitrateKbps)||0,frame=Number(p.frameBitrateKbps)||0;
+ const bitrate=provider>=8&&provider<=50000?Math.round(provider)+' kbps':
+   estimated>=8&&estimated<=50000?'≈ '+Math.round(estimated)+' kbps':
+   androidBitrate>=8&&androidBitrate<=50000?Math.round(androidBitrate)+' kbps':
+   frame>=8&&frame<=50000?'frame '+Math.round(frame)+' kbps':'';
+ const suffix=bitrate?' · '+bitrate:'';
+ if(p.sourceVerified&&bits&&rate)return `${codec?codec+' · ':''}${bits}-bit / ${rate}${suffix}`;
+ if(p.streamHeaderVerified&&rate)return `${codec?codec+' · ':''}${rate}${suffix}`;
+ if(androidRate)return `${codec?codec+' · ':''}${androidRate} · Android${suffix}`;
+ if(p.qualityProbePending)return 'Checking actual stream quality…';
+ if(p.buffering)return 'Connecting to audio…';
  if(p.playing)return bitrate||'Playing · exact stream format not reported';
- if(p.buffering)return 'Checking audio source…';
- return 'Stream format not reported';
+ return 'Stream quality unavailable · tap Audio';
 }
 const bytesText=n=>Number(n)>0?`${(Number(n)/1048576).toFixed(1)} MB`:'Not reported';
 function audioPanel(p){
- const source=p?.sourceVerified?(p?.sourceLabel||'Qobuz provider reported stream'):'Source bit depth not provided by streaming server';
+ const source=p?.streamHeaderVerified?(p?.sourceEvidence||'Direct media header'):
+  p?.sourceVerified?'Streaming provider metadata':
+  p?.qualityProbePending?'Checking stream header…':
+  p?.qualityProbeAttempted?'Stream header not accessible; only known data shown':
+  'Stream metadata not reported';
  const decoderHz=kHzLabel(p?.decoderSampleRateHz);
  const fields=[
-  ['Current stream',p?.sourceVerified?`${p.bits}-bit / ${kHzLabel(p.sampleRateHz)}`:'Exact bit depth / rate not verified'],
+  ['Current stream',p?.sourceVerified?`${p.bits}-bit / ${kHzLabel(p.sampleRateHz)}`:
+      p?.streamHeaderVerified&&kHzLabel(p.sampleRateHz)?`${p.codec||'Audio'} · ${kHzLabel(p.sampleRateHz)} (bit depth unknown / not applicable)`:'Exact bit depth / rate not verified'],
+  ['Quality verified by',source],
   ['Qobuz catalogue maximum',catalogueMaxText(p)],
   ['Provider bitrate',p?.sourceBitrateKbps?Math.round(p.sourceBitrateKbps)+' kbps':'Not reported'],
   ['Android track bitrate',p?.decoderBitrateKbps?Math.round(p.decoderBitrateKbps)+' kbps':'Not reported'],
+  ['MP3 sampled frame bitrate',p?.frameBitrateKbps?Math.round(p.frameBitrateKbps)+' kbps (not whole-track average)':'Not reported'],
   ['Estimated average bitrate',p?.estimatedAvgBitrateKbps?'≈ '+Math.round(p.estimatedAvgBitrateKbps)+' kbps (from file size / duration)':'Unavailable'],
   ['Provider',p?.sourceLabel||'Not reported'],
   ['Source provenance',source],
@@ -138,7 +152,7 @@ function audioPanel(p){
  ];
  return `<div class="sheet-title">Audio details · source vs catalogue</div>
  <div class="credits">${fields.map(([key,val])=>`<div class="credit"><span>${html(key)}</span><strong>${html(val)}</strong></div>`).join('')}
- <p>The Qobuz catalogue maximum does not describe the playing stream. Exact source quality is shown only when reported by the streaming service. Android MediaPlayer may not expose FLAC bit depth or physical DAC parameters.</p></div>`;
+ <p>FLAC bit depth and sample rate can be verified from STREAMINFO using a short ranged read of the existing media URL. MP3 frame bitrate may vary. Qobuz catalogue maximum and Android mixer / DAC output are different measurements.</p></div>`;
 }
 
 const ic=(key,size=24)=>{
@@ -226,7 +240,7 @@ const formerEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const old=app.lastQueueFingerprint;formerEvent(kind,data);if(kind==='player'){
  const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
- const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz,data?.sourceBitrateKbps,data?.decoderBitrateKbps,data?.estimatedAvgBitrateKbps]);
+ const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz,data?.sourceBitrateKbps,data?.decoderBitrateKbps,data?.estimatedAvgBitrateKbps,data?.qualityProbePending,data?.qualityProbeAttempted,data?.streamHeaderVerified,data?.sourceEvidence,data?.frameBitrateKbps,data?.fileSize]);
  const trackSignature=JSON.stringify([data?.track?.id,data?.track?.title,artistLabel(data?.track||{}),data?.track?.album?.title,image(data?.track||{}),data?.track?.isrc,data?.track?.composers,data?.track?.performers,data?.track?.album?.label,data?.track?.album?.release_date_original]);
  if(app.overlay&&(old!==fingerprint||app.lastSourceSignature!==sourceSignature||app.lastVisualSignature!==trackSignature)){
     app.lastSourceSignature=sourceSignature;app.lastVisualSignature=trackSignature;drawOverlay();

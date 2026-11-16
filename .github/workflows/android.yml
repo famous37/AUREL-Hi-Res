@@ -29,6 +29,11 @@ jobs:
           for file in app/src/main/assets/*.js; do node --check "$file"; done
       - name: Verify player UI and source metadata
         run: node test_ui.cjs
+      - name: Verify actual FLAC and MP3 stream header parsing
+        run: |
+          mkdir -p build/probe-check
+          javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
+          java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
       - name: Assemble isolated Preview APK
         run: |
           gradle --no-daemon :app:assembleDebug -PaurelPreview --rerun-tasks
