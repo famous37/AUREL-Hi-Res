@@ -116,7 +116,7 @@ function listTracks(items){if(!items.length)return `<div class="empty">No tracks
 }
 function render(){
  $$('.nav,.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===app.nav));
- $('#headerName').textContent=app.session?.profile?.displayName||'Account';
+
  if(!hasAuth()&&app.nav!=='settings'){renderLogin();return;}
  if(app.selected){if(app.selectedKind==='artist')renderArtist();else renderAlbum();return;}
  switch(app.nav){case 'home':renderHome();break;case 'magazine':renderMagazine();break;case 'search':renderSearch();break;case 'library':renderLibrary();break;case 'playlists':renderPlaylists();break;case 'settings':renderSettings();break;default:renderHome()}
