@@ -14,6 +14,8 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -36,6 +38,62 @@ final class MornyeGateway {
     private static final String SCHEME="ZARZ-HMAC-V1";
     private static final String PREFIX="X-Zarz-";
     private static final int MAX_BYTES=1_500_000;
+    /** Never retry a server-enforced streaming limit by changing quality. */
+    static class GatewayException extends Exception {
+        final int status;
+        final String code;
+        GatewayException(int status,String code,String message){
+            super(message);this.status=status;this.code=code==null?"":code;
+        }
+    }
+    static final class StreamRateLimitException extends GatewayException {
+        final long retrySeconds;
+        StreamRateLimitException(long seconds){
+            super(429,"DOWNLOAD_RATE_LIMITED",
+                "Zarz streaming rate limit reached. Try again in "+seconds+
+                " seconds. AUREL will not send more stream requests during this period.");
+            retrySeconds=seconds;
+        }
+    }
+    static boolean terminalStreamFailure(Exception error){
+        if(error instanceof StreamRateLimitException)return true;
+        if(error instanceof GatewayException){
+            int status=((GatewayException)error).status;
+            return status==401||status==403||status==429;
+        }
+        return false;
+    }
+    private long streamHoldSeconds(){
+        try{
+            long deadline=Long.parseLong(store.get("mornyeStreamHoldUntil"));
+            long remaining=deadline-System.currentTimeMillis();
+            return remaining>0?(remaining+999L)/1000L:0;
+        }catch(Exception ignored){return 0;}
+    }
+    private void setStreamHold(long seconds)throws Exception{
+        long safe=Math.max(1L,Math.min(604800L,seconds));
+        long newDeadline=System.currentTimeMillis()+safe*1000L;
+        long oldDeadline=0;
+        try{oldDeadline=Long.parseLong(store.get("mornyeStreamHoldUntil"));}
+        catch(Exception ignored){}
+        store.put("mornyeStreamHoldUntil",Long.toString(Math.max(oldDeadline,newDeadline)));
+    }
+    private static long retryAfterSeconds(HttpURLConnection connection,JSONObject json){
+        String value=connection.getHeaderField("Retry-After");
+        if(value!=null){
+            value=value.trim();
+            try{return Math.max(0L,Long.parseLong(value));}
+            catch(Exception ignored){
+                try{
+                    long millis=ZonedDateTime.parse(value,DateTimeFormatter.RFC_1123_DATE_TIME)
+                        .toInstant().toEpochMilli()-System.currentTimeMillis();
+                    if(millis>0)return (millis+999L)/1000L;
+                }catch(Exception ignoredDate){}
+            }
+        }
+        long seconds=json.optLong("retry_after_seconds",json.optLong("retryAfterSeconds",0L));
+        return Math.max(0L,seconds);
+    }
     private static final long CHALLENGE_TTL_MS=180_000L;
     private static final String CALLBACK="mornye://session-grant";
     private static final SecureRandom RAND=new SecureRandom();
@@ -219,12 +277,24 @@ final class MornyeGateway {
             String text=buffer.toString("UTF-8");
             JSONObject json;
             try{json=new JSONObject(text);}catch(Exception e){
-                throw new Exception("Mornye gateway returned non-JSON HTTP "+status);
+                if(status==429&&(relative.startsWith("/dl/qbz")||relative.startsWith("/tickets"))){
+                    long retry=retryAfterSeconds(conn,new JSONObject());
+                    setStreamHold(retry>0?retry:120L);
+                    throw new StreamRateLimitException(streamHoldSeconds());
+                }
+                throw new GatewayException(status,"NON_JSON",
+                    "Mornye gateway returned HTTP "+status+" instead of JSON");
             }
             if(status<200||status>=300){
-                String message=json.optString("error",json.optString("message","Request refused"));
+                String message=json.optString("message",json.optString("error","Request refused"));
                 String code=json.optString("code","");
-                throw new Exception("Mornye gateway HTTP "+status+
+                if(status==429&&(relative.startsWith("/dl/qbz")||relative.startsWith("/tickets"))){
+                    long retry=retryAfterSeconds(conn,json);
+                    // A conservative pause when Zarz omits Retry-After.
+                    setStreamHold(retry>0?retry:120L);
+                    throw new StreamRateLimitException(streamHoldSeconds());
+                }
+                throw new GatewayException(status,code,"Mornye gateway HTTP "+status+
                     (code.isEmpty()?"":" ("+code+")")+": "+message);
             }
             return json;
@@ -317,6 +387,8 @@ final class MornyeGateway {
         return signed("GET",path.toString(),null,null);
     }
     JSONObject streamInfo(String id,int quality)throws Exception{
+        long cooldown=streamHoldSeconds();
+        if(cooldown>0)throw new StreamRateLimitException(cooldown);
         if(!id.matches("[0-9]{1,20}"))throw new Exception("Invalid Qobuz track ID");
         String track="https://open.qobuz.com/track/"+id;
         String hash=shaHex("qbz:track:"+track.toLowerCase(Locale.ROOT));
@@ -340,11 +412,14 @@ final class MornyeGateway {
         double rate=response.optDouble("sampling_rate",nested.optDouble("sampling_rate",0));
         if(rate>0&&rate<1000)rate*=1000;
         // AUREL passes this URL to MediaPlayer directly; no file export/download.
+        boolean verified=depth>=8&&depth<=32&&rate>=8000&&rate<=768000;
         return new JSONObject()
             .put("url",url)
+            .put("bits_depth",verified?depth:0)
+            .put("sample_rate_hz",verified?(long)rate:0)
             .put("bit_depth",depth)
             .put("sampling_rate",rate)
-            .put("source_verified",depth>0&&rate>0)
+            .put("source_verified",verified)
             .put("source_label","Mornye Zarz signed session")
             .put("codec","")
             .put("format_id",quality);
