@@ -55,6 +55,11 @@ public final class MainActivity extends Activity {
     private boolean sourceVerified=false;
     private int decoderSampleRateHz=0, decoderChannels=0, decoderBitrateKbps=0;
     private String decoderMime="";
+    // Optional bounded inspection: never delays MediaPlayer or requests a Zarz ticket.
+    private boolean qualityProbePending=false, qualityProbeAttempted=false;
+    private boolean streamHeaderVerified=false;
+    private String sourceEvidence="";
+    private int frameBitrateKbps=0;
     /** Small bounded metadata cache: revisit/repeat displays without fresh
      * network calls, and prefetch one next track while audio already plays. */
     private final java.util.Map<String,JSONObject> trackCache=
@@ -1036,6 +1041,8 @@ public final class MainActivity extends Activity {
         cleanupPlayer();
         current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";
         decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
+        qualityProbePending=false;qualityProbeAttempted=false;streamHeaderVerified=false;
+        sourceEvidence="";frameBitrateKbps=0;
         buffering=true;playerError="";
         // Selecting a different track during CAPTCHA must not use an unrelated
         // account or create further Zarz tickets before verification completes.
@@ -1105,6 +1112,7 @@ public final class MainActivity extends Activity {
                         sourceVerified=metadata.optBoolean("source_verified",false);
                         sourceLabel=metadata.optString("source_label","Qobuz API");
                         codec=metadata.optString("codec","");
+                        qualityProbePending=!sourceVerified;
                         // Report supplier metadata before MediaPlayer.prepareAsync
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
@@ -1132,6 +1140,38 @@ public final class MainActivity extends Activity {
                                 }
                             }
                             try{mp.start();}catch(Exception ignored){}
+                            // Probe the existing media URL, never the ticket endpoint.
+                            // Run after playback starts to protect single-use stream links.
+                            if(qualityProbePending){
+                                jobs.execute(()->{
+                                    StreamQualityProbe.Result parsed=StreamQualityProbe.inspect(streamUrl);
+                                    ui.post(()->{
+                                        if(generation!=playGeneration)return;
+                                        qualityProbePending=false;qualityProbeAttempted=true;
+                                        if(parsed!=null){
+                                            try{
+                                                streamHeaderVerified=true;
+                                                sourceEvidence=parsed.evidence;
+                                                if(!parsed.codec.isEmpty())codec=parsed.codec;
+                                                frameBitrateKbps=parsed.frameBitrateKbps;
+                                                if(parsed.sampleRateHz>0)
+                                                    fileInfo.put("sample_rate_hz",parsed.sampleRateHz);
+                                                if(parsed.channels>0)
+                                                    fileInfo.put("n_channels",parsed.channels);
+                                                if(parsed.bitDepth>0&&parsed.sampleRateHz>0){
+                                                    fileInfo.put("bits_depth",parsed.bitDepth);
+                                                    sourceVerified=true;
+                                                }
+                                                if(parsed.fileSize>0&&fileInfo.optLong("file_size",0)<=0)
+                                                    fileInfo.put("file_size",parsed.fileSize);
+                                                if(parsed.totalSamples>0)
+                                                    fileInfo.put("total_samples",parsed.totalSamples);
+                                            }catch(Exception ignored){}
+                                        }
+                                        emit("player",playerState());
+                                    });
+                                });
+                            }
                             // The successful start of an actual Qobuz stream is
                             // stronger evidence than an optional login endpoint.
                             if("unverified".equals(secure.get("streamValidation"))){
@@ -1147,14 +1187,14 @@ public final class MainActivity extends Activity {
                         player.setOnCompletionListener(mp->advance(1,true));
                         player.setOnErrorListener((mp,what,extra)->{
                             if(generation!=playGeneration)return true;
-                            prepared=false;buffering=false;
+                            prepared=false;buffering=false;qualityProbePending=false;
                             playerError="Media decoder error ("+what+" / "+extra+")";
                             emit("player",playerState());return true;
                         });
                         player.setDataSource(streamUrl);
                         player.prepareAsync();
                         emit("player",playerState());
-                    }catch(Exception e){buffering=false;playerError=e.getMessage();emit("player",playerState());}
+                    }catch(Exception e){buffering=false;qualityProbePending=false;playerError=e.getMessage();emit("player",playerState());}
                 });
             }catch(Exception e){
                 ui.post(()->{
@@ -1162,7 +1202,7 @@ public final class MainActivity extends Activity {
                     if(MornyeGateway.requiresVerification(e)){
                         beginStreamReverification(generation);
                     }else{
-                        buffering=false;
+                        buffering=false;qualityProbePending=false;
                         playerError=e.getMessage();
                         emit("player",playerState());
                     }
@@ -1203,6 +1243,11 @@ public final class MainActivity extends Activity {
             state.put("channels",fileInfo.optInt("n_channels",0));
             state.put("codec",codec);
             state.put("sourceVerified",sourceVerified);
+            state.put("qualityProbePending",qualityProbePending);
+            state.put("qualityProbeAttempted",qualityProbeAttempted);
+            state.put("streamHeaderVerified",streamHeaderVerified);
+            state.put("sourceEvidence",sourceEvidence);
+            state.put("frameBitrateKbps",frameBitrateKbps);
             state.put("decoderSampleRateHz",decoderSampleRateHz);
             state.put("decoderChannels",decoderChannels);
             state.put("decoderMime",decoderMime);
@@ -1212,7 +1257,11 @@ public final class MainActivity extends Activity {
             long durationMs=player!=null&&prepared?player.getDuration():
                 current.optLong("duration",0)*1000L;
             long estimated=0;
-            if(fileSize>0&&durationMs>0)
+            long totalSamples=fileInfo.optLong("total_samples",0);
+            double exactRate=fileInfo.optDouble("sample_rate_hz",0);
+            if(fileSize>0&&totalSamples>0&&exactRate>0)
+                estimated=Math.round(fileSize*8.0*exactRate/(totalSamples*1000.0));
+            else if(fileSize>0&&durationMs>0)
                 estimated=Math.round(fileSize*8.0/durationMs);
             state.put("estimatedAvgBitrateKbps",estimated>0&&estimated<50000?estimated:0);
             state.put("sourceLabel",sourceLabel);
