@@ -1,11 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Needed only for the user-confirmed installer of signed GitHub APKs. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <application android:allowBackup="false" android:label="@string/aurel_app_name"
         android:usesCleartextTraffic="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">
+        <provider android:name=".AurelUpdateProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false" android:grantUriPermissions="true"/>
         <service android:name=".AurelPlaybackService" android:exported="false"
             android:foregroundServiceType="mediaPlayback"/>
         <!-- Supports the original Mornye/Zarz one-time grant callback. Only

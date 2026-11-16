@@ -36,6 +36,7 @@ public final class MainActivity extends Activity {
     private SecureStore secure;
     private QobuzApi api;
     private MornyeGateway mornye;
+    private AurelUpdateManager updateManager;
     private static final int MORNYE_VERIFICATION_REQUEST=4104;
     // Only UI-thread callbacks mutate these fields. One verification window at a time.
     private boolean verificationInProgress=false;
@@ -88,6 +89,7 @@ public final class MainActivity extends Activity {
         secure=new SecureStore(this);
         api=new QobuzApi(secure);
         mornye=new MornyeGateway(secure);
+        updateManager=new AurelUpdateManager(this,update->emit("update",update));
         web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
         WebSettings s=web.getSettings();
         s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
@@ -266,6 +268,10 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode==AurelUpdateManager.UNKNOWN_SOURCES_REQUEST){
+            if(updateManager!=null)updateManager.onPermissionResult();
+            return;
+        }
         if(requestCode!=MORNYE_VERIFICATION_REQUEST)return;
         // An external browser may deliver its grant through onNewIntent first.
         if(resultCode!=RESULT_OK&&mornyeActive())return;
@@ -297,6 +303,7 @@ public final class MainActivity extends Activity {
         cleanupPlayer();
         AurelPlaybackService.stop(this);
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
+        if(updateManager!=null)updateManager.stop();
         jobs.shutdownNow();super.onDestroy();
     }
     private void script(String js) { ui.post(()->{ if(web!=null)web.evaluateJavascript(js,null); }); }
@@ -447,6 +454,22 @@ public final class MainActivity extends Activity {
                     JSONObject p=args(payload);
                     JSONObject data;
                     switch(action) {
+                        case "updateStatus": {
+                            data=updateManager.state();
+                            break;
+                        }
+                        case "checkUpdate": {
+                            data=updateManager.check();
+                            break;
+                        }
+                        case "downloadUpdate": {
+                            data=updateManager.download();
+                            break;
+                        }
+                        case "installUpdate": {
+                            data=updateManager.requestInstall();
+                            break;
+                        }
                         case "session": {
                             data=session();
                             if(mornyeMode()&&!mornyeActive())
