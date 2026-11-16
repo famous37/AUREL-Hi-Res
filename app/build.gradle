@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'com.aurel.hires'
-    compileSdk 35
+    compileSdk 36
     defaultConfig {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 26
