@@ -48,7 +48,7 @@ assert(!webLogin.includes('data-mornye-refresh'));
 assert(!webLogin.includes('id="password"'));
 run("app.loginMode='token';renderLogin()");
 assert(login.includes('current web client automatically'));
-assert(login.includes('never your password'));
+assert(login.includes('never saves your password'));
 assert(login.includes('id="token" type="password"'));
 assert(login.includes('data-toggle-token'));
 assert(login.includes('aurel-signin-advanced'));
