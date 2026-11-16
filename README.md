@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.1.0 Beta
+# AUREL Hi-Res · 1.1.7 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
