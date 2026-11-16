@@ -432,8 +432,8 @@ final class QobuzApi {
             if(e.status==401||e.status==403)
                 throw new ApiException(e.status,"user/login",
                     "Qobuz returned HTTP "+e.status+" for password sign-in with App ID "+appId+
-                    ". The password format is correct, but the service may refuse third-party "+
-                    "login or require a different authorized client. Your existing music "+
+                    ". AUREL used the legacy password-hash format, but Qobuz may disable "+
+                    "direct API login or require an authorized interactive sign-in. Your music "+
                     "session was not changed. Use an account session token if this persists.");
             throw e;
         }
