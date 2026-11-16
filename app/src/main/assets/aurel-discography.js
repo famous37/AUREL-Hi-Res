@@ -72,7 +72,7 @@
   }
   function loadExtras(id){
     const cached=byArtist.get(id);
-    if(cached&&cached.loaded)return;
+    if(cached&&cached.loaded&&!cached.loading)return;
     const state=cached||{loading:true,top:[],similar:[],ep:[],compilation:[],following:false};
     state.loaded=true;
     byArtist.set(id,state);
