@@ -343,11 +343,9 @@
     if(b.hasAttribute('data-artist-follow')){
       ev.preventDefault();ev.stopImmediatePropagation();
       const id=b.dataset.artistFollow;
-      nativeCall('favoriteAdd',{type:'artists',id}).then(()=>{
-        const s=byArtist.get(id);if(s)s.following=true;
-        b.querySelector('span').textContent='Following';
-        showToast('Artist added to Qobuz favourites');
-      }).catch(e=>showToast(e.message||'Connect a library account to follow artists'));
+      if(window.AurelFavoriteToggle){
+        window.AurelFavoriteToggle('artists',id,b);
+      }else showToast('Favourite controls are unavailable');
     }
   },true);
 })();

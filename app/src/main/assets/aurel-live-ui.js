@@ -16,7 +16,11 @@
   }
   let navArtwork='';
   const themeByCover=new Map();
-  const baseTheme={bg:'#160F15',surface:'#2B1A24',accent:'#DEA8B9'};
+  // Neutral graphite is the default. Album-derived colours are opt-in.
+  const PALETTE_KEY='aurel_palette_artwork_v1';
+  const baseTheme={bg:'#111214',surface:'#202124',accent:'#D5D7DB'};
+  let artworkPalette=false;
+  try{artworkPalette=localStorage.getItem(PALETTE_KEY)==='on';}catch(_){}
   let activeCover='';
   const validHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
   function coverNow(){return app.player?.track?image(app.player.track):'';}
@@ -39,12 +43,37 @@
     const themeMeta=document.querySelector('meta[name="theme-color"]');
     if(themeMeta)themeMeta.setAttribute('content',colors.bg);
   }
-  function syncTheme(){
+  function syncTheme(force=false){
     const next=coverNow();
-    if(next===activeCover)return;
+    if(next===activeCover&&!force)return;
     activeCover=next;
-    setTheme(themeByCover.get(next)||baseTheme);
+    setTheme(artworkPalette?(themeByCover.get(next)||baseTheme):baseTheme);
   }
+  function setArtworkPalette(value){
+    artworkPalette=!!value;
+    try{localStorage.setItem(PALETTE_KEY,artworkPalette?'on':'off');}catch(_){}
+    syncTheme(true);
+  }
+  window.AurelTheme={isArtworkPalette:()=>artworkPalette,setArtworkPalette};
+  const originalSettings=renderSettings;
+  renderSettings=function(){
+    const result=originalSettings.apply(this,arguments);
+    const screen=document.getElementById('screen');
+    if(screen&&screen.querySelector('.aurel-settings-heading')){
+      const panel=document.createElement('section');
+      panel.className='panel aurel-appearance-panel';
+      panel.innerHTML='<h3>Appearance</h3><label class="aurel-appearance-toggle">'+
+        '<span><strong>Use album artwork colours</strong><small>Off by default · neutral dark theme</small></span>'+
+        '<input type="checkbox" data-aurel-artwork-colours '+(artworkPalette?'checked':'')+'></label>';
+      const first=screen.querySelector('.panel');
+      if(first)first.before(panel);else screen.appendChild(panel);
+    }
+    return result;
+  };
+  document.addEventListener('change',function(e){
+    if(!e.target.matches?.('[data-aurel-artwork-colours]'))return;
+    setArtworkPalette(e.target.checked);
+  });
   function navSync(){
     if(!tabs)return;
     const track=app.player&&app.player.track;
@@ -93,7 +122,7 @@
     const colors={bg,surface,accent};
     themeByCover.set(url,colors);
     if(themeByCover.size>36)themeByCover.delete(themeByCover.keys().next().value);
-    if(coverNow()===url){
+    if(artworkPalette&&coverNow()===url){
       activeCover=url;
       setTheme(colors);
     }
@@ -181,5 +210,6 @@
   document.addEventListener('submit',function(e){
     if(e.target.id==='searchForm'){serial++;clearTimeout(timer);}
   },true);
+  setTheme(baseTheme);
   navSync();
 })();

@@ -377,6 +377,56 @@ public final class MainActivity extends Activity {
     private void needLibrary()throws Exception{
         if(mornyeActive()&&secure.get("libraryToken").isEmpty())
             throw new Exception("Connect a separate Qobuz account in Settings to access your personal library.");
+        if(secure.get("libraryToken").isEmpty()&&streamToken().isEmpty())
+            throw new Exception("Connect a personal Qobuz account to manage favourites.");
+    }
+    /** Fetch identifiers in bulk. Old clients may not expose this endpoint;
+     * in that case page through personal favourites without guessing status. */
+    private JSONObject favoriteIdentifiers()throws Exception{
+        needLibrary();
+        try{
+            JSONObject result=api.library("favorite/getUserFavoriteIds",
+                new JSONObject().put("limit",5000));
+            if(result.optJSONArray("tracks")!=null&&
+               result.optJSONArray("albums")!=null&&
+               result.optJSONArray("artists")!=null)return result;
+        }catch(Exception ignored){/* Some integration App IDs restrict the ID endpoint. */}
+        JSONObject ids=new JSONObject();
+        for(String kind:new String[]{"tracks","albums","artists"}){
+            JSONArray collected=new JSONArray();
+            int offset=0;
+            while(offset<5000){
+                JSONObject page=api.library("favorite/getUserFavorites",
+                    new JSONObject().put("type",kind).put("limit",100).put("offset",offset));
+                JSONObject category=page.optJSONObject(kind);
+                JSONArray items=category==null?null:category.optJSONArray("items");
+                if(items==null)throw new Exception("Qobuz did not return personal favourites for "+kind);
+                for(int i=0;i<items.length();i++){
+                    JSONObject item=items.optJSONObject(i);
+                    if(item!=null&&!item.optString("id","").isEmpty())
+                        collected.put(item.optString("id"));
+                }
+                offset+=items.length();
+                int total=category.optInt("total",offset);
+                if(items.length()==0||offset>=total)break;
+            }
+            ids.put(kind,collected);
+        }
+        return ids;
+    }
+    private JSONObject changeFavorite(JSONObject p,boolean remove)throws Exception{
+        needLibrary();
+        String type=p.optString("type","");
+        if(!type.equals("albums")&&!type.equals("tracks")&&!type.equals("artists"))
+            throw new IllegalArgumentException("Invalid favourite kind");
+        String id=p.optString("id","").trim();
+        if(!id.matches("[A-Za-z0-9_-]{1,80}"))
+            throw new IllegalArgumentException("Invalid Qobuz favourite ID");
+        String field=type.equals("albums")?"album_ids":type.equals("artists")?"artist_ids":"track_ids";
+        JSONObject body=new JSONObject().put("track_ids","")
+            .put("album_ids","").put("artist_ids","");
+        body.put(field,id);
+        return api.libraryPost(remove?"favorite/delete":"favorite/create",body);
     }
     /** Retire gateway only AFTER Qobuz validates its replacement account.
      * This clears active HMAC credentials and any pending verification grant. */
@@ -796,12 +846,9 @@ public final class MainActivity extends Activity {
                             if(!type.equals("albums")&&!type.equals("tracks")&&!type.equals("artists"))type="albums";
                             data=api.library("favorite/getUserFavorites",new JSONObject().put("type",type).put("limit",100));break;
                         }
-                        case "favoriteAdd": {needLibrary();
-                            String type=p.optString("type","tracks");
-                            String field=type.equals("albums")?"album_ids":type.equals("artists")?"artist_ids":"track_ids";
-                            JSONObject body=new JSONObject().put("track_ids","").put("album_ids","").put("artist_ids","");
-                            body.put(field,p.getString("id"));data=api.libraryPost("favorite/create",body);break;
-                        }
+                        case "favoriteIds": {data=favoriteIdentifiers();break;}
+                        case "favoriteAdd": {data=changeFavorite(p,false);break;}
+                        case "favoriteRemove": {data=changeFavorite(p,true);break;}
                         case "playlists":needLibrary();data=api.library("playlist/getUserPlaylists",new JSONObject().put("limit",100));break;
                         case "playlist":needLibrary();data=api.library("playlist/get",new JSONObject().put("playlist_id",p.getString("id")).put("extra","tracks").put("limit",100));break;
                         case "play":{
