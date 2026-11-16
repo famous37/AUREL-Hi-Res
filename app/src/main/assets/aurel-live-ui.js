@@ -48,7 +48,7 @@
   function navSync(){
     if(!tabs)return;
     const track=app.player&&app.player.track;
-    const url=track?image(track):'';
+    const url=track?image(track,'thumb'):'';
     syncTheme();
     const icon=tabs.querySelector('[data-open-player-nav] .aurel-tab-icon');
     if(icon&&url!==navArtwork){

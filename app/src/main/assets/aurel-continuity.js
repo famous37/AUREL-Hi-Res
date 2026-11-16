@@ -140,14 +140,17 @@ async function restore(view){
   if(serial!==renderSerial)return;
   render();
   if(!app.selected&&app.nav==='library'){
-    // Library type is cached by the catalogue loader; fetch only if missing.
-    if(!app.libraryCache?.[app.libType])await (app.libType==='playlists'?loadPlaylists():loadLibrary());
+    // Use the already-loaded collection immediately after Back.
+    const cache=app.libraryCache?.[app.libType];
+    if(cache){app.libraryItems=cache.items;render();}
+    else await (app.libType==='playlists'?loadPlaylists():loadLibrary());
   }else if(!app.selected&&app.nav==='search'&&app.searchQuery&&!app.results?.length){
     await search();
   }else if(!app.selected&&app.nav==='home'&&!app.albums?.length){
     await loadHome();
   }
   if(serial!==renderSerial)return;
+  if(view.kind==='artist'&&view.id&&!stored)window.AurelEnsureArtistExtras?.(view.id);
   shown=key();restoreY(view);
  }finally{
   if(serial===renderSerial){restoring=false;persist();}
@@ -183,6 +186,7 @@ function wrapOpen(name){
   push();
   const expectedKey=locKey({nav:app.nav,kind:name,id:String(id),
       libType:app.libType,searchType:app.searchType});
+  positions[expectedKey]=0;
   try{await original.apply(this,arguments);}catch(e){if(!restoring)showToast(e?.message||'Unable to open page');}
   if(!app.selected||app.selectedKind!==name||String(app.selected.id)!==String(id)){
     // The underlying API catches many failures itself; recover the page
@@ -201,6 +205,7 @@ openAlbum=wrapOpen('album');
 openPlaylist=wrapOpen('playlist');
 const oldNavigate=navigate;
 navigate=async function(page){
+ if(restoring){renderSerial++;restoring=false;}
  if(page!==app.nav||app.selected)push();
  const result=await oldNavigate.apply(this,arguments);
  if(!restoring){shown=key();restoreY(location());persist();}

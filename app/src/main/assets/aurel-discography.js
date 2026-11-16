@@ -29,9 +29,9 @@
         return '';
       }
       if(!node||typeof node!=='object'||depth>3)return '';
-      for(const key of ['extralarge','extra_large','original','large','xl','medium',
-                        'portrait','square','default','url','src','image','picture',
-                        'small','thumbnail']){
+      for(const key of ['medium','small','thumbnail','portrait','square',
+                        'large','xl','extralarge','extra_large','original',
+                        'default','url','src','image','picture']){
         const result=fromImage(node[key],depth+1);
         if(result)return result;
       }
@@ -259,6 +259,7 @@
   // Called only after a newly verified session to retry previously rejected
   // artist extras; never cache 401 as an empty discography.
   window.AurelResetArtistMetadata=id=>{byArtist.delete(String(id));};
+  window.AurelEnsureArtistExtras=id=>loadExtras(String(id));
   const oldOpenArtist=openArtist;
   openArtist=async function(id){
     requestToken++;
