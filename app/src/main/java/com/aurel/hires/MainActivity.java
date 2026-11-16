@@ -340,7 +340,10 @@ public final class MainActivity extends Activity {
                             boolean secondary=p.optBoolean("libraryOnly",false);
                             // No stale hardcoded App ID: blank means resolve public
                             // Web App ID from the current official Qobuz client.
-                            String appId=api.resolveAppId(p.optString("appId",""));
+                            // Library credentials are independent from the streaming
+                            // token and use the configured official App ID automatically.
+                            String appId=secondary?api.automaticLibraryAppId()
+                                :api.resolveAppId(p.optString("appId",""));
                             JSONObject raw;
                             String token;
                             if(action.equals("loginToken")){
@@ -632,6 +635,42 @@ public final class MainActivity extends Activity {
         return false;
     }
 
+    /** Fetch full Qobuz track details on the background worker. Never let
+     * metadata failures interrupt an already playable audio stream.
+     */
+    private JSONObject trackDetails(String trackId)throws Exception {
+        Exception first=null;
+        if(mornyeActive()){
+            try{return api.publicTrackDetails(trackId);}
+            catch(Exception e){first=e;}
+        }
+        try{
+            JSONObject result=catalog("track/get",new JSONObject().put("track_id",trackId));
+            JSONObject nested=result.optJSONObject("track");
+            return nested==null?result:nested;
+        }catch(Exception e){
+            if(!mornyeActive())return api.publicTrackDetails(trackId);
+            throw first==null?e:first;
+        }
+    }
+    private static void copyMetadata(JSONObject target,JSONObject other)throws Exception {
+        java.util.Iterator<String> keys=other.keys();
+        while(keys.hasNext()){
+            String key=keys.next();
+            if("url".equals(key)||"user_auth_token".equals(key))continue;
+            Object value=other.opt(key);
+            if(value==null||value==JSONObject.NULL)continue;
+            Object existing=target.opt(key);
+            if(value instanceof JSONObject&&existing instanceof JSONObject){
+                copyMetadata((JSONObject)existing,(JSONObject)value);
+            }else if(existing==null||existing==JSONObject.NULL||
+                (existing instanceof String&&((String)existing).isEmpty())||
+                (existing instanceof Number&&((Number)existing).doubleValue()==0)){
+                target.put(key,value);
+            }
+        }
+    }
+
     /** Track parameters from Android's parsed stream headers; not a DAC measurement. */
     private void inspectPreparedTrack(MediaPlayer mp) {
         decoderSampleRateHz=0;decoderChannels=0;decoderMime="";
@@ -669,30 +708,17 @@ public final class MainActivity extends Activity {
         current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";decoderSampleRateHz=0;decoderChannels=0;decoderMime="";buffering=true;playerError="";
         emit("player",playerState());
         final String id=current.optString("id","");
-        // Load missing performer/album metadata independently of the audio request.
-        // Some Qobuz discovery responses contain album art but omit the artist name.
-        if(id.matches("[0-9]+") && !hasArtistName(current)) {
+        // Qobuz catalogue fields (credits, ISRC, release information and
+        // maximum offered format) are fetched separately from the media URL.
+        // Playback never depends on this metadata request.
+        if(id.matches("[0-9]{1,20}")){
             jobs.execute(()->{
-                try {
-                    JSONObject full=catalog("track/get",new JSONObject().put("track_id",id));
+                try{
+                    JSONObject full=trackDetails(id);
                     ui.post(()->{
-                        if(generation!=playGeneration || current==null)return;
-                        try {
-                            JSONObject performer=full.optJSONObject("artist");
-                            if(performer!=null && !performer.optString("name","").isEmpty())
-                                current.put("artist",performer);
-                            else if(full.has("performer"))current.put("performer",full.opt("performer"));
-                            JSONObject album=full.optJSONObject("album");
-                            if(album!=null){
-                                JSONObject currentAlbum=current.optJSONObject("album");
-                                if(currentAlbum==null)current.put("album",album);
-                                else {
-                                    if(!currentAlbum.has("artist")&&album.has("artist"))currentAlbum.put("artist",album.opt("artist"));
-                                    if(!currentAlbum.has("image")&&album.has("image"))currentAlbum.put("image",album.opt("image"));
-                                    if(!currentAlbum.has("id")&&album.has("id"))currentAlbum.put("id",album.opt("id"));
-                                    if(!currentAlbum.has("title")&&album.has("title"))currentAlbum.put("title",album.opt("title"));
-                                }
-                            }
+                        if(generation!=playGeneration||current==null)return;
+                        try{
+                            copyMetadata(current,full);
                             queue.set(queueIndex,current);
                             emit("player",playerState());
                         }catch(Exception ignored){}
@@ -806,6 +832,20 @@ public final class MainActivity extends Activity {
             state.put("mimeType",fileInfo.optString("mime_type",""));
             state.put("fileSize",fileInfo.optLong("file_size",0));
             state.put("formatId",fileInfo.optInt("format_id",0));
+            // Separate album/track catalogue capability from the actual stream.
+            int catalogBits=current.optInt("maximum_bit_depth",0);
+            double catalogRate=current.optDouble("maximum_sampling_rate",0);
+            JSONObject albumInfo=current.optJSONObject("album");
+            boolean albumCap=false;
+            if((catalogBits<=0||catalogRate<=0)&&albumInfo!=null){
+                catalogBits=albumInfo.optInt("maximum_bit_depth",catalogBits);
+                catalogRate=albumInfo.optDouble("maximum_sampling_rate",catalogRate);
+                albumCap=true;
+            }
+            if(catalogRate>0&&catalogRate<1000)catalogRate*=1000;
+            state.put("catalogMaxBits",catalogBits>=8&&catalogBits<=32?catalogBits:0);
+            state.put("catalogMaxSampleRateHz",catalogRate>=8000&&catalogRate<=768000?catalogRate:0);
+            state.put("catalogMaxFromAlbum",albumCap);
             JSONArray nextQueue=new JSONArray();
             for(int i=0;i<queue.size();i++)nextQueue.put(queue.get(i));
             state.put("queue",nextQueue);
