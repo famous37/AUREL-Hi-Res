@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.6 Beta
+# AUREL Hi-Res · 1.0.7 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -99,3 +99,14 @@ Reference: https://github.com/mornyeapp/Mornye/tree/main/rust_backend/crates/ext
 - Integration tests check JavaScript, Android compilation, callback routing and source protocol. **Server-side grant/CAPTCHA completion and real playback have not been verified on a device.** The gateway can still refuse verification; server restrictions cannot be bypassed by the client.
 
 Protocol reference: https://github.com/mornyeapp/Mornye/tree/main/rust_backend/crates/extensions/src/signed_session
+
+## v1.0.7 — HTTP 403 / 429 handling and audio source metadata
+
+- **403 on new releases:** The Mornye/Zarz metadata gateway does not necessarily authorize `album/getFeatured`. In Mornye mode AUREL now uses the Qobuz public featured-albums API (public widget App ID from upstream Mornye) and, only when an authorized Qobuz account is already configured, can fall back to that user's official account. If the public endpoint is also refused, AUREL reports the failure rather than inventing albums.
+- **429 when starting playback:** Zarz `DOWNLOAD_RATE_LIMITED` is a server restriction. AUREL respects HTTP `Retry-After` (numeric seconds or HTTP date), accepts JSON `retry_after_seconds`, and persists a streaming cooldown in Android encrypted storage. When no timing is given, it uses a conservative 120-second pause. There is **no attempt to bypass the provider's limit**. Subsequent play presses during the cooldown do not mint fresh tickets or reattempt the stream.
+- Aborts all automatic audio-quality fallback attempts on Zarz 401, 403 or 429. 400-quality failures may still use another authorized quality tier. The Mornye gateway's CD tier is not mislabeled MP3.
+- Fixed gateway response parsing to provide the player's real `bits_depth` and `sample_rate_hz` fields; these values are displayed as source metadata only when supplied and consistent. Real playback and decoder support still need verification on-device.
+- The Settings screen now distinguishes verified **catalogue** access from working **audio playback**.
+- Token / Password / Mornye and separate account library remain unchanged.
+
+A successful Android build **does not** prove the public Qobuz API will grant new-release access or that Zarz's rate limit has expired. Both are remote server policies.
