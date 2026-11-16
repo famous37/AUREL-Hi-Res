@@ -5,7 +5,78 @@
 (function setupArtistDiscography(){
   'use strict';
   const byArtist=new Map();
+  // Similar-artist listings often return only names/IDs, not portraits.
+  // Resolve real pictures from the artist record, keep a bounded cache.
+  const portraitCache=new Map();
+  const portraitPending=new Set();
   let requestToken=0;
+  function portraitSrc(value){
+    const o=value?.artist&&typeof value.artist==='object'&&
+      !value.picture&&!value.image?value.artist:value;
+    const fields=[o?.picture,o?.image,o?.pictures,o?.images,o?.portrait,o?.photo,o?.avatar];
+    function fromImage(node,depth){
+      if(typeof node==='string'){
+        const direct=safeCover(node);
+        if(direct)return direct;
+        // Qobuz occasionally provides http: static-image links; upgrade only
+        // URLs on the already allowed Qobuz domains.
+        try{const u=new URL(node);
+          if(u.protocol==='http:'&&(u.hostname==='qobuz.com'||u.hostname.endsWith('.qobuz.com'))){
+            u.protocol='https:';
+            return safeCover(u.href);
+          }
+        }catch(_){}
+        return '';
+      }
+      if(!node||typeof node!=='object'||depth>3)return '';
+      for(const key of ['extralarge','extra_large','original','large','xl','medium',
+                        'portrait','square','default','url','src','image','picture',
+                        'small','thumbnail']){
+        const result=fromImage(node[key],depth+1);
+        if(result)return result;
+      }
+      return '';
+    }
+    for(const field of fields){const found=fromImage(field,0);if(found)return found;}
+    return '';
+  }
+  function loadSimilarPortraits(ownerId,token,all=false){
+    const state=byArtist.get(ownerId);
+    if(!state?.similar?.length)return;
+    const ids=state.similar.slice(0,all?24:8)
+      .map(a=>safeId(a)).filter(id=>/^\d{1,20}$/.test(id));
+    const queue=ids.filter(id=>{
+      const entry=state.similar.find(a=>safeId(a)===id);
+      return entry&&!portraitSrc(entry)&&!portraitCache.has(id)&&!portraitPending.has(id);
+    });
+    if(!queue.length)return;
+    async function worker(){
+      while(queue.length&&token===requestToken){
+        const id=queue.shift();
+        if(portraitPending.has(id))continue;
+        portraitPending.add(id);
+        let src='';
+        try {
+          const result=await nativeCall('artistPortrait',{id});
+          src=portraitSrc(result);
+          if(portraitCache.size>=96)portraitCache.delete(portraitCache.keys().next().value);
+          portraitCache.set(id,src);
+        }catch(_){
+          // A failed portrait request is not evidence that the artist has no photo.
+          // Keep initials; further browsing may retry after a new page visit.
+        }finally{portraitPending.delete(id);}
+        if(src&&token===requestToken&&validSelection(ownerId)){
+          const current=byArtist.get(ownerId);
+          if(current){
+            current.similar=current.similar.map(a=>
+              safeId(a)===id?{...a,picture:src}:a);
+            rerender(ownerId);
+          }
+        }
+      }
+    }
+    void Promise.allSettled([worker(),worker()]);
+  }
   const asList=function(v) {
     if(Array.isArray(v))return v;
     if(v&&typeof v==='object') {
@@ -87,7 +158,10 @@
     const token=++requestToken;
     const top=extend(id,token,'artistExtras',{},function(s,data){
       s.top=asList(data?.top_tracks||data?.topTracks).filter(x=>safeId(x)&&x.title);
-      s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x));
+      s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x))
+        .map(a=>portraitCache.get(safeId(a))?
+          {...a,picture:portraitCache.get(safeId(a))}:a);
+      loadSimilarPortraits(id,token);
       // The current artist/page API also returns typed release previews. Render
       // them immediately while separately requested complete lists are loading.
       for(const group of asList(data?.releases)){
@@ -172,9 +246,12 @@
       +'</header>'
       +(items.length?'<div class="aurel-similar-strip">'+items.map(o=>{
         const label=artistName(o);
+        const src=portraitSrc(o)||portraitCache.get(safeId(o))||'';
+        const initial=(Array.from(label).find(c=>/[^\W\d_]/u.test(c))||'♪').toUpperCase();
         return '<button type="button" class="aurel-similar-artist" data-open-artist="'+html(safeId(o))+'">'
-          +'<span class="aurel-similar-portrait">'+(art(o,'aurel-artist-portrait')||'<span>♪</span>')+'</span>'
-          +'<strong>'+html(label)+'</strong><small>Artist</small></button>';
+          +'<span class="aurel-similar-portrait"><span class="aurel-artist-initial" aria-hidden="true">'+html(initial)+'</span>'
+          +(src?'<img class="aurel-artist-portrait" loading="lazy" src="'+html(src)+'" alt="'+html(label)+'">':'')
+          +'</span><strong>'+html(label)+'</strong><small>Artist</small></button>';
       }).join('')+'</div>'
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading related artists…':error?'<span>Similar artists could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'No similar artists returned by Qobuz')+'</p>')
       +'</section>';
@@ -222,6 +299,12 @@
       +(showMore?'<button type="button" class="aurel-artist-load-more" data-load-more-artist>Load more releases</button>':'')
       +'</div>';
   };
+  // If the CDN rejects a photo, show the readable initial instead of a
+  // broken-image icon. No album artwork or other image handlers are changed.
+  document.addEventListener('error',function(event){
+    const img=event.target;
+    if(img?.classList?.contains('aurel-artist-portrait'))img.remove();
+  },true);
   document.addEventListener('click',function(ev){
     const b=ev.target.closest?.('button');
     if(!b||app.selectedKind!=='artist')return;
@@ -240,6 +323,8 @@
       section.classList.toggle('expanded',expand);
       b.textContent=expand?'Show less ↑':'See all ›';
       b.setAttribute('aria-expanded',String(expand));
+      if(expand&&b.dataset.artistMore==='similar')
+        loadSimilarPortraits(safeId(app.selected),requestToken,true);
       return;
     }
     if(b.hasAttribute('data-artist-play-main')||b.hasAttribute('data-artist-play')){
