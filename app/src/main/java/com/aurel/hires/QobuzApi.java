@@ -267,6 +267,39 @@ final class QobuzApi {
         }
     }
 
+    /** Public Qobuz editorial catalogue used when the Zarz gateway does not
+     * expose featured albums. Uses the published widget App ID used by the
+     * upstream Mornye Qobuz extension; does not send account credentials.
+     * This is not an attempt to access a forbidden Zarz route.
+     */
+    JSONObject publicFeaturedReleases(int limit)throws Exception{
+        int safeLimit=Math.max(1,Math.min(48,limit));
+        try{
+            JSONObject page=request("album/getFeatured",
+                new JSONObject().put("type","new-releases").put("limit",safeLimit),
+                false,"735532640","");
+            JSONObject albums=page.optJSONObject("albums");
+            if(albums==null||albums.optJSONArray("items")==null)
+                throw new Exception("Qobuz public featured-albums endpoint returned no album list");
+            return page;
+        }catch(Exception error){
+            // If an actual authenticated Qobuz account was independently
+            // connected, its licensed catalogue may support discovery.
+            if(!store.get("streamToken").isEmpty())return discoverReleases(safeLimit);
+            if(!store.get("libraryToken").isEmpty()){
+                String id=store.get("libraryAppId"),token=store.get("libraryToken");
+                if(!id.isEmpty()){
+                    try{
+                        return request("album/getFeatured",new JSONObject()
+                            .put("type","new-releases").put("limit",safeLimit),
+                            false,id,token);
+                    }catch(Exception ignored){}
+                }
+            }
+            throw new Exception("Qobuz public new releases unavailable: "+error.getMessage());
+        }
+    }
+
     JSONObject post(String endpoint, JSONObject params)throws Exception{return libraryPost(endpoint,params);}
 
     /** Validate an existing browser session token without reusing password login.
