@@ -58,6 +58,18 @@ window.AurelReceive=(id,reply)=>{
  reply?.ok?pending.resolve(reply.data):pending.reject(new Error(reply?.error||'Unknown API error'));
 };
 window.AurelEvent=(kind,data)=>{
+ if(kind==='mornyeVerificationResult'){
+   if(data?.connected){
+     app.session=data;app.results=[];app.albums=[];app.loginTarget='stream';
+     showToast('Mornye gateway session verified',4500);
+     navigate('home');
+   }else{
+     app.loginMode='mornye';app.loginTarget='stream';renderLogin();
+     const field=$('#mornyeLoginError');
+     if(field){field.textContent=data?.error||'Mornye gateway did not authorize the session.';field.classList.remove('hidden');}
+   }
+   return;
+ }
  if(kind==='session'){
   app.session=data;
   if(app.nav==='home'||app.nav==='settings')render();
@@ -162,7 +174,7 @@ function renderLogin(){
       <div id="mornyeLoginError" class="aurel-signin-error hidden" role="alert"></div>
       <section class="aurel-mornye-status"><div class="aurel-mornye-header"><strong>Native signed session</strong></div>
         <p>AUREL uses the public Mornye signedSession@3 protocol with the Zarz gateway, verifying catalogue access before connecting. This gateway session is not a personal Qobuz account.</p>
-        <p>If Zarz requires a one-time session grant, access remains pending; AUREL will not display false success or open Qobuz Web Player.</p>
+        <p>When the gateway asks for a one-time grant or CAPTCHA, AUREL opens the Zarz verification page inside the app, then exchanges the approved grant securely. Qobuz Web Player is never opened.</p>
         <p>For personal playlists and favourites, connect a separate Qobuz account in Settings.</p>
       </section>
     </div>`;
@@ -370,6 +382,10 @@ document.addEventListener('click',async ev=>{
    b.disabled=true;b.textContent='Connecting to Mornye gateway…';
    try{
      const result=await nativeCall('connectMornye');
+     if(result?.verificationStarted){
+       if(error){error.textContent='Complete the Zarz verification in the app window to continue.';error.classList.remove('hidden');}
+       return;
+     }
      if(!result?.mornyeConnected)throw new Error(result?.reason||'Mornye signed session was not authorized.');
      app.session=result;app.results=[];app.albums=[];app.loginTarget='stream';
      showToast('Mornye signed session verified',4000);
