@@ -1,0 +1,352 @@
+
+/* 1.1.6 — apply the current album's dark palette across every AUREL screen.
+   Existing layout and transport actions remain untouched. */
+:root{
+  --aurel-artist-highlight:var(--aurel-theme-accent);
+  --aurel-discography-card:color-mix(in srgb,var(--aurel-theme-surface) 88%,#080507 12%);
+}
+.app .topbar,.app .avatar,.app .sidebar,.app .screen .page-heading,
+.app .screen .home-chips,.app .screen .tabs{border-color:var(--aurel-theme-line)!important}
+.app .topbar,.app .avatar,.app .sidebar{
+  background:var(--aurel-theme-bg)!important;
+}
+.app .topbar .mobile-logo span,.app .logo span{
+  color:var(--aurel-theme-accent)!important;
+}
+.app .screen .spotlight,.app .screen .magazine-hero,.app .screen .welcome-panel,
+.app .screen .hero{
+  background:
+    radial-gradient(ellipse at 92% 4%,color-mix(in srgb,var(--aurel-theme-accent) 17%,transparent),transparent 67%),
+    linear-gradient(140deg,var(--aurel-theme-surface),var(--aurel-theme-bg))!important;
+  border:1px solid var(--aurel-theme-border)!important;
+  color:var(--aurel-theme-on)!important;
+  transition:background-color 500ms ease,border-color 500ms ease!important;
+}
+.app .screen .spotlight h2,.app .screen .spotlight p,
+.app .screen .welcome-panel h2,.app .screen .welcome-panel p,
+.app .screen .magazine-hero h2,.app .screen .magazine-hero p{
+  color:var(--aurel-theme-on)!important;
+}
+.app .screen .kicker,.app .screen .eyebrow,.app .screen .hires-tag,
+.app .screen .small-link,.app .screen .plain-action{
+  color:var(--aurel-theme-accent)!important;
+}
+.app .screen .action-pill,.app .screen .pill:not(.secondary),
+.app .screen .search-submit{
+  background:var(--aurel-theme-accent)!important;
+  color:var(--aurel-theme-ink)!important;
+  border-color:var(--aurel-theme-accent)!important;
+}
+.app .screen .action-pill *, .app .screen .pill:not(.secondary) *{
+  color:var(--aurel-theme-ink)!important;
+}
+.app .screen .chip.selected,.app .screen .tab.active,
+.app .screen .quality.selected{
+  background:var(--aurel-theme-accent)!important;
+  color:var(--aurel-theme-ink)!important;
+  border-color:var(--aurel-theme-accent)!important;
+}
+.app .screen .chip.selected *,
+.app .screen .tab.active *,
+.app .screen .quality.selected *{
+  color:var(--aurel-theme-ink)!important;
+}
+.app .screen .subtle-icon,.app .screen .plain-action,
+.app .screen .view-switch button,.app .screen .recents button,
+.app .screen .magazine-tile{
+  background:var(--aurel-theme-card)!important;
+  color:var(--aurel-theme-on)!important;
+  border-color:var(--aurel-theme-border)!important;
+}
+.app .screen .shelf-image,.app .screen .cover,.app .screen .playlist-art,
+.app .screen .library-row-image,.app .screen .queue-cover,
+.app .screen .track-art,.app .screen .artist-avatar{
+  background:var(--aurel-theme-surface)!important;
+  border-color:var(--aurel-theme-line)!important;
+}
+.app .screen .shelf-card strong,.app .screen .shelf-card>span:not(.shelf-image),
+.app .screen .playlist-entry strong,.app .screen .library-album-row strong,
+.app .screen .artistrow strong{
+  color:var(--aurel-theme-on)!important;
+}
+.app .screen .shelf-card>span:not(.shelf-image),.app .screen .artistrow small,
+.app .screen .playlist-entry small{
+  color:var(--aurel-theme-secondary)!important;
+}
+.app .screen .artistrow,.app .screen .track,
+.app .screen .library-album-row,.app .screen .playlist-entry{
+  border-color:var(--aurel-theme-border)!important;
+}
+.app .screen .track:hover,.app .screen .artistrow:hover,
+.app .screen .library-album-row:hover,.app .screen .playlist-entry:hover{
+  background:var(--aurel-theme-raised)!important;
+}
+.app .screen .collection-note,.app .screen .auth-status-banner,
+.app .screen .auth-shell,.app .screen .aurel-signin,
+.app .screen .aurel-signin-advanced,.app .screen .aurel-signin-appid-note,
+.app .screen .disclaimer,.app .screen .footer-note{
+  border-color:var(--aurel-theme-border)!important;
+  background-color:var(--aurel-theme-card)!important;
+  color:var(--aurel-theme-secondary)!important;
+}
+.app .screen .aurel-signin-submit,.app .screen .aurel-login-methods button.active{
+  background:var(--aurel-theme-accent)!important;
+  color:var(--aurel-theme-ink)!important;
+}
+.app .screen .aurel-signin h1,.app .screen .aurel-signin strong{
+  color:var(--aurel-theme-on)!important;
+}
+.app .mini .mini-buttons button.mini-play{
+  background:var(--aurel-theme-accent)!important;
+  color:var(--aurel-theme-ink)!important;
+}
+.app .bottom-nav button.active{
+  background:var(--aurel-theme-raised)!important;
+  color:var(--aurel-theme-on)!important;
+}
+/* Discography — independent screen; no changes to shared five-tab nav. */
+.aurel-artist-page{
+  display:block;width:100%;max-width:1060px;
+  padding:0 0 110px;
+  margin:0 auto;
+  color:var(--aurel-theme-on);
+}
+.aurel-artist-hero{
+  background:
+    radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--aurel-theme-accent) 23%,transparent),transparent 80%),
+    linear-gradient(170deg,var(--aurel-theme-surface),var(--aurel-theme-bg))!important;
+  border:1px solid var(--aurel-theme-border);
+  border-radius:17px;
+  text-align:center;overflow:hidden;
+  padding:12px 15px 20px;
+  margin:0 0 18px;
+}
+.aurel-artist-hero-toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  color:var(--aurel-theme-secondary);font-size:13px;
+  font-weight:650;
+  margin-bottom:7px;
+}
+.aurel-artist-hero-toolbar button{
+  display:grid;place-items:center;height:40px;width:40px;
+  border:1px solid var(--aurel-theme-line);
+  background:var(--aurel-theme-card);
+  color:var(--aurel-theme-on);border-radius:12px;
+}
+.aurel-artist-photo-frame{
+  width:clamp(126px,39vw,178px);
+  aspect-ratio:1;margin:1px auto 13px;
+  border-radius:50%;overflow:hidden;
+  background:var(--aurel-theme-card);
+  border:2px solid var(--aurel-theme-border);
+  box-shadow:0 8px 24px #0005;
+}
+.aurel-artist-photo{
+  width:100%!important;height:100%!important;
+  display:block;object-fit:cover;
+  border-radius:50%;
+}
+.aurel-artist-photo.aurel-art-placeholder{
+  display:grid;place-items:center;
+  font-size:52px;color:var(--aurel-theme-accent);
+}
+.aurel-artist-hero h1{
+  font-size:clamp(26px,7vw,39px);
+  letter-spacing:-.04em;font-weight:790;
+  color:var(--aurel-theme-on)!important;
+  margin:0 0 3px;line-height:1.12;overflow-wrap:anywhere;
+}
+.aurel-artist-kind{
+  display:block;color:var(--aurel-theme-secondary);
+  font-size:13px;font-weight:650;letter-spacing:.02em;
+}
+.aurel-artist-bio{
+  margin:10px auto 0;max-width:650px;
+  color:var(--aurel-theme-secondary);font-size:13px;
+  line-height:1.5;overflow-wrap:anywhere;
+}
+.aurel-artist-actions{
+  display:flex;align-items:center;justify-content:center;
+  flex-wrap:wrap;gap:10px;margin-top:15px;
+}
+.aurel-artist-actions button{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:8px;min-height:43px;
+  border-radius:23px;padding:9px 16px;
+  font-size:14px;font-weight:720;
+}
+.aurel-artist-actions .aurel-artist-play{
+  background:var(--aurel-theme-accent)!important;
+  color:var(--aurel-theme-ink)!important;
+}
+.aurel-artist-actions .aurel-artist-follow{
+  border:1px solid var(--aurel-theme-border);
+  background:var(--aurel-theme-card);
+  color:var(--aurel-theme-on);
+}
+.aurel-artist-page .aurel-artist-section{
+  margin:18px 0 22px;min-width:0;max-width:100%;
+}
+.aurel-artist-section-heading{
+  display:flex;gap:12px;align-items:center;
+  justify-content:space-between;margin-bottom:11px;
+}
+.aurel-artist-section-heading h2{
+  margin:0;font-size:19px;line-height:1.2;
+  font-weight:740;letter-spacing:-.025em;
+  color:var(--aurel-theme-on);
+}
+.aurel-artist-section-heading button{
+  color:var(--aurel-theme-accent);
+  background:var(--aurel-theme-card);border:1px solid var(--aurel-theme-border);
+  padding:7px 11px;border-radius:10px;
+  white-space:nowrap;font-size:12px;font-weight:720;min-height:36px;
+}
+.aurel-artist-placeholder{
+  border:1px dashed var(--aurel-theme-line);
+  background:var(--aurel-theme-card);
+  border-radius:12px;color:var(--aurel-theme-secondary);
+  padding:18px 14px;margin:0;font-size:13px;
+}
+.aurel-popular-list{
+  display:flex;flex-direction:column;
+  background:var(--aurel-theme-card);
+  border:1px solid var(--aurel-theme-line);
+  border-radius:13px;overflow:hidden;
+}
+.aurel-popular-track{
+  display:flex;align-items:center;gap:10px;
+  width:100%;text-align:left;min-height:56px;
+  padding:7px 11px;border-bottom:1px solid var(--aurel-theme-line);
+  color:var(--aurel-theme-on);
+}
+.aurel-popular-track:last-child{border:0}
+.aurel-popular-track:hover{background:var(--aurel-theme-raised)}
+.aurel-popular-number{
+  flex:0 0 19px;text-align:center;color:var(--aurel-theme-secondary);font-size:12px;
+}
+.aurel-popular-art{
+  width:42px;height:42px;min-width:42px;border-radius:6px;
+  display:grid;place-items:center;overflow:hidden;
+  background:var(--aurel-theme-surface);color:var(--aurel-theme-accent);
+}
+.aurel-popular-image{width:100%;height:100%;object-fit:cover}
+.aurel-popular-copy{
+  display:flex;flex-direction:column;gap:3px;
+  flex:1;min-width:0;
+}
+.aurel-popular-copy strong{
+  font-size:14px;font-weight:700;line-height:1.22;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.aurel-popular-copy small{
+  font-size:12px;color:var(--aurel-theme-secondary);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.aurel-popular-play{color:var(--aurel-theme-accent);font-size:17px}
+.aurel-artist-section[data-artist-section="popular"]:not(.expanded) .aurel-popular-track:nth-child(n+6){
+  display:none;
+}
+.aurel-release-strip,.aurel-similar-strip{
+  display:flex;gap:11px;overflow-x:auto;overscroll-behavior-x:contain;
+  padding:1px 0 11px;scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch;scrollbar-width:thin;
+}
+.aurel-release-card{
+  display:flex;position:relative;flex-direction:column;
+  flex:0 0 clamp(134px,39vw,172px);
+  gap:3px;text-align:left;align-items:stretch;
+  color:var(--aurel-theme-on);min-width:0;scroll-snap-align:start;
+}
+.aurel-release-art{
+  width:100%;aspect-ratio:1;border-radius:10px;
+  background:var(--aurel-theme-card);
+  border:1px solid var(--aurel-theme-line);
+  overflow:hidden;display:grid;place-items:center;
+}
+.aurel-release-image{display:block;width:100%;height:100%;object-fit:cover}
+.aurel-art-placeholder{color:var(--aurel-theme-accent);font-size:37px}
+.aurel-release-card strong{
+  display:block;font-size:13px;line-height:1.3;font-weight:720;
+  margin-top:6px;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.aurel-release-card small{
+  color:var(--aurel-theme-secondary);font-size:12px;line-height:1.25;
+}
+.aurel-release-card em{
+  position:absolute;bottom:19px;right:0;
+  font-size:10px;font-style:normal;
+  color:var(--aurel-theme-ink);
+  background:var(--aurel-theme-accent);
+  border-radius:4px;padding:1px 4px;
+}
+.aurel-artist-section[data-artist-section="albums"]:not(.expanded) .aurel-release-card:nth-child(n+9),
+.aurel-artist-section[data-artist-section="eps"]:not(.expanded) .aurel-release-card:nth-child(n+9),
+.aurel-artist-section[data-artist-section="compilations"]:not(.expanded) .aurel-release-card:nth-child(n+9){
+  display:none;
+}
+.aurel-artist-section.expanded .aurel-release-strip,
+.aurel-artist-section.expanded .aurel-similar-strip{
+  flex-wrap:wrap!important;overflow:visible!important;
+  scroll-snap-type:none!important;
+}
+.aurel-latest-release .aurel-release-card{
+  flex-direction:row;gap:12px;align-items:center;flex:1;width:100%;
+  padding:11px;border-radius:13px;
+  border:1px solid var(--aurel-theme-line);background:var(--aurel-theme-card);
+}
+.aurel-latest-release .aurel-release-art{
+  width:88px;height:88px;min-width:88px;flex:0 0 88px;
+}
+.aurel-latest-release .aurel-release-card strong{
+  font-size:15px;-webkit-line-clamp:3;
+  flex:1;min-width:0;margin:0;
+}
+.aurel-latest-release .aurel-release-card em{display:none}
+.aurel-similar-artist{
+  display:flex;flex:0 0 108px;flex-direction:column;gap:5px;
+  align-items:center;text-align:center;scroll-snap-align:start;
+  color:var(--aurel-theme-on);
+}
+.aurel-similar-portrait{
+  border-radius:50%;height:94px;width:94px;
+  border:1px solid var(--aurel-theme-border);
+  display:grid;place-items:center;overflow:hidden;
+  background:var(--aurel-theme-surface);
+  color:var(--aurel-theme-accent);
+}
+.aurel-artist-portrait{
+  display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;
+}
+.aurel-similar-artist strong{
+  font-size:12.5px;font-weight:730;max-width:100%;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+}
+.aurel-similar-artist small{font-size:11px;color:var(--aurel-theme-secondary)}
+.aurel-artist-section[data-artist-section="similar"]:not(.expanded) .aurel-similar-artist:nth-child(n+9){
+  display:none;
+}
+.aurel-artist-load-more{
+  width:100%;max-width:420px;
+  background:var(--aurel-theme-card);color:var(--aurel-theme-on);
+  border:1px solid var(--aurel-theme-border);
+  border-radius:13px;min-height:45px;padding:10px 14px;
+  font-size:14px;font-weight:720;margin:0 0 30px;
+}
+@media(max-width:380px){
+  .aurel-artist-hero{padding:10px 11px 16px}
+  .aurel-artist-photo-frame{width:122px}
+  .aurel-artist-page .aurel-artist-section{margin:15px 0 19px}
+  .aurel-release-card{flex-basis:137px}
+}
+@media(min-width:720px){
+  .aurel-artist-hero{padding:24px}
+  .aurel-artist-photo-frame{width:170px}
+  .aurel-release-card{flex-basis:190px}
+}
+@media(prefers-reduced-motion:reduce){
+  .aurel-artist-page *, .app .screen .spotlight,.app .screen .magazine-hero{
+    animation:none!important;transition:none!important;scroll-behavior:auto!important;
+  }
+}

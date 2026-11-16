@@ -355,5 +355,20 @@ assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
 assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.5'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
-console.log('AUREL 1.1.5 checks passed — darker artwork theme, compact player, high contrast settings and unified navigation.');
+
+const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
+const discoCss=fs.readFileSync(base+'aurel-discography.css','utf8');
+assert(discoJs.includes('renderArtist=function()'), 'artist discography renderer must be installed');
+assert(discoJs.includes('Most popular')&&discoJs.includes('EPs & Singles')&&discoJs.includes('Similar artists'));
+assert(discoJs.includes('artistExtras')&&discoJs.includes('artistReleaseType'), 'all optional artist catalog endpoints must be wired');
+assert(discoJs.includes("nativeCall('favoriteAdd'"), 'Follow must perform an action');
+assert(discoCss.includes('.aurel-popular-track')&&discoCss.includes('.aurel-release-strip'));
+assert(discoCss.includes('var(--aurel-theme-accent)'), 'artist page must use album colour theme');
+assert(discoCss.includes('.spotlight')&&discoCss.includes('.magazine-hero'), 'legacy promotional cards must share the theme');
+assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-discography.js'));
+assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-discography.css'));
+assert(java.includes('case "artistExtras":')&&java.includes('case "artistReleaseType":'));
+assert(java.includes('catalog("artist/page"')&&java.includes('catalog("artist/getSimilarArtists"'));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.6'"));
+console.log('AUREL 1.1.6 checks passed — global artwork theme and evidence-based artist catalog sections.');
 

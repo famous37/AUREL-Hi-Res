@@ -483,6 +483,39 @@ public final class MainActivity extends Activity {
                             data=withArtistReleases(data,artistId,offset,limit);
                             break;
                         }
+
+                        case "artistExtras": {
+                            // Public catalogue metadata; failures are nonfatal to artist browsing.
+                            String artistId=p.getString("id");
+                            JSONObject extras=new JSONObject();
+                            try {
+                                extras=catalog("artist/page",new JSONObject().put("artist_id",artistId));
+                            }catch(Exception ignored) {}
+                            Object similar=extras.opt("similar_artists");
+                            if(similar==null || similar==JSONObject.NULL
+                                || (similar instanceof JSONObject
+                                    && ((JSONObject)similar).optJSONArray("items")==null)) {
+                                try {
+                                    JSONObject result=catalog("artist/getSimilarArtists",
+                                        new JSONObject().put("artist_id",artistId).put("limit",25));
+                                    JSONObject related=result.optJSONObject("artists");
+                                    if(related!=null)extras.put("similar_artists",related);
+                                }catch(Exception ignored) {}
+                            }
+                            data=extras;break;
+                        }
+                        case "artistReleaseType": {
+                            String releaseType=p.optString("releaseType","");
+                            if(!releaseType.equals("epSingle") && !releaseType.equals("compilation")
+                                && !releaseType.equals("album"))
+                                throw new Exception("Unsupported release type");
+                            String artistId=p.getString("id");
+                            // Keep IDs and rights exactly as provided by the catalogue.
+                            data=catalog("artist/getReleasesList",new JSONObject()
+                                .put("artist_id",artistId).put("release_type",releaseType)
+                                .put("sort","release_date_by_priority").put("offset",0).put("limit",60));
+                            break;
+                        }
                         case "resolveArtist": data=resolveArtist(p);break;
                         case "favorites": {needLibrary();
                             String type=p.optString("type","albums");
