@@ -1,4 +1,18 @@
-# AUREL Hi-Res · 1.1.16 Beta
+# AUREL Hi-Res · 1.1.17 Beta
+
+## v1.1.17 — resilient streaming and Android decoder recovery
+
+- Treat Android MediaPlayer error \`1 / -2147483648\` as a generic failure, **not proof of corrupted audio**.
+- Release failed MediaPlayer immediately, never reuse an errored instance, and guard stale prepared/error/completion callbacks.
+- Attempt **at most one** automatic new-link recovery for the current user-selected track, with a conservative quality fallback (Hi-Res Max → Hi-Res → CD). This avoids infinite retrials or continuous streaming tickets.
+- Recover near the last playback position when possible; manual Play can try again if automatic recovery fails.
+- Abort stalled preparation after 25 seconds, releasing the player and respecting gateway/provider rate limits and required authorization.
+- Disable secondary FLAC HTTP source probing for Mornye/Zarz, whose signed stream links may be one-time. Do not sacrifice audio playback stability for bit-depth verification; missing metadata remains explicitly unverified.
+- Refresh player interface on changed error/buffering state so the recovery and final actionable error are visible. No UI redesign or changes to stored login credentials.
+
+**Validation:** GitHub Actions builds the Preview and standard APKs, executes existing JavaScript checks, and runs pure-Java FLAC parser tests. Live Mornye/Zarz streams require on-device verification. Decoding errors may still be caused by an upstream broken link, unsupported FLAC encoding or Android device-specific MediaPlayer limitations.
+
+
 
 ## v1.1.16 — actual FLAC source verification (best effort)
 
