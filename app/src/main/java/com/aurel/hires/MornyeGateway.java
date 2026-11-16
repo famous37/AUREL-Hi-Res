@@ -60,8 +60,13 @@ final class MornyeGateway {
     static boolean requiresVerification(Exception error){
         if(!(error instanceof GatewayException))return false;
         GatewayException failure=(GatewayException)error;
+        String code=failure.code.trim();
         return failure.status==428 ||
-            "VERIFY_REQUIRED".equalsIgnoreCase(failure.code);
+            "VERIFY_REQUIRED".equalsIgnoreCase(code) ||
+            (failure.status==401 && (
+                "SESSION_INVALID".equalsIgnoreCase(code) ||
+                "SESSION_EXPIRED".equalsIgnoreCase(code) ||
+                "INVALID_SESSION".equalsIgnoreCase(code)));
     }
     static boolean terminalStreamFailure(Exception error){
         if(error instanceof StreamRateLimitException)return true;
