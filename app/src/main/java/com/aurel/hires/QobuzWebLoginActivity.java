@@ -38,6 +38,9 @@ public final class QobuzWebLoginActivity extends Activity {
     private TextView status;
     private boolean extracting=false;
     private volatile String observedAppId="";
+    // Captured only from a Qobuz API request made by this isolated WebView.
+    // The token is never logged, sent to a third-party extension, or persisted here.
+    private volatile String observedToken="";
 
     private static boolean isQobuz(Uri uri){
         if(uri==null||!"https".equalsIgnoreCase(uri.getScheme()))return false;
@@ -104,26 +107,44 @@ public final class QobuzWebLoginActivity extends Activity {
         browser.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
                 Uri uri=request.getUrl();
-                if(isQobuz(uri))return false;
-                // External SSO destinations may be necessary; do not render them
-                // under the Qobuz origin or expose them to the session extractor.
+                // Stay in the same isolated WebView for HTTPS SSO and CAPTCHA
+                // redirects. An external browser cannot share its cookies with
+                // AUREL, so handing off mid-login would strand the session.
+                if(uri!=null&&"https".equalsIgnoreCase(uri.getScheme()))return false;
                 try{startActivity(new Intent(Intent.ACTION_VIEW,uri));}
-                catch(Exception ignored){status.setText("Open the official Qobuz website in your browser if sign-in is blocked.");}
+                catch(Exception ignored){status.setText("Unsupported sign-in redirect.");}
                 return true;
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
-                // The public App ID may be visible in the official web player's
-                // own X-App-Id request header; do not record auth-token headers.
+                // Capture the issued session from the same official Qobuz
+                // API request as its public App ID; never inspect other hosts,
+                // login form bodies, passwords, or CAPTCHA answers.
                 Uri requestUri=request.getUrl();
-                if(isQobuz(requestUri)&&
-                    requestUri.getPath()!=null&&requestUri.getPath().contains("/api.json/")){
+                if(isQobuz(requestUri)&&requestUri.getPath()!=null&&
+                    requestUri.getPath().contains("/api.json/")){
                     Map<String,String> headers=request.getRequestHeaders();
-                    if(headers!=null)for(Map.Entry<String,String> item:headers.entrySet()){
-                        if("x-app-id".equalsIgnoreCase(item.getKey())){
-                            String candidate=item.getValue();
-                            if(candidate!=null&&candidate.matches("[0-9]{6,15}"))
-                                observedAppId=candidate;
-                        }
+                    String requestAppId="",requestToken="";
+                    if(headers!=null)for(Map.Entry<String,String> entry:headers.entrySet()){
+                        String key=entry.getKey(),value=entry.getValue();
+                        if(key==null||value==null)continue;
+                        if("x-app-id".equalsIgnoreCase(key)&&value.matches("[0-9]{6,15}"))
+                            requestAppId=value;
+                        if("x-user-auth-token".equalsIgnoreCase(key)&&
+                            value.length()>=10&&value.length()<=4096&&
+                            value.indexOf('\r')<0&&value.indexOf('\n')<0)
+                            requestToken=value;
+                    }
+                    if(!requestToken.isEmpty()){
+                        boolean isNew=!requestToken.equals(observedToken);
+                        observedToken=requestToken;
+                        if(isNew)observedAppId="";
+                        if(!requestAppId.isEmpty())observedAppId=requestAppId;
+                        runOnUiThread(()->{
+                            if(status!=null&&!extracting)
+                                status.setText("Qobuz session detected. Tap Use this session to verify it in AUREL.");
+                        });
+                    }else if(!requestAppId.isEmpty()&&!observedToken.isEmpty()){
+                        observedAppId=requestAppId;
                     }
                 }
                 return null;
@@ -154,6 +175,12 @@ public final class QobuzWebLoginActivity extends Activity {
 
     private void extract(){
         if(browser==null||extracting)return;
+        // Prefer a token observed on an actual authenticated Qobuz API
+        // call. This survives changes to the web player's storage layout.
+        if(!observedToken.isEmpty()){
+            finishWithSession(observedToken);
+            return;
+        }
         Uri uri=Uri.parse(browser.getUrl()==null?"":browser.getUrl());
         if(!isPlayer(uri)){
             status.setText("Finish Qobuz verification, return to play.qobuz.com, then tap again.");
@@ -182,16 +209,22 @@ public final class QobuzWebLoginActivity extends Activity {
                     status.setText("No session token found. Finish Qobuz sign-in first, or return to AUREL and paste the token manually.");
                     return;
                 }
-                Intent data=new Intent();
-                data.putExtra(EXTRA_TOKEN,token);
-                if(!observedAppId.isEmpty())data.putExtra(EXTRA_APP_ID,observedAppId);
-                data.putExtra(EXTRA_LIBRARY,getIntent().getBooleanExtra(EXTRA_LIBRARY,false));
-                setResult(RESULT_OK,data);
-                finish();
+                finishWithSession(token);
             }catch(Exception ignored){
                 status.setText("Qobuz session format has changed. Use manual token login.");
             }
         });
+    }
+
+    private void finishWithSession(String token){
+        if(token==null||token.length()<10)return;
+        Intent data=new Intent();
+        data.putExtra(EXTRA_TOKEN,token);
+        if(!observedAppId.isEmpty())data.putExtra(EXTRA_APP_ID,observedAppId);
+        data.putExtra(EXTRA_LIBRARY,getIntent().getBooleanExtra(EXTRA_LIBRARY,false));
+        setResult(RESULT_OK,data);
+        observedToken="";
+        finish();
     }
 
     @Override public void onBackPressed(){
@@ -199,6 +232,7 @@ public final class QobuzWebLoginActivity extends Activity {
         else super.onBackPressed();
     }
     @Override protected void onDestroy(){
+        observedToken="";observedAppId="";
         if(browser!=null){
             ViewGroup parent=(ViewGroup)browser.getParent();
             if(parent!=null)parent.removeView(browser);
