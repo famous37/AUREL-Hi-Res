@@ -370,5 +370,17 @@ assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-discography.css
 assert(java.includes('case "artistExtras":')&&java.includes('case "artistReleaseType":'));
 assert(java.includes('catalog("artist/page"')&&java.includes('catalog("artist/getSimilarArtists"'));
 assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.6'"));
-console.log('AUREL 1.1.6 checks passed — global artwork theme and evidence-based artist catalog sections.');
+
+vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
+run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
+const artistHtml=nodes.get('#screen').innerHTML;
+assert(artistHtml.includes('Test Artist'), 'real artist identity should be present');
+assert(artistHtml.includes('Most popular')&&artistHtml.includes('Latest release'));
+assert(artistHtml.includes('EPs & Singles')&&artistHtml.includes('Similar artists'));
+assert(artistHtml.includes('data-open-album="abc"'), 'release cards must link to existing album navigation');
+assert(artistHtml.includes('Popular tracks unavailable')||artistHtml.includes('Loading popular tracks'), 'do not invent popularity');
+assert(!artistHtml.includes('undefined'), 'artist UI should not leak undefined fields');
+run("app.selected=null;app.selectedKind='';");
+console.log('AUREL 1.1.6 checks passed — live artist rendering, global theme and native catalogue sections.');
+
 
