@@ -201,6 +201,11 @@ public final class MainActivity extends Activity {
             else ui.post(()->AurelPlaybackService.publish(this,data));
         }
     }
+    /** Receives verified artwork-derived colours from the native playback service. */
+    void onAlbumArtworkPalette(String url,String bg,String surface,String accent) {
+        script("window.AurelCoverPalette && window.AurelCoverPalette("+
+            JSONObject.quote(url)+","+JSONObject.quote(bg)+","+JSONObject.quote(surface)+","+JSONObject.quote(accent)+")");
+    }
     /** Called by Android MediaSession notification and hardware transport controls. */
     void mediaControl(String action,boolean play) {
         ui.post(()->{

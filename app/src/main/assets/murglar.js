@@ -15,7 +15,9 @@
     const overlay=$('#overlay');
     if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
     const priorScroll=overlay.querySelector('.murglar-player-content')?.scrollTop||0;
+    const priorDetailScroll=overlay.querySelector('.murglar-detail-sheet')?.scrollTop||0;
     const priorSheet=overlay.dataset.openSheet||'';
+    const priorTrack=overlay.dataset.openTrack||'';
     const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
     const total=Math.max(0,Number(p.duration)||0),position=Math.min(total,Math.max(0,Number(p.position)||0));
     const played=total?Math.min(100,Math.round(position/total*100)):0;
@@ -66,11 +68,12 @@
 
     </div>`;
     const scroller=overlay.querySelector('.murglar-player-content');
-    if(scroller){
-      if(active && active!==priorSheet)scroller.scrollTop=scroller.scrollHeight;
-      else scroller.scrollTop=Math.min(priorScroll,scroller.scrollHeight);
-    }
+    const detail=overlay.querySelector('.murglar-detail-sheet');
+    const sameTrack=priorTrack===String(t.id||'');
+    if(scroller)scroller.scrollTop=(sameTrack&&active===priorSheet)?priorScroll:0;
+    if(detail)detail.scrollTop=(sameTrack&&active===priorSheet)?priorDetailScroll:0;
     overlay.dataset.openSheet=active;
+    overlay.dataset.openTrack=String(t.id||'');
   };
   updateOverlayState=function(){
     const p=app.player;

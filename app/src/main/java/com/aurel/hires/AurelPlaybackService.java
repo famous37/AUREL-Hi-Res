@@ -8,6 +8,17 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.media.MediaMetadata;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.os.Handler;
+import android.os.Looper;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.io.InputStream;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.os.Build;
@@ -33,6 +44,101 @@ public final class AurelPlaybackService extends Service {
     private String title="AUREL",artist="Music",lastTitle="";
     private long duration=0,position=0;
     private boolean playing=false,buffering=false;
+    private final ExecutorService coverJobs=Executors.newSingleThreadExecutor();
+    private final Handler mainThread=new Handler(Looper.getMainLooper());
+    private String albumTitle="",coverUrl="";
+    private Bitmap coverBitmap;
+    private int coverGeneration=0;
+
+
+    /** Match the same artwork hierarchy as the WebView; do not trust arbitrary hosts. */
+    private static String imageField(JSONObject item) {
+        if(item==null)return "";
+        for(String field:new String[]{"image","picture","cover"}) {
+            Object value=item.opt(field);
+            if(value instanceof String) {
+                String url=approvedCover((String)value);
+                if(!url.isEmpty())return url;
+            } else if(value instanceof JSONObject) {
+                JSONObject images=(JSONObject)value;
+                for(String quality:new String[]{"extralarge","large","medium","small","thumbnail","default"}) {
+                    String url=approvedCover(images.optString(quality,""));
+                    if(!url.isEmpty())return url;
+                }
+            }
+        }
+        return "";
+    }
+    private static String approvedCover(String value) {
+        if(value==null||!value.startsWith("https://"))return "";
+        try {
+            URL url=new URL(value);
+            String host=url.getHost().toLowerCase(Locale.US);
+            return host.equals("qobuz.com")||host.endsWith(".qobuz.com")?value:"";
+        }catch(Exception ignored){return "";}
+    }
+    private static String coverFromTrack(JSONObject track) {
+        String own=imageField(track);
+        return own.isEmpty()?imageField(track.optJSONObject("album")):own;
+    }
+    private static Bitmap loadCover(String url) {
+        HttpURLConnection conn=null;
+        try {
+            conn=(HttpURLConnection)new URL(url).openConnection();
+            conn.setConnectTimeout(4500);
+            conn.setReadTimeout(6000);
+            conn.setInstanceFollowRedirects(false);
+            if(conn.getResponseCode()!=200)return null;
+            int length=conn.getContentLength();
+            if(length>4000000)return null;
+            BitmapFactory.Options opts=new BitmapFactory.Options();
+            opts.inSampleSize=2;
+            try(InputStream stream=conn.getInputStream()){
+                return BitmapFactory.decodeStream(stream,null,opts);
+            }
+        }catch(Exception ignored){return null;}
+        finally{if(conn!=null)conn.disconnect();}
+    }
+    private static String colorHex(int c) {
+        return String.format(Locale.US,"#%06X",c&0xFFFFFF);
+    }
+    /** Representative saturated pixels, then softened into accessible dark tones. */
+    private static String[] palette(Bitmap bitmap) {
+        float sumSin=0,sumCos=0,total=0;
+        float[] hsv=new float[3];
+        int w=bitmap.getWidth(),h=bitmap.getHeight();
+        for(int y=1;y<13;y++)for(int x=1;x<13;x++){
+            int pixel=bitmap.getPixel(Math.min(w-1,x*w/14),Math.min(h-1,y*h/14));
+            Color.colorToHSV(pixel,hsv);
+            if(hsv[1]<.15f||hsv[2]<.13f||hsv[2]>.96f)continue;
+            float weight=hsv[1]*(.25f+hsv[2]);
+            double angle=hsv[0]*Math.PI/180.0;
+            sumSin+=Math.sin(angle)*weight;
+            sumCos+=Math.cos(angle)*weight;
+            total+=weight;
+        }
+        if(total<.01f)return new String[]{"#1E1B24","#302A35","#C9B7D5"};
+        float hue=(float)((Math.atan2(sumSin,sumCos)*180/Math.PI+360)%360);
+        int bg=Color.HSVToColor(new float[]{hue,.18f,.125f});
+        int surface=Color.HSVToColor(new float[]{hue,.20f,.195f});
+        int accent=Color.HSVToColor(new float[]{hue,.30f,.86f});
+        return new String[]{colorHex(bg),colorHex(surface),colorHex(accent)};
+    }
+    private void refreshCover(String url,int generation) {
+        coverJobs.execute(()->{
+            Bitmap bitmap=loadCover(url);
+            mainThread.post(()->{
+                if(session==null||generation!=coverGeneration||!url.equals(coverUrl))return;
+                coverBitmap=bitmap;
+                if(bitmap!=null) {
+                    String[] colors=palette(bitmap);
+                    MainActivity a=controller.get();
+                    if(a!=null)a.onAlbumArtworkPalette(url,colors[0],colors[1],colors[2]);
+                }
+                update(title,artist,albumTitle,coverUrl,duration,position,playing,buffering);
+            });
+        });
+    }
 
     public static void publish(MainActivity source,JSONObject state){
         if(source==null||state==null)return;
@@ -44,13 +150,16 @@ public final class AurelPlaybackService extends Service {
         String name=track.optString("title","Music");
         JSONObject a=track.optJSONObject("artist");
         String performer=a==null?track.optString("artist","Artist"):a.optString("name","Artist");
+        JSONObject album=track.optJSONObject("album");
+        String albumName=album==null?"":album.optString("title","");
+        String artwork=coverFromTrack(track);
         boolean playing=state.optBoolean("playing",false);
         boolean buffering=state.optBoolean("buffering",false);
         long length=Math.max(0,state.optLong("duration",0));
         long offset=Math.max(0,state.optLong("position",0));
         String signature=trackId+"|"+name+"|"+performer+"|"+playing+"|"+buffering+"|"+length;
         if(instance!=null){
-            instance.update(name,performer,length,offset,playing,buffering);
+            instance.update(name,performer,albumName,artwork,length,offset,playing,buffering);
             lastSignature=signature;
             return;
         }
@@ -60,6 +169,8 @@ public final class AurelPlaybackService extends Service {
         launch.setAction(ACTION_PREFIX+"start");
         launch.putExtra("title",name);
         launch.putExtra("artist",performer);
+        launch.putExtra("album",albumName);
+        launch.putExtra("artwork",artwork);
         launch.putExtra("duration",length);
         launch.putExtra("position",offset);
         launch.putExtra("playing",playing);
@@ -114,6 +225,7 @@ public final class AurelPlaybackService extends Service {
         if((ACTION_PREFIX+"next").equals(action)){dispatch("next",false);return START_STICKY;}
         if((ACTION_PREFIX+"previous").equals(action)){dispatch("previous",false);return START_STICKY;}
         update(intent.getStringExtra("title"),intent.getStringExtra("artist"),
+            intent.getStringExtra("album"),intent.getStringExtra("artwork"),
             intent.getLongExtra("duration",0),intent.getLongExtra("position",0),
             intent.getBooleanExtra("playing",false),intent.getBooleanExtra("buffering",false));
         return START_STICKY;
@@ -128,7 +240,7 @@ public final class AurelPlaybackService extends Service {
         home.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP|Intent.FLAG_ACTIVITY_CLEAR_TOP);
         return PendingIntent.getActivity(this,99,home,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
     }
-    private void update(String track,String performer,long durationMs,long positionMs,boolean isPlaying,boolean isBuffering){
+    private void update(String track,String performer,String albumName,String newCoverUrl,long durationMs,long positionMs,boolean isPlaying,boolean isBuffering){
         if(session==null)return;
         hasTrack=true;
         title=(track==null||track.trim().isEmpty())?"Music":track;
@@ -136,13 +248,27 @@ public final class AurelPlaybackService extends Service {
         duration=Math.max(0,durationMs);
         position=Math.max(0,Math.min(duration,durationMs>0?positionMs:0));
         playing=isPlaying;buffering=isBuffering;
-        MediaMetadata metadata=new MediaMetadata.Builder()
+        albumTitle=albumName==null?"":albumName;
+        String safeUrl=approvedCover(newCoverUrl);
+        if(!safeUrl.equals(coverUrl)) {
+            coverUrl=safeUrl;
+            coverBitmap=null;
+            int generation=++coverGeneration;
+            if(!safeUrl.isEmpty())refreshCover(safeUrl,generation);
+        }
+        MediaMetadata.Builder metadataBuilder=new MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE,title)
             .putString(MediaMetadata.METADATA_KEY_ARTIST,artist)
             .putString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST,artist)
-            .putLong(MediaMetadata.METADATA_KEY_DURATION,duration)
-            .build();
-        session.setMetadata(metadata);
+            .putString(MediaMetadata.METADATA_KEY_ALBUM,albumTitle)
+            .putLong(MediaMetadata.METADATA_KEY_DURATION,duration);
+        if(!coverUrl.isEmpty())metadataBuilder.putString(MediaMetadata.METADATA_KEY_ART_URI,coverUrl);
+        if(coverBitmap!=null){
+            metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART,coverBitmap);
+            metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_ART,coverBitmap);
+            metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON,coverBitmap);
+        }
+        session.setMetadata(metadataBuilder.build());
         int status=buffering?PlaybackState.STATE_BUFFERING:playing?PlaybackState.STATE_PLAYING:PlaybackState.STATE_PAUSED;
         PlaybackState state=new PlaybackState.Builder()
             .setActions(PlaybackState.ACTION_PLAY|PlaybackState.ACTION_PAUSE|
@@ -169,6 +295,7 @@ public final class AurelPlaybackService extends Service {
             .setStyle(new Notification.MediaStyle()
                 .setMediaSession(session.getSessionToken())
                 .setShowActionsInCompactView(0,1,2));
+        if(coverBitmap!=null)notification.setLargeIcon(coverBitmap);
         Notification ready=notification.build();
         if(!isForeground){
             try{
@@ -190,6 +317,8 @@ public final class AurelPlaybackService extends Service {
         stopSelf();
     }
     @Override public void onDestroy(){
+        coverGeneration++;
+        coverJobs.shutdownNow();
         if(session!=null){session.setActive(false);session.release();session=null;}
         if(notifications!=null)notifications.cancel(NOTIFICATION_ID);
         instance=null;isForeground=false;hasTrack=false;lastSignature="";
