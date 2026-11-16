@@ -85,6 +85,7 @@ jobs:
           set -euo pipefail
           for script in app/src/main/assets/*.js; do node --check "$script"; done
           node test_ui.cjs
+          node tests/account-language.test.cjs
           node tests/navigation.test.cjs
           node tests/updates.test.cjs
           mkdir -p build/probe-check

@@ -37,7 +37,7 @@ assert(language.includes('data-aurel-locale="uk"'));
 assert(language.includes("current==='uk'?'Англійська':'English'"));
 assert(ui.includes('aurel-language.js')&&ui.includes('aurel-elegant.css'));
 assert(build.includes('versionCode 41')&&build.includes("'1.1.22'"));
-const body={nodeType:1,tagName:'BODY',firstChild:null};
+const body={nodeType:1,tagName:'BODY',firstChild:null,hasAttribute(){return false;}};
 const document={
  documentElement:{lang:'en'},body,
  getElementById(){return null},querySelector(){return null},
