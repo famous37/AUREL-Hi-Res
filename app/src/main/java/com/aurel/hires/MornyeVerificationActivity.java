@@ -8,6 +8,11 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.graphics.Insets;
+import android.widget.FrameLayout;
+import android.os.Build;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -71,6 +76,8 @@ public final class MornyeVerificationActivity extends Activity {
         super.onCreate(bundle);
         getWindow().setStatusBarColor(Color.rgb(12,12,16));
         getWindow().setNavigationBarColor(Color.rgb(12,12,16));
+        getWindow().getDecorView().setSystemUiVisibility(0);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         state=getIntent().getStringExtra(EXTRA_STATE);
         challenge=getIntent().getStringExtra(EXTRA_URL);
         if(state==null||state.isEmpty()||challenge==null||!allowedStart(Uri.parse(challenge))){
@@ -88,7 +95,7 @@ public final class MornyeVerificationActivity extends Activity {
         column.addView(description);
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
         progress.setMax(100);column.addView(progress,new LinearLayout.LayoutParams(-1,dp(3)));
-        status=label("Loading gateway verification…",13);
+        status=label("Waiting for Zarz / Cloudflare. If it stays on Verifying, use the browser option below.",13);
         status.setPadding(0,dp(7),0,dp(9));column.addView(status);
         web=new WebView(this);
         web.setBackgroundColor(Color.rgb(24,20,31));
@@ -97,6 +104,10 @@ public final class MornyeVerificationActivity extends Activity {
         web.getSettings().setAllowFileAccess(false);
         web.getSettings().setAllowContentAccess(false);
         web.getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
+        web.getSettings().setLoadWithOverviewMode(true);
+        web.getSettings().setUseWideViewPort(true);
+        // Keep the stock Android WebView user agent unchanged for Cloudflare.
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString());
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web,true);
@@ -110,6 +121,10 @@ public final class MornyeVerificationActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
                 Uri u=request.getUrl();
                 if(callback(u))return true;
+                // Turnstile may use about:blank and about:srcdoc within frames.
+                if(u!=null&&"about".equalsIgnoreCase(u.getScheme())&&
+                   ("blank".equalsIgnoreCase(u.getSchemeSpecificPart())||
+                    "srcdoc".equalsIgnoreCase(u.getSchemeSpecificPart())))return false;
                 if(u!=null&&"https".equalsIgnoreCase(u.getScheme())){
                     // The gateway may redirect to its human-verification provider.
                     // No insecure HTTP or file/content URL can be loaded.
@@ -128,6 +143,17 @@ public final class MornyeVerificationActivity extends Activity {
             }
         });
         column.addView(web,new LinearLayout.LayoutParams(-1,0,1));
+        Button external=new Button(this);
+        external.setText("OPEN ZARZ CHECK IN BROWSER");
+        external.setOnClickListener(v->{
+            try{
+                Intent intent=new Intent(Intent.ACTION_VIEW,Uri.parse(challenge));
+                intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                startActivity(intent);
+                message("Finish the Zarz check in your browser. Return via the Android app chooser to AUREL.");
+            }catch(Exception e){message("No browser is available for the Zarz verification.");}
+        });
+        column.addView(external,new LinearLayout.LayoutParams(-1,dp(48)));
         Button retry=new Button(this);
         retry.setText("Reload verification");
         retry.setOnClickListener(v->{if(web!=null){message("Reloading verification…");web.loadUrl(challenge);}});
@@ -135,7 +161,21 @@ public final class MornyeVerificationActivity extends Activity {
         Button cancel=new Button(this);cancel.setText("Cancel");
         cancel.setOnClickListener(v->{setResult(RESULT_CANCELED);finish();});
         column.addView(cancel,new LinearLayout.LayoutParams(-1,dp(49)));
-        setContentView(column);
+        FrameLayout safeArea=new FrameLayout(this);
+        safeArea.setBackgroundColor(Color.rgb(24,20,31));
+        safeArea.addView(column,new FrameLayout.LayoutParams(-1,-1));
+        if(Build.VERSION.SDK_INT>=30){
+            safeArea.setOnApplyWindowInsetsListener((view,insets)->{
+                Insets system=insets.getInsets(WindowInsets.Type.systemBars()|
+                    WindowInsets.Type.displayCutout());
+                Insets keyboard=insets.getInsets(WindowInsets.Type.ime());
+                view.setPadding(system.left,system.top,system.right,
+                    Math.max(system.bottom,keyboard.bottom));
+                return WindowInsets.CONSUMED;
+            });
+        }else safeArea.setFitsSystemWindows(true);
+        setContentView(safeArea);
+        safeArea.requestApplyInsets();
         web.loadUrl(challenge);
     }
     @Override public void onBackPressed(){
