@@ -31,6 +31,8 @@ jobs:
         run: node test_ui.cjs
       - name: Regression-test navigation and artwork loading
         run: node tests/navigation.test.cjs
+      - name: Verify signed in-app updater safeguards
+        run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
         run: |
           mkdir -p build/probe-check
