@@ -139,3 +139,13 @@ References: https://developers.cloudflare.com/turnstile/get-started/mobile-imple
 - When an audio URL is resolved, stream metadata is emitted before waiting for Android MediaPlayer.prepareAsync. If present, source-reported bitrate/size are exposed, Android's parsed track bitrate may be shown after prepare, and file-size/duration can provide a clearly marked **estimated average bitrate** for VBR audio. If no credible source is available, bitrate remains unknown. Quality presets and Qobuz catalogue maximum never masquerade as measured stream bitrate.
 - No changes to the existing Mornye authentication, personal library credentials, or streaming protocol. Playback availability remains subject to Zarz/Qobuz; catalogue calls and bitrates may still take network time and cannot be guaranteed instant by the Android UI.
 - Run JavaScript regression checks, Gradle debug builds, and small-screen layout checks. Testing on the user's handset remains the final verification.
+
+## v1.1.7 — Artist catalogue recovery
+
+- Restores direct Qobuz metadata lookups for **Most popular** and **Similar artists** when the Mornye/Zarz metadata gateway does not expose `artist/page` or `artist/getSimilarArtists`.
+- Prefers the separately connected, authorized Qobuz library account for richer artist metadata and release lists; otherwise tries only public artist metadata endpoints or the current gateway.
+- Loads **EPs & Singles** and compilations with Qobuz `artist/getReleasesList` when authorized; falls back to the limited, explicitly typed `artist/page` release preview where available.
+- Clearly distinguishes API loading failures from a genuine empty result. Failed sections provide a **Retry** action without disrupting the mini-player, full-player, album-adaptive theme or bottom navigation.
+- Qobuz can require user authentication for the complete release-list endpoint. An APK build alone cannot verify your account's access, guarantee all sections will be returned, or bypass Qobuz restrictions. No music download functionality was added.
+
+References: [Qobuz artist API documentation](https://minim.readthedocs.io/en/dev/api-ref/minim.api.qobuz.PrivateArtistsAPI.html) and [Qobuz artist-page schema](https://github.com/arthursoares/qobuz_tidal_api_client/blob/main/docs/api-spec.md).
