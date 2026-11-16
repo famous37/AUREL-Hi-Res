@@ -543,8 +543,11 @@ public final class MainActivity extends Activity {
                             String artistId=p.getString("id");
                             if(!artistId.matches("[0-9]{1,20}"))
                                 throw new Exception("Invalid artist ID");
-                            data=artistInformation("artist/get",
-                                new JSONObject().put("artist_id",artistId));
+                            JSONObject params=new JSONObject().put("artist_id",artistId);
+                            try {data=catalog("artist/get",params);}
+                            catch(Exception signedError){
+                                data=artistInformation("artist/get",params);
+                            }
                             break;
                         }
 
