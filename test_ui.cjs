@@ -168,6 +168,19 @@ assert(java.includes('api.publicFeaturedReleases(24)'));
 assert(api.includes('JSONObject publicFeaturedReleases(int limit)'));
 assert(api.includes('false,"735532640",""'));
 assert(java.includes('terminalStreamFailure(e)'));
+assert(java.includes('private void handlePlaybackFailure('),
+       'Broken MediaPlayer should be released and recovered');
+assert(java.includes('decoderRecoveryCount==0'),
+       'Only one automatic retry must be allowed per track');
+assert(java.includes('startAtCurrentInternal(fallback,restorePosition)'),
+       'Retry must acquire a new quality-tier stream URL');
+assert(java.includes('if(!mornyeMode())probeCurrentStream('),
+       'Never consume a Mornye/Zarz stream URL via an extra FLAC probe');
+assert(java.includes('MediaPlayer.MEDIA_ERROR_TIMED_OUT'),
+       'Stalled stream preparation must be bounded');
+assert(java.includes('if(generation==playGeneration&&mp==player)advance(1,true);'),
+       'Stale completion callbacks must not skip tracks');
+
 assert(java.includes('if(viaMornye&&MornyeGateway.terminalStreamFailure(e))break;'));
 assert(java.includes('mornye.streamInfo(id,fmt)'));
 assert(java.includes('mornyeActive()'));
