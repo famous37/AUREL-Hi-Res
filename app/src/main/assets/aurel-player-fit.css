@@ -1,0 +1,117 @@
+/* AUREL: viewport-aware Now Playing. Loaded after the existing palette and
+   discography styles; affects the full player only, never the shared navbar. */
+#overlay .murglar-view{
+  box-sizing:border-box!important;
+  height:100%!important;
+  max-height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+#overlay .murglar-view .murglar-player-content{
+  box-sizing:border-box!important;
+  min-height:0!important;
+  flex:1 1 0!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  gap:3px!important;
+  padding:7px clamp(13px,4vw,24px) 9px!important;
+  scroll-padding-bottom:12px!important;
+  -webkit-overflow-scrolling:touch;
+}
+#overlay .murglar-view .murglar-art-wrap{
+  box-sizing:border-box!important;
+  display:flex!important;
+  justify-content:center!important;
+  align-items:center!important;
+  width:100%!important;
+  min-height:0!important;
+  flex:0 0 auto!important;
+  margin:0 auto!important;
+  padding:0!important;
+}
+#overlay .murglar-view .murglar-cover{
+  display:block!important;
+  width:var(--aurel-fit-art,min(84vw,34dvh,370px))!important;
+  max-width:100%!important;
+  aspect-ratio:1!important;
+  height:auto!important;
+  max-height:none!important;
+  object-fit:cover!important;
+}
+#overlay .murglar-view .murglar-track-data{
+  flex:0 0 auto!important;
+  min-height:0!important;
+  margin:6px 0 0!important;
+  gap:0!important;
+}
+#overlay .murglar-view .murglar-quick-actions{
+  flex:0 0 auto!important;
+  margin:5px 0 2px!important;
+  gap:6px!important;
+}
+#overlay .murglar-view .murglar-quick-actions button{
+  min-width:0!important;
+  min-height:49px!important;
+  padding:3px 1px!important;
+}
+#overlay .murglar-view .murglar-progress-row{
+  flex:0 0 auto!important;
+  margin:3px 0 0!important;
+  padding:0!important;
+}
+#overlay .murglar-view .murglar-transport{
+  flex:0 0 auto!important;
+  margin:3px 0 0!important;
+  gap:4px!important;
+}
+#overlay .murglar-view .murglar-source-line{
+  box-sizing:border-box!important;
+  flex:0 0 auto!important;
+  margin:2px auto 0!important;
+  min-height:33px!important;
+  padding:5px 8px 3px!important;
+}
+#overlay .murglar-view .murglar-source-line small{
+  margin:0!important;
+}
+/* At large Android font settings and unusually short viewports, artwork
+   shrinks first. If even the 104px minimum cannot fit, controls scroll. */
+#overlay .murglar-view.aurel-fit-scroll .murglar-player-content{
+  overscroll-behavior-y:contain!important;
+}
+@media(max-height:730px){
+  #overlay .murglar-view .murglar-player-content{gap:2px!important;padding-top:5px!important;padding-bottom:7px!important}
+  #overlay .murglar-view .murglar-track-data{margin-top:4px!important}
+  #overlay .murglar-view .murglar-quick-actions{margin-top:3px!important}
+  #overlay .murglar-view .murglar-quick-actions button{min-height:46px!important}
+}
+@media(max-width:370px){
+  #overlay .murglar-view .murglar-transport{gap:2px!important}
+  #overlay .murglar-view .murglar-progress-row{gap:5px!important;grid-template-columns:42px minmax(0,1fr) 42px!important}
+  #overlay .murglar-view .murglar-quick-actions button span{font-size:11.5px!important}
+}
+/* Keep the pre-existing two-column landscape hierarchy rather than forcing
+   the portrait column to occupy the entire short screen. */
+@media(orientation:landscape) and (max-height:510px){
+  #overlay .murglar-view .murglar-player-content{
+    display:grid!important;
+    grid-template-columns:min(30vw,180px) minmax(0,1fr)!important;
+    grid-template-rows:repeat(5,auto)!important;
+    align-content:start!important;
+    align-items:start!important;
+    justify-content:initial!important;
+    gap:3px 12px!important;
+    overflow-y:auto!important;
+    padding:5px 12px 8px!important;
+  }
+  #overlay .murglar-view .murglar-art-wrap{grid-column:1!important;grid-row:1/span 5!important;align-self:start!important}
+  #overlay .murglar-view .murglar-cover{width:min(30vw,180px)!important}
+  #overlay .murglar-view .murglar-track-data{grid-column:2!important;grid-row:1!important;margin:0!important}
+  #overlay .murglar-view .murglar-quick-actions{grid-column:2!important;grid-row:2!important;margin:2px 0!important}
+  #overlay .murglar-view .murglar-progress-row{grid-column:2!important;grid-row:3!important;margin:2px 0!important}
+  #overlay .murglar-view .murglar-transport{grid-column:2!important;grid-row:4!important;margin:2px 0!important}
+  #overlay .murglar-view .murglar-source-line{grid-column:2!important;grid-row:5!important;margin:2px 0!important}
+}
