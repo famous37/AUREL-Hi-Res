@@ -123,7 +123,7 @@ A successful Android build **does not** prove the public Qobuz API will grant ne
 ## v1.0.9 — Qobuz authentication and safe mobile UI
 
 - Qobuz password API requests now use the legacy MD5 representation rather than sending a raw password, and no redundant login requests are made after HTTP 401. The Qobuz server can continue rejecting direct third-party password sign-in, as widely reported since April 2026. AUREL does NOT bypass that restriction. For a personal library, an independent Session Token remains available without changing the Mornye streaming session.
-- An App ID is selected automatically for library authentication: use the currently available Qobuz client configuration or an existing configured integration, rather than silently assuming a hardcoded ID.
+- An App ID is selected automatically for library password authentication. In separate library token mode, a user may optionally override the App ID for tokens originating from another Qobuz integration; no silent hardcoded ID is substituted.
 - Zarz in-app verification now has Android status/navigation/IME insets and stable WebView settings for Cloudflare. The browser fallback is for the Zarz challenge ONLY, never the Qobuz desktop player. Returned one-time grants are checked against encrypted short-lived state before exchange.
 - Corrected double safe-area handling: the native Android root already consumes system-bar insets; the web bottom bar now uses a fixed 70 px height and four full-width cells without an additional CSS inset. Horizontal panning from keyboard focus is reset after navigating.
 - Both regular and independent AUREL Preview APKs are produced. Installing Preview does not replace a previously working player.
