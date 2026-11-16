@@ -58,7 +58,7 @@ assert(login.includes('value="312369995"'));
 assert(login.includes('id="appSecret"'));
 assert(login.includes('Connect Qobuz'));
 assert(login.includes('id="appId"'));
-assert(!login.includes('data-open-qobuz-web'));
+assert(login.includes('data-open-qobuz-web'));
 assert(!login.includes('data-start-web-login'));
 run("app.loginMode='password';renderLogin()");
 const pwLogin=nodes.get('#screen').innerHTML;
@@ -89,13 +89,17 @@ run("app.loginMode='password';renderLogin()");
 const libraryPassword=nodes.get('#screen').innerHTML;
 assert(libraryPassword.includes('id="email"'));
 assert(libraryPassword.includes('id="password"'));
+assert(libraryPassword.includes('id="appId"'));
+assert(libraryPassword.includes('id="appSecret"'));
+assert(libraryPassword.includes('id="userId"'));
+assert(libraryPassword.includes('data-open-qobuz-web'));
 assert(libraryPassword.includes('Connect library account'));
 run("app.loginMode='token'");
-assert(!libraryLogin.includes('id="appSecret"'));
+assert(libraryLogin.includes('id="appSecret"'));
 assert(libraryLogin.includes('id="appId"'));
-assert(!libraryPassword.includes('aurel-signin-advanced'));
+assert(libraryPassword.includes('aurel-signin-advanced'));
 assert(libraryPassword.includes('Qobuz email or username'));
-assert(libraryPassword.includes('configured Qobuz App ID'));
+assert(libraryPassword.includes('enter an App ID below'));
 run("app.session={loggedIn:true,streamConnected:true,libraryConnected:true,quality:27,appId:'312369995',streamValidation:'unverified',profile:{displayName:'Test'},libraryProfile:{displayName:'Separate'}};app.nav='settings';renderSettings()");
 assert(nodes.get('#screen').innerHTML.includes('Personal Qobuz library'));
 assert(nodes.get('#screen').innerHTML.includes('Separate'));
@@ -147,11 +151,11 @@ const media=fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/AurelP
 assert(java.includes('DEFAULT_APP_ID="312369995"'));
 assert(java.includes('raw=api.validateLiveToken(appId,token,p.optString("userId",""),secondary)'));
 assert(java.includes('api.automaticLibraryAppId()'));
-assert(java.includes(':api.resolveAppId(suppliedAppId);'));
+assert(java.includes('?api.resolveAppId(suppliedAppId)'));
 assert(java.includes('case "loginToken": case "loginPassword":'));
 assert(java.includes('api.validateLiveToken(appId,token,p.optString("userId",""),secondary)'));
 assert(java.includes('raw.put("validated",true)'));
-assert(!java.includes('case "openQobuzWeb":'));
+assert(java.includes('case "openQobuzWeb":'));
 assert(java.includes('case "connectMornye":'));
 assert(java.includes('case "disconnectMornye":'));
 assert(java.includes('api.passwordLogin(appId,p.optString("email").trim(),p.optString("password"))'));
@@ -183,6 +187,8 @@ assert(api.includes('JSONObject preferredTrackDetails(String trackId)'));
 assert(api.includes('JSONObject publicTrackDetails(String trackId)'));
 assert(api.includes('request("widget/getTrackById"'));
 assert(api.includes('String automaticLibraryAppId()'));
+assert(api.includes('store.get("libraryUserId")'));
+assert(java.includes('secure.put("libraryAppSecret",suppliedSecret)'));
 const modern=fs.readFileSync(base+'modern.js','utf8');
 assert(modern.includes('catalogueMaxText(p)'));
 assert(modern.includes("show('ISRC',t.isrc)"));
@@ -247,7 +253,7 @@ assert(api.includes('if(code>=300||"error".equalsIgnoreCase(body.optString("stat
 assert(api.includes('if(!favourites.has("albums")&&!favourites.has("tracks")&&!favourites.has("artists"))'));
 assert(api.includes('if(!libraryOnly)'));
 assert(java.includes('secure.get("streamUserId")'));
-assert(java.includes('secure.put("streamUserId",p.optString("userId","").trim())'));
+assert(java.includes('secure.put("streamUserId",resolvedUserId)'));
 assert(!java.includes('raw=api.verifyToken(appId,token,p.optString("userId",""),true)'));
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('validateSession')"));
 assert(api.includes('libraryPost('));
@@ -375,7 +381,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.13"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.14"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -385,7 +391,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.13'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.14'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -417,7 +423,7 @@ assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artis
 assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
   'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.13'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.14'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -442,7 +448,7 @@ assert(gateway.includes('"VERIFICATION_REQUIRED".equalsIgnoreCase(code)')&&
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('reverifyMornye')"), 'settings/player must invoke re-verification');
 assert(fs.readFileSync(base+'app.js','utf8').includes('aurel-gateway-warning'), 'failed grants need a persistent warning');
 assert(murglarJs.includes('data-reverify-mornye'), 'Now Playing must expose verification instead of an inert error');
-assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.13</strong>'), 'Settings must show the installed version');
+assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.14</strong>'), 'Settings must show the installed version');
 
 const playerFitCss=fs.readFileSync(base+'aurel-player-fit.css','utf8');
 const playerFitJs=fs.readFileSync(base+'aurel-player-fit.js','utf8');
@@ -457,6 +463,6 @@ assert(playerFitJs.includes('orientation:landscape')&&playerFitCss.includes('gri
 assert(playerHtml.indexOf('aurel-player-fit.css')>playerHtml.indexOf('aurel-discography.css'), 'responsive styles must override older styles');
 assert(playerHtml.indexOf('aurel-player-fit.js')>playerHtml.indexOf('aurel-discography.js'), 'fit must wrap the final player renderer');
 
-console.log('AUREL 1.1.13 checks passed — live artist rendering, global theme and native catalogue sections.');
+console.log('AUREL 1.1.14 checks passed — live artist rendering, global theme and native catalogue sections.');
 
 

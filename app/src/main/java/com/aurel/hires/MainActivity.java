@@ -393,6 +393,9 @@ public final class MainActivity extends Activity {
         j.put("appId",storedId);
         j.put("webAppIdAuto",true);
         j.put("libraryAppId",secure.get("libraryAppId"));
+        j.put("streamUserId",secure.get("streamUserId"));
+        j.put("libraryUserId",secure.get("libraryUserId"));
+        j.put("hasLibrarySecret",!secure.get("libraryAppSecret").isEmpty());
         j.put("hasSecret",!streamSecret().isEmpty());
         // The preview package has isolated encrypted storage; it cannot reuse
         // credentials saved under another installed application ID.
@@ -519,18 +522,27 @@ public final class MainActivity extends Activity {
                             }
                             break;
                         }
+                        case "openQobuzWeb": {
+                            // Use the system browser. Qobuz may refuse embedded WebViews;
+                            // a browser login does not silently grant this app a token.
+                            ui.post(()->{
+                                try { startActivity(new Intent(Intent.ACTION_VIEW,
+                                    Uri.parse("https://play.qobuz.com/login"))); }
+                                catch(Exception ignored){}
+                            });
+                            data=new JSONObject().put("opened",true);
+                            break;
+                        }
                         case "loginToken": case "loginPassword": {
                             boolean secondary=p.optBoolean("libraryOnly",false);
                             // No stale hardcoded App ID: blank means resolve public
                             // Web App ID from the current official Qobuz client.
-                            // Library credentials are independent from the streaming
-                            // token and use the configured official App ID automatically.
+                            // Honor a manually supplied App ID for BOTH token and password
+                            // flows (including the independent library account).
                             String suppliedAppId=p.optString("appId","").trim();
-                            String appId=secondary
-                                ?(action.equals("loginToken")&&!suppliedAppId.isEmpty()
-                                    ?api.resolveAppId(suppliedAppId)
-                                    :api.automaticLibraryAppId())
-                                :api.resolveAppId(suppliedAppId);
+                            String appId=!suppliedAppId.isEmpty()
+                                ?api.resolveAppId(suppliedAppId)
+                                :(secondary?api.automaticLibraryAppId():api.resolveAppId(""));
                             JSONObject raw;
                             String token;
                             if(action.equals("loginToken")){
@@ -550,9 +562,15 @@ public final class MainActivity extends Activity {
                             JSONObject prof=profile(raw,p);
                             boolean validated=raw.optBoolean("validated",action.equals("loginPassword")&&raw.has("user"));
                             String validation=validated?"verified":"unverified";
+                            String resolvedUserId=prof.optString("userId","").trim();
+                            if(resolvedUserId.isEmpty())resolvedUserId=p.optString("userId","").trim();
                             if(secondary){
+                                String previousAppId=secure.get("libraryAppId");
+                                String suppliedSecret=p.optString("appSecret","").trim();
                                 secure.put("libraryAppId",appId);
-                                secure.put("libraryUserId",p.optString("userId","").trim());
+                                secure.put("libraryUserId",resolvedUserId);
+                                if(!suppliedSecret.isEmpty())secure.put("libraryAppSecret",suppliedSecret);
+                                else if(!appId.equals(previousAppId))secure.put("libraryAppSecret","");
                                 secure.put("libraryToken",token);
                                 secure.put("libraryValidation",validation);
                                 secure.put("libraryProfile",prof.toString());
@@ -566,7 +584,7 @@ public final class MainActivity extends Activity {
                                 else if(!appId.equals(previousAppId))secure.put("streamAppSecret","");
                                 secure.put("streamToken",token);
                                 secure.put("authMode","qobuz");
-                                secure.put("streamUserId",p.optString("userId","").trim());
+                                secure.put("streamUserId",resolvedUserId);
                                 secure.put("streamValidation",validation);
                                 secure.put("profile",prof.toString());
                             }
@@ -576,7 +594,7 @@ public final class MainActivity extends Activity {
                             data=session();break;
                         }
                         case "logoutLibrary": {
-                            secure.put("libraryAppId","");secure.put("libraryUserId","");secure.put("libraryToken","");secure.put("libraryProfile","");secure.put("libraryValidation","");
+                            secure.put("libraryAppId","");secure.put("libraryAppSecret","");secure.put("libraryUserId","");secure.put("libraryToken","");secure.put("libraryProfile","");secure.put("libraryValidation","");
                             data=session();break;
                         }
                         case "logout": {
