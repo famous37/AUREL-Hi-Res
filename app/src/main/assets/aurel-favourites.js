@@ -57,25 +57,25 @@ function updateButton(b){
  if(pending)b.setAttribute('aria-busy','true');else b.removeAttribute('aria-busy');
  if(b.classList.contains('aurel-artist-follow')){
    const label=b.querySelector('span');
-   if(label)label.textContent=on?'Following':'Follow';
+   if(label&&label.textContent!==(on?'Following':'Follow'))label.textContent=on?'Following':'Follow';
    return;
  }
  if(b.classList.contains('aurel-favourite-control')){
-   b.textContent=on?'♥':'♡';
+   if(b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
    b.setAttribute('title',on?'Remove from favourites':'Add to favourites');
    return;
  }
  if(b.hasAttribute('data-mini-fav'))return;
  if(b.classList.contains('aurel-fav-button')||b.closest('.murglar-quick-actions')){
    const label=b.querySelector('span');
-   if(label)label.textContent=on?'Saved':'Favourite';
+   if(label&&label.textContent!==(on?'Saved':'Favourite'))label.textContent=on?'Saved':'Favourite';
    return;
  }
  if(b.hasAttribute('data-like-track')&&!b.querySelector('svg')){
-   b.textContent=on?'♥':'♡';
+   if(b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
    b.setAttribute('title',on?'Remove from favourites':'Add to favourites');
  }else if(b.hasAttribute('data-like-album')&&!b.querySelector('svg')){
-   b.textContent=on?'♥ Saved':'♡ Save';
+   if(b.textContent!==(on?'♥ Saved':'♡ Save'))b.textContent=on?'♥ Saved':'♡ Save';
  }
 }
 function syncAll(){
