@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.0.4 Beta
+# AUREL Hi-Res · 1.0.5 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -77,3 +77,14 @@ No music-download features have been restored to AUREL. A real-device Qobuz logi
 - Retained the existing on-demand first-party localStorage extraction fallback. This is **not** an implementation of Mornye's signed-session host, and is not a promise that Qobuz will permit Android WebView authentication.
 - The old Mornye version-only status panel was misleading and has been replaced with an explanation. No executable third-party extension code or music-download capabilities have been added.
 - **Real-account verification required:** Qobuz may change its login flow or reject WebView, and a usable Qobuz account token is different from a Mornye/Zarz signed gateway session.
+
+## v1.0.5 — Native Mornye protocol, no Qobuz browser login
+
+- Removed the unusable mobile Qobuz Web/CAPTCHA sign-in and its manifest activity.
+- Third sign-in tab now establishes a native `signedSession@3` session using Mornye's published Zarz gateway protocol (`/bootstrap`, HMAC-signed metadata, one-time audio tickets). It checks a real signed catalogue response before marking the session connected.
+- This is **Mornye gateway access, not a Qobuz account login**. Its grant and gateway availability are controlled by Zarz: if the server returns a required session grant, AUREL reports that access is pending and does not impersonate a working session. This behavior has not yet been tested with the live service.
+- The legacy **Token** and **Password** methods and independent personal Qobuz **Library** account remain. Mornye gateway mode cannot supply a user's favourites or playlists without that separate account.
+- Gateway audio URLs are passed to Android MediaPlayer for online playback only; AUREL has no audio download/export features. A gateway returning a URL does not guarantee it will play or be allowed for the user's account.
+- No automatic extension installation or execution is attempted. The gateway session keys are encrypted using Android Keystore.
+
+Reference: https://github.com/mornyeapp/Mornye/tree/main/rust_backend/crates/extensions/src/signed_session (LGPL-3.0-only), https://github.com/mornyeapp/Mornye-Extension/tree/main/sources/qobuz-web .
