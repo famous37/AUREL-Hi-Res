@@ -562,7 +562,8 @@ public final class MainActivity extends Activity {
                             JSONObject prof=profile(raw,p);
                             boolean validated=raw.optBoolean("validated",action.equals("loginPassword")&&raw.has("user"));
                             String validation=validated?"verified":"unverified";
-                            String resolvedUserId=prof.optString("userId",p.optString("userId","")).trim();
+                            String resolvedUserId=prof.optString("userId","").trim();
+                            if(resolvedUserId.isEmpty())resolvedUserId=p.optString("userId","").trim();
                             if(secondary){
                                 String previousAppId=secure.get("libraryAppId");
                                 String suppliedSecret=p.optString("appSecret","").trim();
