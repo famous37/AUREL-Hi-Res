@@ -230,7 +230,7 @@ function renderSettings(){if(!hasAuth()){app.loginTarget='stream';renderLogin();
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  $('#screen').innerHTML=title('ACCOUNT & AUDIO','Your listening space.')+`<div class="panel"><h3>Streaming account</h3>
  <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
- <div class="info-row"><span>Session verification</span><strong>${app.session.mornyeConnected?'Verified by Mornye gateway':app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':app.session.streamValidation==='rejected'?'Rejected · check token and App ID':'Not checked'}</strong></div>
+ <div class="info-row"><span>Session verification</span><strong>${app.session.mornyeConnected?'Mornye catalogue verified · playback depends on Zarz':app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':app.session.streamValidation==='rejected'?'Rejected · check token and App ID':'Not checked'}</strong></div>
  <div class="info-row"><span>Profile</span><strong>${html(p.displayName||'—')}</strong></div>
  <div class="info-row"><span>User ID</span><strong>${html(p.userId||'Not verified')}</strong></div>
  <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?' ✓':''}</strong></div>
