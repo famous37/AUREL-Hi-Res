@@ -371,8 +371,12 @@ public final class MainActivity extends Activity {
                             // Web App ID from the current official Qobuz client.
                             // Library credentials are independent from the streaming
                             // token and use the configured official App ID automatically.
-                            String appId=secondary?api.automaticLibraryAppId()
-                                :api.resolveAppId(p.optString("appId",""));
+                            String suppliedAppId=p.optString("appId","").trim();
+                            String appId=secondary
+                                ?(action.equals("loginToken")&&!suppliedAppId.isEmpty()
+                                    ?api.resolveAppId(suppliedAppId)
+                                    :api.automaticLibraryAppId())
+                                :api.resolveAppId(suppliedAppId);
                             JSONObject raw;
                             String token;
                             if(action.equals("loginToken")){
