@@ -809,12 +809,12 @@ public final class MainActivity extends Activity {
                     if(generation!=playGeneration)return;
                     try {
                         fileInfo=metadata;
-                        // Report supplier metadata before MediaPlayer.prepareAsync
-                        // starts waiting for an HTTP stream/decoder.
-                        emit("player",playerState());
                         sourceVerified=metadata.optBoolean("source_verified",false);
                         sourceLabel=metadata.optString("source_label","Qobuz API");
                         codec=metadata.optString("codec","");
+                        // Report supplier metadata before MediaPlayer.prepareAsync
+                        // starts waiting for an HTTP stream/decoder.
+                        emit("player",playerState());
                         player=new MediaPlayer();
                         player.setAudioStreamType(AudioManager.STREAM_MUSIC);
                         player.setOnPreparedListener(mp->{
