@@ -431,10 +431,9 @@ final class QobuzApi {
         }catch(ApiException e){
             if(e.status==401||e.status==403)
                 throw new ApiException(e.status,"user/login",
-                    "Qobuz returned HTTP "+e.status+" for password sign-in with App ID "+appId+
-                    ". AUREL used the legacy password-hash format, but Qobuz may disable "+
-                    "direct API login or require an authorized interactive sign-in. Your music "+
-                    "session was not changed. Use an account session token if this persists.");
+                    "Qobuz HTTP "+e.status+": password API login refused (App ID "+appId+
+                    "). Qobuz may require an authorized OAuth sign-in. "+
+                    "Mornye playback is unchanged. Connect your library with a session token.");
             throw e;
         }
     }
