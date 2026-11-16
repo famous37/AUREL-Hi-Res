@@ -11,6 +11,8 @@ import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import java.util.Map;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -29,11 +31,13 @@ import org.json.JSONObject;
  */
 public final class QobuzWebLoginActivity extends Activity {
     static final String EXTRA_TOKEN="aurel.web.token";
+    static final String EXTRA_APP_ID="aurel.web.appid";
     static final String EXTRA_LIBRARY="aurel.web.library";
     private static final String LOGIN_URL="https://play.qobuz.com/login";
     private WebView browser;
     private TextView status;
     private boolean extracting=false;
+    private volatile String observedAppId="";
 
     private static boolean isQobuz(Uri uri){
         if(uri==null||!"https".equalsIgnoreCase(uri.getScheme()))return false;
@@ -107,6 +111,23 @@ public final class QobuzWebLoginActivity extends Activity {
                 catch(Exception ignored){status.setText("Open the official Qobuz website in your browser if sign-in is blocked.");}
                 return true;
             }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
+                // The public App ID may be visible in the official web player's
+                // own X-App-Id request header; do not record auth-token headers.
+                Uri requestUri=request.getUrl();
+                if(isQobuz(requestUri)&&
+                    requestUri.getPath()!=null&&requestUri.getPath().contains("/api.json/")){
+                    Map<String,String> headers=request.getRequestHeaders();
+                    if(headers!=null)for(Map.Entry<String,String> item:headers.entrySet()){
+                        if("x-app-id".equalsIgnoreCase(item.getKey())){
+                            String candidate=item.getValue();
+                            if(candidate!=null&&candidate.matches("[0-9]{6,15}"))
+                                observedAppId=candidate;
+                        }
+                    }
+                }
+                return null;
+            }
             @Override public void onReceivedError(WebView view,WebResourceRequest request,android.webkit.WebResourceError error){
                 if(request.isForMainFrame())status.setText("Qobuz page unavailable. Check your connection or use the external browser.");
             }
@@ -163,6 +184,7 @@ public final class QobuzWebLoginActivity extends Activity {
                 }
                 Intent data=new Intent();
                 data.putExtra(EXTRA_TOKEN,token);
+                if(!observedAppId.isEmpty())data.putExtra(EXTRA_APP_ID,observedAppId);
                 data.putExtra(EXTRA_LIBRARY,getIntent().getBooleanExtra(EXTRA_LIBRARY,false));
                 setResult(RESULT_OK,data);
                 finish();
