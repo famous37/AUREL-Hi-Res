@@ -411,6 +411,17 @@ final class MornyeGateway {
         int depth=response.optInt("bit_depth",nested.optInt("bit_depth",0));
         double rate=response.optDouble("sampling_rate",nested.optDouble("sampling_rate",0));
         if(rate>0&&rate<1000)rate*=1000;
+        // The gateway may supply a real average bitrate / size. Missing values
+        // stay unknown; we never infer lossless bitrate from requested quality.
+        long bytes=response.optLong("file_size",
+            response.optLong("size",nested.optLong("file_size",nested.optLong("size",0L))));
+        if(bytes<=0||bytes>20_000_000_000L)bytes=0;
+        double kbps=response.optDouble("bitrate_kbps",nested.optDouble("bitrate_kbps",0));
+        if(kbps<=0){
+            kbps=response.optDouble("bitrate",nested.optDouble("bitrate",0));
+            if(kbps>100000)kbps/=1000.0; // provider occasionally reports bps
+        }
+        if(kbps<8||kbps>50000)kbps=0;
         // AUREL passes this URL to MediaPlayer directly; no file export/download.
         boolean verified=depth>=8&&depth<=32&&rate>=8000&&rate<=768000;
         return new JSONObject()
@@ -422,6 +433,8 @@ final class MornyeGateway {
             .put("source_verified",verified)
             .put("source_label","Mornye Zarz signed session")
             .put("codec","")
-            .put("format_id",quality);
+            .put("format_id",quality)
+            .put("file_size",bytes)
+            .put("source_bitrate_kbps",kbps>0?Math.round(kbps):0);
     }
 }
