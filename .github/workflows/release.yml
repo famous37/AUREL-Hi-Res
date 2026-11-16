@@ -44,24 +44,26 @@ jobs:
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           TAG=v1.1.18
+          printf '%s\n' \
+            '**AUREL Hi-Res v1.1.18 — compact floating notifications**' \
+            '' \
+            'Changes:' \
+            '- Fixed oversized error notifications: the top floating message fits its text and buttons without stretching.' \
+            '- Alerts remain below the status bar; long messages are scrollable.' \
+            '- Preserved artist/album Back navigation, page scroll positions, library caching, and smaller list thumbnails from v1.1.17.' \
+            '- Preserved existing audio playback and stream-quality reporting.' \
+            '' \
+            'Verified by GitHub Actions: JavaScript, player UI, navigation, FLAC/MP3 parsing, and Android APK build.' \
+            '' \
+            'Known limitation: Mornye/Zarz HTTP 404 is an upstream gateway error, not fixed by this UI release.' \
+            '' \
+            'Install note: debug-signed prerelease APK; back up data if replacing a differently signed version.' > release-notes.md
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK#AUREL-Hi-Res-v1.1.18.apk" --clobber
           else
             gh release create "$TAG" "$APK#AUREL-Hi-Res-v1.1.18.apk" \
               --target "$GITHUB_SHA" \
               --title "AUREL Hi-Res v1.1.18" \
-              --notes "**AUREL Hi-Res v1.1.18 — compact floating notifications**
-
-Changes:
-- Fixed oversized error notifications: the top floating message now fits its text and controls rather than stretching down the player.
-- Alerts remain below the status bar and long messages remain scrollable.
-- Retains the artist → album → player Back history, scroll restoration, library caching and reduced list thumbnail sizes from v1.1.17.
-- Retains the existing audio playback and track-quality reporting.
-
-Verified: GitHub Actions checks for JavaScript, player UI, navigation regression, FLAC/MP3 header parsing, and Android build.
-
-Known limitation: HTTP 404 returned by the Mornye/Zarz gateway is upstream and is not changed by this UI fix.
-
-Install note: This is a debug-signed prerelease APK. Back up app data before replacing an installation signed with a different certificate." \
+              --notes-file release-notes.md \
               --prerelease
           fi
