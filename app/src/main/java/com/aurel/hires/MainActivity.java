@@ -51,6 +51,9 @@ public final class MainActivity extends Activity {
     private MediaPlayer player;
     private JSONObject current=new JSONObject();
     private JSONObject fileInfo=new JSONObject();
+    // Verified FLAC parameters parsed from bytes served by the active playback URL.
+    // UI thread only; never persist URLs or credentials in event payloads.
+    private JSONObject actualStream=null;
     private String codec="", sourceLabel="";
     private boolean sourceVerified=false;
     private int decoderSampleRateHz=0, decoderChannels=0, decoderBitrateKbps=0;
@@ -1025,8 +1028,40 @@ public final class MainActivity extends Activity {
     }
 
     private void cleanupPlayer() {
-        prepared=false;buffering=false;
+        prepared=false;buffering=false;actualStream=null;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
+    }
+
+    /**
+     * Optional, asynchronous, ONE-SHOT verification. A signed Mornye/Zarz URL
+     * may deny a second request; this never delays or retries MediaPlayer.
+     * The result belongs only to the exact player instance/generation.
+     */
+    private void probeCurrentStream(String streamUrl, String trackId,
+                                    int generation, MediaPlayer expectedPlayer) {
+        jobs.execute(()->{
+            try {
+                RealStreamQualityProbe.Result result=RealStreamQualityProbe.probe(streamUrl);
+                if(!result.verifiedFromBytes)return;
+                ui.post(()->{
+                    if(generation!=playGeneration||player!=expectedPlayer||!prepared||
+                       !trackId.equals(current.optString("id","")))return;
+                    try {
+                        actualStream=new JSONObject()
+                            .put("trackId",trackId)
+                            .put("codec",result.codec)
+                            .put("sampleRateHz",result.sampleRateHz)
+                            .put("bitsPerSample",result.bitsPerSample)
+                            .put("channels",result.channels)
+                            .put("verifiedFromBytes",true);
+                        emit("player",playerState());
+                    }catch(Exception ignored){}
+                });
+            }catch(Exception ignored){
+                // A one-time URL, missing Range support, timeouts or non-FLAC
+                // content must not break playback or show a fake quality claim.
+            }
+        });
     }
 
     private void startAtCurrent() {
@@ -1131,7 +1166,10 @@ public final class MainActivity extends Activity {
                                     });
                                 }
                             }
-                            try{mp.start();}catch(Exception ignored){}
+                            try{
+                                mp.start();
+                                probeCurrentStream(streamUrl,id,generation,mp);
+                            }catch(Exception ignored){}
                             // The successful start of an actual Qobuz stream is
                             // stronger evidence than an optional login endpoint.
                             if("unverified".equals(secure.get("streamValidation"))){
@@ -1147,7 +1185,7 @@ public final class MainActivity extends Activity {
                         player.setOnCompletionListener(mp->advance(1,true));
                         player.setOnErrorListener((mp,what,extra)->{
                             if(generation!=playGeneration)return true;
-                            prepared=false;buffering=false;
+                            prepared=false;buffering=false;actualStream=null;
                             playerError="Media decoder error ("+what+" / "+extra+")";
                             emit("player",playerState());return true;
                         });
@@ -1203,6 +1241,7 @@ public final class MainActivity extends Activity {
             state.put("channels",fileInfo.optInt("n_channels",0));
             state.put("codec",codec);
             state.put("sourceVerified",sourceVerified);
+            if(actualStream!=null)state.put("actualStream",actualStream);
             state.put("decoderSampleRateHz",decoderSampleRateHz);
             state.put("decoderChannels",decoderChannels);
             state.put("decoderMime",decoderMime);
