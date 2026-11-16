@@ -440,8 +440,11 @@ final class QobuzApi {
            email==null||email.trim().isEmpty()||password==null||password.isEmpty())
             throw new Exception("Enter your Qobuz email and password.");
         String passwordHash=md5(password);
-        JSONObject body=new JSONObject().put("email",email.trim())
-            .put("password",passwordHash);
+        // Qobuz uses separate fields for an account email and a username.
+        String account=email.trim();
+        JSONObject body=new JSONObject().put("password",passwordHash);
+        if(account.contains("@"))body.put("email",account);
+        else body.put("username",account);
         try {
             JSONObject response=request("user/login",body,true,appId,"");
             if(response.optString("user_auth_token").isEmpty())
@@ -452,7 +455,7 @@ final class QobuzApi {
                 throw new ApiException(e.status,"user/login",
                     "Qobuz HTTP "+e.status+": password API login refused (App ID "+appId+
                     "). Qobuz may require an authorized OAuth sign-in. "+
-                    "Mornye playback is unchanged. Connect your library with a session token.");
+                    "The Qobuz password endpoint refused this client. Try a compatible App ID or a valid account session token.");
             throw e;
         }
     }

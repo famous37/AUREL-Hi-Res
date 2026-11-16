@@ -262,6 +262,7 @@ public final class MainActivity extends Activity {
         setIntent(intent);
         if(intent==null||!MornyeGrantCallbackActivity.ACTION_RESULT.equals(intent.getAction()))
             return;
+        if(!mornyeMode()&&!mornye.isConnected()&&secure.get("mornyePendingState").isEmpty())return;
         reportMornyeVerification(intent.getBooleanExtra("connected",false),
             intent.getStringExtra("error"));
     }
@@ -273,6 +274,7 @@ public final class MainActivity extends Activity {
             return;
         }
         if(requestCode!=MORNYE_VERIFICATION_REQUEST)return;
+        if(!mornyeMode()&&!mornye.isConnected()&&secure.get("mornyePendingState").isEmpty())return;
         // An external browser may deliver its grant through onNewIntent first.
         if(resultCode!=RESULT_OK&&mornyeActive())return;
         if(resultCode!=RESULT_OK||data==null){
@@ -283,6 +285,7 @@ public final class MainActivity extends Activity {
         final String grant=data.getStringExtra(MornyeVerificationActivity.EXTRA_GRANT);
         jobs.execute(()->{
             try{
+                if(!mornyeMode()&&!mornye.isConnected()&&secure.get("mornyePendingState").isEmpty())return;
                 JSONObject completed=mornye.completeGrant(state,grant);
                 if(!completed.optBoolean("connected"))
                     throw new Exception("Gateway did not approve this session grant.");
@@ -373,6 +376,30 @@ public final class MainActivity extends Activity {
     private void needLibrary()throws Exception{
         if(mornyeActive()&&secure.get("libraryToken").isEmpty())
             throw new Exception("Connect a separate Qobuz account in Settings to access your personal library.");
+    }
+    /** Retire gateway only AFTER Qobuz validates its replacement account.
+     * This clears active HMAC credentials and any pending verification grant. */
+    private boolean retireMornyeForQobuz() throws Exception {
+        boolean wasMornye=mornyeMode()||mornye.isConnected();
+        mornye.disconnect();
+        secure.put("authMode","qobuz");
+        gatewayPlaybackRejected=false;
+        verificationRetryGeneration=-1;
+        automaticVerificationRecovery=false;
+        verificationInProgress=false;
+        if(wasMornye)ui.post(()->{
+            cleanupPlayer();queue.clear();queueIndex=-1;
+            current=new JSONObject();fileInfo=new JSONObject();
+            emit("player",playerState());
+        });
+        return wasMornye;
+    }
+    /** Never fall back to an old token after switching from Mornye
+     * into a personal Qobuz library with no catalogue entitlement. */
+    private void clearPreviousStreamingCredentials() throws Exception {
+        for(String key:new String[]{"streamToken","token","streamAppId","appId",
+            "streamAppSecret","appSecret","streamUserId","streamValidation","profile"})
+            secure.put(key,"");
     }
     private String streamToken(){String t=secure.get("streamToken");return t.isEmpty()?secure.get("token"):t;}
     // Default App ID shown in the user's original AUREL configuration.
@@ -517,7 +544,8 @@ public final class MainActivity extends Activity {
                         }
                         case "disconnectMornye": {
                             mornye.disconnect();
-                            secure.put("authMode","");
+                            secure.put("authMode","qobuz");
+                            gatewayPlaybackRejected=false;
                             data=session();
                             break;
                         }
@@ -592,6 +620,18 @@ public final class MainActivity extends Activity {
                             String validation=validated?"verified":"unverified";
                             String resolvedUserId=prof.optString("userId","").trim();
                             if(resolvedUserId.isEmpty())resolvedUserId=p.optString("userId","").trim();
+                            // A library token may work when its App ID does not allow
+                            // playback search. Check the latter separately and do not
+                            // falsely report playback entitlement.
+                            boolean changingFromMornye=mornyeMode()||mornye.isConnected();
+                            boolean libraryMayStream=false;
+                            if(secondary&&changingFromMornye){
+                                try{
+                                    api.validateLiveToken(appId,token,resolvedUserId,false);
+                                    libraryMayStream=true;
+                                }catch(Exception ignored){/* Keep verified library access. */}
+                            }
+                            boolean leftMornye=retireMornyeForQobuz();
                             if(secondary){
                                 String previousAppId=secure.get("libraryAppId");
                                 String suppliedSecret=p.optString("appSecret","").trim();
@@ -602,6 +642,18 @@ public final class MainActivity extends Activity {
                                 secure.put("libraryToken",token);
                                 secure.put("libraryValidation",validation);
                                 secure.put("libraryProfile",prof.toString());
+                                if(leftMornye){
+                                    clearPreviousStreamingCredentials();
+                                    if(libraryMayStream){
+                                        secure.put("streamAppId",appId);
+                                        secure.put("streamToken",token);
+                                        secure.put("streamUserId",resolvedUserId);
+                                        secure.put("streamValidation","verified");
+                                        secure.put("profile",prof.toString());
+                                        String signedSecret=p.optString("appSecret","").trim();
+                                        if(!signedSecret.isEmpty())secure.put("streamAppSecret",signedSecret);
+                                    }
+                                }
                             }else{
                                 String previousAppId=streamAppId();
                                 String suppliedSecret=p.optString("appSecret","").trim();
