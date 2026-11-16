@@ -118,7 +118,11 @@ public final class MainActivity extends Activity {
         // External Zarz verification may return through a browser. Complete
         // nonce validation in the native callback Activity before this event.
         if(intent.getBooleanExtra("connected",false)){
-            try{emit("mornyeVerificationResult",session());}
+            try{
+                JSONObject data=session();
+                data.put("connected",data.optBoolean("mornyeConnected",false));
+                emit("mornyeVerificationResult",data);
+            }
             catch(Exception e){try{emit("mornyeVerificationResult",
                 new JSONObject().put("connected",false).put("error",
                     "Gateway connected but account view could not refresh."));}
