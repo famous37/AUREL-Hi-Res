@@ -55,11 +55,19 @@ final class MornyeGateway {
             retrySeconds=seconds;
         }
     }
+    /** HTTP 428 is a server-issued request to revalidate the signed session.
+     *  It is not a quality/codec failure and must never trigger fallback tickets. */
+    static boolean requiresVerification(Exception error){
+        if(!(error instanceof GatewayException))return false;
+        GatewayException failure=(GatewayException)error;
+        return failure.status==428 ||
+            "VERIFY_REQUIRED".equalsIgnoreCase(failure.code);
+    }
     static boolean terminalStreamFailure(Exception error){
         if(error instanceof StreamRateLimitException)return true;
         if(error instanceof GatewayException){
             int status=((GatewayException)error).status;
-            return status==401||status==403||status==429;
+            return status==401||status==403||status==428||status==429;
         }
         return false;
     }
@@ -333,6 +341,17 @@ final class MornyeGateway {
         store.put("mornyeSessionId",id);
         store.put("mornyeSecret",key);
         store.put("mornyeExpiry",expiry);
+    }
+    /** Force a fresh bootstrap when playback returns 428 even if the old
+     *  session still has a future expiry and can fetch catalogue metadata.
+     *  No CAPTCHAs or server verification are bypassed. */
+    JSONObject reconnectAfterVerificationRequired()throws Exception {
+        store.put("mornyeActive","");
+        store.put("mornyeSessionId","");
+        store.put("mornyeSecret","");
+        store.put("mornyeExpiry","");
+        clearPending();
+        return connect();
     }
     JSONObject connect()throws Exception{
         store.put("mornyeActive","");
