@@ -888,13 +888,28 @@ public final class MainActivity extends Activity {
                         case "playlist":needLibrary();data=api.library("playlist/get",new JSONObject().put("playlist_id",p.getString("id")).put("extra","tracks").put("limit",100));break;
                         case "play":{
                             final JSONArray list=p.getJSONArray("tracks");final int index=p.optInt("index",0);
-                            if(list.length()==0||list.length()>400||index<0||index>=list.length())throw new Exception("Invalid playlist queue");
+                            if(list.length()==0||list.length()>400||index<0||index>=list.length())
+                                throw new Exception("Invalid playlist queue");
+                            final JSONObject selected=list.optJSONObject(index);
+                            if(selected==null)throw new Exception("Track information unavailable.");
+                            String deny=TrackAccess.reason(selected);
+                            if(deny!=null)throw new Exception(deny);
+                            final ArrayList<JSONObject> eligible=new ArrayList<>();
+                            int mapped=-1;
+                            for(int i=0;i<list.length();i++){
+                                JSONObject track=list.optJSONObject(i);
+                                if(track==null||!TrackAccess.playable(track))continue;
+                                if(i==index)mapped=eligible.size();
+                                eligible.add(track);
+                            }
+                            if(mapped<0||eligible.isEmpty())
+                                throw new Exception("No released tracks available for streaming.");
+                            final int target=mapped;
                             ui.post(()->{
-                                queue.clear();
-                                for(int i=0;i<list.length();i++){JSONObject o=list.optJSONObject(i);if(o!=null)queue.add(o);}
-                                queueIndex=Math.min(index,queue.size()-1);startAtCurrent();
+                                queue.clear();queue.addAll(eligible);
+                                queueIndex=target;startAtCurrent();
                             });
-                            data=param("queued",list.length());break;
+                            data=param("queued",eligible.size());break;
                         }
                         case "pause":ui.post(()->{if(player!=null&&prepared&&player.isPlaying())player.pause();emit("player",playerState());});data=new JSONObject();break;
                         case "resume":ui.post(()->{
@@ -912,18 +927,29 @@ public final class MainActivity extends Activity {
                             final JSONArray incoming=p.getJSONArray("tracks");
                             final boolean next=p.optBoolean("next",false);
                             if(incoming.length()>200)throw new Exception("Too many queued tracks");
+                            final ArrayList<JSONObject> eligible=new ArrayList<>();
+                            for(int i=0;i<incoming.length();i++){
+                                JSONObject track=incoming.optJSONObject(i);
+                                if(track!=null&&TrackAccess.playable(track))eligible.add(track);
+                            }
+                            if(eligible.isEmpty())throw new Exception("No released tracks available for streaming.");
                             ui.post(()->{
                                 int at=next?Math.max(0,queueIndex+1):queue.size();
-                                for(int i=0;i<incoming.length()&&queue.size()<500;i++){
-                                    JSONObject track=incoming.optJSONObject(i);
-                                    if(track!=null)queue.add(Math.min(at++,queue.size()),track);
+                                for(JSONObject track:eligible){
+                                    if(queue.size()>=500)break;
+                                    queue.add(Math.min(at++,queue.size()),track);
                                 }
                                 emit("player",playerState());
-                            }); data=new JSONObject();break;
+                            });
+                            data=param("queued",eligible.size());break;
                         }
                         case "queuePlay":{
                             final int index=p.optInt("index",-1);
-                            ui.post(()->{if(index>=0&&index<queue.size()){queueIndex=index;startAtCurrent();}});
+                            ui.post(()->{
+                                if(index<0||index>=queue.size())return;
+                                if(!TrackAccess.playable(queue.get(index)))return;
+                                queueIndex=index;startAtCurrent();
+                            });
                             data=new JSONObject();break;
                         }
                         case "queueMove":{
@@ -1200,6 +1226,16 @@ public final class MainActivity extends Activity {
 
     private void startAtCurrent() {
         if(queueIndex<0||queueIndex>=queue.size())return;
+        // Native final guard: no audio ticket for scheduled or restricted tracks.
+        final String denial=TrackAccess.reason(queue.get(queueIndex));
+        if(denial!=null){
+            playGeneration++;
+            cleanupPlayer();
+            current=queue.get(queueIndex);
+            buffering=false;qualityProbePending=false;playerError=denial;
+            emit("player",playerState());
+            return;
+        }
         playGeneration++;
         final int generation=playGeneration;
         cleanupPlayer();
@@ -1376,19 +1412,35 @@ public final class MainActivity extends Activity {
     }
     private void advance(int dir,boolean completion) {
         if(queue.isEmpty())return;
-        if(completion&&repeatMode==2){startAtCurrent();return;}
-        int next=queueIndex+dir;
-        if(shuffle&&queue.size()>1) {
-            int candidate=queueIndex;
-            while(candidate==queueIndex)candidate=(int)(Math.random()*queue.size());
-            next=candidate;
-        }
-        if(next<0||next>=queue.size()) {
-            if(repeatMode==1)next=(next+queue.size())%queue.size();
-            else {
-                if(completion){cleanupPlayer();buffering=false;emit("player",playerState());}
-                return;
+        if(completion&&repeatMode==2&&queueIndex>=0&&queueIndex<queue.size()&&
+           TrackAccess.playable(queue.get(queueIndex))){startAtCurrent();return;}
+        final int total=queue.size();
+        int next=-1;
+        if(shuffle&&total>1){
+            ArrayList<Integer> eligible=new ArrayList<>();
+            for(int i=0;i<total;i++){
+                if(i!=queueIndex&&TrackAccess.playable(queue.get(i)))eligible.add(i);
             }
+            if(!eligible.isEmpty())next=eligible.get((int)(Math.random()*eligible.size()));
+        }else{
+            final int step=dir<0?-1:1;
+            int candidate=queueIndex;
+            // Bounded scan prevents looping forever when only future tracks remain.
+            for(int checked=0;checked<total;checked++){
+                candidate+=step;
+                if(candidate<0||candidate>=total){
+                    if(repeatMode!=1)break;
+                    candidate=(candidate+total)%total;
+                }
+                if(TrackAccess.playable(queue.get(candidate))){next=candidate;break;}
+            }
+        }
+        if(next<0){
+            if(completion){
+                cleanupPlayer();buffering=false;qualityProbePending=false;
+                emit("player",playerState());
+            }
+            return;
         }
         queueIndex=next;startAtCurrent();
     }
