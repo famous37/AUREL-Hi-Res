@@ -1,4 +1,4 @@
-# AUREL Hi-Res · 1.1.9 Beta
+# AUREL Hi-Res · 1.1.10 Beta
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
@@ -164,3 +164,13 @@ References: [Qobuz artist API documentation](https://minim.readthedocs.io/en/dev
 - Portraits are cached in memory; further photos load when the user expands **Similar artists**. Restricted/missing images show a themed initial instead of fabricated album covers.
 - Removed the redundant circular **Account** button in the top-right header. Settings remains available in the consistent bottom navigation.
 - Artist data and playback/authentication flows remain unchanged outside the portrait lookup. On-device image availability is still subject to the actual Qobuz API response.
+
+## v1.1.10 — Recover a revoked or expired Mornye session automatically
+
+- Handle **Mornye/Zarz HTTP 401 `SESSION_INVALID`** in addition to `428 VERIFY_REQUIRED`, both in catalogue requests and during playback. Only confirmed signed-session errors trigger the Zarz renewal flow; Qobuz's own unrelated 401 responses do not.
+- Discard the rejected signed session and request a fresh Zarz bootstrap. Launch its official verification page automatically when a challenge is returned. Complete any human verification and session-grant exchange normally; no server checks are bypassed.
+- Keep the current screen and play queue. Once the grant is accepted, retry the selected track or reload the visible artist/search catalogue view. Invalidate cached failed artist sections.
+- Handle sessions that have *already expired locally* without silently switching to unrelated Qobuz credentials.
+- Prevent repeated CAPTCHA windows for the same rejections with a single in-flight verification and a 90-second automatic retry cooldown. Explicit sign-in remains possible from Settings.
+
+The server must actually provide a valid `auth_url` or `challenge_id` to display a verification screen. A rejected bootstrap with no challenge is an upstream failure, not something the Android client can fabricate. Successful CI compilation does not prove the live grant flow on a phone.
