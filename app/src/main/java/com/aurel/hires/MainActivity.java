@@ -110,9 +110,34 @@ public final class MainActivity extends Activity {
         }
     };
 
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if(intent==null||!MornyeGrantCallbackActivity.ACTION_RESULT.equals(intent.getAction()))
+            return;
+        // External Zarz verification may return through a browser. Complete
+        // nonce validation in the native callback Activity before this event.
+        if(intent.getBooleanExtra("connected",false)){
+            try{emit("mornyeVerificationResult",session());}
+            catch(Exception e){try{emit("mornyeVerificationResult",
+                new JSONObject().put("connected",false).put("error",
+                    "Gateway connected but account view could not refresh."));}
+                catch(Exception ignored){}}
+        }else{
+            try{emit("mornyeVerificationResult",new JSONObject()
+                .put("connected",false)
+                .put("error",intent.getStringExtra("error")==null?
+                    "Zarz verification was not completed.":intent.getStringExtra("error")));}
+            catch(Exception ignored){}
+        }
+    }
+
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
         if(requestCode!=MORNYE_VERIFICATION_REQUEST)return;
+        // Returning from the external browser clears the old WebView screen;
+        // that produces RESULT_CANCELED after a valid grant. Ignore it.
+        if(resultCode!=RESULT_OK&&mornyeActive())return;
         if(resultCode!=RESULT_OK||data==null){
             try{emit("mornyeVerificationResult",new JSONObject()
                 .put("connected",false).put("error","Verification cancelled."));}
