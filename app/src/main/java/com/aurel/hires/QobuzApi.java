@@ -196,7 +196,8 @@ final class QobuzApi {
     JSONObject library(String endpoint,JSONObject args)throws Exception{return request(endpoint,args,false,libraryId(),libraryToken());}
     /** Public artist catalogue only. Do not use unauthenticated credentials for user data or streaming. */
     JSONObject publicArtist(String endpoint,JSONObject args)throws Exception{
-        if(!endpoint.equals("artist/page")&&!endpoint.equals("artist/getSimilarArtists"))
+        if(!endpoint.equals("artist/page")&&!endpoint.equals("artist/getSimilarArtists")
+            &&!endpoint.equals("artist/get"))
             throw new IllegalArgumentException("Unsupported public artist endpoint");
         return request(endpoint,args,false,"735532640","");
     }
