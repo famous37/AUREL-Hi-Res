@@ -1,4 +1,16 @@
-# AUREL Hi-Res · 1.1.14 Beta
+# AUREL Hi-Res · 1.1.16 Beta
+
+## v1.1.16 — actual FLAC source verification (best effort)
+
+- Added native FLAC STREAMINFO parser for **bit depth, sample rate and channel count from bytes served by the final playback URL**. This is separate from Qobuz catalogue maxima, provider-reported parameters, Android decoder information and the physical DAC.
+- Verification runs once per newly opened track **after playback starts**, off the UI thread, using a bounded HTTPS Range request with a short timeout. Playback does not wait for the result.
+- Track ID, player identity and playback generation are checked before publishing the quality reading. Old-track results are discarded. Switching tracks clears the verified result.
+- When Mornye/Zarz gateways reject the additional request, or when the stream is MP3/AAC rather than native FLAC, AUREL displays an explicitly unverified source or available Android/provider metadata. No repeated attempts, permanent spinner or invented Hi-Res labels.
+- Audio panel and mini-player distinguish byte-verified data from provider claims. No streaming URL, session cookie or bearer token is sent to the web UI.
+- **Limitations:** The source probe requests a new response from the same playback URL. It does not directly inspect bytes consumed by MediaPlayer and may be refused by one-use URLs. It cannot prove that a 24/96 master was not upsampled, or that Android delivered bit-perfect output to a DAC. On-device tests with authorized playback sessions are still needed.
+- **Safety:** no changes to account login, Qobuz credentials, playback authorization, Mornye verification or downloader features.
+
+
 
 **Developer: famous37** · Independent Android music player using the Qobuz catalogue where the user's own session and integration are authorized.
 
