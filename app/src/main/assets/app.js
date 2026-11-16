@@ -189,8 +189,8 @@ function renderLogin(){
     $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
       <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
       <div class="eyebrow">AUREL / QOBUZ WEB</div>
-      <h1>${secondary?'Library sign-in in browser.':'Sign in with CAPTCHA.'}</h1>
-      <p class="aurel-signin-subtitle">Open the official Qobuz website inside a separate browser window. Sign in normally, solve any CAPTCHA, then tap <strong>Use this session</strong>.</p>
+      <h1>${secondary?'Connect library in browser.':'Sign in with Qobuz Web.'}</h1>
+      <p class="aurel-signin-subtitle">Sign in inside the Qobuz window, complete any CAPTCHA, then tap <strong>Use this session</strong>. AUREL can import only the session from its own secure sign-in window.</p>
       <div class="aurel-login-methods" role="tablist" aria-label="Sign-in method">
         <button type="button" role="tab" aria-selected="false" data-login-mode="token">${ic('key',19)} Token</button>
         <button type="button" role="tab" aria-selected="false" data-login-mode="password">${ic('user',19)} Password</button>
@@ -198,20 +198,16 @@ function renderLogin(){
       </div>
       <div class="aurel-web-auth">
         <button class="aurel-signin-submit" type="button" data-start-web-login>${ic('globe',23)} Open official Qobuz sign-in</button>
-        <div class="aurel-method-help">If Qobuz blocks embedded browsers, choose the Browser button in the sign-in window, then return and use Token login. AUREL never bypasses CAPTCHA.</div>
+        <div class="aurel-method-help">If Qobuz redirects to a sign-in provider, finish it inside this window. An external browser cannot transfer its session automatically; use Token login in that case. CAPTCHA is never bypassed.</div>
       </div>
       <div id="webLoginError" class="aurel-signin-error hidden" role="alert"></div>
-      <section class="aurel-mornye-status" aria-label="Mornye Qobuz extension compatibility">
-        <div class="aurel-mornye-header">
-          <strong>Mornye Qobuz Web</strong>
-          <button type="button" data-mornye-refresh aria-label="Check extension version">${ic('refresh',19)} Check</button>
-        </div>
-        <p id="mornyeVersion">Checking the official extension registry…</p>
-        <p>Mornye's Qobuz extension uses a signed-session runtime that AUREL does not yet provide. The registry version is checked automatically; third-party extension code is not installed or executed. This sign-in uses Qobuz's official website instead.</p>
+      <section class="aurel-mornye-status" aria-label="Web sign-in information">
+        <div class="aurel-mornye-header"><strong>Qobuz Web session</strong></div>
+        <p>After signing in, AUREL reads the Qobuz session from authenticated API requests or the web player's own session storage, then asks Qobuz to verify it.</p>
+        <p><strong>About Mornye:</strong> its qobuz-web.sflx depends on a separate signed-session gateway, not a reusable Qobuz account token. Checking its version cannot sign you into AUREL.</p>
       </section>
       ${secondary?'<button class="small-link" data-cancel-library>Back to Settings</button>':''}
     </div>`;
-    loadMornyeStatus(false);
     return;
   }
   $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
