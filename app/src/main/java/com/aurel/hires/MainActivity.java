@@ -230,6 +230,16 @@ public final class MainActivity extends Activity {
                     JSONObject data;
                     switch(action) {
                         case "session": data=session();break;
+                        case "openQobuzWeb": {
+                            ui.post(()->{
+                                try{
+                                    Intent browser=new Intent(Intent.ACTION_VIEW,
+                                        Uri.parse("https://play.qobuz.com/login"));
+                                    startActivity(browser);
+                                }catch(Exception ignored){}
+                            });
+                            data=new JSONObject().put("opened",true);break;
+                        }
                         case "validateSession": {
                             String token=streamToken();
                             if(token.isEmpty()){data=session();data.put("authError","No streaming token saved.");break;}
