@@ -29,6 +29,8 @@ jobs:
           for file in app/src/main/assets/*.js; do node --check "$file"; done
       - name: Verify player UI and source metadata
         run: node test_ui.cjs
+      - name: Regression-test navigation and artwork loading
+        run: node tests/navigation.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
         run: |
           mkdir -p build/probe-check
