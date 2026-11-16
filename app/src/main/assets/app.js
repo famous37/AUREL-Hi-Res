@@ -94,7 +94,7 @@ window.AurelWebLoginResult=async(data)=>{
     // The token came only from the interactive official Qobuz Web session.
     // Authentication is still checked by the existing native login handler.
     app.session=await nativeCall('loginToken',{token:data.token,
-      appId:'',libraryOnly:library,userId:'',appSecret:''});
+      appId:data.appId||'',libraryOnly:library,userId:'',appSecret:''});
     app.results=[];app.albums=[];app.loginTarget='stream';
     showToast(library?'Library account authorized':'Qobuz web session authorized',5100);
     navigate(library?'library':'home');
