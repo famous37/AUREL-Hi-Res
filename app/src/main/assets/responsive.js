@@ -24,7 +24,7 @@
     if(m.dataset.fingerprint!==fingerprint){
       m.dataset.fingerprint=fingerprint;
       m.innerHTML=`<span class="mini-handle" aria-hidden="true"></span>
-        ${art(t,'minicover')||'<div class="minicover mini-cover-placeholder">♫</div>'}
+        ${image(t)?`<img class="minicover" src="${html(image(t))}" alt="Album cover · open player" loading="eager" decoding="async" fetchpriority="high">`:'<div class="minicover mini-cover-placeholder">♫</div>'}
         <button class="mini-track-open" data-open-mini-player aria-label="Open Now Playing">
           <strong>${html(t.title||'Untitled')}</strong><small>${html(artistLabel(t))}</small>
         </button>
