@@ -381,7 +381,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.13"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.14"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
