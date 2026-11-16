@@ -1,4 +1,16 @@
-# AUREL Hi-Res · 1.1.17 Beta
+# AUREL Hi-Res · 1.1.18 Beta
+
+## v1.1.18 — keep audio quality visible without inventing bit depth
+
+- Always display the **requested tier sent to the streaming provider** (MP3, FLAC CD, Hi-Res, Hi-Res Max), even when Mornye/Zarz returns no actual bit depth or sample rate. This is clearly labelled `requested · source unverified`, never presented as measured audio quality.
+- Display actual FLAC header values if verified from bytes for direct (non-Mornye) streams; otherwise use provider-confirmed parameters or local Android MediaPlayer TrackInfo with clear attribution.
+- Read Android TrackInfo locally again at 1.2s and 3.5s for devices that publish their decoder format late. No extra network requests or stream tickets are made, and updates are ignored if the track/player has changed.
+- Audio information drawer now separately shows requested streaming tier, catalogue maximum, decoder track information, and independent source verification.
+- Preserve all v1.1.17 playback recovery fixes and responsive player layout.
+
+**Important:** Requested Hi-Res Max (up to 24-bit / 192 kHz) does not prove those bits were delivered. Android MediaPlayer may not expose lossless bit depth. No second request is issued to one-time Mornye/Zarz URLs.
+
+
 
 ## v1.1.17 — resilient streaming and Android decoder recovery
 
