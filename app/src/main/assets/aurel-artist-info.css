@@ -241,6 +241,20 @@ html.aurel-artist-info-open{overflow:hidden!important}
  outline:2px solid #ffffff;
  outline-offset:3px;
 }
+.aurel-artist-info-overlay.is-closing{
+ animation:aurel-info-backdrop-out 190ms ease-in both;
+ pointer-events:none;
+}
+.aurel-artist-info-overlay.is-closing .aurel-artist-info-dialog{
+ animation:aurel-info-content-out 190ms cubic-bezier(.4,0,1,1) both;
+}
+@keyframes aurel-info-backdrop-out{
+ from{opacity:1}to{opacity:0}
+}
+@keyframes aurel-info-content-out{
+ from{opacity:1;transform:translate3d(0,0,0)}
+ to{opacity:0;transform:translate3d(0,9px,0)}
+}
 @keyframes aurel-info-backdrop-in{
  from{opacity:0}
  to{opacity:1}
