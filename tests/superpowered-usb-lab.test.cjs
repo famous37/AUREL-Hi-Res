@@ -29,6 +29,7 @@ for(const token of [
 ])assert(c.includes(token),'Actual Superpowered native integration missing: '+token);
 for(const token of [
   'requestPermission(selected,pi)', 'UsbDeviceConnection',
+  'new Intent(this,UsbPermissionReceiver.class)',
   'getRawDescriptors()', 'PendingIntent.FLAG_MUTABLE',
   'Context.RECEIVER_NOT_EXPORTED','private int pendingFilePickerUsbId',
   'if(connection==null&&reopenId>=0',
@@ -37,6 +38,10 @@ for(const token of [
   'File.createTempFile(', '300L*1024*1024',
   'getContentResolver().openInputStream(uri)'
 ])assert(java.includes(token),'Safe Android USB lab control missing: '+token);
+const receiver=read('superpoweredUsbLab/src/main/java/com/aurel/usblab/UsbPermissionReceiver.java');
+assert(receiver.includes('new Intent("com.aurel.usblab.USB_PERMISSION_CALLBACK")'));
+assert(manifest.includes('android:name=".UsbPermissionReceiver"') &&
+       manifest.includes('android:exported="false"'));
 assert(manifest.includes('android.hardware.usb.host') &&
        manifest.includes('android.permission.INTERNET'));
 assert(ignore.includes('/vendor/superpowered-sdk/'));

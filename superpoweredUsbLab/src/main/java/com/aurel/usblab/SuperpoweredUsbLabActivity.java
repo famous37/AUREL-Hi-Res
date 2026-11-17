@@ -41,6 +41,8 @@ import java.io.InputStream;
 public final class SuperpoweredUsbLabActivity extends Activity {
     private static final String USB_PERMISSION =
         "com.aurel.usblab.USB_PERMISSION";
+    private static final String USB_PERMISSION_CALLBACK =
+        "com.aurel.usblab.USB_PERMISSION_CALLBACK";
     private static final int PICK_AUDIO=92;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private UsbManager usbManager;
@@ -82,7 +84,7 @@ public final class SuperpoweredUsbLabActivity extends Activity {
             if(intent==null)return;
             String action=intent.getAction();
             UsbDevice attached=intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            if(USB_PERMISSION.equals(action)){
+            if(USB_PERMISSION_CALLBACK.equals(action)){
                 if(attached!=null &&
                     intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED,false))
                     connectGranted(attached);
@@ -120,7 +122,7 @@ public final class SuperpoweredUsbLabActivity extends Activity {
             },handler).build();
         createUi();
         IntentFilter events=new IntentFilter();
-        events.addAction(USB_PERMISSION);
+        events.addAction(USB_PERMISSION_CALLBACK);
         events.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         events.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(usbEvents,events,Context.RECEIVER_NOT_EXPORTED);
@@ -208,7 +210,10 @@ public final class SuperpoweredUsbLabActivity extends Activity {
             if(hasUsbAudio(d)){selected=d;break;}
         if(selected==null){say("No USB Audio Class DAC detected.");return;}
         if(!usbManager.hasPermission(selected)){
-            Intent intent=new Intent(USB_PERMISSION).setPackage(getPackageName());
+            // Explicit PendingIntent target: Android 14+ forbids mutable
+            // implicit PendingIntents and the broadcast must not be hijacked.
+            Intent intent=new Intent(this,UsbPermissionReceiver.class)
+                .setAction(USB_PERMISSION);
             PendingIntent pi=PendingIntent.getBroadcast(this,0,intent,
                 PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_MUTABLE);
             usbManager.requestPermission(selected,pi);
