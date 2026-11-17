@@ -23,7 +23,7 @@ function signalPath(){
  const decode=p.decoderSampleRateHz?Math.round(p.decoderSampleRateHz)+' Hz'+
    (p.decoderChannels?' / '+p.decoderChannels+' channels':''):'Android did not report decoder format';
  const routed=lastDiagnostics?.outputs?.find(d=>d.currentlyRouted);
- const output=routed?.bluetooth?'Bluetooth · '+(routed.name||routed.category||'Audio device'):
+ const output=bp.directUsbSelected?'USB Audio Class 2.0 · native driver (clock not independently verified)':routed?.bluetooth?'Bluetooth · '+(routed.name||routed.category||'Audio device'):
    routed?.usb?'USB · '+(routed.name||'DAC')+
      (bp.mixerPreferenceAccepted?' · mixer preference accepted':''):
    routed?(routed.name||routed.category||'Android output')+' · routed':
@@ -31,7 +31,7 @@ function signalPath(){
    'Playback output not confirmed';
  return '<div class="aurel-signal-chain" role="status">'+
    '<div><b>Source</b><strong>'+h(source)+'</strong></div>'+
-   '<div><b>Decoder</b><strong>'+h(decode)+'</strong></div>'+
+   '<div><b>Stream format</b><strong>'+h(decode)+'</strong></div>'+
    '<div><b>Android / DAC</b><strong>'+h(output)+'</strong></div>'+
    '</div>';
 }
