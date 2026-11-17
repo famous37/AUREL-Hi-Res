@@ -41,6 +41,8 @@ jobs:
         run: node tests/release-availability.test.cjs
       - name: Regression-test navigation and artwork loading
         run: node tests/navigation.test.cjs
+      - name: Verify icon-only player, accessible controls and navigation hooks
+        run: node tests/minimal-player.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
