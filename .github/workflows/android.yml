@@ -65,6 +65,13 @@ jobs:
         run: node tests/artist-biography-mono.test.cjs
       - name: Verify persistent settings, stale session ordering and jerk-free navigation
         run: node tests/settings-state-motion.test.cjs
+      - name: Verify audio focus and player scroll boundaries
+        run: node tests/player-scroll-focus.test.cjs
+      - name: Verify focus interruption and resume policy
+        run: |
+          mkdir -p build/audio-focus-test
+          javac -d build/audio-focus-test app/src/main/java/com/aurel/hires/AurelFocusPolicy.java tests/AurelFocusPolicyTest.java
+          java -cp build/audio-focus-test com.aurel.hires.AurelFocusPolicyTest
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
