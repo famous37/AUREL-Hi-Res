@@ -111,6 +111,7 @@
 .app .mini button svg {
   stroke-width:2.45!important;
 }
+.app .screen .aurel-share-control svg,
 .app .screen :is(.aurel-favourite-control,.aurel-share-control,
     .aurel-fav-control,.aurel-fav-button) svg{
   stroke-width:2.45!important;
