@@ -73,3 +73,6 @@ for name in sys.argv[1:]:
         src = src.replace(needle, needle + '\n        ndk { abiFilters.add("arm64-v8a") }')
         path.write_text(src)
 PYTHON
+
+# Reject invalid PCM/USB configurations instead of sending corrupt audio.
+python3 "$ROOT/scripts/harden-usb-driver.py" "$DEST"
