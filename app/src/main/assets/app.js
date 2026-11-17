@@ -317,11 +317,11 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
   <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
  <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button>${app.session.mornyeConfigured?'<button class="pill secondary" data-reverify-mornye>Reverify Mornye</button>':''}<button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
  ${app.session.libraryConnected&&!app.session.streamConnected?'<div class="auth-status-banner" role="status"><strong>Account connected but streaming was not verified. You can browse your library; connect a compatible playback account to listen.</strong></div>':''}
- <div class="panel"><h3>Personal Qobuz library</h3><p class="subline">Connect your personal Qobuz library by email or username and password, or by a session token with a compatible App ID. A successful Qobuz login disconnects Mornye; only verified credentials are saved.</p>
+ <div class="panel"><h3>Personal Qobuz library</h3>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
  ${app.session.libraryConnected?'<button class="small-link" data-logout-library style="margin-left:18px">Disconnect library</button>':''}</div>
- <div class="panel"><h3>Streaming quality</h3><p class="subline">Maximum requested quality. Actual format depends on rights, availability and decoding support.</p>
+ <div class="panel"><h3>Streaming quality</h3>
  <div class="selectrow">${[5,6,7,27].map(q=>`<button class="quality ${app.session.quality===q?'selected':''}" data-quality="${q}"><strong>${q===5?'MP3':q===6?'CD Lossless':q===7?'Hi-Res':'Max Hi-Res'}</strong><small>${q===5?'320 kbps':q===6?'16 / 44.1':q===7?'24 / 96':'24 / 192'}</small></button>`).join('')}</div>
  <section class="aurel-bp-panel" aria-label="USB bit-perfect playback setting">
    <div class="aurel-bp-heading"><div><h3>Bit-perfect USB</h3><p>Android 14+ · compatible external USB DAC</p></div>
@@ -329,7 +329,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
    </div>
    <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${bp.status==='usb_mixer_routed'?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
    <p class="aurel-bp-detail">${html(bp.detail||'Connect a compatible USB DAC to test mixer support.')}</p>
-   <p class="aurel-bp-note">The Android USB mixer request cannot independently prove bit-identical PCM after decoding. Bluetooth, internal speakers and analog outputs are not treated as bit-perfect. USB hardware may control volume.</p>
+   
  </section>
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
