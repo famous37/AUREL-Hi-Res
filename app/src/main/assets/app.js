@@ -743,11 +743,41 @@ document.addEventListener('submit',e=>{
  if(e.target.id==='loginForm'){e.preventDefault();login(e.target)}
  if(e.target.id==='searchForm'){e.preventDefault();search()}
 });
+// A seek is an intentional user gesture. Ignore periodic native position
+// updates until it ends, then commit one bounded seek (not one per input).
+document.addEventListener('pointerdown',e=>{
+ if(e.target?.id==='progress')app.dragging=true;
+},{passive:true});
 document.addEventListener('input',e=>{
- if(e.target.id==='progress'){app.dragging=true;$('#elapsed').textContent=duration(Number(e.target.value)/1000)}
+ if(e.target?.id!=='progress')return;
+ app.dragging=true;
+ const text=$('#elapsed');
+ if(text)text.textContent=duration(Math.max(0,Number(e.target.value)||0)/1000);
 });
 document.addEventListener('change',e=>{
- if(e.target.id==='progress'){app.dragging=false;nativeCall('seek',{ms:Number(e.target.value)}).catch(()=>{})}
+ if(e.target?.id!=='progress')return;
+ const position=Number(e.target.value),total=Number(app.player?.duration)||0;
+ app.dragging=false;
+ if(!app.player?.track?.id||!Number.isFinite(position)||total<=0){
+   updateOverlayState();return;
+ }
+ const ms=Math.round(Math.max(0,Math.min(total,position)));
+ nativeCall('seek',{ms}).catch(err=>{
+   showToast(err?.message||'Could not change playback position',4500);
+   updateOverlayState();
+ });
+});
+const cancelSeek=e=>{
+ if(e.target?.id==='progress'){
+   app.dragging=false;
+   updateOverlayState();
+ }
+};
+document.addEventListener('pointercancel',cancelSeek,{passive:true});
+document.addEventListener('touchcancel',cancelSeek,{passive:true});
+document.addEventListener('focusout',cancelSeek,{passive:true});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden)app.dragging=false;
 });
 $('#mini').addEventListener('click',e=>{if(e.target.closest('button'))return;app.overlay=true;drawOverlay()});
 // Startup: no injected credentials or assumed subscription status.
