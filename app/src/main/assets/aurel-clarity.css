@@ -109,12 +109,11 @@
 .app #screen .aurel-settings-group[open]>summary{
  border-color:#ffffff23!important;
 }
+/* Nested settings are never transformed. Native <details> already provides
+ * clear state changes and avoids re-animating controls after any refresh. */
 .app #screen .aurel-settings-group[open]>.aurel-settings-group-content{
- animation:aurel-settings-enter 240ms var(--aurel-clarity-ease) both;
-}
-@keyframes aurel-settings-enter{
- from{opacity:.92;transform:translate3d(0,4px,0)}
- to{opacity:1;transform:translate3d(0,0,0)}
+ animation:none!important;
+ transform:none!important;
 }
 .app #screen .aurel-settings-group-content>.panel{
  padding:12px 17px 16px!important;

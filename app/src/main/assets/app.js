@@ -127,8 +127,21 @@ window.AurelEvent=(kind,data)=>{
    return;
  }
  if(kind==='session'){
-  app.session=data;
-  if(app.nav==='home'||app.nav==='settings')render();
+  // Media routing, digital headroom and preload emit full session snapshots.
+  // Do not rebuild the active Settings DOM for every asynchronous update:
+  // it would reset toggles, focus, open sections and scroll position.
+  const before=app.session||{};
+  const next=window.AurelPreferenceSync?.reconcileSession(data)||data;
+  app.session=next;
+  const fields=['loggedIn','streamConnected','libraryConnected',
+    'mornyeConnected','mornyeConfigured','gatewayPlaybackRejected',
+    'streamValidation','libraryValidation','authMode','streamUserId',
+    'libraryUserId','hasSecret','hasLibrarySecret'];
+  const structural=fields.some(key=>before[key]!==next[key])||
+    (before.profile?.displayName||'')!==(next.profile?.displayName||'')||
+    (before.profile?.subscription||'')!==(next.profile?.subscription||'');
+  if(structural&&(app.nav==='home'||app.nav==='settings'))render();
+  else if(app.nav==='settings')window.AurelPreferenceSync?.refreshControls();
   return;
  }
  if(kind==='player'){
@@ -362,7 +375,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.37</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.38</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -562,9 +575,30 @@ async function login(form){
   if(data.password)data.password='';
  }
 }
-function setQuality(q){nativeCall('saveSettings',{quality:q}).then(d=>{app.session=d;render();showToast('Quality preference saved')}).catch(e=>showToast(e.message))}
-function setSecret(){const value=$('#newSecret').value;if(!value){showToast('Enter a new secret');return}
- nativeCall('saveSettings',{quality:app.session.quality,appSecret:value}).then(d=>{app.session=d;render();showToast('Secret encrypted and saved')}).catch(e=>showToast(e.message));}
+function setQuality(q){
+  if(![5,6,7,27].includes(q))return;
+  if(q===Number(app.session?.quality))return;
+  const sync=window.AurelPreferenceSync;
+  const operation=sync?sync.change('quality',q,value=>nativeCall('saveSettings',{quality:value})):
+    nativeCall('saveSettings',{quality:q}).then(d=>{app.session=d;return {result:d}});
+  operation.then(out=>{
+    if(!sync&&app.nav==='settings')renderSettings();
+    if(!out?.superseded)showToast('Quality preference saved');
+  }).catch(e=>showToast(e?.message||'Could not save quality'));
+}
+function setSecret(){
+ const field=$('#newSecret'),value=field?.value||'';
+ if(!value){showToast('Enter a new secret');return}
+ if(field)field.disabled=true;
+ // Secret changes must not resend a potentially stale streaming-quality value.
+ nativeCall('saveSettings',{appSecret:value}).then(d=>{
+   app.session=window.AurelPreferenceSync?.reconcileSession(d)||d;
+   if(field?.isConnected){field.value='';field.placeholder='Saved · enter to replace';}
+   if(app.nav==='settings')window.AurelPreferenceSync?.refreshControls();
+   showToast('Secret encrypted and saved');
+ }).catch(e=>showToast(e?.message||'Could not save secret'))
+ .finally(()=>{if(field?.isConnected)field.disabled=false;});
+}
 function togglePlayback(){if(!app.player)return;nativeCall(app.player.playing?'pause':'resume').catch(e=>showToast(e.message))}
 // Delegated action handlers: all API-derived content is HTML-escaped before rendering.
 document.addEventListener('click',async ev=>{
@@ -645,12 +679,18 @@ document.addEventListener('click',async ev=>{
  if(b.dataset.likeAlbum){like('albums',b.dataset.likeAlbum);return}
  if(b.hasAttribute('data-bit-perfect-toggle')){
    if(b.disabled)return;
-   const wanted=!(app.session?.bitPerfect?.enabled);
+   const wanted=!app.session?.bitPerfect?.enabled;
    b.disabled=true;
    try{
-     await nativeCall('setBitPerfect',{enabled:wanted});
-     showToast(wanted?'USB bit-perfect preference enabled. Check device status below.':'Standard Android output restored.',4200);
-   }catch(e){showToast(e.message||'Could not change USB output mode',5200);b.disabled=false;}
+     const sync=window.AurelPreferenceSync;
+     const result=sync?await sync.change('bitPerfect',wanted,
+       value=>nativeCall('setBitPerfect',{enabled:value})):
+       await nativeCall('setBitPerfect',{enabled:wanted});
+     if(!result?.superseded)showToast(wanted?
+       'USB bit-perfect preference enabled. Check device status below.':
+       'Standard Android output restored.',4200);
+   }catch(e){showToast(e.message||'Could not change USB output mode',5200);}
+   finally{if(b.isConnected)b.disabled=false;}
    return;
  }
  if(b.dataset.quality){setQuality(Number(b.dataset.quality));return}
@@ -669,11 +709,13 @@ document.addEventListener('click',async ev=>{
  if(b.hasAttribute('data-change-stream')){app.loginTarget='stream';app.loginMode='password';renderLogin();return}
  if(b.hasAttribute('data-cancel-library')){app.loginTarget='stream';renderSettings();return}
  if(b.hasAttribute('data-logout-library')){try{window.AurelPageCache?.clear();
+   window.AurelPreferenceSync?.reset();
    app.session=await api('logoutLibrary');app.libraryCache=Object.create(null);
    app.playlistsCache=null;app.libraryItems=[];app.playlists=[];
    showToast('Using primary library');navigate('library');
   }catch(e){showToast(e.message)}return}
  if(b.hasAttribute('data-logout')){try{window.AurelPageCache?.clear();
+   window.AurelPreferenceSync?.reset();
    app.session=await api('logout');app.albums=[];app.results=[];
    app.libraryCache=Object.create(null);app.playlistsCache=null;
    app.libraryItems=[];app.playlists=[];navigate('home');

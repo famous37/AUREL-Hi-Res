@@ -15,7 +15,7 @@ const locale=text(assets+'aurel-language.js');
 const foreground=text('app/src/main/res/drawable/aurel_launcher_foreground.xml');
 const mono=text('app/src/main/res/drawable/aurel_launcher_monochrome.xml');
 const gradle=text('app/build.gradle');
-assert(gradle.includes('versionCode 56') && gradle.includes("'1.1.37'"));
+assert(gradle.includes('versionCode 57') && gradle.includes("'1.1.38'"));
 assert(html.includes('aurel-clarity.css') &&
  html.indexOf('aurel-clarity.css')>html.indexOf('aurel-settings-groups.css'));
 assert(css.includes('stroke-width:2.8!important') &&
@@ -32,7 +32,7 @@ assert(settings.includes('data-aurel-scan-dac') && settings.includes('audioDiagn
 assert(settings.includes('data-aurel-headroom') && settings.includes('data-aurel-preload'));
 assert(settings.includes('aurel-pro-disclosure'), 'Keep optional source inspector');
 assert(motion.includes("previous===next"),'No animation on same route');
-assert(motion.includes('duration:320'), 'Ease real navigation');
+assert(motion.includes('duration:190'), 'Ease real navigation');
 assert(swipe.includes('move=Math.min(320'), 'Swipe must follow pointer');
 assert(swipe.includes("closest?.('[data-close-overlay]')"), 'Collapse button must animate');
 assert(swipe.includes('window.AurelHistoryBack()'), 'Must preserve original navigation and scroll');
@@ -45,4 +45,4 @@ for(const key of ["'Audio outputs'","'Playback'","'Connected devices'",
  assert(locale.includes(key),'Missing Ukrainian translation for '+key);
 assert(locale.includes('var rates=/^Android rates:'), 'Dynamic sample rates must translate');
 new Function(motion);new Function(swipe);new Function(locale);
-console.log('AUREL 1.1.37 contrast, clean settings, adaptive icon, Ukrainian and smooth motion checks PASS');
+console.log('AUREL 1.1.38 contrast, clean settings, adaptive icon, Ukrainian and smooth motion checks PASS');

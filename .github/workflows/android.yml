@@ -63,6 +63,8 @@ jobs:
         run: node tests/settings-contrast-uk.test.cjs
       - name: Verify Qobuz artist information sheet and neutral colours
         run: node tests/artist-biography-mono.test.cjs
+      - name: Verify persistent settings, stale session ordering and jerk-free navigation
+        run: node tests/settings-state-motion.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing

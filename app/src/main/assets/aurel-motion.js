@@ -21,10 +21,10 @@
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
    try {
      if(active&&typeof active.cancel==='function')active.cancel();
-     active=screen.animate([
-       {opacity:.955,transform:'translate3d(0,5px,0)'},
-       {opacity:1,transform:'translate3d(0,0,0)'}],{
-       duration:320,easing:'cubic-bezier(.22,1,.36,1)',fill:'none'
+     // Only fade the whole route. Translating #screen also moves every
+     // child while images/fonts settle, producing the visible "jerk".
+     active=screen.animate([{opacity:.93},{opacity:1}],{
+       duration:190,easing:'ease-out',fill:'none'
      });
    }catch(_){active=null;} // older WebViews simply render immediately
  }
