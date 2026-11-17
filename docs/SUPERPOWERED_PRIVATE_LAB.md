@@ -39,6 +39,17 @@ APK: `superpoweredUsbLab/build/outputs/apk/debug/superpoweredUsbLab-debug.apk`.
 Install with `adb install -r` or Android's package installer. This is a debug
 build, with a different application ID, for personal experiments only.
 
+### Windows PowerShell
+
+```powershell
+.\\scripts\\setup-superpowered-lab.ps1
+gradle :superpoweredUsbLab:assembleDebug -PaurelSuperpoweredLab
+```
+
+Install `superpoweredUsbLab\\build\\outputs\\apk\\debug\\superpoweredUsbLab-debug.apk`
+privately on your Android device. The application ID differs from AUREL
+Hi-Res, so both apps can stay installed. Keep the APK for your own evaluation.
+
 Alternative: use an SDK you downloaded through Superpowered's own download
 page and set `AUREL_SUPERPOWERED_DIR` to its `Superpowered` directory.
 The build fails closed when SDK headers/arm64-v8a archive are missing.
