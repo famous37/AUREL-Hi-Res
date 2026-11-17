@@ -557,6 +557,11 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);
         setIntent(intent);
+        if(bitPerfect!=null&&bitPerfect.isEnabled()&&Build.VERSION.SDK_INT>=29
+            &&intent!=null)
+            try{com.decent.usbaudio.UsbAudioPermissionHelper.INSTANCE.handleIntent(this,intent);}
+            catch(RuntimeException | LinkageError error){Log.w(MEDIA_TAG,"USB attach: "+error);}
+        refreshBitPerfectOutput();
         if(intent==null||!MornyeGrantCallbackActivity.ACTION_RESULT.equals(intent.getAction()))
             return;
         if(!mornyeMode()&&!mornye.isConnected()&&secure.get("mornyePendingState").isEmpty())return;
@@ -593,14 +598,6 @@ public final class MainActivity extends Activity {
                     issue.getMessage()==null?"Gateway grant exchange failed":issue.getMessage());
             }
         });
-    }
-    @Override protected void onNewIntent(Intent intent){
-        super.onNewIntent(intent);
-        setIntent(intent);
-        if(bitPerfect!=null&&bitPerfect.isEnabled()&&Build.VERSION.SDK_INT>=29)
-            try{com.decent.usbaudio.UsbAudioPermissionHelper.INSTANCE.handleIntent(this,intent);}
-            catch(RuntimeException | LinkageError error){Log.w(MEDIA_TAG,"USB attach: "+error);}
-        refreshBitPerfectOutput();
     }
     @Override public void onBackPressed() {
         if(web!=null)web.evaluateJavascript("window.AurelBack ? window.AurelBack() : null",null);
@@ -1105,8 +1102,8 @@ public final class MainActivity extends Activity {
                                     restoredTrackId=current.optString("id","");
                                 }
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
-                                if(wanted && UsbDirectPlayback.connected(this)){
-                                    UsbDirectPlayback.requestPermission(this, granted->ui.post(()->{
+                                if(wanted && UsbDirectPlayback.connected(MainActivity.this)){
+                                    UsbDirectPlayback.requestPermission(MainActivity.this, granted->ui.post(()->{
                                         if(granted&&bitPerfect.isEnabled()&&directPlayer==null
                                             &&player!=null&&prepared&&isAudioPlaying()){
                                             restoredPositionMs=audioPosition();
@@ -1138,8 +1135,8 @@ public final class MainActivity extends Activity {
                                 new java.util.concurrent.FutureTask<>(()->{
                                 JSONObject result=bitPerfect.diagnostics(player);
                                 result.put("directUsbSelected",directPlayer!=null);
-                                result.put("directUsbAvailable",UsbDirectPlayback.connected(this));
-                                result.put("directUsbPermission",UsbDirectPlayback.supported(this));
+                                result.put("directUsbAvailable",UsbDirectPlayback.connected(MainActivity.this));
+                                result.put("directUsbPermission",UsbDirectPlayback.supported(MainActivity.this));
                                 return result;
                             });
                             ui.post(task);
@@ -1752,7 +1749,7 @@ public final class MainActivity extends Activity {
                         boolean lossless = metadata.optInt("format_id",0)!=5 &&
                             !"MP3".equalsIgnoreCase(codec);
                         boolean attemptDirect=lossless&&bitPerfect.isEnabled()
-                            && UsbDirectPlayback.supported(this)
+                            && UsbDirectPlayback.supported(MainActivity.this)
                             && !id.equals(directFallbackTrackId);
                         if(attemptDirect){
                             try{
