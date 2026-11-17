@@ -47,6 +47,8 @@ jobs:
         run: node tests/bit-perfect.test.cjs
       - name: Verify swipe-down minimization and high-contrast SVG controls
         run: node tests/swipe-icons.test.cjs
+      - name: Verify global typography, vector icons and motion invariants
+        run: node tests/global-polish.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing

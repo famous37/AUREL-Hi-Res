@@ -16,12 +16,12 @@
    if(previous===next)return; // same view, even if its HTML was replaced
    previous=next;
    const screen=document.getElementById('screen');
-   if(!screen||typeof screen.animate!=='function')return;
+   if(!screen||typeof screen.animate!=='function'||document.hidden||app.overlay)return;
    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
    try {
      if(active&&typeof active.cancel==='function')active.cancel();
-     active=screen.animate([{opacity:.965},{opacity:1}],{
-       duration:190,easing:'cubic-bezier(.22,.65,.25,1)',fill:'none'
+     active=screen.animate([{opacity:.984},{opacity:1}],{
+       duration:270,easing:'cubic-bezier(.22,1,.36,1)',fill:'none'
      });
    }catch(_){active=null;} // older WebViews simply render immediately
  }
