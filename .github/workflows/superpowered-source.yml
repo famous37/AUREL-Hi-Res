@@ -1,0 +1,29 @@
+name: Validate private Superpowered USB Lab source (no vendor SDK binaries)
+on:
+  push:
+    branches: [experiment/superpowered-private-usb-lab]
+    paths:
+      - 'superpoweredUsbLab/**'
+      - 'tests/superpowered-usb-lab.test.cjs'
+      - 'docs/SUPERPOWERED_PRIVATE_LAB.md'
+      - 'settings.gradle'
+      - '.github/workflows/superpowered-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safe-source-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Verify actual Superpowered API and private build invariants
+        run: node tests/superpowered-usb-lab.test.cjs
+      - name: Verify official vendor SDK is NOT committed
+        shell: bash
+        run: |
+          if git ls-files | grep -E '^vendor/superpowered-sdk/|^superpoweredUsbLab/.*\.(a|so)$'; then
+            echo "::error::Private evaluation SDK binaries must not be published"
+            exit 1
+          fi

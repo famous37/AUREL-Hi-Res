@@ -51,6 +51,7 @@ public final class SuperpoweredUsbLabActivity extends Activity {
     private Spinner rates;
     private Spinner depths;
     private File copiedFile;
+    private int pendingFilePickerUsbId=-1;
     private boolean nativeReady=false,closing=false;
     private AudioManager audioManager;
     private AudioFocusRequest focusRequest;
@@ -265,6 +266,10 @@ public final class SuperpoweredUsbLabActivity extends Activity {
     }
     private void pickLocalFile(){
         if(connection==null){say("Connect the DAC before selecting music.");return;}
+        // Android backgrounds this Activity during the file picker. onStop()
+        // must release the USB claim, so remember the device for reacquisition
+        // after the picker returns. We never keep the DAC seized in background.
+        pendingFilePickerUsbId=device.getDeviceId();
         Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("audio/*");
@@ -272,7 +277,24 @@ public final class SuperpoweredUsbLabActivity extends Activity {
     }
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
-        if(request!=PICK_AUDIO||result!=RESULT_OK||data==null||data.getData()==null)return;
+        if(request!=PICK_AUDIO)return;
+        int reopenId=pendingFilePickerUsbId;
+        pendingFilePickerUsbId=-1;
+        if(result!=RESULT_OK||data==null||data.getData()==null){
+            say("File selection cancelled. Tap Connect DAC to resume.");
+            return;
+        }
+        if(connection==null&&reopenId>=0&&usbManager!=null){
+            // USB permission lasts for this attachment, but check it again
+            // before re-entering the experimental native driver.
+            for(UsbDevice candidate:usbManager.getDeviceList().values()){
+                if(candidate.getDeviceId()==reopenId && usbManager.hasPermission(candidate)){
+                    connectGranted(candidate);
+                    break;
+                }
+            }
+        }
+        if(connection==null){say("USB DAC disconnected while picking the file. Reconnect it.");return;}
         Uri uri=data.getData();
         String name="";
         try(Cursor c=getContentResolver().query(uri,new String[]{OpenableColumns.DISPLAY_NAME},
