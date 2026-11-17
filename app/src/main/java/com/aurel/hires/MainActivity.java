@@ -292,9 +292,36 @@ public final class MainActivity extends Activity {
             if(mp.getPreferredDevice()!=null) mp.setPreferredDevice(null);
         }catch(RuntimeException ignored){}
     }
+    private int usbGrantPollToken=0;
+    private void pollForUsbPermission(int token,int remaining){
+        if(token!=usbGrantPollToken||bitPerfect==null||!bitPerfect.isEnabled()
+            ||usbHost==null)return;
+        if(usbHost.permitted()){
+            // Existing Android fallback must acquire a NEW signed stream URL
+            // after USB permission becomes available; never reuse the old URL.
+            if(directPlayer==null&&player!=null
+                &&focusPolicy.shouldStartPrepared()&&queueIndex>=0){
+                if(prepared){
+                    restoredPositionMs=audioPosition();
+                    restoredTrackId=current.optString("id","");
+                }
+                directFallbackTrackId="";
+                startAtCurrentInternal();
+            }
+            emit("player",playerState());
+            return;
+        }
+        if(remaining>0)ui.postDelayed(()->pollForUsbPermission(token,remaining-1),600L);
+    }
     private void refreshBitPerfectOutput() {
         if(bitPerfect==null)return;
         if(directPlayer==null)configureAndroidUsb(player,true);
+        if(bitPerfect.isEnabled()&&usbHost!=null&&!usbHost.permitted()
+            &&usbHost.connected()){
+            int token=++usbGrantPollToken;
+            usbHost.requestPermission();
+            pollForUsbPermission(token,20);
+        }
         emit("player",playerState());
         try {emit("session",session());}catch(Exception ignored){}
     }
@@ -453,9 +480,12 @@ public final class MainActivity extends Activity {
         try{usbOutputVolumePercent=Integer.parseInt(secure.get("usbOutputVolumePercent"));}
         catch(NumberFormatException ignored){usbOutputVolumePercent=35;}
         usbOutputVolumePercent=Math.max(0,Math.min(100,usbOutputVolumePercent));
-        usbHost=new AurelUsbDacHost(this,bitPerfect.isEnabled(),usbOutputVolumePercent);
+        usbHost=AurelUsbDacHost.get(this,bitPerfect.isEnabled(),usbOutputVolumePercent);
         updateUsbAttachHandler();
-        if(bitPerfect.isEnabled())usbHost.requestPermission();
+        if(bitPerfect.isEnabled()){
+            usbHost.requestPermission();
+            pollForUsbPermission(++usbGrantPollToken,20);
+        }
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
         catch(NumberFormatException ignored){digitalHeadroomDb=0;}
         if(digitalHeadroomDb>0||digitalHeadroomDb< -12||digitalHeadroomDb%3!=0)digitalHeadroomDb=0;
@@ -653,8 +683,10 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);
         setIntent(intent);
-        if(bitPerfect!=null&&bitPerfect.isEnabled()&&usbHost!=null)
+        if(bitPerfect!=null&&bitPerfect.isEnabled()&&usbHost!=null){
             usbHost.requestPermission();
+            pollForUsbPermission(++usbGrantPollToken,20);
+        }
         refreshBitPerfectOutput();
         if(intent==null||!MornyeGrantCallbackActivity.ACTION_RESULT.equals(intent.getAction()))
             return;
@@ -1200,7 +1232,12 @@ public final class MainActivity extends Activity {
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
                                 if(usbHost!=null) {
                                     usbHost.setEnabled(wanted);
-                                    if(wanted)usbHost.requestPermission();
+                                    if(wanted){
+                                        usbHost.requestPermission();
+                                        pollForUsbPermission(++usbGrantPollToken,20);
+                                    }else{
+                                        ++usbGrantPollToken;
+                                    }
                                 }
                                 updateUsbAttachHandler();
                                 directUsbUnsafe=false;
