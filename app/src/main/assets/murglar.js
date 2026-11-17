@@ -13,7 +13,7 @@
   const repeatCaption=p=>Number(p?.repeat)===2?'Repeat one':Number(p?.repeat)===1?'Repeat all':'Repeat off';
   drawOverlay=function(){
     const overlay=$('#overlay');
-    if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
+    if(!app.overlay){app.dragging=false;overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
     const priorScroll=overlay.querySelector('.murglar-player-content')?.scrollTop||0;
     const priorDetailScroll=overlay.querySelector('.aurel-detail-scroll')?.scrollTop||0;
     const priorSheet=overlay.dataset.openSheet||'';
@@ -80,6 +80,7 @@
     const scroller=overlay.querySelector('.murglar-player-content');
     const detail=overlay.querySelector('.aurel-detail-scroll');
     const sameTrack=priorTrack===String(t.id||'');
+    if(!sameTrack)app.dragging=false;
     if(scroller)scroller.scrollTop=(sameTrack&&active===priorSheet)?priorScroll:0;
     if(detail)detail.scrollTop=(sameTrack&&active===priorSheet)?priorDetailScroll:0;
     overlay.dataset.openSheet=active;
