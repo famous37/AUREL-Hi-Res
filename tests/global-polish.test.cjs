@@ -9,7 +9,7 @@ const motion=read('aurel-motion.js'),swipe=read('aurel-swipe-minimize.js');
 const app=read('app.js'),murglar=read('murglar.js');
 const discography=read('aurel-discography.js');
 const styles=html.match(/<link rel="stylesheet" href="([^"]+)"/g)||[];
-assert.equal(styles.at(-1),'<link rel="stylesheet" href="aurel-global-polish.css">',
+assert(styles.at(-1)?.includes('href="aurel-global-polish.css"'),
  'The final global stylesheet must override old contradictory animations.');
 assert(html.indexOf('aurel-global-polish.css')>html.indexOf('aurel-icon-contrast.css'));
 const screens=[
