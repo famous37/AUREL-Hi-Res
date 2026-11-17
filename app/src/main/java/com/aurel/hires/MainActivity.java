@@ -306,6 +306,7 @@ public final class MainActivity extends Activity {
     private void beginStreamReverification(int generation){
         if(generation!=playGeneration)return;
         buffering=false;
+        abandonPlaybackFocus();
         playerError="Mornye session requires verification. Confirm to resume playback.";
         emit("player",playerState());
         gatewayPlaybackRejected=true;
@@ -566,6 +567,7 @@ public final class MainActivity extends Activity {
         automaticVerificationRecovery=false;
         verificationInProgress=false;
         if(wasMornye)ui.post(()->{
+            pauseByUser();
             cleanupPlayer();queue.clear();queueIndex=-1;
             current=new JSONObject();fileInfo=new JSONObject();
             emit("player",playerState());
@@ -903,7 +905,7 @@ public final class MainActivity extends Activity {
                             secure.clear();
                             digitalHeadroomDb=0;
                             prefetchNextMetadata=true;
-                            ui.post(()->{bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
+                            ui.post(()->{pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
                             data=session();break;
                         }
                         case "setBitPerfect": {
@@ -1152,7 +1154,7 @@ public final class MainActivity extends Activity {
                             ui.post(()->{
                                 if(index<0||index>=queue.size())return;
                                 queue.remove(index);
-                                if(queue.isEmpty()){playGeneration++;cleanupPlayer();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();}
+                                if(queue.isEmpty()){playGeneration++;pauseByUser();cleanupPlayer();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();}
                                 else if(index==queueIndex){queueIndex=Math.min(index,queue.size()-1);startAtCurrent();}
                                 else if(index<queueIndex)queueIndex--;
                                 emit("player",playerState());
@@ -1416,6 +1418,7 @@ public final class MainActivity extends Activity {
         final String denial=TrackAccess.reason(queue.get(queueIndex));
         if(denial!=null){
             playGeneration++;
+            pauseByUser();
             cleanupPlayer();
             current=queue.get(queueIndex);
             buffering=false;qualityProbePending=false;playerError=denial;
@@ -1434,6 +1437,7 @@ public final class MainActivity extends Activity {
         // account or create further Zarz tickets before verification completes.
         if(verificationInProgress&&mornyeMode()){
             verificationRetryGeneration=playGeneration;
+            abandonPlaybackFocus();
             buffering=false;
             playerError="Complete Mornye verification to resume playback.";
             emit("player",playerState());
