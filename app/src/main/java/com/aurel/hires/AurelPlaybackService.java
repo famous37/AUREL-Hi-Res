@@ -21,7 +21,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import android.media.session.MediaSession;
 import android.media.VolumeProvider;
-import android.media.AudioManager;
 import android.media.session.PlaybackState;
 import android.os.Build;
 import android.os.IBinder;
@@ -66,7 +65,10 @@ public final class AurelPlaybackService extends Service {
                 usbVolumeSessionEnabled=true;
             }
         } else if(usbVolumeSessionEnabled) {
-            session.setPlaybackToLocal(AudioManager.STREAM_MUSIC);
+            session.setPlaybackToLocal(new android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build());
             usbVolumeSessionEnabled=false;
         }
     }
