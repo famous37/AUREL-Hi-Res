@@ -31,7 +31,7 @@
       m.dataset.fingerprint=fingerprint;
       m.dataset.miniPlaying='';
       m.innerHTML=`<span class="mini-handle" aria-hidden="true"></span>
-        ${cover?`<img class="minicover" src="${html(cover)}" alt="Album cover" loading="eager" decoding="async">`:'<div class="minicover mini-cover-placeholder">♫</div>'}
+        ${cover?`<img class="minicover" src="${html(cover)}" alt="Album cover" loading="eager" decoding="async" fetchpriority="high">`:'<div class="minicover mini-cover-placeholder">♫</div>'}
         <button class="mini-track-open" data-open-mini-player aria-label="Open Now Playing">
           <strong class="mini-title">${html(title)}</strong><small class="mini-artist">${html(performer)}</small>
         </button>
