@@ -190,6 +190,109 @@ public final class MainActivity extends Activity {
     }
     private String playerError="";
     private long lastStateSent=0;
+    // App upgrades preserve private data. Store catalogue metadata only:
+    // never store temporary signed URLs, credentials or stream tickets.
+    private static final String PLAYBACK_PREFS="aurel_playback_continuity_v1";
+    private int restoredPositionMs=0;
+    private String restoredTrackId="";
+    private long lastPlaybackSaveMs=0;
+
+    private JSONObject safePlaybackTrack(JSONObject track) {
+        JSONObject copy=new JSONObject();
+        if(track==null)return copy;
+        String[] fields={"id","title","duration","track_number","media_number",
+            "streamable","released","release_date_stream","release_date_original",
+            "maximum_bit_depth","maximum_sampling_rate","isrc","hires",
+            "parental_warning","image"};
+        for(String name:fields)if(track.has(name))try{copy.put(name,track.opt(name));}
+            catch(Exception ignored){}
+        for(String parent:new String[]{"album","artist","performer"}){
+            JSONObject original=track.optJSONObject(parent);
+            if(original==null)continue;
+            JSONObject minimal=new JSONObject();
+            for(String name:new String[]{"id","name","title","image",
+                    "release_date_stream","release_date_original",
+                    "maximum_bit_depth","maximum_sampling_rate"}){
+                if(original.has(name))try{minimal.put(name,original.opt(name));}
+                    catch(Exception ignored){}
+            }
+            try{copy.put(parent,minimal);}catch(Exception ignored){}
+        }
+        return copy;
+    }
+
+    private void savePlaybackContinuity() {
+        if(queueIndex<0||queueIndex>=queue.size()){
+            getSharedPreferences(PLAYBACK_PREFS,MODE_PRIVATE).edit()
+                .remove("snapshot").apply();
+            return;
+        }
+        try{
+            JSONObject out=new JSONObject();
+            JSONArray items=new JSONArray();
+            int start=Math.max(0,queueIndex-90);
+            int end=Math.min(queue.size(),start+180);
+            start=Math.max(0,end-180);
+            for(int i=start;i<end;i++)items.put(safePlaybackTrack(queue.get(i)));
+            int position=restoredPositionMs;
+            if(player!=null&&prepared){
+                try{position=Math.max(0,player.getCurrentPosition());}
+                catch(RuntimeException ignored){}
+            }
+            out.put("tracks",items).put("index",queueIndex-start)
+                .put("positionMs",Math.min(86_400_000,Math.max(0,position)))
+                .put("repeat",repeatMode).put("shuffle",shuffle);
+            String payload=out.toString();
+            if(payload.length()>450000) {
+                out.put("tracks",new JSONArray().put(safePlaybackTrack(queue.get(queueIndex))));
+                out.put("index",0);
+                payload=out.toString();
+            }
+            getSharedPreferences(PLAYBACK_PREFS,MODE_PRIVATE).edit()
+                .putString("snapshot",payload).apply();
+            lastPlaybackSaveMs=System.currentTimeMillis();
+        }catch(Exception ignored){}
+    }
+
+    private void restorePlaybackContinuity() {
+        try{
+            String raw=getSharedPreferences(PLAYBACK_PREFS,MODE_PRIVATE)
+                .getString("snapshot","");
+            if(raw==null||raw.isEmpty()||raw.length()>500000)return;
+            JSONObject previous=new JSONObject(raw);
+            JSONArray tracks=previous.optJSONArray("tracks");
+            if(tracks==null||tracks.length()==0||tracks.length()>180)return;
+            int index=previous.optInt("index",-1);
+            if(index<0||index>=tracks.length())return;
+            ArrayList<JSONObject> recovered=new ArrayList<>();
+            for(int i=0;i<tracks.length();i++){
+                JSONObject item=tracks.optJSONObject(i);
+                if(item==null||!item.optString("id","").matches("[0-9]{1,20}"))
+                    return;
+                recovered.add(item);
+            }
+            queue.clear();queue.addAll(recovered);
+            queueIndex=index;
+            current=queue.get(index);
+            restoredTrackId=current.optString("id","");
+            restoredPositionMs=Math.max(0,Math.min(86_400_000,
+                previous.optInt("positionMs",0)));
+            repeatMode=Math.max(0,Math.min(2,previous.optInt("repeat",0)));
+            shuffle=previous.optBoolean("shuffle",false);
+            // Restore PAUSED. Fetch a new authorized stream only on Play.
+        }catch(Exception ignored){}
+    }
+
+    private void clearPlaybackContinuity() {
+        restoredPositionMs=0;restoredTrackId="";
+        getSharedPreferences(PLAYBACK_PREFS,MODE_PRIVATE).edit()
+            .remove("snapshot").apply();
+    }
+
+    @Override protected void onPause() {
+        savePlaybackContinuity();
+        super.onPause();
+    }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -204,6 +307,7 @@ public final class MainActivity extends Activity {
         if(digitalHeadroomDb>0||digitalHeadroomDb< -12||digitalHeadroomDb%3!=0)digitalHeadroomDb=0;
         if(bitPerfect.isEnabled())digitalHeadroomDb=0;
         prefetchNextMetadata=!"0".equals(secure.get("preloadNextMetadata"));
+        restorePlaybackContinuity();
         systemAudio=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
         if(systemAudio!=null){
             audioFocusRequest=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -437,6 +541,7 @@ public final class MainActivity extends Activity {
         else super.onBackPressed();
     }
     @Override protected void onDestroy() {
+        savePlaybackContinuity();
         ui.removeCallbacks(ticker);
         focusPolicy.userPause();
         abandonPlaybackFocus();
@@ -454,6 +559,9 @@ public final class MainActivity extends Activity {
     private void emit(String event,JSONObject data) {
         script("window.AurelEvent("+JSONObject.quote(event)+","+data.toString()+")");
         if("player".equals(event)) {
+            if(Looper.myLooper()==Looper.getMainLooper() &&
+                System.currentTimeMillis()-lastPlaybackSaveMs>3500)
+                savePlaybackContinuity();
             if(Looper.myLooper()==Looper.getMainLooper())AurelPlaybackService.publish(this,data);
             else ui.post(()->AurelPlaybackService.publish(this,data));
         }
@@ -913,6 +1021,7 @@ public final class MainActivity extends Activity {
                         }
                         case "logout": {
                             secure.clear();
+                            clearPlaybackContinuity();
                             digitalHeadroomDb=0;
                             prefetchNextMetadata=true;
                             ui.post(()->{pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
@@ -1101,6 +1210,7 @@ public final class MainActivity extends Activity {
                                 throw new Exception("No released tracks available for streaming.");
                             final int target=mapped;
                             ui.post(()->{
+                                restoredPositionMs=0;restoredTrackId="";
                                 queue.clear();queue.addAll(eligible);
                                 queueIndex=target;startAtCurrent();
                             });
@@ -1144,6 +1254,7 @@ public final class MainActivity extends Activity {
                             ui.post(()->{
                                 if(index<0||index>=queue.size())return;
                                 if(!TrackAccess.playable(queue.get(index)))return;
+                                restoredPositionMs=0;restoredTrackId="";
                                 queueIndex=index;startAtCurrent();
                             });
                             data=new JSONObject();break;
@@ -1572,7 +1683,14 @@ public final class MainActivity extends Activity {
                             int reliableDuration=0;
                             try{reliableDuration=Math.max(0,mp.getDuration());}
                             catch(RuntimeException ignored){}
-                            final int resumedAt=mediaRecovery.consumePosition(reliableDuration);
+                            int resumedAt=mediaRecovery.consumePosition(reliableDuration);
+                            if(resumedAt<=0 && restoredPositionMs>0 &&
+                                restoredTrackId.equals(current.optString("id",""))) {
+                                resumedAt=reliableDuration>1000
+                                    ?Math.min(restoredPositionMs,reliableDuration-1000)
+                                    :restoredPositionMs;
+                            }
+                            restoredPositionMs=0;restoredTrackId="";
                             if(resumedAt>0){
                                 try{mp.seekTo(resumedAt,MediaPlayer.SEEK_CLOSEST_SYNC);}
                                 catch(RuntimeException ignored){}
@@ -1691,6 +1809,7 @@ public final class MainActivity extends Activity {
     }
     private void advance(int dir,boolean completion) {
         if(queue.isEmpty())return;
+        restoredPositionMs=0;restoredTrackId="";
         if(completion&&repeatMode==2&&queueIndex>=0&&queueIndex<queue.size()&&
            TrackAccess.playable(queue.get(queueIndex))){startAtCurrent();return;}
         final int total=queue.size();
@@ -1736,7 +1855,7 @@ public final class MainActivity extends Activity {
             state.put("bitPerfect",bitPerfect.status(player));
             state.put("digitalHeadroomDb",digitalHeadroomDb);
             state.put("preloadNextMetadata",prefetchNextMetadata);
-            state.put("position",player!=null&&prepared?player.getCurrentPosition():0);
+            state.put("position",player!=null&&prepared?player.getCurrentPosition():restoredPositionMs);
             state.put("duration",player!=null&&prepared?player.getDuration():current.optInt("duration",0)*1000);
             state.put("bits",fileInfo.optInt("bits_depth",0));
             state.put("sampleRateHz",fileInfo.optDouble("sample_rate_hz",0));
