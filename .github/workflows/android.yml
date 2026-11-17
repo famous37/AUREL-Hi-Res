@@ -22,8 +22,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
-      - name: Install Android SDK 36, NDK 29, and CMake
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+      - name: Install Android API 37, NDK 29, and CMake
+        run: sdkmanager 'platforms;android-37' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - name: Fetch legacy native FLAC decoder sources (no old USB driver linked)
         run: bash scripts/setup-usb-driver.sh
       - name: Compile libusbdac USB engine and Android player before UI regressions
