@@ -57,6 +57,9 @@ public final class MainActivity extends Activity {
     private MediaPlayer player;
     private UsbDirectPlayback directPlayer;
     private String directFallbackTrackId="";
+    // Circuit breaker: do not repeatedly restart a corrupt native USB route.
+    private boolean directUsbUnsafe=false;
+    private String directUsbFailure="";
     private boolean hasEngine(){return player!=null||directPlayer!=null;}
     private boolean isAudioPlaying(){
         if(directPlayer!=null)return directPlayer.isPlaying();
@@ -78,7 +81,16 @@ public final class MainActivity extends Activity {
         if(player!=null)player.seekTo(ms);
     }
     private JSONObject bitPerfectStatus(){
-        return directPlayer!=null?directPlayer.status():bitPerfect.status(player);
+        if(directPlayer!=null)return directPlayer.status();
+        JSONObject status=bitPerfect.status(player);
+        if(directUsbUnsafe && bitPerfect.isEnabled())try{
+            status.put("status","direct_usb_error");
+            status.put("detail","Native USB output failed: "+directUsbFailure+
+                ". Standard Android playback active. Toggle Bit-perfect off/on to retry.");
+            status.put("directUsbSelected",false);
+            status.put("directUsbActive",false);
+        }catch(Exception ignored){}
+        return status;
     }
     private void startSelectedWithAudioFocus(){
         if(directPlayer!=null)startDirectWithAudioFocus();
@@ -1102,6 +1114,8 @@ public final class MainActivity extends Activity {
                                     restoredTrackId=current.optString("id","");
                                 }
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
+                                directUsbUnsafe=false;
+                                directUsbFailure="";
                                 if(wanted && UsbDirectPlayback.connected(MainActivity.this)){
                                     UsbDirectPlayback.requestPermission(MainActivity.this, granted->ui.post(()->{
                                         if(granted&&bitPerfect.isEnabled()&&directPlayer==null
@@ -1749,6 +1763,7 @@ public final class MainActivity extends Activity {
                         boolean lossless = metadata.optInt("format_id",0)!=5 &&
                             !"MP3".equalsIgnoreCase(codec);
                         boolean attemptDirect=lossless&&bitPerfect.isEnabled()
+                            &&!directUsbUnsafe
                             && UsbDirectPlayback.supported(MainActivity.this)
                             && !id.equals(directFallbackTrackId);
                         if(attemptDirect){
@@ -1763,6 +1778,8 @@ public final class MainActivity extends Activity {
                                             // claim/activate the isochronous stream. Never
                                             // misreport this as direct bit-perfect output.
                                             directFallbackTrackId=id;
+                                            directUsbUnsafe=true;
+                                            directUsbFailure="USB stream did not activate";
                                             ui.post(()->{
                                                 if(generation!=playGeneration||directPlayer!=playback)return;
                                                 cleanupPlayer();
@@ -1772,6 +1789,7 @@ public final class MainActivity extends Activity {
                                             return;
                                         }
                                         prepared=true;buffering=false;
+                                        try{emit("session",session());}catch(Exception ignored){}
                                         decoderSampleRateHz=playback.sourceRate();
                                         decoderChannels=playback.sourceChannels();
                                         decoderMime=playback.sourceMime();
@@ -1797,6 +1815,8 @@ public final class MainActivity extends Activity {
                                             if(generation!=playGeneration||directPlayer!=playback)return;
                                             Log.w(MEDIA_TAG,"Direct USB error: "+error);
                                             directFallbackTrackId=id;
+                                            directUsbUnsafe=true;
+                                            directUsbFailure=error;
                                             int position=prepared?playback.position():0;
                                             mediaRecovery.rememberPosition(position);
                                             cleanupPlayer();
@@ -1819,6 +1839,8 @@ public final class MainActivity extends Activity {
                                 if(directPlayer!=null)try{directPlayer.release();}catch(RuntimeException ignored){}
                                 directPlayer=null;
                                 directFallbackTrackId=id;
+                                directUsbUnsafe=true;
+                                directUsbFailure=error.toString();
                             }
                         }
                         player=new MediaPlayer();
