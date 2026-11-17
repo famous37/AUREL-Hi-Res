@@ -26,6 +26,8 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - name: Fetch pinned MIT USB driver and libFLAC
         run: bash scripts/setup-usb-driver.sh
+      - name: Compile native USB and Android player before UI regressions
+        run: gradle --no-daemon :app:compileDebugJavaWithJavac --stacktrace
       - name: Validate all player scripts
         run: |
           for file in app/src/main/assets/*.js; do node --check "$file"; done
