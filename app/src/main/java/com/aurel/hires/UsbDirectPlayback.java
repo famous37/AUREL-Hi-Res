@@ -57,15 +57,25 @@ final class UsbDirectPlayback {
         new android.os.Handler(android.os.Looper.getMainLooper());
     private boolean released, failureReported;
     private int lastProgressMs = -1, stagnantSeconds;
+    private long usbActivationStartedMs = -1L;
     private final Runnable healthCheck = new Runnable() {
         @Override public void run() {
             if (released || failureReported) return;
             if (ready && player.getPlayWhenReady() &&
                 player.getPlaybackState() == Player.STATE_READY) {
                 if (!usbStreamActive()) {
-                    reportUnhealthy("USB stream stopped unexpectedly");
+                    // Media3 READY means the decoder is prepared. The USB
+                    // endpoint starts only after play() delivers PCM frames.
+                    long now = android.os.SystemClock.elapsedRealtime();
+                    if (usbActivationStartedMs < 0L) usbActivationStartedMs = now;
+                    if (now - usbActivationStartedMs >= 4500L) {
+                        reportUnhealthy("No PCM reached USB after playback started; using Android audio");
+                        return;
+                    }
+                    healthHandler.postDelayed(this, 500L);
                     return;
                 }
+                usbActivationStartedMs = -1L;
                 if (player.isPlaying()) {
                     int now = position();
                     stagnantSeconds = lastProgressMs >= 0 && now <= lastProgressMs
@@ -206,8 +216,14 @@ final class UsbDirectPlayback {
         try{return sink!=null?sink.usbVolumeMode():"inactive";}
         catch(RuntimeException | LinkageError ignored){return "inactive";}
     }
-    void start() { player.play(); }
-    void pause() { player.pause(); }
+    void start() {
+        usbActivationStartedMs = android.os.SystemClock.elapsedRealtime();
+        player.play();
+    }
+    void pause() {
+        usbActivationStartedMs = -1L;
+        player.pause();
+    }
     boolean isPlaying() { return player.isPlaying(); }
     boolean isReady() { return ready; }
     boolean usbStreamActive() {
