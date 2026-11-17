@@ -1224,6 +1224,9 @@ public final class MainActivity extends Activity {
                         }
                         case "setBitPerfect": {
                             final boolean wanted=p.getBoolean("enabled");
+                            if(wanted)throw new Exception(
+                                "Native USB bit-perfect is temporarily disabled because it crashed. "+
+                                "The safe Android USB audio path remains available.");
                             if(wanted&&digitalHeadroomDb!=0)
                                 throw new Exception("Set Digital headroom to 0 dB before enabling USB bit-perfect.");
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
@@ -1913,11 +1916,10 @@ public final class MainActivity extends Activity {
                         sourceVerified=metadata.optBoolean("source_verified",false);
                         sourceLabel=metadata.optString("source_label","Qobuz API");
                         codec=metadata.optString("codec","");
-                        // Zarz gateway URLs can be one-use or session-bound.
-                        // A second ranged GET for metadata can invalidate the
-                        // URL while MediaPlayer is consuming it. Never probe a
-                        // Mornye link in parallel with playback.
-                        qualityProbePending=!sourceVerified&&!viaMornye;
+                        // A second ranged request can invalidate a signed URL
+                        // or starve the active MediaPlayer stream. Keep source
+                        // quality and decoder metadata separate; no live probes.
+                        qualityProbePending=false;
                         // Report supplier metadata before MediaPlayer.prepareAsync
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
