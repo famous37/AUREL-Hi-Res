@@ -92,6 +92,15 @@ public final class MainActivity extends Activity {
     private int repeatMode=0; // 0 off, 1 list, 2 one
     private boolean shuffle=false;
     private boolean prepared=false, buffering=false;
+    // Safe negative digital headroom. Explicitly incompatible with bit-perfect.
+    private int digitalHeadroomDb=0;
+    private boolean prefetchNextMetadata=true;
+    private void applyDigitalHeadroom(MediaPlayer mp){
+        if(mp==null)return;
+        final int db=bitPerfect!=null&&bitPerfect.isEnabled()?0:digitalHeadroomDb;
+        final float gain=(float)Math.pow(10.0,db/20.0);
+        try{mp.setVolume(gain,gain);}catch(RuntimeException ignored){}
+    }
     private String playerError="";
     private long lastStateSent=0;
 
@@ -103,6 +112,11 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         bitPerfect=new BitPerfectOutput(this,"1".equals(secure.get("bitPerfectEnabled")));
+        try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
+        catch(NumberFormatException ignored){digitalHeadroomDb=0;}
+        if(digitalHeadroomDb>0||digitalHeadroomDb< -12||digitalHeadroomDb%3!=0)digitalHeadroomDb=0;
+        if(bitPerfect.isEnabled())digitalHeadroomDb=0;
+        prefetchNextMetadata=!"0".equals(secure.get("preloadNextMetadata"));
         systemAudio=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
         if(systemAudio!=null)systemAudio.registerAudioDeviceCallback(usbCallback,ui);
         api=new QobuzApi(secure);
@@ -497,6 +511,8 @@ public final class MainActivity extends Activity {
         j.put("separateLibrary",hasLibrary);
         j.put("quality",quality());
         j.put("bitPerfect",bitPerfect.status(player));
+        j.put("digitalHeadroomDb",digitalHeadroomDb);
+        j.put("preloadNextMetadata",prefetchNextMetadata);
         // Do not suggest an obsolete legacy App ID to new accounts.
         String storedId=secure.get("streamAppId");
         if(storedId.isEmpty())storedId=secure.get("appId");
@@ -795,6 +811,8 @@ public final class MainActivity extends Activity {
                         }
                         case "setBitPerfect": {
                             final boolean wanted=p.getBoolean("enabled");
+                            if(wanted&&digitalHeadroomDb!=0)
+                                throw new Exception("Set Digital headroom to 0 dB before enabling USB bit-perfect.");
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
                             ui.post(()->{
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
@@ -802,6 +820,39 @@ public final class MainActivity extends Activity {
                                 emit("player",playerState());
                             });
                             data=new JSONObject().put("enabled",wanted);
+                            break;
+                        }
+                        case "audioDiagnostics": {
+                            // Use UI thread to read MediaPlayer routing consistently.
+                            java.util.concurrent.FutureTask<JSONObject> task=
+                                new java.util.concurrent.FutureTask<>(()->bitPerfect.diagnostics(player));
+                            ui.post(task);
+                            data=task.get(3,java.util.concurrent.TimeUnit.SECONDS);
+                            break;
+                        }
+                        case "setDigitalHeadroom": {
+                            final int db=p.getInt("db");
+                            if(db!=0&&db!=-3&&db!=-6&&db!=-9&&db!=-12)
+                                throw new Exception("Unsupported digital headroom level.");
+                            if(db!=0&&bitPerfect.isEnabled())
+                                throw new Exception("Digital attenuation is unavailable in USB bit-perfect mode.");
+                            digitalHeadroomDb=db;
+                            secure.put("digitalHeadroomDb",Integer.toString(db));
+                            ui.post(()->{
+                                applyDigitalHeadroom(player);
+                                try{emit("session",session());}catch(Exception ignored){}
+                                emit("player",playerState());
+                            });
+                            data=new JSONObject().put("db",db);
+                            break;
+                        }
+                        case "setMetadataPreload": {
+                            prefetchNextMetadata=p.getBoolean("enabled");
+                            secure.put("preloadNextMetadata",prefetchNextMetadata?"1":"0");
+                            data=new JSONObject().put("enabled",prefetchNextMetadata);
+                            ui.post(()->{
+                                try{emit("session",session());}catch(Exception ignored){}
+                            });
                             break;
                         }
                         case "saveSettings": {
@@ -1369,7 +1420,7 @@ public final class MainActivity extends Activity {
                             if(bitPerfect.isEnabled())bitPerfect.apply(mp,fileInfo);
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
-                            if(queueIndex+1<queue.size()){
+                            if(prefetchNextMetadata && queueIndex+1<queue.size()){
                                 final String upcomingId=queue.get(queueIndex+1).optString("id","");
                                 if(upcomingId.matches("[0-9]{1,20}")&&
                                     !trackCache.containsKey(upcomingId)&&detailsInFlight.add(upcomingId)){
@@ -1380,6 +1431,7 @@ public final class MainActivity extends Activity {
                                     });
                                 }
                             }
+                            applyDigitalHeadroom(mp);
                             try{mp.start();}catch(Exception ignored){}
                             // Probe the existing media URL, never the ticket endpoint.
                             // Run after playback starts to protect single-use stream links.
@@ -1495,6 +1547,8 @@ public final class MainActivity extends Activity {
             state.put("repeat",repeatMode).put("shuffle",shuffle).put("error",playerError);
             state.put("quality",quality());
             state.put("bitPerfect",bitPerfect.status(player));
+            state.put("digitalHeadroomDb",digitalHeadroomDb);
+            state.put("preloadNextMetadata",prefetchNextMetadata);
             state.put("position",player!=null&&prepared?player.getCurrentPosition():0);
             state.put("duration",player!=null&&prepared?player.getDuration():current.optInt("duration",0)*1000);
             state.put("bits",fileInfo.optInt("bits_depth",0));
