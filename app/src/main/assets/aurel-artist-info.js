@@ -37,18 +37,33 @@
  function close(){
    const layer=root();
    if(!layer)return false;
-   layer.remove();
-   document.documentElement.classList.remove('aurel-artist-info-open');
-   activeArtist='';
+   if(layer.classList.contains('is-closing'))return true;
    const target=previousFocus;
-   previousFocus=null;
-   if(target?.isConnected)try{target.focus({preventScroll:true});}catch(_){}
+   activeArtist='';
+   layer.classList.add('is-closing');
+   const finalize=()=>{
+     // If a new artist sheet opened meanwhile, leave its state alone.
+     if(root()!==layer)return;
+     layer.remove();
+     document.documentElement.classList.remove('aurel-artist-info-open');
+     previousFocus=null;
+     if(target?.isConnected)try{target.focus({preventScroll:true});}catch(_){}
+   };
+   const reduced=document.documentElement.dataset.aurelMotion==='off'||
+     !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+   if(reduced)finalize();
+   else window.setTimeout(finalize,200);
    return true;
  }
  function open(){
    if(app.selectedKind!=='artist'||!app.selected?.id)return;
    const artistId=String(app.selected.id);
-   if(root()){if(activeArtist===artistId)return;close();}
+   if(root()){
+     if(activeArtist===artistId&&!root().classList.contains('is-closing'))return;
+     root().remove();
+     document.documentElement.classList.remove('aurel-artist-info-open');
+     activeArtist='';previousFocus=null;
+   }
    const layer=document.createElement('div');
    layer.id=ID;
    layer.className='aurel-artist-info-overlay';
