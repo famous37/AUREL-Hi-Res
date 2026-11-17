@@ -47,7 +47,7 @@ assert(app.includes('end-to-end') || app.includes('end-to-end'.replace('e','e'))
 assert(html.indexOf('aurel-bit-perfect.css') > html.indexOf('aurel-minimal-player.css'));
 assert(css.includes('.aurel-bp-switch.is-on'));
 assert(css.includes('prefers-reduced-motion:reduce'));
-assert(modern.includes('USB mixer preference'));
+assert(modern.includes('USB bit-perfect preference'));
 assert(modern.includes('End-to-end bit identity'));
 
 // There is no forced 44.1 -> 48 kHz fallback and no fake success for Bluetooth.
