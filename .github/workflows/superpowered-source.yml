@@ -4,6 +4,7 @@ on:
     branches: [experiment/superpowered-private-usb-lab]
     paths:
       - 'superpoweredUsbLab/**'
+      - 'scripts/setup-superpowered-lab.sh'
       - 'tests/superpowered-usb-lab.test.cjs'
       - 'docs/SUPERPOWERED_PRIVATE_LAB.md'
       - 'settings.gradle'
@@ -18,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
-      - name: Verify actual Superpowered API and private build invariants
+      - name: Verify native USB API and private build invariants
         run: node tests/superpowered-usb-lab.test.cjs
       - name: Verify official vendor SDK is NOT committed
         shell: bash
@@ -27,3 +28,31 @@ jobs:
             echo "::error::Private evaluation SDK binaries must not be published"
             exit 1
           fi
+  isolated-native-build:
+    needs: safe-source-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+      - name: Install Android SDK, 16-kB compatible NDK, and CMake
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+      - name: Obtain pinned official SDK for private CI evaluation
+        run: bash scripts/setup-superpowered-lab.sh
+      - name: Compile AUREL USB Lab only (NEVER publish evaluation APK)
+        run: gradle --no-daemon :superpoweredUsbLab:assembleDebug -PaurelSuperpoweredLab --stacktrace
+      - name: Remove private vendor checkout and experimental binaries
+        if: always()
+        shell: bash
+        run: |
+          rm -rf vendor/superpowered-sdk
+          rm -rf superpoweredUsbLab/build/outputs/apk
+          echo "No Superpowered binaries are uploaded or published by this workflow."
