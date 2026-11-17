@@ -334,8 +334,8 @@ function renderLogin(){
 }
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
- const bp=app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
- const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'Preparing direct USB',direct_usb_playback:'Direct USB audio',direct_usb_error:'USB driver failed',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
+ const bp=app.player?.bitPerfect||app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
+ const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'Preparing direct USB',direct_usb_playback:'Direct USB audio',direct_usb_not_active:'USB unavailable · Android fallback',direct_usb_error:'USB driver failed · Android fallback',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
  const bpStatus=bpLabels[bp.status]||'Checking USB output';
  // Render concise, truthful device-state explanations; raw native diagnostic
  // strings are still retained in session but need not crowd the settings UI.
@@ -350,7 +350,8 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
   policy_error:'Could not check the Android USB audio policy.',
    direct_usb_preparing:'Opening a direct USB Audio Class 2.0 stream.',
    direct_usb_playback:'Native USB playback selected. Verify actual sample rate at the DAC.',
-   direct_usb_error:'Direct USB driver failed; standard playback is available.',
+   direct_usb_not_active:'Native USB stream is not active; using Android playback.',
+   direct_usb_error:'Native USB transport failed. Android playback restored; toggle USB off/on to retry.',
   unsupported:'USB mixer controls are unavailable on this device.',
   rejected:'Android rejected the USB mixer request.',
   requested:'USB mixer preference accepted; PCM bit identity unverified.',
