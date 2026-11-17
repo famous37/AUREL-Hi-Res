@@ -744,7 +744,7 @@ document.addEventListener('click',async ev=>{
   }catch(e){showToast(e.message)}return}
  if(b.hasAttribute('data-mini-toggle')||b.hasAttribute('data-full-toggle')){ev.stopPropagation();togglePlayback();return}
  if(b.hasAttribute('data-mini-next')||b.hasAttribute('data-next')){ev.stopPropagation();nativeCall('next').catch(()=>{});return}
- if(b.hasAttribute('data-prev')){window.AurelProgressClock?.markSeek(0);nativeCall('previous').catch(()=>{});return}
+ if(b.hasAttribute('data-prev')){if(typeof window!=='undefined')window.AurelProgressClock?.markSeek(0);nativeCall('previous').catch(()=>{});return}
  if(b.hasAttribute('data-shuffle')){nativeCall('playbackSettings',{repeat:app.player?.repeat||0,shuffle:!app.player?.shuffle}).catch(()=>{});return}
  if(b.hasAttribute('data-repeat')){nativeCall('playbackSettings',{repeat:((app.player?.repeat||0)+1)%3,shuffle:app.player?.shuffle||false}).catch(()=>{});return}
  if(b.hasAttribute('data-close-overlay')){if(!window.AurelMinimizePlayer?.()){app.overlay=false;drawOverlay();}return}
@@ -782,7 +782,7 @@ document.addEventListener('change',e=>{
    updateOverlayState();return;
  }
  const ms=Math.round(Math.max(0,Math.min(total,position)));
- window.AurelProgressClock?.markSeek(ms);
+ if(typeof window!=='undefined')window.AurelProgressClock?.markSeek(ms);
  nativeCall('seek',{ms}).catch(err=>{
    showToast(err?.message||'Could not change playback position',4500);
    updateOverlayState();
