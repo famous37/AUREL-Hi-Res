@@ -10,6 +10,7 @@
     return `<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${paths[key]||''}</svg>`;
   };
   const stateCaption=p=>p?.error?'UNAVAILABLE':p?.buffering?'BUFFERING':p?.playing?'PLAYING':'PAUSED';
+  const repeatCaption=p=>Number(p?.repeat)===2?'Repeat one':Number(p?.repeat)===1?'Repeat all':'Repeat off';
   drawOverlay=function(){
     const overlay=$('#overlay');
     if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
@@ -40,23 +41,23 @@
           ${t.album?.title?`<button class="murglar-album-link" data-open-playing-album aria-label="Open ${html(t.album.title)} album">${html(t.album.title)} ${ic('chevron',16)}</button>`:''}
         </section>
         <div class="murglar-quick-actions" aria-label="Track actions">
-          <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-label="Play queue" title="Queue">${ic('queue',25)}<span>Queue</span></button>
-          <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-label="Track details" title="Credits">${ic('info',25)}<span>Info</span></button>
-          <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-label="Source quality details" title="Audio">${ic('audio',25)}<span>Audio</span></button>
+          <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-expanded="${active==='upnext'}" aria-label="Play queue" title="Queue">${ic('queue',25)}<span>Queue</span></button>
+          <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',25)}<span>Info</span></button>
+          <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-expanded="${active==='audio'}" aria-label="Source quality details" title="Audio">${ic('audio',25)}<span>Audio</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',26)}<span>Favourite</span></button>
           <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.2"/><circle cx="5.5" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m7.5 11 8.4-4.9M7.5 13l8.4 4.9"/></svg><span>Share</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>
-          <input id="progress" class="progress" type="range" min="0" max="${total||100}" step="500" value="${position}" style="--played:${played}%" aria-label="Seek within track">
+          <input id="progress" class="progress" type="range" min="0" max="${total||100}" step="500" value="${position}" style="--played:${played}%" ${total>0?'':'disabled'} aria-label="Seek within track" aria-valuetext="${duration(position/1000)} of ${duration(total/1000)}">
           <span id="remaining">${duration(total/1000)}</span>
         </section>
         <section class="murglar-transport aurel-main-actions" aria-label="Playback controls">
-          <button id="full-shuffle" data-shuffle class="murglar-control peripheral ${p.shuffle?'active':''}" aria-label="Shuffle">${ic('shuffle',25)}</button>
+          <button id="full-shuffle" data-shuffle class="murglar-control peripheral ${p.shuffle?'active':''}" aria-label="Shuffle" aria-pressed="${!!p.shuffle}">${ic('shuffle',25)}</button>
           <button data-prev class="murglar-control aurel-transport side" aria-label="Previous track">${ic('prev',32)}</button>
           <button id="full-toggle" data-full-toggle class="murglar-control aurel-transport middle" aria-label="${p.playing?'Pause':'Play'}">${ic(p.playing?'pause':'play',41)}</button>
           <button data-next class="murglar-control aurel-transport side" aria-label="Next track">${ic('next',32)}</button>
-          <button id="full-repeat" data-repeat class="murglar-control peripheral ${p.repeat?'active':''}" aria-label="Repeat">${ic('repeat',25)}${p.repeat===2?'<sup>1</sup>':''}</button>
+          <button id="full-repeat" data-repeat class="murglar-control peripheral ${p.repeat?'active':''}" aria-label="${repeatCaption(p)}" aria-pressed="${!!p.repeat}">${ic('repeat',25)}${p.repeat===2?'<sup>1</sup>':''}</button>
         </section>
         <button class="murglar-source-line aurel-source-pill" data-player-sheet="audio" aria-label="See audio source details">
           ${ic('audio',18)}<span>${html(source)}</span>
@@ -89,9 +90,12 @@
     if(!p||!app.overlay)return;
     const progress=$('#progress');
     if(progress&&!app.dragging){
-      const max=p.duration||100,value=p.position||0;
-      if(Number(progress.max)!==Number(max))progress.max=max;
+      const max=Math.max(0,Number(p.duration)||0),value=Math.min(max,Math.max(0,Number(p.position)||0));
+      if(Number(progress.max)!==Number(max||100))progress.max=max||100;
+      if(progress.disabled!==(max<=0))progress.disabled=max<=0;
       if(Math.abs(Number(progress.value)-Number(value))>150)progress.value=value;
+      const seekText=duration(value/1000)+' of '+duration(max/1000);
+      if(progress.getAttribute('aria-valuetext')!==seekText)progress.setAttribute('aria-valuetext',seekText);
       const total=Number(p.duration)||0;
       const percent=total?Math.min(100,Math.round((Number(p.position)||0)/total*100))+'%':'0%';
       if(progress.dataset.played!==percent){
@@ -113,12 +117,16 @@
       if(toggle.getAttribute('aria-label')!==label)toggle.setAttribute('aria-label',label);
     }
     const shuffleButton=$('#full-shuffle');
-    if(shuffleButton&&shuffleButton.classList.contains('active')!==!!p.shuffle)
-      shuffleButton.classList.toggle('active',!!p.shuffle);
+    if(shuffleButton){
+      if(shuffleButton.classList.contains('active')!==!!p.shuffle)shuffleButton.classList.toggle('active',!!p.shuffle);
+      if(shuffleButton.getAttribute('aria-pressed')!==String(!!p.shuffle))shuffleButton.setAttribute('aria-pressed',String(!!p.shuffle));
+    }
     const repeatButton=$('#full-repeat');
     if(repeatButton){
-      if(repeatButton.classList.contains('active')!==!!p.repeat)
-        repeatButton.classList.toggle('active',!!p.repeat);
+      if(repeatButton.classList.contains('active')!==!!p.repeat)repeatButton.classList.toggle('active',!!p.repeat);
+      const repeatText=repeatCaption(p);
+      if(repeatButton.getAttribute('aria-label')!==repeatText)repeatButton.setAttribute('aria-label',repeatText);
+      if(repeatButton.getAttribute('aria-pressed')!==String(!!p.repeat))repeatButton.setAttribute('aria-pressed',String(!!p.repeat));
       if(repeatButton.dataset.mode!==String(p.repeat)){
         repeatButton.dataset.mode=String(p.repeat);
         repeatButton.innerHTML=ic('repeat',25)+(p.repeat===2?'<sup>1</sup>':'');
