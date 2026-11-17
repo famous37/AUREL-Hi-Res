@@ -381,11 +381,16 @@ final class BitPerfectOutput {
             boolean standardUsb = false;
             if (!enabled && mediaPlayer != null) {
                 try {
-                    AudioDeviceInfo actual = mediaPlayer.getRoutedDevice();
-                    standardUsb = actual != null && usb(actual) && mediaPlayer.isPlaying();
-                    if (standardUsb) {
-                        currentPhase = "standard_usb_playback";
-                        currentDetail = "USB DAC playing through the Android audio system (not bit-perfect).";
+                    if (mediaPlayer.isPlaying()) {
+                        AudioDeviceInfo actual = mediaPlayer.getRoutedDevice();
+                        standardUsb = actual != null && usb(actual);
+                        if (standardUsb) {
+                            currentPhase = "standard_usb_playback";
+                            currentDetail = "USB DAC playing through Android audio (not bit-perfect).";
+                        } else if (connectedUsb(mediaPlayer) != null) {
+                            currentPhase = "standard_usb_not_routed";
+                            currentDetail = "USB DAC detected, but Android has not routed this player to USB. Check the system's USB audio routing setting.";
+                        }
                     }
                 } catch (RuntimeException ignored) {}
             }
