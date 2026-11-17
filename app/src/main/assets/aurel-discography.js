@@ -179,7 +179,7 @@
       }
       s.lastRelease=normalizedRelease(data?.last_release);
       const biography=data?.biography?.content||data?.biography?.text||data?.biography;
-      s.biography=typeof biography==='string'?biography.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim():'';
+      s.biography=biographyText(biography);
       s.pageError=String(data?._pageError||'');
       s.similarError=String(data?._similarError||'');
       s.pageDone=true;
@@ -272,7 +272,14 @@
   const biographyText=value=>{
     const raw=value?.content||value?.text||value;
     return typeof raw==='string'
-      ?raw.replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim():'';
+      ?raw.replace(/<\s*br\s*\/?>/gi,'\n')
+          .replace(/<\s*\/p\s*>/gi,'\n\n')
+          .replace(/<[^>]*>/g,' ')
+          .replace(/\r/g,'')
+          .replace(/[ \t]+/g,' ')
+          .replace(/[ \t]*\n[ \t]*/g,'\n')
+          .replace(/\n{3,}/g,'\n\n')
+          .trim():'';
   };
   // Read-only, Qobuz-backed information for the accessible artist sheet.
   // Never create biography text from a guess or a generic internet search.
