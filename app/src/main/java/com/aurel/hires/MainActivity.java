@@ -8,6 +8,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.content.Context;
+import android.content.ComponentName;
+import android.content.pm.PackageManager;
+import android.view.KeyEvent;
 import android.graphics.Color;
 import android.util.Log;
 import android.media.AudioManager;
@@ -57,6 +60,42 @@ public final class MainActivity extends Activity {
     private MediaPlayer player;
     private UsbDirectPlayback directPlayer;
     private String directFallbackTrackId="";
+    private int usbOutputVolumePercent=35; // Conservative headphone-safe first use.
+    private void updateUsbAttachHandler() {
+        // An enabled activity-alias causes Android's native "Open AUREL to
+        // handle this USB device?" chooser. It cannot be conditional inside
+        // the manifest, so disable the alias via the package manager.
+        try {
+            ComponentName alias = new ComponentName(this,
+                getPackageName()+".UsbBitPerfectHandler");
+            int state = bitPerfect!=null && bitPerfect.isEnabled()
+                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+            getPackageManager().setComponentEnabledSetting(alias,state,
+                PackageManager.DONT_KILL_APP);
+        } catch(RuntimeException ex) {
+            Log.w(MEDIA_TAG,"USB handler state update failed",ex);
+        }
+    }
+    private void setUsbVolumePercent(int value) {
+        usbOutputVolumePercent=Math.max(0,Math.min(100,value));
+        secure.put("usbOutputVolumePercent",Integer.toString(usbOutputVolumePercent));
+        if(directPlayer!=null)directPlayer.setOutputLevel(usbOutputVolumePercent);
+        emit("player",playerState());
+    }
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        int code=event.getKeyCode();
+        if((code==KeyEvent.KEYCODE_VOLUME_UP ||
+            code==KeyEvent.KEYCODE_VOLUME_DOWN) &&
+            bitPerfect!=null && bitPerfect.isEnabled() &&
+            directPlayer!=null && directPlayer.usbStreamActive()) {
+            if(event.getAction()==KeyEvent.ACTION_DOWN)
+                setUsbVolumePercent(usbOutputVolumePercent+
+                    (code==KeyEvent.KEYCODE_VOLUME_UP?2:-2));
+            return true; // Do not also change Android's unrelated mixer volume.
+        }
+        return super.dispatchKeyEvent(event);
+    }
     // Circuit breaker: do not repeatedly restart a corrupt native USB route.
     private boolean directUsbUnsafe=false;
     private String directUsbFailure="";
@@ -368,6 +407,10 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         bitPerfect=new BitPerfectOutput(this,"1".equals(secure.get("bitPerfectEnabled")));
+        try{usbOutputVolumePercent=Integer.parseInt(secure.get("usbOutputVolumePercent"));}
+        catch(NumberFormatException ignored){usbOutputVolumePercent=35;}
+        usbOutputVolumePercent=Math.max(0,Math.min(100,usbOutputVolumePercent));
+        updateUsbAttachHandler();
         // Claim only when the user opted into direct USB. Default audio stays unchanged.
         if(bitPerfect.isEnabled()&&Build.VERSION.SDK_INT>=29)
             try{com.decent.usbaudio.UsbAudioPermissionHelper.INSTANCE.handleIntent(this,getIntent());}
@@ -801,6 +844,7 @@ public final class MainActivity extends Activity {
         j.put("quality",quality());
         j.put("bitPerfect",bitPerfectStatus());
         j.put("digitalHeadroomDb",digitalHeadroomDb);
+        j.put("usbOutputVolumePercent",usbOutputVolumePercent);
         j.put("preloadNextMetadata",prefetchNextMetadata);
         // Do not suggest an obsolete legacy App ID to new accounts.
         String storedId=secure.get("streamAppId");
@@ -1114,6 +1158,7 @@ public final class MainActivity extends Activity {
                                     restoredTrackId=current.optString("id","");
                                 }
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
+                                updateUsbAttachHandler();
                                 directUsbUnsafe=false;
                                 directUsbFailure="";
                                 if(wanted && UsbDirectPlayback.connected(MainActivity.this)){
@@ -1141,6 +1186,12 @@ public final class MainActivity extends Activity {
                                 emit("player",playerState());
                             });
                             data=new JSONObject().put("enabled",wanted);
+                            break;
+                        }
+                        case "setUsbVolume": {
+                            final int level=Math.max(0,Math.min(100,p.getInt("percent")));
+                            ui.post(()->setUsbVolumePercent(level));
+                            data=new JSONObject().put("percent",level);
                             break;
                         }
                         case "audioDiagnostics": {
@@ -1770,7 +1821,8 @@ public final class MainActivity extends Activity {
                             try{
                                 bitPerfect.release();
                                 qualityProbePending=false;
-                                directPlayer=new UsbDirectPlayback(this,new UsbDirectPlayback.Listener(){
+                                directPlayer=new UsbDirectPlayback(this,usbOutputVolumePercent,
+                                    new UsbDirectPlayback.Listener(){
                                     @Override public void onReady(UsbDirectPlayback playback){
                                         if(generation!=playGeneration||directPlayer!=playback)return;
                                         if(!playback.usbStreamActive()){
@@ -2052,6 +2104,7 @@ public final class MainActivity extends Activity {
             state.put("quality",quality());
             state.put("bitPerfect",bitPerfectStatus());
             state.put("digitalHeadroomDb",digitalHeadroomDb);
+            state.put("usbOutputVolumePercent",usbOutputVolumePercent);
             state.put("preloadNextMetadata",prefetchNextMetadata);
             state.put("position",prepared?audioPosition():restoredPositionMs);
             state.put("duration",prepared?audioDuration():current.optInt("duration",0)*1000);

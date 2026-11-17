@@ -43,6 +43,13 @@ final class UsbDirectPlayback {
     private int sourceChannels;
     private String sourceMime = "";
     private final Listener listener;
+    private final java.util.concurrent.ExecutorService usbVolumeWorker =
+        java.util.concurrent.Executors.newSingleThreadExecutor(run->{
+            Thread thread=new Thread(run,"AUREL-USB-Hardware-Volume");
+            thread.setDaemon(true);
+            return thread;
+        });
+    private volatile int outputLevel=35;
 
     // READY does not guarantee the USB isochronous transport stays alive.
     // A bounded watchdog restores ordinary Android playback on failure.
@@ -116,8 +123,9 @@ final class UsbDirectPlayback {
         }
     }
 
-    UsbDirectPlayback(Context context, Listener listener) {
+    UsbDirectPlayback(Context context,int initialVolume, Listener listener) {
         this.listener = listener;
+        this.outputLevel = Math.max(0,Math.min(100,initialVolume));
         DefaultRenderersFactory factory = new DefaultRenderersFactory(context) {
             @Override
             protected AudioSink buildAudioSink(Context ctx, boolean enableFloatOutput,
@@ -143,7 +151,11 @@ final class UsbDirectPlayback {
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                 .build(), false);
         player.setVolume(1f);
-        if (sink != null) sink.attachToPlayer(player);
+        if (sink != null) {
+            sink.attachToPlayer(player);
+            // Cache the desired volume before the first USB URB is submitted.
+            sink.setUsbOutputLevel(outputLevel / 100f);
+        }
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_READY && !ready) {
@@ -181,6 +193,19 @@ final class UsbDirectPlayback {
         player.setPlayWhenReady(false);
         player.prepare();
     }
+    void setOutputLevel(int percent) {
+        outputLevel=Math.max(0,Math.min(100,percent));
+        try {
+            usbVolumeWorker.execute(()->{
+                if(!released && sink!=null)
+                    sink.setUsbOutputLevel(outputLevel / 100f);
+            });
+        }catch(java.util.concurrent.RejectedExecutionException ignored){}
+    }
+    String outputVolumeMode() {
+        try{return sink!=null?sink.usbVolumeMode():"inactive";}
+        catch(RuntimeException | LinkageError ignored){return "inactive";}
+    }
     void start() { player.play(); }
     void pause() { player.pause(); }
     boolean isPlaying() { return player.isPlaying(); }
@@ -200,6 +225,7 @@ final class UsbDirectPlayback {
     String sourceMime() { return sourceMime; }
     void release() {
         released = true;
+        usbVolumeWorker.shutdown();
         healthHandler.removeCallbacks(healthCheck);
         try { if (sink != null) sink.detachFromPlayer(); }
         catch (RuntimeException ignored) {}
@@ -217,13 +243,22 @@ final class UsbDirectPlayback {
                     : "direct_usb_error");
             out.put("detail",failure.isEmpty()
                 ? (actualUsb
-                  ? "Native USB isochronous stream active; decoded PCM sample identity is not independently measured."
+                  ? ("digital".equals(outputVolumeMode())
+                    ? "Direct USB output with digital attenuation (not bit-perfect). DAC hardware volume unavailable."
+                    : "Native USB PCM stream active; DAC sample identity is not independently measured.")
                   : "Native USB stream is not active. Audio may be using Android fallback.")
                 : failure);
             out.put("usbRouted",false); // Android AudioTrack is NOT the direct USB route
             out.put("mixerPreferenceAccepted",false); // no Android mixer is used
             out.put("directUsbSelected",true);
             out.put("directUsbActive",actualUsb);
+            String volumeMode=outputVolumeMode();
+            out.put("usbVolumeMode",volumeMode);
+            out.put("usbOutputVolumePercent",outputLevel);
+            out.put("digitalVolumeActive","digital".equals(volumeMode));
+            out.put("bitPerfectPcm",actualUsb &&
+                ("hardware".equals(volumeMode) ||
+                 ("unity".equals(volumeMode) && outputLevel==100)));
             out.put("nativeFlacEngine",sink != null && sink.isNativeEngineActive());
             out.put("endToEndVerified",false);
             out.put("sampleRateHz",sourceRate);

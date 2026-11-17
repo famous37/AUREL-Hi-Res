@@ -29,16 +29,24 @@
             android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".MainActivity" android:exported="true"
             android:windowSoftInputMode="adjustResize" android:configChanges="keyboardHidden|orientation|screenSize">
-            <!-- Direct USB access: user must grant USB permission. -->
-            <intent-filter>
-                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
-            </intent-filter>
-            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
-                android:resource="@xml/usb_audio_device_filter"/>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- This alias, not the launcher Activity, owns Android's USB chooser.
+             Enabled via PackageManager ONLY when the user opts into direct USB.
+             When Bit-perfect is off, no AUREL USB chooser is registered. -->
+        <activity-alias android:name=".UsbBitPerfectHandler"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:label="@string/aurel_app_name">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
+            </intent-filter>
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/usb_audio_device_filter"/>
+        </activity-alias>
     </application>
 </manifest>
