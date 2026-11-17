@@ -189,6 +189,30 @@ html,body,.app,.app .main,.app .screen,
              opacity .18s ease-out!important;
 }
 
+/* Compositor-only accepted swipe: no abrupt reset before the underlying page.
+   The actual route is restored by AurelHistoryBack after the animation ends. */
+#overlay.aurel-swipe-dismissing{
+  background:transparent!important;
+  pointer-events:none!important;
+}
+#overlay.aurel-swipe-dismissing::before{
+  opacity:0!important;
+}
+#overlay.aurel-swipe-dismissing .murglar-view{
+  transform:translate3d(0,var(--aurel-swipe-y,0px),0)!important;
+  opacity:var(--aurel-swipe-alpha,1)!important;
+  transition:transform 230ms var(--aurel-ui-ease),
+             opacity 210ms ease-out!important;
+}
+/* Keep a saved favourite visible when its underlying button is recoloured. */
+.app .screen :is(
+  .aurel-favourite-control.aurel-is-favourite,
+  .aurel-fav-button.aurel-is-favourite,
+  .aurel-share-control.active
+){
+  color:var(--aurel-theme-accent,#f4f6f8)!important;
+}
+
 /* Small, consistent feedback only on a currently focused interaction. */
 .app :is(button,input,select,textarea):focus-visible,
 #overlay :is(button,input):focus-visible{
