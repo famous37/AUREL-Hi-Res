@@ -47,6 +47,7 @@ final class BitPerfectOutput {
     }
 
     boolean isEnabled() { return enabled; }
+    AudioAttributes audioAttributes() { return attributes; }
 
     static boolean usb(AudioDeviceInfo device) {
         if (device == null) return false;
@@ -217,6 +218,8 @@ final class BitPerfectOutput {
             accepted = false;
         }
         if (!accepted) {
+            try { manager.clearPreferredMixerAttributes(attributes, usbDevice); }
+            catch (RuntimeException ignored) {}
             if (routed) {
                 try { mediaPlayer.setPreferredDevice(null); }
                 catch (RuntimeException ignored) {}
