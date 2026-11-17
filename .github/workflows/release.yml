@@ -103,6 +103,7 @@ jobs:
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
+          node tests/bluetooth-settings.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -143,22 +144,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.32 — Fast page memory, Android DAC diagnostics and smoother motion**' \
+            '**AUREL Hi-Res v1.1.33 — Bluetooth diagnostics and cleaner settings**' \
             '' \
-            '- LRU page buffer with memory caps, account isolation, instant artist/album/playlist/search reopening, and stale offline fallback.' \
-             '- Android USB DAC diagnostics, live signal-path facts, optional digital headroom and next-track metadata preload.' \
-             '- Larger, scalable AUREL adaptive launcher icon and clearer text across settings and music screens.' \
-            '- Added per-track Qobuz availability checks: unreleased songs remain listed but cannot be played.' \
-            '- Play Album, queues, skip, shuffle and repeat avoid scheduled and non-streamable tracks.' \
-            '- Already released singles remain playable from an album scheduled for a later date.' \
-            '- Verified Android package identity, APK signing schemes, and signing certificate.' \
-            '- Preserves signed in-app updates, player, navigation, artwork, and audio metadata.' \
+            '- Android Bluetooth A2DP / LE Audio device name, current playback route, and reported output formats.' \
+            '- Bluetooth codec and transport bitrate are explicitly unavailable where Android hides them; no invented quality claims.' \
+            '- Settings grouped into Audio, Audio outputs, Accounts & library, and Appearance & app.' \
+            '- Output scanning runs on opening diagnostics and can be refreshed manually.' \
+            '- Existing signed update flow, USB bit-perfect controls, headroom, page buffer and account handling remain intact.' \
+            '- All regression checks and Android build tests run before publishing.' \
             '' \
-            'Install: v1.1.32 over the permanently signed v1.1.31 preserves credentials and settings; package and signing certificate are unchanged.' \
+            'Install v1.1.33 over permanently signed v1.1.32 without clearing your data. Package name and signing key remain unchanged.' \
+            'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
-            'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
-            '' \
-            'Note: Qobuz can reject legacy password API requests. Use a compatible App ID or account session token. A failed login leaves the current session unchanged.' > build/signed-artifacts/release-notes.md
+            'Qobuz authorization depends on a working session or compatible App ID.' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \
