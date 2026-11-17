@@ -16,9 +16,9 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 29
         targetSdk 35
-        // AUREL 1.1.47: original vinyl/equalizer logo and resilient player controls.
-        versionCode 66
-        versionName (project.hasProperty('aurelPreview') ? '1.1.47-preview' : '1.1.47')
+        // AUREL 1.1.48: original vinyl/equalizer logo and resilient player controls.
+        versionCode 67
+        versionName (project.hasProperty('aurelPreview') ? '1.1.48-preview' : '1.1.48')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     signingConfigs {
@@ -60,12 +60,11 @@ afterEvaluate {
     }
 }
 
-// Preview integration: Media3 + MIT userspace UAC2 USB driver (no Android mixer).
+// OFF: Android MediaPlayer/AudioFlinger. ON: libusbdac USB UAC1/2/3.
+// The new driver is GPL-3.0. Keep the native FLAC decoder.
 dependencies {
-    implementation project(':decent-usb-audio-driver')
-    implementation project(':decent-usb-audio-wrapper-media3')
     implementation project(':decent-media3-decoder-flac')
-    implementation 'androidx.media3:media3-exoplayer:1.9.3'
-    implementation 'androidx.media3:media3-common:1.9.3'
-    implementation 'org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1'
+    implementation 'com.github.ostrichbat2k:libusbdac:v0.2.0'
+    implementation 'androidx.media3:media3-exoplayer:1.11.0'
+    implementation 'androidx.media3:media3-common:1.11.0'
 }
