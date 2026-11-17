@@ -15,9 +15,9 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 26
         targetSdk 35
-        // AUREL 1.1.42: persistent album/artist route and monochrome vector refresh.
-        versionCode 61
-        versionName (project.hasProperty('aurelPreview') ? '1.1.42-preview' : '1.1.42')
+        // AUREL 1.1.43: original vinyl/equalizer logo and resilient player controls.
+        versionCode 62
+        versionName (project.hasProperty('aurelPreview') ? '1.1.43-preview' : '1.1.43')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     signingConfigs {

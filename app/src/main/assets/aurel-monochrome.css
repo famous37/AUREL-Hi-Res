@@ -1,4 +1,4 @@
-/* AUREL 1.1.42 — consistent high-contrast monochrome presentation.
+/* AUREL 1.1.43 — consistent high-contrast monochrome presentation.
    Loaded after historic theme layers. Preserve geometry and album artwork. */
 :root[data-aurel-palette="mono"]{
   --aurel-theme-bg:#0b0c0e!important;
@@ -136,4 +136,52 @@
  :root[data-aurel-palette="mono"] .app *{
   scroll-behavior:auto!important;
  }
+}
+
+/* The restored vinyl-ring mark is one vector identity in both toolbars. */
+.app :is(.aurel-brand-mark,.aurel-mobile-brand) .aurel-brand-svg{
+  display:block;
+  overflow:visible;
+  shape-rendering:geometricPrecision;
+  filter:none!important;
+  opacity:1!important;
+  flex-shrink:0;
+}
+/* Explicit contrast for accurate audio facts, not ornamental color gradients. */
+:root[data-aurel-palette="mono"] #overlay .murglar-source-line{
+  background:#25272b!important;
+  border:1px solid #ffffff4a!important;
+  color:#fafbfc!important;
+  font-weight:760!important;
+}
+:root[data-aurel-palette="mono"] #overlay .murglar-source-line span{
+  color:#fafbfc!important;
+  font-size:clamp(12.5px,3.45vw,14px)!important;
+  font-weight:750!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere;
+}
+:root[data-aurel-palette="mono"] #overlay .murglar-state{
+  color:#e0e3e8!important;
+  font-size:12.5px!important;
+  font-weight:760!important;
+  letter-spacing:.055em;
+}
+:root[data-aurel-palette="mono"] #overlay .murglar-progress-row :is(#elapsed,#remaining){
+  color:#f0f1f3!important;
+  font-weight:730!important;
+  font-variant-numeric:tabular-nums;
+}
+#overlay .murglar-view input#progress:disabled{
+  opacity:.45!important;
+  cursor:default!important;
+}
+#overlay .murglar-view :is(button,input[type="range"]):focus-visible{
+  outline:2px solid #fff!important;
+  outline-offset:3px!important;
+}
+:root[data-aurel-palette="mono"] #overlay .murglar-control[aria-pressed="true"]:not(.middle){
+  border-color:#ffffff6a!important;
+  background:#35373d!important;
+  color:#fff!important;
 }

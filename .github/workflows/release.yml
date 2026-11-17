@@ -101,6 +101,7 @@ jobs:
           node tests/bit-perfect.test.cjs
           node tests/playback-continuity.test.cjs
           node tests/swipe-icons.test.cjs
+          node tests/player-icon-seek.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -158,19 +159,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            '**AUREL Hi-Res v1.1.41 — USB audio diagnostics and session continuity**' \
+            "**AUREL Hi-Res v${AUREL_VERSION} — classic AUREL icon and responsive player**" \
             '' \
-            '- Distinguishes absent Android USB bit-perfect HAL support from unsupported exact PCM formats and mixer query failures.' \
-            '- Never claims bit-perfect unless Android accepts its exact supported format, and never silently resamples or changes bit depth.' \
-            '- Keeps source-format, routed-device and Android policy status truthful; end-to-end PCM identity requires hardware verification.' \
-            '- Saves last artist/album/search/settings view, Back history, scroll location, player sheet and latest navigation action across app restarts.' \
-            '- Remembers last playable track, recent queue, repeat/shuffle and playback position in private app storage.' \
-            '- Restores tracks paused, starts playback only on explicit Play, and obtains a new authorized HTTPS stream.' \
-            '- Does not store access tokens, stream URLs or authentication secrets in the continuity snapshot.' \
-            '- Clears saved browsing and playback context on sign-out.' \
-            '- Preserves permanent signing identity, current login flows and in-app update compatibility.' \
+            '- Restores the original three vinyl rings, bold A and six equalizer bars with stronger contrast.' \
+            '- Uses consistent scalable vector branding across Android launcher, monochrome, notifications, and in-app headers.' \
+            '- Sends one bounded seek on slider release and recovers cancelled touches without losing player state.' \
+            '- Avoids invalid seeking before duration becomes known.' \
+            '- Adds accessible shuffle/repeat state and high-contrast time, source and playback status.' \
+            '- Refreshes codec, bitrate, USB route and mixer information in place without destroying the player view.' \
+            '- Preserves prior artist/album page, queue, playback, session and back-navigation during an in-place update.' \
+            '- Distinguishes reported stream format from independently unverified bit-perfect output.' \
             '' \
-            'Install v1.1.41 over signed v1.1.40 without uninstalling or clearing app data.' \
+            "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
