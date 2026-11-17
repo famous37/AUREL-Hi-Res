@@ -28,6 +28,13 @@ let started=false,shown='',restoring=false,renderSerial=0;
 let persistTimer=0,playerScroll=clamp(saved.playerScroll),detailScroll=clamp(saved.detailScroll);
 let lastPlayerTrack=String(saved.playerTrack||''),openPlayerAfterBoot=!!boot?.overlay;
 let lastError='',lastErrorAt=0;
+let lastAction=saved.lastAction&&typeof saved.lastAction==='object'?saved.lastAction:null;
+let overlayFingerprint='';
+function recordAction(type){
+ if(!['open','back','tab','player','sheet','resume'].includes(type))return;
+ lastAction={type,at:Date.now()};
+ saveCurrent();
+}
 function location(){
  return {nav:routeNames.has(app.nav)?app.nav:'home',
   kind:app.selected?.id&&kinds.has(app.selectedKind)?app.selectedKind:'',
@@ -67,11 +74,11 @@ function snapshot(){
  return view;
 }
 function saveCurrent(){
- if(!started||!hasAuth())return;
+ if(!started||!hasAuth()||restoring)return;
  const view=location();
  saved={current:{...view,overlay:!!app.overlay,playerSheet:app.overlay?(app.playerSheet||''):''},
   history:history.slice(-20),positions,playerTrack:lastPlayerTrack,
-  playerScroll,detailScroll};
+  playerScroll,detailScroll,lastAction};
  try{localStorage.setItem(KEY,JSON.stringify(saved));}catch(_){}
 }
 function persist(){clearTimeout(persistTimer);persistTimer=setTimeout(saveCurrent,180);}
@@ -152,30 +159,47 @@ async function restore(view){
   if(serial!==renderSerial)return;
   if(view.kind==='artist'&&view.id&&!stored)window.AurelEnsureArtistExtras?.(view.id);
   shown=key();restoreY(view);
+  // Native playback state arrives independently of catalogue recovery.
+  // Reopen the saved player sheet after the last artist/album has rendered.
+  if(view.overlay&&app.player?.track?.id &&
+      String(app.player.track.id)===lastPlayerTrack){
+   app.overlay=true;
+   app.playerSheet=['audio','credits','upnext'].includes(view.playerSheet)
+      ?view.playerSheet:'';
+   drawOverlay();
+  }
  }finally{
   if(serial===renderSerial){restoring=false;persist();}
  }
 }
 async function back(){
  if(app.overlay&&app.playerSheet){
-  app.playerSheet='';drawOverlay();persist();return;
+  app.playerSheet='';drawOverlay();recordAction('back');return;
  }
  if(app.overlay){
   rememberPlayer();app.overlay=false;app.playerSheet='';
-  drawOverlay();persist();return;
+  drawOverlay();recordAction('back');return;
  }
  if(restoring)return;
  remember();
  if(history.length){
   const destination=history.pop();
   await restore(destination);
+  recordAction('back');
   return;
  }
  // Do not silently jump to Discover if there is no prior page.
- if(app.selected){app.selected=null;app.selectedKind='';app.selectedTracks=[];shown='';render();restoreY(location());persist();}
+ if(app.selected){app.selected=null;app.selectedKind='';app.selectedTracks=[];shown='';render();restoreY(location());recordAction('back');}
 }
 window.AurelBack=()=>{void back();};
 window.AurelHistoryBack=()=>{void back();};
+window.AurelHistoryClear=()=>{
+ history=[];boot=null;shown='';cachedViews.clear();
+ lastPlayerTrack='';playerScroll=0;detailScroll=0;
+ lastAction=null;openPlayerAfterBoot=false;
+ for(const k of Object.keys(positions))delete positions[k];
+ try{localStorage.removeItem(KEY);}catch(_){}
+};
 window.AurelBeforeOpenEntity=()=>{remember();shown='';persist();};
 function wrapOpen(name){
  const original=({artist:openArtist,album:openAlbum,playlist:openPlaylist})[name];
@@ -197,7 +221,7 @@ function wrapOpen(name){
     return;
   }
   shown=expectedKey;positions[expectedKey]=0;
-  persist();
+  recordAction('open');
  };
 }
 openArtist=wrapOpen('artist');
@@ -208,7 +232,7 @@ navigate=async function(page){
  if(restoring){renderSerial++;restoring=false;}
  if(page!==app.nav||app.selected)push();
  const result=await oldNavigate.apply(this,arguments);
- if(!restoring){shown=key();restoreY(location());persist();}
+ if(!restoring){shown=key();restoreY(location());recordAction('tab');}
  return result;
 };
 const oldRender=render;
@@ -246,6 +270,9 @@ render=function(){
 const oldDraw=drawOverlay;
 drawOverlay=function(){
  rememberPlayer();
+ const stateKey=(app.overlay?'open':'closed')+'|'+String(app.playerSheet||'');
+ const changed=stateKey!==overlayFingerprint;
+ overlayFingerprint=stateKey;
  const out=oldDraw.apply(this,arguments);
  if(app.overlay){
   restorePlayer();
@@ -255,7 +282,9 @@ drawOverlay=function(){
   }
   if(!message)lastError='';
  }
- persist();return out;
+ if(changed)recordAction(app.playerSheet?'sheet':'player');
+ else persist();
+ return out;
 };
 const oldEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){

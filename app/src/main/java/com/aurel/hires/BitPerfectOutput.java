@@ -170,6 +170,9 @@ final class BitPerfectOutput {
         int encoding = bits == 16 ? AudioFormat.ENCODING_PCM_16BIT :
             bits == 24 ? AudioFormat.ENCODING_PCM_24BIT_PACKED : AudioFormat.ENCODING_PCM_32BIT;
         AudioMixerAttributes matched = null;
+        boolean policyExposesBitPerfect = false;
+        int closestRate = 0;
+        String queryFailure = "";
         try {
             List<AudioMixerAttributes> supported = manager.getSupportedMixerAttributes(usbDevice);
             if (supported != null) for (AudioMixerAttributes option : supported) {
@@ -177,20 +180,39 @@ final class BitPerfectOutput {
                     option.getMixerBehavior() != AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT)
                     continue;
                 AudioFormat output = option.getFormat();
-                if (output != null && output.getSampleRate() == hz
-                    && output.getEncoding() == encoding && output.getChannelCount() == channels) {
+                if (output == null) continue;
+                policyExposesBitPerfect = true;
+                int optionRate = output.getSampleRate();
+                if (optionRate > 0 && (closestRate == 0 ||
+                    Math.abs(optionRate - hz) < Math.abs(closestRate - hz)))
+                    closestRate = optionRate;
+                // Never substitute a different rate or PCM container: doing so
+                // would require a separate, controlled decoding/AudioTrack path.
+                if (optionRate == hz && output.getEncoding() == encoding &&
+                    output.getChannelCount() == channels) {
                     matched = option;
                     break;
                 }
             }
-        } catch (RuntimeException ignored) {
-            // Some vendors implement the query incompletely.
+        } catch (RuntimeException error) {
+            queryFailure = error.getClass().getSimpleName();
         }
         if (matched == null) {
             clearPreference();
-            phase = "unsupported_format";
-            detail = "USB audio policy does not expose bit-perfect "
-                + bits + "-bit / " + hz + " Hz / " + channels + "ch for this DAC.";
+            if (!queryFailure.isEmpty()) {
+                phase = "policy_error";
+                detail = "Android USB audio capabilities could not be queried (" +
+                    queryFailure + ").";
+            } else if (!policyExposesBitPerfect) {
+                phase = "policy_unavailable";
+                detail = "This phone's USB audio HAL does not advertise a BIT_PERFECT " +
+                    "mixer route. A DAC alone cannot enable that optional Android feature.";
+            } else {
+                phase = "unsupported_format";
+                detail = "Android exposes BIT_PERFECT, but not the required " +
+                    bits + "-bit / " + hz + " Hz / " + channels + "ch PCM profile." +
+                    (closestRate > 0 ? " Closest advertised rate: " + closestRate + " Hz." : "");
+            }
             return;
         }
 

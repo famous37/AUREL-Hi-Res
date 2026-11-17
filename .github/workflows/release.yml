@@ -99,6 +99,7 @@ jobs:
           node tests/updates.test.cjs
           node tests/minimal-player.test.cjs
           node tests/bit-perfect.test.cjs
+          node tests/playback-continuity.test.cjs
           node tests/swipe-icons.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
@@ -157,19 +158,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            '**AUREL Hi-Res v1.1.40 — Native scrollbar fix and recoverable Android audio errors**' \
+            '**AUREL Hi-Res v1.1.41 — USB audio diagnostics and session continuity**' \
             '' \
-            '- Disabled Android WebView native vertical and horizontal scrollbar overlays that briefly flash after unlocking or resizing the screen.' \
-            '- Preserved actual touch scrolling for long tracks, queues and smaller screens.' \
-            '- Corrected low-level system error classification: Android code 1 / -2147483648 is not proof of a damaged FLAC decoder or track.' \
-            '- Recover once from likely transient Android MediaPlayer system, I/O or timeout errors with a fresh signed stream URL, keeping the same track and last valid playback position.' \
-            '- Limit retries strictly to one per manually selected track; do not retry malformed or unsupported streams, nor after explicit pause or focus loss.' \
-            '- Release unusable MediaPlayer instances safely even if reset() throws; manual Play creates a fresh player after final failure.' \
-            '- Do not probe signed Mornye stream links with a simultaneous second network request; preserve accurate metadata when supplied without duplicating one-time links.' \
-            '- Improved Ukrainian media error messages and reset notification suppression after recovery.' \
-            '- All existing monochrome UI, settings persistence, audio focus rules and permanent APK signing remain intact.' \
+            '- Distinguishes absent Android USB bit-perfect HAL support from unsupported exact PCM formats and mixer query failures.' \
+            '- Never claims bit-perfect unless Android accepts its exact supported format, and never silently resamples or changes bit depth.' \
+            '- Keeps source-format, routed-device and Android policy status truthful; end-to-end PCM identity requires hardware verification.' \
+            '- Saves last artist/album/search/settings view, Back history, scroll location, player sheet and latest navigation action across app restarts.' \
+            '- Remembers last playable track, recent queue, repeat/shuffle and playback position in private app storage.' \
+            '- Restores tracks paused, starts playback only on explicit Play, and obtains a new authorized HTTPS stream.' \
+            '- Does not store access tokens, stream URLs or authentication secrets in the continuity snapshot.' \
+            '- Clears saved browsing and playback context on sign-out.' \
+            '- Preserves permanent signing identity, current login flows and in-app update compatibility.' \
             '' \
-            'Install v1.1.40 over signed v1.1.39 without uninstalling or clearing app data.' \
+            'Install v1.1.41 over signed v1.1.40 without uninstalling or clearing app data.' \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

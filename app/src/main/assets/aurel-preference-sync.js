@@ -75,7 +75,7 @@
    const labels={
      off:'Standard playback',android_version:'Android 14+ required',
      no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',
-     unknown_format:'Track format unknown',unsupported_format:'Format not supported',
+     unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',
      unsupported:'Not supported',rejected:'Mixer request rejected',
      requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'
    };
@@ -84,7 +84,9 @@
      no_usb:'Connect a compatible USB DAC.',
      waiting_track:'Play a lossless track to check USB output.',
      unknown_format:'Track audio format cannot be verified.',
-     unsupported_format:'Android offers no matching bit-perfect USB mixer format.',
+     unsupported_format:'Android bit-perfect mixer does not support the track format.',
+     policy_unavailable:'Android USB driver does not advertise bit-perfect.',
+     policy_error:'Unable to query USB audio policy.',
      unsupported:'USB mixer controls are unavailable on this device.',
      rejected:'Android rejected the USB mixer request.',
      requested:'USB mixer preference accepted; PCM bit identity unverified.',
@@ -102,7 +104,9 @@
    }
    const container=document.querySelector('.aurel-bp-panel');
    let detail=container?.querySelector('.aurel-bp-detail');
-   const explanation=localize(descriptions[status]??String(bp.detail||''));
+   const explanation=localize(['unsupported_format','policy_unavailable','policy_error'].includes(status)
+     ?String(bp.detail||descriptions[status]||'')
+     :(descriptions[status]??String(bp.detail||'')));
    if(detail&&!explanation){detail.remove();detail=null;}
    if(explanation&&container){
      if(!detail){
