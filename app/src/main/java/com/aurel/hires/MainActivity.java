@@ -137,9 +137,18 @@ public final class MainActivity extends Activity {
         if(directPlayer!=null)return directPlayer.status();
         JSONObject status=bitPerfect.status(player);
         if(directUsbUnsafe && bitPerfect.isEnabled())try{
+            boolean androidUsb=false;
+            try {
+                AudioDeviceInfo routed=player!=null&&prepared&&player.isPlaying()
+                    ?player.getRoutedDevice():null;
+                androidUsb=BitPerfectOutput.usb(routed);
+            }catch(RuntimeException ignored){}
             status.put("status","direct_usb_error");
-            status.put("detail","Native USB output failed: "+directUsbFailure+
-                ". Standard Android playback active. Toggle Bit-perfect off/on to retry.");
+            status.put("detail","Direct USB failed: "+directUsbFailure+
+                ". Android fallback "+(androidUsb?"is routed to USB.":"USB route is not yet confirmed.")+
+                " Toggle Bit-perfect off/on to retry direct output.");
+            status.put("usbRouted",androidUsb);
+            status.put("androidFallbackUsbRouted",androidUsb);
             status.put("directUsbSelected",false);
             status.put("directUsbActive",false);
         }catch(Exception ignored){}
