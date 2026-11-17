@@ -59,7 +59,7 @@ const dictionary=new Function(lang.slice(start,end)+'\nreturn dictionary;')();
 const english=[
  'Android 14+ · USB DAC required',
  'Connect a compatible USB DAC.',
- 'Android offers no matching bit-perfect USB mixer format.',
+ 'Android has a bit-perfect mixer, but not for this track format.',
  'USB mixer preference accepted; PCM bit identity unverified.',
  'USB audio routed; PCM bit identity unverified.',
  'USB bit-perfect playback setting',
