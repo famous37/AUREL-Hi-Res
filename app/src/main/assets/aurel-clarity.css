@@ -218,7 +218,7 @@ html[data-aurel-motion="off"] .app #screen
  transition:transform 230ms var(--aurel-clarity-ease),opacity 230ms ease-out!important;
 }
 #overlay.aurel-swipe-dismissing .murglar-view{
- transition:transform 290ms var(--aurel-clarity-ease),opacity 260ms ease-out!important;
+ transition:transform 350ms var(--aurel-clarity-ease),opacity 310ms ease-out!important;
 }
 @media(prefers-reduced-motion:reduce){
  #overlay.aurel-swipe-dismissing .murglar-view,
