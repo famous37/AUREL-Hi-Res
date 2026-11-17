@@ -71,6 +71,33 @@ final class BitPerfectOutput {
         return first;
     }
 
+    /**
+     * Standard Android USB routing works independently of the optional
+     * Android 14 bit-perfect mixer preference. Selecting the connected
+     * USB sink must never silently depend on the bit-perfect toggle.
+     * This does not claim end-to-end PCM identity.
+     */
+    boolean routeUsb(MediaPlayer mediaPlayer) {
+        if (manager == null || mediaPlayer == null) return false;
+        try {
+            AudioDeviceInfo candidate = connectedUsb(mediaPlayer);
+            AudioDeviceInfo preferred = mediaPlayer.getPreferredDevice();
+            if (candidate == null) {
+                // Do not pin a detached USB device. Let Android pick the
+                // speaker, analog headphones, or Bluetooth as appropriate.
+                if (preferred != null && usb(preferred))
+                    mediaPlayer.setPreferredDevice(null);
+                return false;
+            }
+            if (preferred != null && preferred.getId() == candidate.getId())
+                return true;
+            return mediaPlayer.setPreferredDevice(candidate);
+        } catch (RuntimeException error) {
+            android.util.Log.w("AUREL_AUDIO", "USB audio route request failed", error);
+            return false;
+        }
+    }
+
     private boolean stillConnected(AudioDeviceInfo device) {
         if (device == null || manager == null) return false;
         for (AudioDeviceInfo active : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
@@ -351,6 +378,17 @@ final class BitPerfectOutput {
             String currentDetail = detail;
             AudioDeviceInfo requested = configuredDevice;
             boolean routedToUsb = false;
+            boolean standardUsb = false;
+            if (!enabled && mediaPlayer != null) {
+                try {
+                    AudioDeviceInfo actual = mediaPlayer.getRoutedDevice();
+                    standardUsb = actual != null && usb(actual) && mediaPlayer.isPlaying();
+                    if (standardUsb) {
+                        currentPhase = "standard_usb_playback";
+                        currentDetail = "USB DAC playing through the Android audio system (not bit-perfect).";
+                    }
+                } catch (RuntimeException ignored) {}
+            }
             if (enabled && requested != null && stillConnected(requested)
                 && mediaPlayer != null) {
                 try {
@@ -370,7 +408,7 @@ final class BitPerfectOutput {
             result.put("enabled", enabled);
             result.put("status", currentPhase);
             result.put("detail", currentDetail);
-            result.put("usbRouted", routedToUsb);
+            result.put("usbRouted", routedToUsb || standardUsb);
             result.put("mixerPreferenceAccepted", enabled && requested != null
                 && stillConnected(requested));
             result.put("sampleRateHz", configuredRate);
