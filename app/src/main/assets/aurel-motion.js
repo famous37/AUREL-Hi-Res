@@ -17,7 +17,7 @@
    previous=next;
    const screen=document.getElementById('screen');
    if(!screen||typeof screen.animate!=='function'||document.hidden||app.overlay)return;
-   if(document.documentElement.dataset.aurelMotion==='off'||
+   if(document.documentElement?.dataset?.aurelMotion==='off'||
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
    try {
      if(active&&typeof active.cancel==='function')active.cancel();
