@@ -25,7 +25,7 @@ assert(!main.includes('com.decent.usbaudio'));
 assert(main.includes('usbHost.setEnabled(wanted)'));
 assert(main.includes('new UsbDirectPlayback(this,usbHost,usbOutputVolumePercent,'));
 assert(main.includes('usbHost!=null&&usbHost.permitted()'));
-assert(main.includes('if(mp.getPreferredDevice()!=null) mp.setPreferredDevice(null)'));
+assert(!main.includes('if(mp.getPreferredDevice()!=null) mp.setPreferredDevice(null)'), 'Android standard routing should not be repeatedly overridden');
 assert(main.includes('private void configureAndroidUsb(MediaPlayer mp, boolean active)'));
 assert(!main.includes('bitPerfect.apply('));
 assert(!main.includes('bitPerfect.routeUsb('));
