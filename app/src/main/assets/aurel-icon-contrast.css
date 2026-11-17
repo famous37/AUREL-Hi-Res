@@ -118,6 +118,15 @@
 /* Smooth visual acknowledgement of a deliberate downward gesture.
  * Only compositor properties change: never resize the cover or player layout.
  */
+/* Briefly reveal the exact underlying page while the full player follows the finger. */
+#overlay.aurel-swipe-tracking,
+#overlay.aurel-swipe-settling{
+  background:transparent!important;
+}
+#overlay.aurel-swipe-tracking::before,
+#overlay.aurel-swipe-settling::before{
+  opacity:0!important;
+}
 #overlay.aurel-swipe-tracking .murglar-view{
   transform:translate3d(0,var(--aurel-swipe-y,0px),0)!important;
   opacity:var(--aurel-swipe-alpha,1)!important;
