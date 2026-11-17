@@ -1,0 +1,215 @@
+/* AUREL 1.1.30 — global typography, vector consistency and calm compositor motion.
+ * Loaded AFTER legacy skins. Never changes player dimensions, routing or data.
+ * All screens share one hierarchy: readable, stable, high-contrast.
+ */
+:root{
+  --aurel-ui-motion-fast:160ms;
+  --aurel-ui-motion:260ms;
+  --aurel-ui-ease:cubic-bezier(.22,1,.36,1);
+  --aurel-ui-text:#f5f7f9;
+  --aurel-ui-secondary:#cdd1d6;
+  --aurel-ui-icon:#edf0f3;
+}
+
+/* Base text and headers. Keep the existing responsive font sizes and line heights. */
+.app,
+.app button,
+.app input,
+.app select,
+.app textarea {
+  font-weight:600;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+.app .screen,.app .sidebar,.app .topbar,
+.app .mini,#overlay,.app #toast {
+  color:var(--aurel-theme-on,var(--aurel-ui-text));
+}
+.app .screen :is(
+  h1,h2,h3,h4,.headline,.page-heading h1,.aurel-settings-heading h1,
+  .sectionhead h2,.recent-head h2,.spotlight h2,.magazine-hero h2,
+  .albumhero h1,.artist-hero h1,.aurel-artist-section-heading h2
+),#overlay .murglar-view .murglar-track-data h1,
+#overlay .aurel-detail-drawer h2 {
+  font-weight:780!important;
+  letter-spacing:-.025em;
+}
+.app .screen :is(
+  .album-title,.track-title,.shelf-card strong,.artist-text strong,
+  .artistrow strong,.library-album-row strong,.playlist-entry strong,
+  .aurel-release-card strong,.aurel-popular-copy strong,.quicklinks strong,
+  .aurel-artist-name,.aurel-artist-heading,.aurel-signin h1,
+  .panel h3,.info-row strong,.albumhero .details strong
+),.app .mini .title {
+  font-weight:725!important;
+}
+.app .screen :is(
+  button,.pill,.quality,.chip,.tab,.view-switch button,.nav,
+  .aurel-favourite-control,.aurel-share-control,.action-pill,
+  .aurel-login-methods button
+),.app .sidebar .nav,.app .bottom-nav button,
+#overlay .murglar-view button {
+  font-weight:690!important;
+}
+.app .screen :is(
+  .subline,.album-artist,.track-meta,.sectionhead p,.artist-text small,
+  .artistrow small,.shelf-card small,.library-album-row small,
+  .playlist-entry small,.aurel-release-card small,.aurel-popular-copy small,
+  .magazine-tile small,.quicklinks small,.collection-note,.hint,
+  .aurel-signin-subtitle,.aurel-login-footer,.aurel-method-help,
+  .aurel-update-disclaimer,.aurel-language-intro,.disclaimer,.footer-note,
+  .empty,.loading,.aurel-live-results-status,.aurel-track-unavailable
+),.app .mini .artist,
+#overlay .aurel-detail-drawer .credit span,
+#overlay .murglar-view .murglar-state {
+  font-weight:560!important;
+  color:var(--aurel-theme-secondary,var(--aurel-ui-secondary))!important;
+}
+.app .screen :is(
+  .track-meta,.album-artist,.artist-text small,.sectionhead p,.subline,
+  .aurel-signin-subtitle,.aurel-live-results-status,.empty
+) {
+  line-height:1.5!important;
+}
+.app .screen :is(.eyebrow,.kicker,.tag,.audio-badge,.hires-tag),
+#overlay .murglar-view :is(.murglar-now-heading,.murglar-source-line),
+.app .screen .field {
+  font-weight:690!important;
+}
+.app .screen :is(
+  input:not([type="range"]),textarea,select,.searchbox input
+) {
+  font-weight:610!important;
+  color:var(--aurel-theme-on,var(--aurel-ui-text))!important;
+}
+.app .screen :is(input,textarea)::placeholder {
+  font-weight:550;
+  color:#bfc4ca;
+  opacity:1;
+}
+.app #toast,.app #toast :is(strong,span),
+#overlay .aurel-detail-drawer :is(.credit strong,.sheet-title) {
+  font-weight:650!important;
+}
+#overlay .aurel-detail-drawer .credit strong{
+  font-weight:715!important;
+}
+
+/* Every icon stays vector: no raster enlargements or browser-scale transforms. */
+.app :is(.screen,.sidebar,.topbar,.mini,.bottom-nav) svg:not([data-artwork]),
+#overlay svg:not([data-artwork]){
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  shape-rendering:geometricPrecision;
+}
+.app .screen :is(
+  button,.aurel-favourite-control,.aurel-share-control,.aurel-fav-button
+) > svg,
+.app .screen svg.ui-icon,
+.app .sidebar button svg,
+.app .topbar button svg,
+.app .mini button svg {
+  stroke-width:2.45!important;
+}
+.app .screen :is(.aurel-favourite-control,.aurel-share-control,
+    .aurel-fav-control,.aurel-fav-button) svg{
+  stroke-width:2.45!important;
+}
+#overlay .murglar-view :is(
+  .murglar-header-button,.murglar-quick-actions button,
+  .murglar-transport button,.murglar-source-line
+) svg{
+  stroke-width:2.45!important;
+}
+.app .bottom-nav button .aurel-tab-icon svg{
+  stroke-width:2.5!important;
+}
+.app .bottom-nav button:not(.active),
+.app .sidebar button:not(.active),
+.app .screen :is(.aurel-favourite-control,.aurel-share-control){
+  color:var(--aurel-ui-icon)!important;
+}
+.app .screen :is(.aurel-favourite-control,.aurel-share-control){
+  border-color:#ffffff35!important;
+}
+.app .screen :is(.tab:not(.active),.chip:not(.selected),.quality:not(.selected)){
+  color:#e1e4e8!important;
+}
+
+/* Stable surfaces: never tween layout or replace the entire screen with a flash.
+ * Artwork-derived color changes may still ease gently on persistent containers.
+ */
+html,body,.app,.app .main,.app .screen,
+.app .topbar,.app .sidebar,
+.app .bottom-nav,#overlay,.app .mini,
+.app .screen :is(.panel,.auth-shell,.spotlight,.magazine-hero,
+  .searchbox,.tracklist,.album-shelf,.quicklinks button,
+  .aurel-release-card,.library-album-row,.playlist-entry){
+  transition:none!important;
+}
+.app .screen button:not(:disabled),
+.app .bottom-nav button,
+.app .sidebar button,
+#overlay .murglar-view button{
+  transition:background-color var(--aurel-ui-motion-fast) ease-out,
+    color var(--aurel-ui-motion-fast) ease-out,
+    border-color var(--aurel-ui-motion-fast) ease-out!important;
+}
+.app .screen button:active,
+.app .sidebar button:active,
+.app .bottom-nav button:active,
+.app .mini button:active,
+#overlay .murglar-view button:active,
+.app .screen :is(.albumcard,.shelf-card,.aurel-release-card):active{
+  transform:none!important;
+}
+.app .screen .aurel-token-input button:active{
+  transform:translateY(-50%)!important;
+}
+.app .screen :is(.albumcard,.shelf-card,.aurel-release-card,
+  .track,.artistrow,.aurel-artist-page,.aurel-popular-row,
+  .aurel-artist-item,.library-album-row,.playlist-entry,
+  .album-shelf,.cards,.page-heading,.sectionhead,.panel),
+#overlay .murglar-view :is(.murglar-cover,.murglar-player-content,
+  .murglar-progress-row,.murglar-art-wrap,.murglar-track-data,
+  .murglar-transport,.murglar-quick-actions,.murglar-source-line,
+  .murglar-header),
+.app .bottom-nav :is(.aurel-tab-icon,.aurel-nav-cover),
+.app .mini :is(img,.minicover,.mini-progress){
+  animation:none!important;
+  transition:none!important;
+}
+/* Preserve existing deliberate swipe gesture transition from 1.1.29.
+ * It overrides view transform while a drag is in progress. */
+#overlay.aurel-swipe-tracking .murglar-view{
+  transition:none!important;
+}
+#overlay.aurel-swipe-settling .murglar-view{
+  transition:transform .18s var(--aurel-ui-ease),
+             opacity .18s ease-out!important;
+}
+
+/* Small, consistent feedback only on a currently focused interaction. */
+.app :is(button,input,select,textarea):focus-visible,
+#overlay :is(button,input):focus-visible{
+  outline:2px solid var(--aurel-theme-accent,#e7e9eb)!important;
+  outline-offset:2px;
+}
+.app .screen .aurel-favourite-control.aurel-is-favourite,
+.app .screen .tab.active,
+.app .screen .chip.selected{
+  border-color:#ffffff62!important;
+}
+@media(max-width:390px){
+  .app .screen :is(.tab,.chip,.quality){
+    letter-spacing:0!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .app *,#overlay *,#toast *,
+  .app *::before,.app *::after,#overlay *::before,#overlay *::after{
+    animation:none!important;
+    transition:none!important;
+    scroll-behavior:auto!important;
+  }
+}
