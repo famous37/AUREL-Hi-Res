@@ -74,7 +74,7 @@ function snapshot(){
  return view;
 }
 function saveCurrent(){
- if(!started||!hasAuth())return;
+ if(!started||!hasAuth()||restoring)return;
  const view=location();
  saved={current:{...view,overlay:!!app.overlay,playerSheet:app.overlay?(app.playerSheet||''):''},
   history:history.slice(-20),positions,playerTrack:lastPlayerTrack,
