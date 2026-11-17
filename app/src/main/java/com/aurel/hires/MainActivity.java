@@ -207,6 +207,15 @@ public final class MainActivity extends Activity {
         try {
             if(!mp.isPlaying())mp.start();
             playerError="";
+            // getRoutedDevice() is meaningful only after playback begins.
+            // The Android 14 mixer preference must not be installed while
+            // MediaPlayer has no active audio output.
+            ui.postDelayed(()->{
+                if(player==mp&&prepared){
+                    configureAndroidUsb(mp,true);
+                    emit("player",playerState());
+                }
+            },450L);
         }catch(RuntimeException error){
             focusPolicy.focusDenied();
             abandonPlaybackFocus();
@@ -263,9 +272,22 @@ public final class MainActivity extends Activity {
         @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
         @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
     };
+    /** Keep Android's USB route available in BOTH output modes.
+     * Request an optional mixer format only once MediaPlayer is playing;
+     * native USB failure always falls back to plain Android PCM. */
+    private void configureAndroidUsb(MediaPlayer mp, boolean active) {
+        if(bitPerfect == null || mp == null) return;
+        bitPerfect.routeUsb(mp);
+        if(active && bitPerfect.isEnabled() && !directUsbUnsafe) {
+            try { if(mp.isPlaying()) bitPerfect.apply(mp,fileInfo); }
+            catch(RuntimeException error) {
+                Log.w(MEDIA_TAG,"Optional USB mixer request failed",error);
+            }
+        }
+    }
     private void refreshBitPerfectOutput() {
-        if(bitPerfect==null||!bitPerfect.isEnabled())return;
-        if(directPlayer==null)bitPerfect.apply(player,fileInfo);
+        if(bitPerfect==null)return;
+        if(directPlayer==null)configureAndroidUsb(player,true);
         emit("player",playerState());
         try {emit("session",session());}catch(Exception ignored){}
     }
@@ -1839,21 +1861,11 @@ public final class MainActivity extends Activity {
                                     new UsbDirectPlayback.Listener(){
                                     @Override public void onReady(UsbDirectPlayback playback){
                                         if(generation!=playGeneration||directPlayer!=playback)return;
-                                        if(!playback.usbStreamActive()){
-                                            // The player may be READY while UAC2 failed to
-                                            // claim/activate the isochronous stream. Never
-                                            // misreport this as direct bit-perfect output.
-                                            directFallbackTrackId=id;
-                                            directUsbUnsafe=true;
-                                            directUsbFailure="USB stream did not activate";
-                                            ui.post(()->{
-                                                if(generation!=playGeneration||directPlayer!=playback)return;
-                                                cleanupPlayer();
-                                                buffering=true;
-                                                startAtCurrentInternal(); // new signed URL
-                                            });
-                                            return;
-                                        }
+                                        // Media3 READY confirms only that the track is
+                                        // decoded and prepared. The USB endpoint may not
+                                        // become active until play() actually sends PCM.
+                                        // UsbDirectPlayback's bounded watchdog checks the
+                                        // transport after startup, then falls back safely.
                                         prepared=true;buffering=false;
                                         try{emit("session",session());}catch(Exception ignored){}
                                         decoderSampleRateHz=playback.sourceRate();
@@ -1886,9 +1898,15 @@ public final class MainActivity extends Activity {
                                             int position=prepared?playback.position():0;
                                             mediaRecovery.rememberPosition(position);
                                             cleanupPlayer();
-                                            // Never reuse a possibly single-use stream URL.
+                                            // Give the native USB interface a short window
+                                            // to release before Android AudioFlinger opens
+                                            // the same DAC. Never reuse a signed URL.
                                             if(focusPolicy.shouldStartPrepared()){
-                                                buffering=true;startAtCurrentInternal();
+                                                buffering=true;
+                                                ui.postDelayed(()->{
+                                                    if(generation!=playGeneration)return;
+                                                    startAtCurrentInternal();
+                                                },350L);
                                             }else{
                                                 buffering=false;
                                                 playerError="USB direct failed: "+error;
@@ -1911,14 +1929,17 @@ public final class MainActivity extends Activity {
                         }
                         player=new MediaPlayer();
                         player.setAudioAttributes(bitPerfect.audioAttributes());
+                        // Route USB for standard playback too. A failed direct
+                        // USB session must not re-enter the Android bit-perfect
+                        // mixer, which can silence an otherwise valid fallback.
+                        configureAndroidUsb(player,false);
                         if(Build.VERSION.SDK_INT>=28){
                             player.addOnRoutingChangedListener(router->{
                                 if(generation!=playGeneration)return;
-                                if(bitPerfect.isEnabled())bitPerfect.apply(player,fileInfo);
+                                configureAndroidUsb(player,true);
                                 emit("player",playerState());
                             },ui);
                         }
-                        if(bitPerfect.isEnabled())bitPerfect.apply(player,fileInfo);
                         player.setOnPreparedListener(mp->{
                             if(generation!=playGeneration)return;
                             prepared=true;buffering=false;
@@ -1927,7 +1948,7 @@ public final class MainActivity extends Activity {
                                 try{emit("session",session());}catch(Exception ignored){}
                             }
                             inspectPreparedTrack(mp);
-                            if(bitPerfect.isEnabled())bitPerfect.apply(mp,fileInfo);
+                            configureAndroidUsb(mp,false);
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
                             if(prefetchNextMetadata && queueIndex+1<queue.size()){
@@ -1988,7 +2009,7 @@ public final class MainActivity extends Activity {
                                                     fileInfo.put("total_samples",parsed.totalSamples);
                                             }catch(Exception ignored){}
                                         }
-                                        if(bitPerfect.isEnabled())bitPerfect.apply(mp,fileInfo);
+                                        configureAndroidUsb(mp,true);
                                         emit("player",playerState());
                                     });
                                 });
