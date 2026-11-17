@@ -43,15 +43,18 @@ assert(java.includes('focusPolicy.focusGained()'));
 assert(java.includes('focusPolicy.shouldStartPrepared()'));
 assert(java.includes('case "pause":ui.post(()->{pauseByUser();'));
 assert(java.includes('if(focusPolicy.shouldStartPrepared())startWithAudioFocus(mp);'));
-assert(java.includes('if(player!=null&&prepared)startWithAudioFocus(player);'));
+assert(java.includes('if(hasEngine()&&prepared)startSelectedWithAudioFocus();'));
+assert(java.includes('private void startDirectWithAudioFocus()'));
 assert(java.includes('pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);'));
 assert(java.includes('focusPolicy.userPause();\n        abandonPlaybackFocus();'));
 assert(!/if\(player!=null&&prepared&&!player\.isPlaying\(\)\)player\.start\(\)/.test(java),
  'No naked resume after another player takes focus');
 assert(!/try\{mp\.start\(\);\}catch\(Exception ignored\)/.test(java),
  'Prepared playback must be gated on focus');
-assert((java.match(/\.start\(\);/g)||[]).length===1,
- 'Only the focus-gated play method may call MediaPlayer.start');
+assert(java.includes('if(!mp.isPlaying())mp.start();'),
+ 'MediaPlayer.start must remain gated by audio focus');
+assert(java.includes('try{directPlayer.start();playerError="";}'),
+ 'Native USB play must also be gated by audio focus');
 assert(policy.includes('resumeOnGain = wantsPlayback;'));
 assert(policy.includes('focusLostPermanent()'));
 assert(policy.includes('userPause();'));
