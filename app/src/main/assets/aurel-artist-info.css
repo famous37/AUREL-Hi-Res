@@ -1,0 +1,265 @@
+/* AUREL 1.1.37 — one neutral design token system.
+   Album art stays colourful; artwork-derived interface palettes are opt-in.
+   The html state beats old layout gradients and inline theme variables. */
+html[data-aurel-palette="mono"]{
+ --aurel-theme-bg:#0d0e10!important;
+ --aurel-theme-surface:#1d1e22!important;
+ --aurel-theme-card:#222328!important;
+ --aurel-theme-raised:#33353b!important;
+ --aurel-theme-accent:#e7e9ed!important;
+ --aurel-theme-ink:#131417!important;
+ --aurel-theme-on:#f8f9fa!important;
+ --aurel-theme-secondary:#d2d5db!important;
+ --aurel-theme-border:#ffffff34!important;
+ --aurel-theme-line:#ffffff25!important;
+ --aurel-palette-bg:#0d0e10!important;
+ --aurel-palette-surface:#1d1e22!important;
+ --aurel-palette-accent:#e7e9ed!important;
+ color-scheme:dark;
+ background:#0d0e10!important;
+}
+html[data-aurel-palette="mono"] body,
+html[data-aurel-palette="mono"] .app{
+ background:#0d0e10!important;
+ background-image:none!important;
+ color:#f8f9fa!important;
+}
+html[data-aurel-palette="mono"] .app .main,
+html[data-aurel-palette="mono"] .app .screen{
+ background:#0d0e10!important;
+ background-image:none!important;
+}
+html[data-aurel-palette="mono"] .app .topbar,
+html[data-aurel-palette="mono"] .app .sidebar{
+ background:#141519!important;
+ background-image:none!important;
+}
+html[data-aurel-palette="mono"] .app .screen :is(
+ .aurel-artist-hero,.artist-hero,.albumhero,.magazine-hero,.spotlight,
+ .hero,.playlist-hero,.aurel-artist-page .aurel-artist-hero){
+ background:#202126!important;
+ background-image:linear-gradient(160deg,#25262b 0%,#191a1e 100%)!important;
+ background-color:#202126!important;
+ color:#f8f9fa!important;
+ border-color:#ffffff35!important;
+ box-shadow:none!important;
+}
+html[data-aurel-palette="mono"] .app .screen :is(
+ .aurel-artist-page,.artist-hero,.albumhero,.magazine-hero,
+ .spotlight,.hero) :is(h1,h2,h3,strong){
+ color:#f8f9fa!important;
+}
+html[data-aurel-palette="mono"] .app .screen :is(
+ .aurel-artist-bio,.aurel-artist-kind,.aurel-artist-hero-toolbar,
+ .album-artist,.track-meta,.aurel-popular-copy small){
+ color:#d3d6dc!important;
+}
+html[data-aurel-palette="mono"] .app .screen :is(
+ .aurel-artist-section-heading button,.aurel-popular-play,
+ .aurel-artist-load-more,.aurel-artist-follow,.aurel-artist-about,
+ .aurel-release-card,.aurel-similar-artist){
+ border-color:#ffffff35!important;
+ color:#e7e9ed!important;
+}
+html[data-aurel-palette="mono"] .app .screen :is(
+ .aurel-artist-follow,.aurel-artist-about,
+ .aurel-artist-load-more,.aurel-artist-section-heading button,
+ .aurel-popular-track,.aurel-release-card){
+ background-color:#292b30!important;
+ background-image:none!important;
+}
+html[data-aurel-palette="mono"] .app .screen :is(
+ .aurel-artist-play,.aurel-artist-actions .aurel-artist-play){
+ background:#eceef1!important;
+ border-color:#eceef1!important;
+ color:#121316!important;
+}
+html[data-aurel-palette="mono"] .app .screen :is(
+ .aurel-artist-play,.aurel-artist-actions .aurel-artist-play) :is(svg,span){
+ color:#121316!important;
+ stroke:#121316!important;
+}
+html[data-aurel-palette="mono"] #overlay{
+ --aurel-palette-bg:#101114!important;
+ --aurel-palette-surface:#23242a!important;
+ --aurel-palette-accent:#ebeef2!important;
+}
+html[data-aurel-palette="mono"] #overlay .murglar-view{
+ background:#101114!important;
+ background-image:none!important;
+ color:#f8f9fa!important;
+}
+html[data-aurel-palette="mono"] #overlay :is(
+ .murglar-header,.murglar-detail-sheet,.aurel-detail-drawer){
+ background:#23242a!important;
+ background-image:none!important;
+ color:#f5f6f8!important;
+}
+html[data-aurel-palette="mono"] :is(.bottom-nav,.mini){
+ filter:none!important;
+}
+/* Artist biography entry is a real button, not truncated dead-end copy. */
+.app .screen .aurel-artist-bio{
+ display:flex!important;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:7px;
+ width:min(100%,680px);
+ min-height:0;
+ padding:8px 12px!important;
+ margin:9px auto 0;
+ border:1px solid transparent!important;
+ border-radius:12px;
+ background:transparent!important;
+ font-size:14px!important;
+ line-height:1.55!important;
+ font-weight:600!important;
+ text-align:center;
+ color:#d3d6dc!important;
+ cursor:pointer;
+}
+.app .screen .aurel-artist-bio .aurel-artist-read-more{
+ display:inline-flex;
+ align-items:center;
+ gap:5px;
+ font-size:14px!important;
+ font-weight:790!important;
+ line-height:1.3;
+ color:#f7f8fa!important;
+}
+.app .screen .aurel-artist-actions .aurel-artist-about{
+ display:inline-flex!important;
+ align-items:center;
+ justify-content:center;
+ gap:7px;
+ border:1px solid #ffffff4b!important;
+ background:#303136!important;
+ color:#f4f5f7!important;
+ min-height:44px;
+ font-size:14px;
+ font-weight:780;
+}
+.app .screen [data-artist-info-open]:focus-visible{
+ outline:2px solid #f8f9fa!important;
+ outline-offset:3px;
+}
+/* The independent sheet keeps its state when catalogue cards re-render. */
+html.aurel-artist-info-open{overflow:hidden!important}
+.aurel-artist-info-overlay{
+ position:fixed;
+ inset:0;
+ z-index:2000;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));
+ box-sizing:border-box;
+ background:rgba(0,0,0,.83);
+ animation:aurel-info-backdrop-in 210ms ease-out both;
+}
+.aurel-artist-info-dialog{
+ display:flex;
+ flex-direction:column;
+ width:min(100%,670px);
+ max-height:min(84dvh,760px);
+ min-height:170px;
+ min-width:0;
+ border:1px solid #ffffff48;
+ border-radius:22px;
+ background:#222328;
+ color:#f8f9fa;
+ box-shadow:0 24px 70px #000c;
+ overflow:hidden;
+ transform-origin:center;
+ animation:aurel-info-content-in 300ms cubic-bezier(.22,1,.36,1) both;
+ outline:none;
+}
+.aurel-artist-info-header{
+ flex:0 0 auto;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ gap:12px;
+ padding:17px 19px 12px 21px;
+ border-bottom:1px solid #ffffff29;
+}
+.aurel-artist-info-header h2{
+ min-width:0;
+ margin:0;
+ font-size:19px;
+ line-height:1.3;
+ font-weight:800;
+ letter-spacing:-.015em;
+}
+.aurel-artist-info-header button{
+ display:grid;
+ place-items:center;
+ flex:0 0 43px;
+ width:43px;
+ height:43px;
+ border:1px solid #ffffff40;
+ border-radius:13px;
+ background:#34363b;
+ color:#f8f9fa;
+ cursor:pointer;
+}
+.aurel-artist-info-name{
+ margin:17px 21px 9px;
+ font-size:clamp(21px,5vw,28px);
+ line-height:1.22;
+ font-weight:825;
+ letter-spacing:-.025em;
+ overflow-wrap:anywhere;
+}
+.aurel-artist-info-status{
+ margin:8px 21px 18px;
+ font-size:15px;
+ line-height:1.48;
+ font-weight:630;
+ color:#d4d6dc;
+}
+.aurel-artist-info-status:empty{display:none}
+.aurel-artist-info-biography{
+ flex:1 1 auto;
+ min-height:0;
+ margin:0 9px 10px 0;
+ padding:8px 12px 20px 21px;
+ overflow-y:auto;
+ overflow-x:hidden;
+ overscroll-behavior:contain;
+ white-space:pre-wrap;
+ overflow-wrap:anywhere;
+ line-height:1.7;
+ font-size:15.5px;
+ font-weight:550;
+ color:#e2e4e8;
+ scrollbar-color:#777b85 transparent;
+}
+.aurel-artist-info-biography:focus-visible,
+.aurel-artist-info-header button:focus-visible{
+ outline:2px solid #ffffff;
+ outline-offset:3px;
+}
+@keyframes aurel-info-backdrop-in{
+ from{opacity:0}
+ to{opacity:1}
+}
+@keyframes aurel-info-content-in{
+ from{opacity:0;transform:translate3d(0,13px,0)}
+ to{opacity:1;transform:translate3d(0,0,0)}
+}
+@media(max-width:390px){
+ .aurel-artist-info-dialog{border-radius:18px;max-height:88dvh}
+ .aurel-artist-info-header{padding:13px 13px 10px 16px}
+ .aurel-artist-info-name{margin:14px 16px 7px}
+ .aurel-artist-info-biography{padding:8px 12px 18px 16px;font-size:14.5px}
+ .app .screen .aurel-artist-actions .aurel-artist-about{padding:9px 12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .aurel-artist-info-overlay,.aurel-artist-info-dialog{animation:none!important}
+}
+html[data-aurel-motion="off"] .aurel-artist-info-overlay,
+html[data-aurel-motion="off"] .aurel-artist-info-dialog{
+ animation:none!important;
+}
