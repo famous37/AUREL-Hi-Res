@@ -366,6 +366,47 @@ Object.assign(dictionary,{
  'Album cover':'Обкладинка альбому',
  'Album art':'Обкладинка альбому'
 });
+/* Audio settings strings must be translated before they enter the DOM.
+ * Keep the technical meaning: a requested mixer format is not a verified DAC sample. */
+Object.assign(dictionary,{
+ 'Android 14+ · USB DAC required':'Android 14+ · потрібен USB-ЦАП',
+ 'Connect a compatible USB DAC.':'Під’єднайте сумісний USB-ЦАП.',
+ 'Android 14 or newer required.':'Потрібен Android 14 або новіший.',
+ 'Play a lossless track to check USB output.':'Запустіть трек без втрат для перевірки USB.',
+ 'Track audio format cannot be verified.':'Не вдалося перевірити формат треку.',
+ 'Android offers no matching bit-perfect USB mixer format.':'Android не повідомив відповідного USB-режиму без зміни бітів.',
+ 'USB mixer controls are unavailable on this device.':'Керування USB-мікшером недоступне на цьому пристрої.',
+ 'Android rejected the USB mixer request.':'Android відхилив запит до USB-мікшера.',
+ 'USB mixer preference accepted; PCM bit identity unverified.':'USB-мікшер прийняв запит; незмінність PCM не підтверджено.',
+ 'USB audio routed; PCM bit identity unverified.':'Звук спрямовано на USB; незмінність PCM не підтверджено.',
+ 'USB DAC detected. Start a lossless track to request the mixer format.':'USB-ЦАП виявлено. Запустіть трек без втрат.',
+ 'Connect a USB DAC. Speaker, wired analog and Bluetooth are not bit-perfect targets.':'Під’єднайте USB-ЦАП. Bluetooth і звичайні виходи не підтримують цей режим.',
+ 'Requires Android 14 (API 34) or newer.':'Потрібен Android 14 (API 34) або новіший.',
+ 'Standard Android playback':'Стандартне відтворення Android',
+ 'Waiting for an audio stream.':'Очікування аудіопотоку.',
+ 'Stream PCM sample rate or bit depth is not confirmed.':'Частоту або розрядність PCM не підтверджено.',
+ 'Only mono and stereo PCM can be matched by this mode.':'Режим підтримує лише моно та стерео PCM.',
+ 'USB DAC disconnected. Normal Android routing may continue.':'USB-ЦАП від’єднано. Відтворення через Android може тривати.',
+ 'Android AudioManager is unavailable.':'AudioManager Android недоступний.',
+ 'Android accepted the USB bit-perfect mixer preference. Decoder PCM and DAC samples are not independently verified.':'Android прийняв запит USB-мікшера, але PCM і дані ЦАП не підтверджено.',
+ 'USB routing and Android bit-perfect mixer preference are active. End-to-end decoded PCM identity is not measured.':'USB-маршрут активний. Незмінність декодованого PCM не виміряно.',
+ 'Streaming quality':'Якість потоку',
+ 'Max Hi-Res':'Максимальна Hi-Res',
+ 'CD Lossless':'CD без втрат',
+ 'Enable bit-perfect USB output':'Увімкнути USB без зміни бітів',
+ 'Toggle bit-perfect USB output':'Перемкнути режим USB без зміни бітів',
+ 'USB bit-perfect playback setting':'Налаштування USB без зміни бітів',
+ 'Checking USB output':'Перевірка USB-виходу',
+ 'Mixer request rejected':'Запит до мікшера відхилено',
+ 'USB mixer requested':'Запит до USB-мікшера',
+ 'USB mixer routed':'Маршрут USB-мікшера активний',
+ 'Track format unknown':'Формат треку невідомий',
+ 'Format not supported':'Формат не підтримується',
+ 'Waiting for USB DAC':'Очікування USB-ЦАП',
+ 'Waiting for a track':'Очікування треку',
+ 'Standard playback':'Стандартне відтворення',
+ 'Android 14+ required':'Потрібен Android 14+'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
