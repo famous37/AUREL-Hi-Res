@@ -72,6 +72,13 @@ jobs:
           mkdir -p build/audio-focus-test
           javac -d build/audio-focus-test app/src/main/java/com/aurel/hires/AurelFocusPolicy.java tests/AurelFocusPolicyTest.java
           java -cp build/audio-focus-test com.aurel.hires.AurelFocusPolicyTest
+      - name: Verify Android WebView scroll and bounded MediaPlayer recovery
+        run: node tests/webview-scroll-media-recovery.test.cjs
+      - name: Verify low-level Android audio error recovery budget and seek policy
+        run: |
+          mkdir -p build/media-recovery-test
+          javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
+          java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
