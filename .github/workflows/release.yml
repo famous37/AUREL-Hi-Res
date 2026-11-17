@@ -161,15 +161,15 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — experimental direct USB bit-perfect preview**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — USB output stability and DAC negotiation fixes**" \
             '' \
-            '- Adds the Media3 / Decent USB Audio userspace UAC2 output engine for external USB DACs.' \
-            '- Direct USB bypasses the Android mixer only when the native isochronous USB stream successfully opens.' \
-            '- Uses libFLAC and FFmpeg for lossless PCM decoding, with USB Audio Class 2.0 permission handling.' \
-            '- Preserves Play/Pause, seek, playback queue, and audio focus with fallback to standard playback.' \
-            '- Requires compatible USB hardware; direct USB status is not independently measured bit identity.' \
-            '- DO NOT treat Android mixer flags or source FLAC metadata as proof of DAC bit-perfect output.' \
-            '- Experimental prerelease; verify FLAC 16/44.1 and 24/96 on your USB DAC before depending on it.' \
+            '- Selects the isochronous endpoint and physical PCM subslot width from the same USB alternate setting.' \
+            '- Rejects failed UAC2 clock changes instead of sending PCM at the wrong sample rate.' \
+            '- Preserves full integer PCM precision and fails back if the decoder exposes float PCM.' \
+            '- Fixes fractional USB microframe accounting, synchronizes USB buffer flush/write/stop, and raises Hi-Res buffering.' \
+            '- Detects stalled USB playback, restores normal Android audio, and prevents repeated failed native launches.' \
+            '- Shows live USB state in settings instead of stale session status.' \
+            '- Hardware qualification pending: verify 16/44.1, 24/96 and 24/192, pause, seek, next track on your DAC.' \
             '- Preserves AUREL signing certificate, installed package ID, Qobuz credentials and app data.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
