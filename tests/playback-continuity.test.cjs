@@ -46,5 +46,5 @@ for(const s of ['phase = "policy_unavailable"','phase = "policy_error"',
 assert(!mixer.includes('MIXER_BEHAVIOR_DEFAULT;'), 'Never call normal playback bit-perfect');
 for(const s of ['policy_unavailable','policy_error','unsupported_format'])
  assert(pref.includes(s)&&ui.includes(s),'Missing UI status: '+s);
-assert(gradle.includes('versionCode 65')&&gradle.includes("'1.1.46'"));
+assert(/versionCode\s+66/.test(gradle) && gradle.includes("'1.1.47'"));
 console.log('Native resume, persisted navigation, signed-update safety and USB policy diagnoses validated.');
