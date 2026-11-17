@@ -25,7 +25,8 @@ assert(polish.includes('#overlay.aurel-swipe-dismissing .murglar-view'));
 assert(!/\.png|base64|image-set\(/.test(css));
 assert(original.includes('data-close-overlay'));
 assert(history.includes('window.AurelHistoryBack='));
-assert(history.includes('rememberPlayer();app.overlay=false;app.playerSheet='));
+assert(js.includes('window.AurelMinimizePlayer()'));
+assert(history.includes("window.AurelMinimizePlayer=minimizePlayer"));
 
 // Deliberately test gesture behavior rather than merely inspecting strings.
 function harness(){
@@ -59,7 +60,7 @@ function harness(){
   getElementById(id){return id==='overlay'?overlay:null;},
   addEventListener(name,fn){events.set(name,fn);}
  };
- const context={document:doc,app,window:{AurelHistoryBack(){
+ const context={document:doc,app,window:{AurelMinimizePlayer(){
    backCalls++;app.overlay=false;app.playerSheet='';draws++;
   }},drawOverlay(){draws++;},performance:{now(){return now;}},
   requestAnimationFrame(fn){fn();return ++flushed;},
