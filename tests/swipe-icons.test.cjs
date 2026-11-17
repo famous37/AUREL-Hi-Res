@@ -6,6 +6,7 @@ const vm=require('node:vm');
 const base=path.join(__dirname,'../app/src/main/assets/');
 const html=fs.readFileSync(base+'index.html','utf8');
 const css=fs.readFileSync(base+'aurel-icon-contrast.css','utf8');
+const polish=fs.readFileSync(base+'aurel-global-polish.css','utf8');
 const js=fs.readFileSync(base+'aurel-swipe-minimize.js','utf8');
 const original=fs.readFileSync(base+'murglar.js','utf8');
 const history=fs.readFileSync(base+'aurel-continuity.js','utf8');
@@ -20,6 +21,7 @@ assert(css.includes('stroke-width:2.35!important'));
 assert(css.includes('stroke-width:2.4!important'));
 assert(css.includes('.aurel-tab-icon svg'));
 assert(css.includes('shape-rendering:geometricPrecision'));
+assert(polish.includes('#overlay.aurel-swipe-dismissing .murglar-view'));
 assert(!/\.png|base64|image-set\(/.test(css));
 assert(original.includes('data-close-overlay'));
 assert(history.includes('window.AurelHistoryBack='));
@@ -31,6 +33,7 @@ function harness(){
  const style=new Map();
  const classes=new Set();
  let now=0,scrollTop=0,draws=0,backCalls=0,prevents=0,flushed=0;
+ const timers=new Map();let timerSequence=0;
  let playerSheet='';
  const app={overlay:true,nav:'library',selectedKind:'playlist',
    selected:{id:'playlist-42'},playerSheet:'',player:{playing:true}};
@@ -61,7 +64,8 @@ function harness(){
   }},drawOverlay(){draws++;},performance:{now(){return now;}},
   requestAnimationFrame(fn){fn();return ++flushed;},
   cancelAnimationFrame(){},
-  setTimeout(){return 1;},clearTimeout(){},console};
+  setTimeout(fn){const id=++timerSequence;timers.set(id,fn);return id;},
+  clearTimeout(id){timers.delete(id);},console};
  vm.runInNewContext(js,context,{filename:'aurel-swipe-minimize.js'});
  function start(x,y,opts={}){
   events.get('touchstart')({target:target(!!opts.blocked,!!opts.header),
@@ -78,11 +82,15 @@ function harness(){
  }
  return {app,overlay,style,classes,start,move,end,
   scroll(n){scrollTop=n;},time(ms){now+=ms;},
+  flush(){const pending=[...timers];timers.clear();pending.forEach(([,fn])=>fn());},
   backCalls(){return backCalls;},draws(){return draws;},prevents(){return prevents;}};
 }
 {
  const h=harness();
  h.start(160,210);h.move(158,260);h.move(159,360);h.end(159,360);
+ assert.equal(h.backCalls(),0,'successful gesture should animate before minimizing');
+ assert(h.classes.has('aurel-swipe-dismissing'));
+ h.flush();
  assert.equal(h.backCalls(),1,'downward swipe should minimize');
  assert.equal(h.app.overlay,false);
  assert.equal(h.app.nav,'library','should not jump to Discover');
@@ -124,6 +132,7 @@ function harness(){
 {
  const h=harness();h.scroll(90);h.start(160,100,{header:true});
  h.move(160,240);h.end(160,240);
+ h.flush();
  assert.equal(h.backCalls(),1,'header swipe can minimize even when content is scrolled');
 }
 console.log('AUREL icon contrast and swipe-down navigation regressions passed.');
