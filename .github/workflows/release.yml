@@ -109,6 +109,10 @@ jobs:
           node tests/settings-contrast-uk.test.cjs
           node tests/artist-biography-mono.test.cjs
           node tests/settings-state-motion.test.cjs
+          node tests/player-scroll-focus.test.cjs
+          mkdir -p build/audio-focus-test
+          javac -d build/audio-focus-test app/src/main/java/com/aurel/hires/AurelFocusPolicy.java tests/AurelFocusPolicyTest.java
+          java -cp build/audio-focus-test com.aurel.hires.AurelFocusPolicyTest
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -149,17 +153,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            '**AUREL Hi-Res v1.1.38 — Stable settings and smooth navigation**' \
+            '**AUREL Hi-Res v1.1.39 — Player scrollbar and Android audio focus**' \
             '' \
-            '- Fixed settings resetting when Android sends late session updates: no more full page re-creation for audio preference changes.' \
-            '- Digital headroom, preload and streaming-quality changes are reflected immediately and reconciled against delayed responses.' \
-            '- Concurrent edits of the same parameter are serialized; failed writes restore the previous saved state.' \
-            '- Saving App Secret no longer rewrites streaming quality, and native SecureStore settings remain persistent across relaunch.' \
-            '- Reduced unnecessary whole-screen motion to a short opacity-only route transition without layout translation.' \
-            '- Removed repeated settings accordion entrance animations and prevented incidental touch events from snapping the player during swipe.' \
-            '- Kept monochrome style, Qobuz biography, player, favourites, cache, account management and permanent signature.' \
+            '- Eliminated the occasional empty vertical scrollbar caused by mismatched player/overlay viewport heights and legacy scroll styles.' \
+            '- Kept actual scrolling available on shorter displays and long titles while hiding unwanted WebView scroll indicators.' \
+            '- Implemented Android AudioFocusRequest before every playback start (including preparation, media controls and resume).' \
+            '- Pause on other apps'\'' audio focus, including transient and duck-eligible interruptions, rather than mixing audio streams.' \
+            '- Auto-resume after temporary interruption only if AUREL was playing before it and the user did not pause manually.' \
+            '- Permanent focus loss remains paused, avoiding unsolicited replay after another app takes over.' \
+            '- Clear audio focus on user pause, queue end, account logout and playback failure.' \
+            '- Added JVM state-machine checks and UI/source integration regression tests.' \
+            '- Preserved monochrome styling, audio outputs, library accounts, favourites and permanently signed updates.' \
             '' \
-            'Install v1.1.38 over permanently signed v1.1.37 without clearing data.' \
+            'Install v1.1.39 over production-signed v1.1.38 without clearing app data.' \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
