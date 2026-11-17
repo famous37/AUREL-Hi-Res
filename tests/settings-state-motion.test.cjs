@@ -11,7 +11,7 @@ const appCode=asset('app.js'),settings=asset('aurel-settings-pro.js');
 const motion=asset('aurel-motion.js'),swipe=asset('aurel-swipe-minimize.js');
 const clarity=asset('aurel-clarity.css'),index=asset('index.html');
 const gradle=fs.readFileSync(path.join(base,'app/build.gradle'),'utf8');
-assert(gradle.includes('versionCode 57')&&gradle.includes("'1.1.38'"));
+assert(gradle.includes('versionCode 58')&&gradle.includes("'1.1.39'"));
 for(const js of [syncCode,motion,swipe,settings])new Function(js);
 assert(index.indexOf('aurel-preference-sync.js')>index.indexOf('aurel-page-cache.js'));
 assert(index.indexOf('aurel-preference-sync.js')<index.indexOf('aurel-settings-pro.js'));
@@ -123,5 +123,5 @@ assert.equal(prefs.reconcileSession({...session,quality:27}).quality,7,
  assert.equal(prefs.reconcileSession(newAccount).quality,27,
   'Account switch resets stale preference overrides');
  assert.equal(prefs.reconcileSession(newAccount).bitPerfect.enabled,false);
- console.log('AUREL 1.1.38 settings concurrency, rollback, native persistence and jitter checks PASS');
+ console.log('AUREL 1.1.39 settings concurrency, rollback, native persistence and jitter checks PASS');
 })().catch(err=>{console.error(err);process.exitCode=1;});
