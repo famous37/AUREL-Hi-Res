@@ -95,5 +95,5 @@ assert(fs.readFileSync(path.join(base,'res/mipmap-anydpi-v26/ic_launcher.xml'),'
  assert(cache.info().pages<=12,'LRU max pages enforced');
  cache.clear();
  assert.equal(cache.info().pages,0);
- console.log('AUREL v1.1.39 page buffer, audio diagnostics, animation and launcher checks PASS');
+ console.log('AUREL v1.1.40 page buffer, audio diagnostics, animation and launcher checks PASS');
 })().catch(err=>{console.error(err);process.exitCode=1;});
