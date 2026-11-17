@@ -335,7 +335,7 @@ function renderLogin(){
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  const bp=app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
- const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
+ const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'Preparing direct USB',direct_usb_playback:'Direct USB audio',direct_usb_error:'USB driver failed',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
  const bpStatus=bpLabels[bp.status]||'Checking USB output';
  // Render concise, truthful device-state explanations; raw native diagnostic
  // strings are still retained in session but need not crowd the settings UI.
@@ -348,12 +348,15 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
   unsupported_format:'Android has a bit-perfect mixer, but not for this track format.',
   policy_unavailable:'Android does not offer bit-perfect through its USB audio driver.',
   policy_error:'Could not check the Android USB audio policy.',
+   direct_usb_preparing:'Opening a direct USB Audio Class 2.0 stream.',
+   direct_usb_playback:'Native USB playback selected. Verify actual sample rate at the DAC.',
+   direct_usb_error:'Direct USB driver failed; standard playback is available.',
   unsupported:'USB mixer controls are unavailable on this device.',
   rejected:'Android rejected the USB mixer request.',
   requested:'USB mixer preference accepted; PCM bit identity unverified.',
   usb_mixer_routed:'USB audio routed; PCM bit identity unverified.'
  };
- const bpDescription=['unsupported_format','policy_unavailable','policy_error'].includes(bp.status)
+ const bpDescription=['unsupported_format','policy_unavailable','policy_error','direct_usb_error'].includes(bp.status)
   ?(bp.detail||bpExplanations[bp.status]):
   (Object.prototype.hasOwnProperty.call(bpExplanations,bp.status)
     ?bpExplanations[bp.status]:(bp.detail||''));
@@ -375,10 +378,10 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div class="panel"><h3>Streaming quality</h3>
  <div class="selectrow" role="group" aria-label="Streaming quality">${[5,6,7,27].map(q=>`<button type="button" class="quality ${app.session.quality===q?'selected':''}" data-quality="${q}" aria-pressed="${app.session.quality===q}"><strong>${q===5?'MP3':q===6?'CD Lossless':q===7?'Hi-Res':'Max Hi-Res'}</strong><small>${q===5?'320 kbps':q===6?'16 / 44.1':q===7?'24 / 96':'24 / 192'}</small></button>`).join('')}</div>
  <section class="aurel-bp-panel" aria-label="USB bit-perfect playback setting">
-   <div class="aurel-bp-heading"><div><h3>Bit-perfect USB</h3><p>Android 14+ · USB DAC required</p></div>
+   <div class="aurel-bp-heading"><div><h3>Bit-perfect USB</h3><p>USB DAC · Android 10+ direct / Android 14+ system</p></div>
      <button type="button" data-bit-perfect-toggle class="aurel-bp-switch ${bp.enabled?'is-on':''}" role="switch" aria-checked="${bp.enabled?'true':'false'}" aria-label="Enable bit-perfect USB output" title="Toggle bit-perfect USB output"><span aria-hidden="true"></span></button>
    </div>
-   <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${bp.status==='usb_mixer_routed'?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
+   <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${['usb_mixer_routed','direct_usb_playback'].includes(bp.status)?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
    ${bpDescription?`<p class="aurel-bp-detail">${html(bpDescription)}</p>`:''}
    
  </section>
@@ -698,7 +701,7 @@ document.addEventListener('click',async ev=>{
        value=>nativeCall('setBitPerfect',{enabled:value})):
        await nativeCall('setBitPerfect',{enabled:wanted});
      if(!result?.superseded)showToast(wanted?
-       'USB bit-perfect preference enabled. Check device status below.':
+       'USB output mode enabled. A direct USB driver will be used when permitted.':
        'Standard Android output restored.',4200);
    }catch(e){showToast(e.message||'Could not change USB output mode',5200);}
    finally{if(b.isConnected)b.disabled=false;}
