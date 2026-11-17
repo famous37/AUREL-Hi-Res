@@ -196,6 +196,44 @@ const ic=(key,size=24)=>{
  return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
 };
 const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
+let aurelMiniAnimating=false;
+let aurelLastMiniFrame=0;
+function wakeAurelMiniAnimation(){
+ if(aurelMiniAnimating||!app.player?.playing||typeof requestAnimationFrame!=='function')return;
+ aurelMiniAnimating=true;
+ requestAnimationFrame(aurelMiniFrame);
+}
+function aurelMiniFrame(time){
+ if(!app.player?.playing || document.hidden){
+   aurelMiniAnimating=false;
+   return;
+ }
+ if(time-aurelLastMiniFrame>=110){
+   aurelLastMiniFrame=time;
+   const p=app.player,clock=window.AurelProgressClock;
+   const durationMs=Number(p.duration)||0;
+   if(durationMs>0 && clock){
+     const position=clock.read(p);
+     const ratio=Math.max(0,Math.min(1,position/durationMs));
+     const fill=document.querySelector('#mini .mini-progress-fill');
+     if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
+     const slider=document.querySelector('#overlay #progress');
+     if(slider&&!app.dragging)slider.value=String(Math.round(position));
+     const elapsed=document.querySelector('#overlay #elapsed');
+     if(elapsed&&!app.dragging){
+       const timeLabel=duration(position/1000);
+       if(elapsed.textContent!==timeLabel)elapsed.textContent=timeLabel;
+     }
+     const remaining=document.querySelector('#overlay #remaining');
+     if(remaining&&!app.dragging){
+       const timeLabel='-'+duration(Math.max(0,(durationMs-position)/1000));
+       if(remaining.textContent!==timeLabel)remaining.textContent=timeLabel;
+     }
+   }
+ }
+ requestAnimationFrame(aurelMiniFrame);
+}
+document.addEventListener('visibilitychange',wakeAurelMiniAnimation);
 // Stable mini-player: do not recreate artwork, buttons or metadata on each
 // 250 ms native position event. Preserve favourites state and scroll positions.
 updateMini=function(){
@@ -210,7 +248,7 @@ updateMini=function(){
    <div class="meta mini-track-open"><strong class="title"></strong><small class="artist"></small></div>
    <div class="mini-buttons"><button class="mini-love" data-mini-fav="${html(id)}" aria-label="Add to favourites">${ic('heart',24)}</button>
    <button class="mini-play" data-mini-toggle aria-label="Play">${ic('play',26)}</button></div>
-   <div class="mini-progress" aria-hidden="true"></div>`;
+   <div class="mini-progress" aria-hidden="true"><span class="mini-progress-fill"></span></div>`;
   m.dataset.miniTrack=id;
   m.dataset.miniPlaying='';
   m.dataset.miniArtwork=cover||'';
@@ -236,15 +274,21 @@ updateMini=function(){
   play.setAttribute('aria-label',p.playing?'Pause':'Play');
   m.dataset.miniPlaying=String(!!p.playing);
  }
+ const position=window.AurelProgressClock?.accept(p)??(Number(p.position)||0);
  const bar=m.querySelector('.mini-progress');
- const percent=p.duration?Math.min(100,Math.max(0,100*(Number(p.position)||0)/Number(p.duration))):0;
- if(bar)bar.style.setProperty('--played',percent.toFixed(1)+'%');
+ const percent=p.duration?Math.min(100,Math.max(0,100*position/Number(p.duration))):0;
+ if(bar){
+   bar.style.setProperty('--played',percent.toFixed(2)+'%');
+   const fill=bar.querySelector('.mini-progress-fill');
+   if(fill)fill.style.transform='scaleX('+(percent/100).toFixed(6)+')';
+ }
+ wakeAurelMiniAnimation();
 };
 drawOverlay=function(){
  const overlay=$('#overlay');
  if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return}
  const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
- const progressTotal=Math.max(0,Number(p.duration)||0),position=Math.min(progressTotal,Math.max(0,Number(p.position)||0));
+ const progressTotal=Math.max(0,Number(p.duration)||0),position=Math.min(progressTotal,Math.max(0,window.AurelProgressClock?.read(p)??Number(p.position)||0));
  const loading=p.buffering&&!p.error;
  const format=actualSource(p);
  const subtitle=p.error?'Playback unavailable':loading?'Connecting to audio…':p.sourceVerified?'Source format · Qobuz metadata':p.decoderSampleRateHz?'Media track format · Android':'Source format not confirmed';

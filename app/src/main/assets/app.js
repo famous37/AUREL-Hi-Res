@@ -384,7 +384,12 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
    </div>
    <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${['usb_mixer_routed','direct_usb_playback'].includes(bp.status)?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
    ${bpDescription?`<p class="aurel-bp-detail">${html(bpDescription)}</p>`:''}
-   
+   ${bp.enabled?`<div class="aurel-usb-volume" aria-label="USB DAC volume control">
+      <div class="aurel-usb-volume-head"><strong>USB DAC volume</strong>
+       <output data-aurel-usb-volume-label>${Number(app.player?.usbOutputVolumePercent??app.session.usbOutputVolumePercent??35)}%</output></div>
+      <input data-aurel-usb-volume type="range" min="0" max="100" step="1" value="${Number(app.player?.usbOutputVolumePercent??app.session.usbOutputVolumePercent??35)}" aria-label="USB DAC volume">
+      <small data-aurel-usb-volume-mode>${bp.usbVolumeMode==='hardware'?'DAC hardware volume · PCM unchanged':bp.usbVolumeMode==='digital'?'Digital attenuation · not bit-perfect':bp.status==='direct_usb_playback'?'Checking DAC volume control':'Starts at a safe 35% · hardware control when available'}</small>
+   </div>`:''}
  </section>
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
@@ -398,9 +403,10 @@ function updateMini(){
  m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
 }
 function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
- const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=p.position||0}
- if($('#elapsed'))$('#elapsed').textContent=duration((p.position||0)/1000);
- if($('#remaining'))$('#remaining').textContent='-'+duration(Math.max(0,(p.duration||0)-(p.position||0))/1000);
+ const smoothPosition=window.AurelProgressClock?.read(p)??(Number(p.position)||0);
+ const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=smoothPosition}
+ if($('#elapsed')&&!app.dragging)$('#elapsed').textContent=duration(smoothPosition/1000);
+ if($('#remaining')&&!app.dragging)$('#remaining').textContent='-'+duration(Math.max(0,(p.duration||0)-smoothPosition)/1000);
  if($('#full-toggle'))$('#full-toggle').innerHTML=ic(p.playing?'pause':'play',33);
  if($('#full-shuffle'))$('#full-shuffle').classList.toggle('active',!!p.shuffle);
  if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').innerHTML=ic('repeat',23)+(p.repeat===2?'<span class="repeat-one">1</span>':'');}
@@ -738,7 +744,7 @@ document.addEventListener('click',async ev=>{
   }catch(e){showToast(e.message)}return}
  if(b.hasAttribute('data-mini-toggle')||b.hasAttribute('data-full-toggle')){ev.stopPropagation();togglePlayback();return}
  if(b.hasAttribute('data-mini-next')||b.hasAttribute('data-next')){ev.stopPropagation();nativeCall('next').catch(()=>{});return}
- if(b.hasAttribute('data-prev')){nativeCall('previous').catch(()=>{});return}
+ if(b.hasAttribute('data-prev')){window.AurelProgressClock?.markSeek(0);nativeCall('previous').catch(()=>{});return}
  if(b.hasAttribute('data-shuffle')){nativeCall('playbackSettings',{repeat:app.player?.repeat||0,shuffle:!app.player?.shuffle}).catch(()=>{});return}
  if(b.hasAttribute('data-repeat')){nativeCall('playbackSettings',{repeat:((app.player?.repeat||0)+1)%3,shuffle:app.player?.shuffle||false}).catch(()=>{});return}
  if(b.hasAttribute('data-close-overlay')){if(!window.AurelMinimizePlayer?.()){app.overlay=false;drawOverlay();}return}
@@ -753,12 +759,22 @@ document.addEventListener('pointerdown',e=>{
  if(e.target?.id==='progress')app.dragging=true;
 },{passive:true});
 document.addEventListener('input',e=>{
+ if(e.target?.matches?.('[data-aurel-usb-volume]')){
+   const label=document.querySelector('[data-aurel-usb-volume-label]');
+   if(label)label.textContent=String(e.target.value)+'%';
+   return;
+ }
  if(e.target?.id!=='progress')return;
  app.dragging=true;
  const text=$('#elapsed');
  if(text)text.textContent=duration(Math.max(0,Number(e.target.value)||0)/1000);
 });
 document.addEventListener('change',e=>{
+ if(e.target?.matches?.('[data-aurel-usb-volume]')){
+   const percent=Math.max(0,Math.min(100,Math.round(Number(e.target.value)||0)));
+   nativeCall('setUsbVolume',{percent}).catch(error=>showToast(error.message||'USB volume unavailable'));
+   return;
+ }
  if(e.target?.id!=='progress')return;
  const position=Number(e.target.value),total=Number(app.player?.duration)||0;
  app.dragging=false;
@@ -766,6 +782,7 @@ document.addEventListener('change',e=>{
    updateOverlayState();return;
  }
  const ms=Math.round(Math.max(0,Math.min(total,position)));
+ window.AurelProgressClock?.markSeek(ms);
  nativeCall('seek',{ms}).catch(err=>{
    showToast(err?.message||'Could not change playback position',4500);
    updateOverlayState();
