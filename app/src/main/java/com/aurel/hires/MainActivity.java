@@ -1241,7 +1241,7 @@ public final class MainActivity extends Activity {
                                 if(wanted && usbHost==null) {
                                     try {
                                         usbHost=AurelUsbDacHost.get(
-                                            this,true,usbOutputVolumePercent);
+                                            MainActivity.this,true,usbOutputVolumePercent);
                                     }catch(RuntimeException | LinkageError failure){
                                         Log.e(MEDIA_TAG,"Native USB initialization failed",failure);
                                         bitPerfect.setEnabled(false,null,fileInfo);
