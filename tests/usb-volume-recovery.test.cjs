@@ -22,6 +22,25 @@ for(const token of ['setComponentEnabledSetting','COMPONENT_ENABLED_STATE_DISABL
                      'COMPONENT_ENABLED_STATE_ENABLED','updateUsbAttachHandler()',
                      'setUsbVolumePercent','dispatchKeyEvent','case "setUsbVolume"'])
  assert(main.includes(token),'Missing opt-in USB or volume control: '+token);
+// Regression: Media3 READY is not evidence that USB has already begun
+// submitting PCM. Rejecting the DAC before calling play() caused silence.
+assert(!main.includes('if(!playback.usbStreamActive()){'),
+ 'Do not check USB transport before the first audio frames are submitted');
+assert(direct.includes('usbActivationStartedMs')&&
+       direct.includes('android.os.SystemClock.elapsedRealtime()')&&
+       direct.includes('now - usbActivationStartedMs >= 4500L'),
+ 'USB must have a bounded startup grace period followed by safe fallback');
+const routing=read('app/src/main/java/com/aurel/hires/BitPerfectOutput.java');
+assert(routing.includes('boolean routeUsb(MediaPlayer mediaPlayer)')&&
+       routing.includes('mediaPlayer.setPreferredDevice(candidate)'),
+ 'Standard mode must explicitly request the connected USB DAC');
+assert(main.includes('configureAndroidUsb(player,false)')&&
+       main.includes('if(active && bitPerfect.isEnabled() && !directUsbUnsafe)'),
+ 'Android fallback must route to USB without reusing a failed bit-perfect mixer');
+assert(source.includes('standard_usb_not_routed')&&
+       source.includes('standard_usb_playback'),
+ 'Settings must distinguish real Android USB output from a selected mode');
+
 assert(direct.includes('sink.setUsbOutputLevel')&&direct.includes('usbVolumeMode'),
  'Direct USB level must be applied before opening a track and be reported');
 assert(svc.includes('VolumeProvider.VOLUME_CONTROL_ABSOLUTE')&&
