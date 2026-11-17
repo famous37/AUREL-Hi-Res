@@ -43,7 +43,8 @@ assert(app.includes('data-bit-perfect-toggle'));
 assert(app.includes("nativeCall('setBitPerfect',{enabled:wanted})"));
 assert(app.includes('role="switch"'));
 assert(app.includes('aria-checked='));
-assert(app.includes('end-to-end') || app.includes('end-to-end'.replace('e','e')) || app.includes('bit-identical'));
+assert(app.includes('aurel-bp-detail') && app.includes('bpStatus'),
+ 'Real native USB mixer state must remain visible without verbose disclaimers');
 assert(html.indexOf('aurel-bit-perfect.css') > html.indexOf('aurel-minimal-player.css'));
 assert(css.includes('.aurel-bp-switch.is-on'));
 assert(css.includes('prefers-reduced-motion:reduce'));
