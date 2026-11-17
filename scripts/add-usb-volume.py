@@ -238,7 +238,8 @@ edit(sink,[
         usbUserLevel=gain
         val stream=usbAudioStream
         if(stream?.isAlive==true) {
-            val hardware=usbAudioDevice.setHardwareVolumePercent((gain*100).toInt())
+            val hardware=gain>0f &&
+                usbAudioDevice.setHardwareVolumePercent((gain*100).toInt())
             hardwareVolumeActive=hardware
             softwareGainActive=!hardware && gain<0.99999f
             stream.setDigitalGain(if(hardware)1f else gain)
@@ -251,7 +252,8 @@ edit(sink,[
         if (!stream.start()) {""",
 """        // Set a non-dangerous output level BEFORE any USB PCM is submitted.
         // Prefer device hardware control; fall back to labelled digital gain.
-        hardwareVolumeActive=usbAudioDevice.setHardwareVolumePercent((usbUserLevel*100).toInt())
+        hardwareVolumeActive=usbUserLevel>0f &&
+            usbAudioDevice.setHardwareVolumePercent((usbUserLevel*100).toInt())
         softwareGainActive=!hardwareVolumeActive && usbUserLevel<0.99999f
         stream.setDigitalGain(if(hardwareVolumeActive)1f else usbUserLevel)
 

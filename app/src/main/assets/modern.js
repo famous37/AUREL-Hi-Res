@@ -334,6 +334,22 @@ drawOverlay=function(){
 const formerEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const old=app.lastQueueFingerprint;formerEvent(kind,data);if(kind==='player'){
+ const slider=document.querySelector('[data-aurel-usb-volume]');
+ if(slider&&document.activeElement!==slider&&Number.isFinite(Number(data?.usbOutputVolumePercent))){
+   const percent=Math.min(100,Math.max(0,Number(data.usbOutputVolumePercent)));
+   slider.value=String(percent);
+   const label=document.querySelector('[data-aurel-usb-volume-label]');
+   if(label)label.textContent=percent+'%';
+ }
+ const mode=document.querySelector('[data-aurel-usb-volume-mode]');
+ if(mode){
+   const route=data?.bitPerfect?.usbVolumeMode;
+   const status=route==='hardware'?'DAC hardware volume · PCM unchanged':
+     route==='digital'?'Digital attenuation · not bit-perfect':
+     route==='unity'?'Unchanged PCM · no hardware control':
+     'USB control not active';
+   if(mode.textContent!==status)mode.textContent=status;
+ }
  const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
  const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz,data?.sourceBitrateKbps,data?.decoderBitrateKbps,data?.estimatedAvgBitrateKbps,data?.qualityProbePending,data?.qualityProbeAttempted,data?.streamHeaderVerified,data?.sourceEvidence,data?.frameBitrateKbps,data?.fileSize,data?.quality,data?.androidMixerHz,data?.bitPerfect?.enabled,data?.bitPerfect?.usbRouted,data?.bitPerfect?.mixerPreferenceAccepted,data?.bitPerfect?.detail]);
  const trackSignature=JSON.stringify([data?.track?.id,data?.track?.title,artistLabel(data?.track||{}),data?.track?.album?.title,image(data?.track||{}),data?.track?.isrc,data?.track?.composers,data?.track?.performers,data?.track?.album?.label,data?.track?.album?.release_date_original]);
