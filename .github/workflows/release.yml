@@ -162,15 +162,15 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — USB output stability and DAC negotiation fixes**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — iBasso DAC hardware-volume and smooth mini-player update**" \
             '' \
-            '- Selects the isochronous endpoint and physical PCM subslot width from the same USB alternate setting.' \
-            '- Rejects failed UAC2 clock changes instead of sending PCM at the wrong sample rate.' \
-            '- Preserves full integer PCM precision and fails back if the decoder exposes float PCM.' \
-            '- Fixes fractional USB microframe accounting, synchronizes USB buffer flush/write/stop, and raises Hi-Res buffering.' \
-            '- Detects stalled USB playback, restores normal Android audio, and prevents repeated failed native launches.' \
-            '- Shows live USB state in settings instead of stale session status.' \
-            '- Hardware qualification pending: verify 16/44.1, 24/96 and 24/192, pause, seek, next track on your DAC.' \
+            '- Adds standard USB Audio Class 2.0 Feature Unit hardware volume when supported by the DAC.' \
+            '- Direct USB begins at a safe 35% output setting; software attenuation is explicitly labelled not bit-perfect.' \
+            '- USB volume works with the AUREL slider, Android physical volume keys and lock-screen media session.' \
+            '- The OS USB attachment chooser is enabled only while Bit-perfect USB is on, with single-instance activity reuse.' \
+            '- Mini-player artwork and buttons stay mounted; the progress bar uses a monotonic clock with no layout reset.' \
+            '- Removes half-second seekbar quantization and synchronizes USB mode/volume status in settings.' \
+            '- Hardware qualification remains necessary: verify iBasso DC05 16/44.1 and 24/96, background volume, pause and seek.' \
             '- Preserves AUREL signing certificate, installed package ID, Qobuz credentials and app data.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
