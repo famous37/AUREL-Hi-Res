@@ -1,4 +1,4 @@
-/* USB output control / native-chooser / monotonic player regression. */
+/* Native USB engine / Android-only OFF path / volume and progress regression. */
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -9,53 +9,31 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const manifest=read('app/src/main/AndroidManifest.xml');
 const main=read('app/src/main/java/com/aurel/hires/MainActivity.java');
 const direct=read('app/src/main/java/com/aurel/hires/UsbDirectPlayback.java');
+const host=read('app/src/main/java/com/aurel/hires/AurelUsbDacHost.java');
 const svc=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java');
 const source=read('app/src/main/assets/app.js');
 const modern=read('app/src/main/assets/modern.js');
-const setup=read('scripts/setup-usb-driver.sh');
-const volume=read('scripts/add-usb-volume.py');
 
-assert.match(manifest,/<activity-alias[^>]*android:name="\.UsbBitPerfectHandler"[\s\S]*?android:enabled="false"/);
-assert.equal((manifest.match(/android\.hardware\.usb\.action\.USB_DEVICE_ATTACHED/g)||[]).length,2,
- 'USB chooser action and its metadata should live only on the opt-in alias');
+assert.match(manifest,/<activity-alias[^>]*android:name="\\.UsbBitPerfectHandler"[\\s\\S]*?android:enabled="false"/);
+assert.equal((manifest.match(/android\\.hardware\\.usb\\.action\\.USB_DEVICE_ATTACHED/g)||[]).length,2);
 for(const token of ['setComponentEnabledSetting','COMPONENT_ENABLED_STATE_DISABLED',
                      'COMPONENT_ENABLED_STATE_ENABLED','updateUsbAttachHandler()',
                      'setUsbVolumePercent','dispatchKeyEvent','case "setUsbVolume"'])
- assert(main.includes(token),'Missing opt-in USB or volume control: '+token);
-// Regression: Media3 READY is not evidence that USB has already begun
-// submitting PCM. Rejecting the DAC before calling play() caused silence.
+ assert(main.includes(token),'Missing native USB volume or chooser: '+token);
 assert(!main.includes('if(!playback.usbStreamActive()){'),
- 'Do not check USB transport before the first audio frames are submitted');
-assert(direct.includes('usbActivationStartedMs')&&
-       direct.includes('android.os.SystemClock.elapsedRealtime()')&&
-       direct.includes('now - usbActivationStartedMs >= 4500L'),
- 'USB must have a bounded startup grace period followed by safe fallback');
-const routing=read('app/src/main/java/com/aurel/hires/BitPerfectOutput.java');
-assert(routing.includes('boolean routeUsb(MediaPlayer mediaPlayer)')&&
-       routing.includes('mediaPlayer.setPreferredDevice(candidate)'),
- 'Standard mode must explicitly request the connected USB DAC');
-assert(main.includes('configureAndroidUsb(player,false)')&&
-       main.includes('if(active && bitPerfect.isEnabled() && !directUsbUnsafe)'),
- 'Android fallback must route to USB without reusing a failed bit-perfect mixer');
-assert(source.includes('standard_usb_not_routed')&&
-       source.includes('standard_usb_playback'),
- 'Settings must distinguish real Android USB output from a selected mode');
-
-assert(direct.includes('sink.setUsbOutputLevel')&&direct.includes('usbVolumeMode'),
- 'Direct USB level must be applied before opening a track and be reported');
+ 'Never reject native USB before Media3 begins delivering PCM');
+assert(direct.includes('firstPlayAt=SystemClock.elapsedRealtime()')&&
+       direct.includes('host.directRoute()')&&direct.includes('7000L'),
+ 'The new USB transport needs bounded startup grace and stall recovery');
+assert(host.includes('getVolumeRange()')&&host.includes('manager.setVolume(target)'),
+ 'When DAC hardware volume exists use Feature Unit, never PCM digital scaling');
+assert(host.includes('return state!=null&&state.getVolumeRange()!=null?"hardware":"unity"'));
 assert(svc.includes('VolumeProvider.VOLUME_CONTROL_ABSOLUTE')&&
-       svc.includes('setPlaybackToRemote')&&svc.includes('setPlaybackToLocal'),
- 'Hardware volume keys must control native USB and revert to Android elsewhere');
-for(const token of ['discoverHardwareVolume','setHardwareVolumePercent',
-                     'nativeSetDigitalGain','applyUsbDigitalGain',
-                     'hardwareVolumeActive','softwareGainActive'])
- assert(volume.includes(token),'Missing safe volume strategy: '+token);
-assert(setup.includes('scripts/add-usb-volume.py'),'Native volume patch must run in CI');
-assert(source.includes('data-aurel-usb-volume') &&
-       source.includes("nativeCall('setUsbVolume'"),
- 'Volume slider must be connected to the real native setter');
-assert(modern.includes('mini-progress-fill')&&modern.includes('AurelProgressClock'),
- 'Mini-player must preserve artwork and smooth the native progress');
+       svc.includes('setPlaybackToRemote')&&svc.includes('setPlaybackToLocal'));
+assert(main.includes('configureAndroidUsb(player,false)'));
+assert(main.includes('if(mp.getPreferredDevice()!=null) mp.setPreferredDevice(null)'));
+assert(source.includes('data-aurel-usb-volume')&&source.includes("nativeCall('setUsbVolume'"));
+assert(modern.includes('mini-progress-fill')&&modern.includes('AurelProgressClock'));
 
 let time=1000;
 const context={window:{},performance:{now:()=>time}};
