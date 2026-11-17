@@ -290,6 +290,8 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        // Flush the JS navigation snapshot while the WebView still exists.
+        if(web!=null)web.evaluateJavascript("window.AurelPersistNow && window.AurelPersistNow()",null);
         savePlaybackContinuity();
         super.onPause();
     }
