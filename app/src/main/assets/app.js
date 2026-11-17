@@ -721,6 +721,7 @@ document.addEventListener('click',async ev=>{
    showToast('Using primary library');navigate('library');
   }catch(e){showToast(e.message)}return}
  if(b.hasAttribute('data-logout')){try{window.AurelPageCache?.clear();
+   window.AurelHistoryClear?.();
    window.AurelPreferenceSync?.reset();
    app.session=await api('logout');app.albums=[];app.results=[];
    app.libraryCache=Object.create(null);app.playlistsCache=null;
