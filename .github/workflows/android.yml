@@ -51,6 +51,8 @@ jobs:
         run: node tests/global-polish.test.cjs
       - name: Verify vector action buttons, search and quicklinks
         run: node tests/precise-ui.test.cjs
+      - name: Verify page buffer isolation, DAC diagnostics, launcher and motion
+        run: node tests/pro-audio-page-cache.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
