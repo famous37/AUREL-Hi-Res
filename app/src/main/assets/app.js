@@ -172,9 +172,9 @@ function listTracks(items){if(!items.length)return '<div class="empty">No tracks
    '<div class="track-details" '+(unavailable?'':'data-play-index="'+i+'"')+'><div class="track-title">'+html(o.title||'Untitled')+'</div>'+
    '<div class="track-meta">'+html(artistLabel(o))+(o.album?.title?' · '+html(o.album.title):'')+'</div>'+status+'</div>'+
    '<span class="track-length">'+duration(o.duration)+'</span>'+
-   '<button class="icon-btn" title="Add to favorites" data-like-track="'+html(o.id||'')+'">♡</button>'+
-   '<button class="icon-btn queue-add-icon" data-play-next="'+i+'" title="'+(unavailable?reason:'Play next')+'" '+(unavailable?'disabled':'')+'>＋</button>'+
-   '<button class="icon-btn" data-play-index="'+i+'" title="'+(unavailable?reason:'Play')+'" '+(unavailable?'disabled':'')+'>▶</button></div>';
+   '<button class="icon-btn aurel-track-action" aria-label="Add to favourites" title="Add to favourites" data-like-track="'+html(o.id||'')+'">'+ic('heart',24)+'</button>'+
+   '<button class="icon-btn queue-add-icon aurel-track-action" data-play-next="'+i+'" aria-label="'+(unavailable?reason:'Play next')+'" title="'+(unavailable?reason:'Play next')+'" '+(unavailable?'disabled':'')+'>'+ic('plus',24)+'</button>'+
+   '<button class="icon-btn aurel-track-action" data-play-index="'+i+'" aria-label="'+(unavailable?reason:'Play track')+'" title="'+(unavailable?reason:'Play')+'" '+(unavailable?'disabled':'')+'>'+ic('play',25)+'</button></div>';
  }).join('')+'</div>';
 }
 function render(){
@@ -213,18 +213,18 @@ function renderLibrary(){
 function renderPlaylists(){
  const lists=app.playlists||[];
  $('#screen').innerHTML=title('YOUR LIBRARY','Playlists.')+`<p class="subline">Made by you. Collected for every mood.</p><div class="sectionhead"><h2>My playlists</h2></div>
- ${app.playlistsLoading?'<div class="loading"><div class="pulse"></div>Loading playlists…</div>':lists.length?`<div class="tracklist">${lists.map(o=>`<div class="track"><div class="track-details" data-playlist-id="${html(o.id)}"><div class="track-title">${html(o.name)}</div><div class="track-meta">${o.tracks_count||0} tracks</div></div><button class="icon-btn" data-playlist-id="${html(o.id)}">›</button></div>`).join('')}</div>`:'<div class="empty">No Qobuz playlists returned by your account.</div>'}`;
+ ${app.playlistsLoading?'<div class="loading"><div class="pulse"></div>Loading playlists…</div>':lists.length?`<div class="tracklist">${lists.map(o=>`<div class="track"><div class="track-details" data-playlist-id="${html(o.id)}"><div class="track-title">${html(o.name)}</div><div class="track-meta">${o.tracks_count||0} tracks</div></div><button class="icon-btn aurel-playlist-open" data-playlist-id="${html(o.id)}">${ic('chevron',23)}</button></div>`).join('')}</div>`:'<div class="empty">No Qobuz playlists returned by your account.</div>'}`;
 }
 function renderAlbum(){
  let o=app.selected;
  if(!o)return;
- let content=`<button class="small-link" data-back>‹ Back</button><div class="albumhero"><div class="cover">${art(o,"album-hero-art")}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><button class="album-artist-button" data-artist-from-album aria-label="Open artist discography">${html(artistLabel(o))}<span aria-hidden="true">›</span></button><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
- <div class="actionbar"><button class="pill" data-play-all>▶ &nbsp; Play album</button><button class="pill secondary" data-like-album="${html(o.id)}">♡ Save</button></div>
+ let content=`<button class="small-link" data-back>${ic('back',20)}<span>Back</span></button><div class="albumhero"><div class="cover">${art(o,"album-hero-art")}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><button class="album-artist-button" data-artist-from-album aria-label="Open artist discography">${html(artistLabel(o))}<span aria-hidden="true">${ic('chevron',20)}</span></button><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
+ <div class="actionbar"><button class="pill" data-play-all>${ic('play',20)}<span>Play album</span></button><button class="pill secondary" data-like-album="${html(o.id)}">${ic('heart',20)}<span class="aurel-save-label">Save</span></button></div>
  ${listTracks(app.selectedTracks)}<p class="footer-note">Availability and stream quality are verified when playback is requested. Direct-file streaming only in this alpha build.</p>`;
  $('#screen').innerHTML=content;
 }
 function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
- $('#screen').innerHTML=`<button class="small-link" data-back>‹ Back</button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2><span class="discography-count">${albums.length} releases</span></div>${albumCards(albums)}${albums.length>=Number(o.albums?.limit||100)&&albums.length<Number(o.albums?.total||albums.length)?`<button class="load-more-albums" data-load-more-artist>Show more releases</button>`:``}`;
+ $('#screen').innerHTML=`<button class="small-link" data-back>${ic('back',20)}<span>Back</span></button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2><span class="discography-count">${albums.length} releases</span></div>${albumCards(albums)}${albums.length>=Number(o.albums?.limit||100)&&albums.length<Number(o.albums?.total||albums.length)?`<button class="load-more-albums" data-load-more-artist>Show more releases</button>`:``}`;
 }
 function renderLogin(){
   const secondary=app.loginTarget==='library';
