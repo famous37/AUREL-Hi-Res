@@ -61,4 +61,4 @@ assert.equal(meta.nameOf('{"display"'),'', 'Malformed JSON must not leak to UI')
 assert.equal(meta.trackTitle({title:'Cinema'}),'Cinema');
 assert.equal(meta.trackTitle({title:'{"display":"Cinema"}'}),'Cinema');
 assert(locale.includes("'Connected devices'") && locale.includes("'Main navigation'"));
-console.log('AUREL v1.1.35 media metadata, mini player, full collapse, grayscale and unified icon checks PASS');
+console.log('AUREL v1.1.36 media metadata, mini player, full collapse, grayscale and unified icon checks PASS');

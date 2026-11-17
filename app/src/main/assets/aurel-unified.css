@@ -325,3 +325,95 @@
  }
  .app .topbar .aurel-mobile-brand small{font-size:14.5px!important}
 }
+
+/* 1.1.36 · selected controls must remain legible even when earlier themes
+ * force white text on descendants. Use a dark selection, not white-on-white. */
+.app #screen .selectrow button.quality{
+  color:#f5f6f8!important;
+  background:#303136!important;
+  border:1.5px solid #696d75!important;
+  min-width:0!important;
+}
+.app #screen .selectrow button.quality strong{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  font-weight:800!important;
+  opacity:1!important;
+}
+.app #screen .selectrow button.quality small{
+  color:#d7dbe1!important;
+  -webkit-text-fill-color:#d7dbe1!important;
+  font-weight:690!important;
+  opacity:1!important;
+}
+.app #screen .selectrow button.quality.selected,
+.app #screen .selectrow button.quality[aria-pressed="true"]{
+  color:#ffffff!important;
+  background:#3b3d42!important;
+  border:2px solid #f7f8fa!important;
+  box-shadow:inset 0 0 0 1px #ffffff26!important;
+}
+.app #screen .selectrow button.quality.selected strong,
+.app #screen .selectrow button.quality[aria-pressed="true"] strong{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  opacity:1!important;
+}
+.app #screen .selectrow button.quality.selected small,
+.app #screen .selectrow button.quality[aria-pressed="true"] small{
+  color:#e1e4e9!important;
+  -webkit-text-fill-color:#e1e4e9!important;
+  opacity:1!important;
+}
+.app #screen .selectrow button.quality.selected::after,
+.app #screen .selectrow button.quality[aria-pressed="true"]::after{
+  border:2px solid #ffffff!important;
+  background:#ffffff!important;
+  box-shadow:inset 0 0 0 3.5px #3b3d42!important;
+}
+.app #screen .selectrow button.quality:focus-visible,
+.app #screen :is(button,input,select):focus-visible{
+  outline:2.5px solid #ffffff!important;
+  outline-offset:3px!important;
+}
+/* Use the same dark-on-dark selected-state language in other controls.
+ * Light primary action buttons retain their intentional black foreground. */
+.app #screen .tab.active,
+.app #screen .chip.selected,
+.app #screen .aurel-pro-choice button.is-selected,
+.app #screen .aurel-language-choice[aria-checked="true"]{
+  background:#3b3d42!important;
+  border:2px solid #f4f5f7!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+.app #screen .tab.active *,
+.app #screen .chip.selected *,
+.app #screen .aurel-pro-choice button.is-selected *,
+.app #screen .aurel-language-choice[aria-checked="true"] :is(span,small,strong){
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+.app #screen .aurel-language-choice[aria-checked="true"] small{
+  color:#e1e3e7!important;
+  -webkit-text-fill-color:#e1e3e7!important;
+}
+.app #screen .aurel-bp-detail{
+  color:#d4d8df!important;
+  font-size:14px!important;
+  line-height:1.5!important;
+  font-weight:620!important;
+}
+.app #screen .aurel-bp-heading p{
+  color:#d4d8df!important;
+  font-size:13.5px!important;
+  font-weight:620!important;
+}
+@media(max-width:390px){
+ .app #screen .selectrow button.quality{
+   padding-left:12px!important;
+   padding-right:31px!important;
+ }
+ .app #screen .selectrow button.quality strong{font-size:15px!important}
+ .app #screen .selectrow button.quality small{font-size:13.5px!important}
+}
