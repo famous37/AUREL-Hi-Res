@@ -49,5 +49,5 @@ assert(mixer.includes('Standard Android MediaPlayer / AudioFlinger'));
 assert(!mixer.includes('setPreferredMixerAttributes('));
 assert(fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/AurelUsbDacHost.java'),'utf8')
   .includes('new RoutingAudioSink(manager,'));
-assert(/versionCode\s+67/.test(gradle) && gradle.includes("'1.1.48'"));
+assert(/versionCode\s+68/.test(gradle) && gradle.includes("'1.1.49'"));
 console.log('Native resume, persisted navigation, signed-update safety and USB policy diagnoses validated.');
