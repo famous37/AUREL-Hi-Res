@@ -9,8 +9,10 @@ const motion=read('aurel-motion.js'),swipe=read('aurel-swipe-minimize.js');
 const app=read('app.js'),murglar=read('murglar.js');
 const discography=read('aurel-discography.js');
 const styles=html.match(/<link rel="stylesheet" href="([^"]+)"/g)||[];
-assert(styles.at(-1)?.includes('href="aurel-global-polish.css"'),
- 'The final global stylesheet must override old contradictory animations.');
+assert(styles.some(s=>s.includes('href="aurel-global-polish.css"')),
+ 'Global typography and motion stylesheet must remain loaded.');
+assert(html.indexOf('aurel-global-polish.css')<html.indexOf('aurel-precision-ui.css'),
+ 'The precision icons layer must be loaded after the global typography layer.');
 assert(html.indexOf('aurel-global-polish.css')>html.indexOf('aurel-icon-contrast.css'));
 const screens=[
  'page-heading h1','aurel-settings-heading h1','aurel-artist-section-heading h2',
