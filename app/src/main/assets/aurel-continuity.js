@@ -30,6 +30,36 @@ let lastPlayerTrack=String(saved.playerTrack||''),openPlayerAfterBoot=!!boot?.ov
 let lastError='',lastErrorAt=0;
 let lastAction=saved.lastAction&&typeof saved.lastAction==='object'?saved.lastAction:null;
 let overlayFingerprint='';
+let underlayView=(saved.underlay&&routeNames.has(saved.underlay.nav))?saved.underlay:null;
+let lastDetail=(saved.lastDetail&&routeNames.has(saved.lastDetail.nav)&&saved.lastDetail.id)?saved.lastDetail:null;
+let openSerial=0;
+const isDetail=v=>!!(v&&v.id&&kinds.has(v.kind));
+function snapshotUnderlay(){
+ const now=snapshot();
+ if(isDetail(now)){lastDetail={...now};return now;}
+ if(lastDetail&&now.nav===lastDetail.nav&&!app.selected)return {...lastDetail};
+ return now;
+}
+function minimizePlayer(){
+ if(!app.overlay)return false;
+ rememberPlayer();
+ const destination=underlayView&&routeNames.has(underlayView.nav)?{...underlayView}:snapshotUnderlay();
+ app.overlay=false;app.playerSheet='';
+ drawOverlay();
+ // Minimize is not Back: never consume page history.
+ if(isDetail(destination)&&(!app.selected||app.selectedKind!==destination.kind||
+    String(app.selected.id)!==String(destination.id))){
+   void restore(destination);
+ }else if(destination.nav!==app.nav){
+   void restore(destination);
+ }else{
+   shown=key();restoreY(destination);saveCurrent();
+ }
+ recordAction('player');
+ return true;
+}
+window.AurelMinimizePlayer=minimizePlayer;
+window.AurelPersistNow=()=>{remember();if(app.overlay)rememberPlayer();saveCurrent();};
 function recordAction(type){
  if(!['open','back','tab','player','sheet','resume'].includes(type))return;
  lastAction={type,at:Date.now()};
@@ -74,9 +104,11 @@ function snapshot(){
  return view;
 }
 function saveCurrent(){
- if(!started||!hasAuth()||restoring)return;
- const view=location();
+ if(!started||restoring)return;
+ const view=app.overlay&&underlayView?underlayView:location();
+ if(isDetail(view))lastDetail={...view};
  saved={current:{...view,overlay:!!app.overlay,playerSheet:app.overlay?(app.playerSheet||''):''},
+  underlay:underlayView,lastDetail,
   history:history.slice(-20),positions,playerTrack:lastPlayerTrack,
   playerScroll,detailScroll,lastAction};
  try{localStorage.setItem(KEY,JSON.stringify(saved));}catch(_){}
@@ -85,6 +117,7 @@ function persist(){clearTimeout(persistTimer);persistTimer=setTimeout(saveCurren
 function push(){
  if(restoring||!started||!hasAuth())return;
  remember();
+ underlayView=null;
  const old=snapshot();rememberData(old);
  const previous=history[history.length-1];
  if(!previous||locKey(previous)!==locKey(old))
@@ -114,6 +147,8 @@ function restorePlayer(){
 }
 async function restore(view){
  if(!view||!routeNames.has(view.nav))return;
+ ++openSerial;
+ app.catalogRequestId=(app.catalogRequestId||0)+1;
  const serial=++renderSerial;
  restoring=true;
  try{
@@ -158,7 +193,7 @@ async function restore(view){
   }
   if(serial!==renderSerial)return;
   if(view.kind==='artist'&&view.id&&!stored)window.AurelEnsureArtistExtras?.(view.id);
-  shown=key();restoreY(view);
+  shown=key();if(isDetail(view))lastDetail={...view};restoreY(view);
   // Native playback state arrives independently of catalogue recovery.
   // Reopen the saved player sheet after the last artist/album has rendered.
   if(view.overlay&&app.player?.track?.id &&
@@ -176,10 +211,7 @@ async function back(){
  if(app.overlay&&app.playerSheet){
   app.playerSheet='';drawOverlay();recordAction('back');return;
  }
- if(app.overlay){
-  rememberPlayer();app.overlay=false;app.playerSheet='';
-  drawOverlay();recordAction('back');return;
- }
+ if(app.overlay){minimizePlayer();recordAction('back');return;}
  if(restoring)return;
  remember();
  if(history.length){
@@ -195,6 +227,7 @@ window.AurelBack=()=>{void back();};
 window.AurelHistoryBack=()=>{void back();};
 window.AurelHistoryClear=()=>{
  history=[];boot=null;shown='';cachedViews.clear();
+ underlayView=null;lastDetail=null;++openSerial;
  lastPlayerTrack='';playerScroll=0;detailScroll=0;
  lastAction=null;openPlayerAfterBoot=false;
  for(const k of Object.keys(positions))delete positions[k];
@@ -207,11 +240,13 @@ function wrapOpen(name){
   if(!id)return;
   if(!restoring&&String(app.selected?.id||'')===String(id)&&app.selectedKind===name)return;
   const prior=snapshot();
+  const invocation=++openSerial;
   push();
   const expectedKey=locKey({nav:app.nav,kind:name,id:String(id),
       libType:app.libType,searchType:app.searchType});
   positions[expectedKey]=0;
-  try{await original.apply(this,arguments);}catch(e){if(!restoring)showToast(e?.message||'Unable to open page');}
+  try{await original.apply(this,arguments);}catch(e){if(!restoring&&invocation===openSerial)showToast(e?.message||'Unable to open page');}
+  if(invocation!==openSerial)return;
   if(!app.selected||app.selectedKind!==name||String(app.selected.id)!==String(id)){
     // The underlying API catches many failures itself; recover the page
     // rather than erasing the artist/library context on network errors.
@@ -229,10 +264,11 @@ openAlbum=wrapOpen('album');
 openPlaylist=wrapOpen('playlist');
 const oldNavigate=navigate;
 navigate=async function(page){
+ ++openSerial;
  if(restoring){renderSerial++;restoring=false;}
  if(page!==app.nav||app.selected)push();
  const result=await oldNavigate.apply(this,arguments);
- if(!restoring){shown=key();restoreY(location());recordAction('tab');}
+ if(!restoring){shown=key();underlayView=null;restoreY(location());recordAction('tab');}
  return result;
 };
 const oldRender=render;
@@ -269,6 +305,8 @@ render=function(){
 };
 const oldDraw=drawOverlay;
 drawOverlay=function(){
+ const wasOpen=overlayFingerprint.startsWith('open');
+ if(app.overlay&&!wasOpen&&!restoring)underlayView=snapshotUnderlay();
  rememberPlayer();
  const stateKey=(app.overlay?'open':'closed')+'|'+String(app.playerSheet||'');
  const changed=stateKey!==overlayFingerprint;
@@ -290,6 +328,7 @@ const oldEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const result=oldEvent.apply(this,arguments);
  if(kind==='player'&&openPlayerAfterBoot&&started&&hasAuth()&&data?.track?.id){
+  if(!underlayView&&saved.current)underlayView={...saved.current};
   openPlayerAfterBoot=false;
   app.overlay=true;
   app.playerSheet=['audio','credits','upnext'].includes(saved.current?.playerSheet)?saved.current.playerSheet:'';
@@ -319,10 +358,10 @@ document.addEventListener('scroll',e=>{
  persist();
 },{capture:true,passive:true});
 if(typeof window.addEventListener==='function'){
- window.addEventListener('pagehide',()=>{remember();rememberPlayer();saveCurrent();});
+ window.addEventListener('pagehide',window.AurelPersistNow);
  window.addEventListener('scroll',()=>{remember();persist();},{passive:true});
 }
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden){remember();rememberPlayer();saveCurrent();}
+ if(document.hidden)window.AurelPersistNow();
 });
 })();
