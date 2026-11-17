@@ -12,7 +12,6 @@
      String(!!s.streamConnected),String(!!s.libraryConnected)].join('|');
  };
  let identity=identityOf(app.session);
- const same=(a,b)=>a===b;
  function read(s,key){
    if(key==='bitPerfect')return !!s?.bitPerfect?.enabled;
    return s?.[key];
@@ -70,6 +69,48 @@
      if(b.classList.contains('is-on')!==checked)b.classList.toggle('is-on',checked);
      if(b.getAttribute('aria-checked')!==String(checked))b.setAttribute('aria-checked',String(checked));
    });
+   // Native AudioManager may change the USB route without a user gesture.
+   // Update just its status and optional explanation, not the entire panel.
+   const bp=session.bitPerfect||{},status=String(bp.status||'off');
+   const labels={
+     off:'Standard playback',android_version:'Android 14+ required',
+     no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',
+     unknown_format:'Track format unknown',unsupported_format:'Format not supported',
+     unsupported:'Not supported',rejected:'Mixer request rejected',
+     requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'
+   };
+   const descriptions={
+     off:'',android_version:'Android 14 or newer required.',
+     no_usb:'Connect a compatible USB DAC.',
+     waiting_track:'Play a lossless track to check USB output.',
+     unknown_format:'Track audio format cannot be verified.',
+     unsupported_format:'Android offers no matching bit-perfect USB mixer format.',
+     unsupported:'USB mixer controls are unavailable on this device.',
+     rejected:'Android rejected the USB mixer request.',
+     requested:'USB mixer preference accepted; PCM bit identity unverified.',
+     usb_mixer_routed:'USB audio routed; PCM bit identity unverified.'
+   };
+   const localize=value=>window.AurelLanguage?.get?.()==='uk'
+     ?(window.AurelLanguage.translate?.(value)||value):value;
+   const statusNode=document.querySelector('.aurel-bp-status strong');
+   const dot=document.querySelector('.aurel-bp-dot');
+   const message=localize(labels[status]||'Checking USB output');
+   if(statusNode&&statusNode.textContent!==message)statusNode.textContent=message;
+   if(dot){
+     dot.classList.toggle('is-routed',status==='usb_mixer_routed');
+     dot.classList.toggle('is-requested',status==='requested');
+   }
+   const container=document.querySelector('.aurel-bp-panel');
+   let detail=container?.querySelector('.aurel-bp-detail');
+   const explanation=localize(descriptions[status]??String(bp.detail||''));
+   if(detail&&!explanation){detail.remove();detail=null;}
+   if(explanation&&container){
+     if(!detail){
+       detail=document.createElement('p');detail.className='aurel-bp-detail';
+       container.appendChild(detail);
+     }
+     if(detail.textContent!==explanation)detail.textContent=explanation;
+   }
  }
  async function change(key,value,write){
    if(!tracked.includes(key)||typeof write!=='function')throw new Error('Unsupported preference write');
