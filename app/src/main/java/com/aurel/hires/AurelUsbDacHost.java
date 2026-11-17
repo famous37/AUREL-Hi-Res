@@ -24,6 +24,19 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * Android fallback for a genuinely unsupported USB format is labelled explicitly.
  */
 final class AurelUsbDacHost {
+    // This manager registers USB broadcasts for the process lifetime.
+    // Reusing it across Activity recreation prevents leaking receivers or
+    // racing two concurrent claims against the same DAC.
+    private static AurelUsbDacHost instance;
+    static synchronized AurelUsbDacHost get(Context context,boolean enabled,int volume) {
+        if(instance==null)instance=new AurelUsbDacHost(context,enabled,volume);
+        else {
+            instance.setEnabled(enabled);
+            instance.requestedVolume=Math.max(0,Math.min(100,volume));
+        }
+        return instance;
+    }
+
     private static final class Prefs implements UsbDacPreferences {
         private volatile boolean enabled;
         private volatile Integer volumeDb;
