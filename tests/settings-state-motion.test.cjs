@@ -88,11 +88,12 @@ assert.equal(qualities[1].getAttribute('aria-pressed'),'false');
 assert.equal(prefs.reconcileSession({...session,quality:27}).quality,7,
  'Old Android event must not overwrite the newest quality');
 (async()=>{
- await Promise.resolve();
+ // Cross-realm Promise continuations need one event-loop turn to settle.
+ await new Promise(resolve=>setImmediate(resolve));
  assert.deepEqual(writes,[6],'Same-setting writes are serialized');
  resolveSix({quality:6});
  await first;
- await Promise.resolve();
+ await new Promise(resolve=>setImmediate(resolve));
  assert.deepEqual(writes,[6,7],'Newest write eventually reaches native storage');
  assert.equal(app.session.quality,7);
  resolveSeven({quality:7});
