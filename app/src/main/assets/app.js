@@ -334,7 +334,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.31</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.32</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -383,6 +383,8 @@ async function loadHome(){try{let d=await api('discover',{},true);app.albums=sli
  catch(e){if(app.nav==='home')render();showToast('Qobuz discovery unavailable: '+e.message,5000)}}
 async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()||app.searchQuery;if(!app.searchQuery)return;
  if(window.AurelSearchHistory)window.AurelSearchHistory(app.searchQuery);
+ const buffered=window.AurelPageCache?.peek('search',{query:app.searchQuery,type:app.searchType});
+ if(buffered){app.results=sliceItems(buffered,app.searchType);if(!app.results.length)app.results=sliceItems(buffered);app.searchBusy=false;renderSearch();return;}
  app.searchBusy=true;renderSearch();try{let d=await api('search',{query:app.searchQuery,type:app.searchType},true);app.results=sliceItems(d,app.searchType);if(!app.results.length)app.results=sliceItems(d);}
  catch(e){app.results=[];showToast(e.message,6000)}finally{app.searchBusy=false;if(app.nav==='search')renderSearch();}}
 async function loadLibrary(force=false){
@@ -431,7 +433,7 @@ async function loadPlaylists(force=false){
   if(app.nav==='playlists'||(app.nav==='library'&&app.libType==='playlists'))render();
  }
 }
-async function openArtist(id){if(!id)return;window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
+async function openArtist(id){if(!id)return;window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('artist',{id});if(buffered){app.selected=buffered;app.selectedKind='artist';app.selectedTracks=[];render();return;}$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
 async function openArtistFor(entity){
  if(!entity){showToast('No artist metadata for this track');return}
  app.overlay=false;drawOverlay();
@@ -461,9 +463,9 @@ async function loadMoreArtistAlbums(){
   if(!fresh.length)showToast('No further releases returned by Qobuz');
  }catch(e){showToast('Unable to load more releases: '+e.message)}
 }
-async function openAlbum(id){if(!id)return;window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
+async function openAlbum(id){if(!id)return;window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('album',{id});if(buffered){app.selected=buffered;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(buffered,'tracks'),buffered);render();return;}$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
  try{let d=await api('album',{id});app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
-async function openPlaylist(id){window.AurelBeforeOpenEntity?.();$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
+async function openPlaylist(id){window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('playlist',{id});if(buffered){app.selected=buffered;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(buffered,'tracks'),buffered);render();return;}$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
  try{let d=await api('playlist',{id});app.selected=d;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
 async function playFromTracks(items,index=0){
  if(!Array.isArray(items)||!items.length){showToast('No tracks available for streaming');return false;}
@@ -510,6 +512,7 @@ async function login(form){
   // Account-specific collections cannot survive authentication changes.
   app.results=[];app.albums=[];app.libraryItems=[];app.playlists=[];
   app.libraryCache=Object.create(null);app.playlistsCache=null;
+  window.AurelPageCache?.clear();
   app.loginTarget='stream';app.libType='albums';
   showToast(secondary?'Qobuz library connected · loading your collection':'Qobuz connected · loading your library',4200);
   navigate('library');
@@ -637,12 +640,12 @@ document.addEventListener('click',async ev=>{
  if(b.hasAttribute('data-open-qobuz-web')){ev.preventDefault();nativeCall('openQobuzWeb').catch(e=>showToast(e.message||'Could not open official Qobuz login',5000));return}
  if(b.hasAttribute('data-change-stream')){app.loginTarget='stream';app.loginMode='password';renderLogin();return}
  if(b.hasAttribute('data-cancel-library')){app.loginTarget='stream';renderSettings();return}
- if(b.hasAttribute('data-logout-library')){try{
+ if(b.hasAttribute('data-logout-library')){try{window.AurelPageCache?.clear();
    app.session=await api('logoutLibrary');app.libraryCache=Object.create(null);
    app.playlistsCache=null;app.libraryItems=[];app.playlists=[];
    showToast('Using primary library');navigate('library');
   }catch(e){showToast(e.message)}return}
- if(b.hasAttribute('data-logout')){try{
+ if(b.hasAttribute('data-logout')){try{window.AurelPageCache?.clear();
    app.session=await api('logout');app.albums=[];app.results=[];
    app.libraryCache=Object.create(null);app.playlistsCache=null;
    app.libraryItems=[];app.playlists=[];navigate('home');

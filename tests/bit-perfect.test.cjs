@@ -52,5 +52,6 @@ assert(modern.includes('End-to-end bit identity'));
 
 // There is no forced 44.1 -> 48 kHz fallback and no fake success for Bluetooth.
 assert(!/setPreferredMixerAttributes\([^)]*MIXER_BEHAVIOR_DEFAULT/.test(java));
-assert(!/usb\(device\).*TYPE_BLUETOOTH/s.test(java));
+const usbGuard=java.slice(java.indexOf('static boolean usb('),java.indexOf('private AudioDeviceInfo connectedUsb('));
+assert(!usbGuard.includes('TYPE_BLUETOOTH'),'Bluetooth cannot be a USB bit-perfect target');
 console.log('USB Bit-perfect negotiation, reporting and settings checks passed.');

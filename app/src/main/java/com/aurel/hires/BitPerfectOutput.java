@@ -237,6 +237,66 @@ final class BitPerfectOutput {
             + "Decoder PCM and DAC samples are not independently verified.";
     }
 
+    /** Physical and policy capabilities only. A listed sample rate is not
+     * evidence that decoded PCM reaches the external DAC unchanged. */
+    JSONObject diagnostics(MediaPlayer mediaPlayer) {
+        JSONObject out=new JSONObject();
+        try {
+            out.put("androidApi",Build.VERSION.SDK_INT);
+            out.put("bitPerfect",status(mediaPlayer));
+            org.json.JSONArray devices=new org.json.JSONArray();
+            AudioDeviceInfo route=null;
+            try {if(mediaPlayer!=null)route=mediaPlayer.getRoutedDevice();}
+            catch(RuntimeException ignored){}
+            if(manager!=null) {
+                for(AudioDeviceInfo device:manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                    JSONObject item=new JSONObject();
+                    boolean isUsb=usb(device);
+                    int type=device.getType();
+                    String kind=isUsb?"USB DAC / USB audio":
+                        type==AudioDeviceInfo.TYPE_BLUETOOTH_A2DP?"Bluetooth A2DP":
+                        type==AudioDeviceInfo.TYPE_BUILTIN_SPEAKER?"Built-in speaker":
+                        type==AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                            type==AudioDeviceInfo.TYPE_WIRED_HEADSET?"Analog headphones":"Other output";
+                    item.put("name",String.valueOf(device.getProductName()));
+                    item.put("category",kind);
+                    item.put("usb",isUsb);
+                    item.put("currentlyRouted",route!=null&&route.getId()==device.getId());
+                    org.json.JSONArray rates=new org.json.JSONArray();
+                    for(int hz:device.getSampleRates())rates.put(hz);
+                    item.put("advertisedSampleRates",rates);
+                    org.json.JSONArray channels=new org.json.JSONArray();
+                    for(int count:device.getChannelCounts())channels.put(count);
+                    item.put("advertisedChannelCounts",channels);
+                    if(isUsb&&Build.VERSION.SDK_INT>=34) {
+                        org.json.JSONArray formats=new org.json.JSONArray();
+                        try {
+                            List<AudioMixerAttributes> mixers=manager.getSupportedMixerAttributes(device);
+                            if(mixers!=null)for(AudioMixerAttributes mixer:mixers) {
+                                if(formats.length()>=32)break;
+                                if(mixer==null||mixer.getFormat()==null)continue;
+                                AudioFormat format=mixer.getFormat();
+                                formats.put(new JSONObject()
+                                    .put("hz",format.getSampleRate())
+                                    .put("channels",format.getChannelCount())
+                                    .put("encoding",format.getEncoding())
+                                    .put("bitPerfect",mixer.getMixerBehavior()==
+                                        AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT));
+                            }
+                        }catch(RuntimeException ignored){}
+                        item.put("mixerFormats",formats);
+                    }
+                    devices.put(item);
+                }
+            }
+            out.put("outputs",devices);
+            out.put("verifiedEndToEnd",false);
+            out.put("note","Hardware-reported capabilities, not measured DAC output. "+
+                "Android MediaPlayer does not expose bit-identical decoded PCM verification.");
+        }catch(Exception ignored){}
+        return out;
+    }
+
     /** Reporting a request is not proof of end-to-end bit-identical audio. */
     JSONObject status(MediaPlayer mediaPlayer) {
         JSONObject result = new JSONObject();

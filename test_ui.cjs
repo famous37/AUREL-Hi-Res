@@ -391,7 +391,7 @@ run("app.playerSheet='upnext';drawOverlay()");
 assert(nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'));
 run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.31"), 'APK version should advance');
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("1.1.32"), 'APK version should advance');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -401,7 +401,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.31'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.32'"));
 assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -433,7 +433,7 @@ assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artis
 assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
   'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.31'"));
+assert(fs.readFileSync(__dirname+'/app/build.gradle','utf8').includes("'1.1.32'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -458,7 +458,7 @@ assert(gateway.includes('"VERIFICATION_REQUIRED".equalsIgnoreCase(code)')&&
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('reverifyMornye')"), 'settings/player must invoke re-verification');
 assert(fs.readFileSync(base+'app.js','utf8').includes('aurel-gateway-warning'), 'failed grants need a persistent warning');
 assert(murglarJs.includes('data-reverify-mornye'), 'Now Playing must expose verification instead of an inert error');
-assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.31</strong>'), 'Settings must show the installed version');
+assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.32</strong>'), 'Settings must show the installed version');
 
 const playerFitCss=fs.readFileSync(base+'aurel-player-fit.css','utf8');
 const playerFitJs=fs.readFileSync(base+'aurel-player-fit.js','utf8');
@@ -481,7 +481,7 @@ assert(continuityCss.includes('top:calc(env(safe-area-inset-top')&&continuityCss
 assert(continuityCss.includes('.app:has(#overlay:not(.hidden)) #toast.toast')&&continuityCss.includes('inset-block-end:auto!important')&&continuityCss.includes('height:fit-content!important'),'a fixed-position notification must be content-sized even if legacy player CSS pins its bottom');
 assert(!murglarJs.includes('<div class="playback-error" role="status">'),'do not duplicate playback errors inside the player');
 assert(playerHtml.includes('aurel-continuity.js')&&playerHtml.includes('aurel-continuity.css'));
-console.log('AUREL 1.1.31 continuity and error-overlay checks passed.');
-console.log('AUREL 1.1.31 checks passed — live artist rendering, global theme and native catalogue sections.');
+console.log('AUREL 1.1.32 continuity and error-overlay checks passed.');
+console.log('AUREL 1.1.32 checks passed — live artist rendering, global theme and native catalogue sections.');
 
 

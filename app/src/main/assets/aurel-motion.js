@@ -17,7 +17,8 @@
    previous=next;
    const screen=document.getElementById('screen');
    if(!screen||typeof screen.animate!=='function'||document.hidden||app.overlay)return;
-   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+   if(document.documentElement?.dataset?.aurelMotion==='off'||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
    try {
      if(active&&typeof active.cancel==='function')active.cancel();
      active=screen.animate([{opacity:.984},{opacity:1}],{
