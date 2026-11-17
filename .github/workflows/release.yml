@@ -143,7 +143,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\\n' \
+          printf '%s\n' \
             '**AUREL Hi-Res v1.1.33 — Bluetooth diagnostics and cleaner settings**' \
             '' \
             '- Android Bluetooth A2DP / LE Audio device name, current playback route, and reported output formats.' \
