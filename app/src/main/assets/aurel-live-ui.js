@@ -28,12 +28,16 @@
   const baseTheme={bg:'#111214',surface:'#202124',accent:'#D5D7DB'};
   let artworkPalette=false;
   try{artworkPalette=localStorage.getItem(PALETTE_KEY)==='on';}catch(_){}
+  // Explicit theme state lets monochrome selectors override old artwork
+  // gradients everywhere, even when older components set inline variables.
+  document.documentElement.setAttribute('data-aurel-palette',artworkPalette?'artwork':'mono');
   let activeCover='';
   const validHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
   function coverNow(){return app.player?.track?image(app.player.track):'';}
   function setTheme(colors){
     const root=document.documentElement;
     if(!root||!root.style)return;
+    root.setAttribute('data-aurel-palette',artworkPalette?'artwork':'mono');
     root.style.setProperty('--aurel-theme-bg',colors.bg);
     root.style.setProperty('--aurel-theme-surface',colors.surface);
     root.style.setProperty('--aurel-theme-accent',colors.accent);
