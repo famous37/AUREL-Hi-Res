@@ -16,27 +16,27 @@ const fmtTrack=(t,i)=>{
 function albumShelf(items){if(!items.length)return '<div class="empty">No releases have been returned by the connected account.</div>';return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">♪</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
 renderHome=function(){
  const name=app.session?.profile?.displayName||'Listener';
- $('#screen').innerHTML=`<div class="page-heading"><h1>Discover</h1><button class="subtle-icon" data-nav="settings" aria-label="Settings">⚙</button></div>
+ $('#screen').innerHTML=`<div class="page-heading"><h1>Discover</h1><button class="subtle-icon" data-nav="settings" aria-label="Settings">${ic('settings',26)}</button></div>
  ${app.session?.streamValidation==='unverified'?
  '<div class="auth-status-banner" role="status">'+ic('info',21)+'<div><strong>Session saved, not verified</strong><span>The Qobuz API did not confirm this token. Try playing a track to check streaming access.</span></div></div>':''}
  <div class="home-chips"><button class="chip ${app.discoverTab==='new'?'selected':''}" data-discover-tab="new">Home</button><button class="chip ${app.discoverTab==='albums'?'selected':''}" data-discover-tab="albums">New releases</button><button class="chip ${app.discoverTab==='collection'?'selected':''}" data-discover-tab="collection">Your library</button></div>
  ${app.discoverTab==='collection'?`<section class="welcome-panel"><span class="kicker">YOUR COLLECTION</span><h2>Everything you love,<br>in one place.</h2><p>Explore saved music from your library account.</p><button class="action-pill" data-nav="library">Open library ↗</button></section>`:
  `<section class="spotlight"><div class="spotlight-copy"><span class="kicker">AUREL / LOSSLESS LISTENING</span><h2>Listen deeper.</h2><p>Albums, artists and music worth your time.</p><button class="action-pill" data-nav="search">Explore music ↗</button></div><div class="spotlight-stack">${app.albums.slice(0,3).map(a=>art(a,'spotlight-cover')).join('')}</div></section>
- <div class="sectionhead new-section"><div><h2>${app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>Recently released albums available in the catalogue</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">↻</button></div>${albumShelf(app.albums)}
+ <div class="sectionhead new-section"><div><h2>${app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>Recently released albums available in the catalogue</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">${ic('refresh',25)}</button></div>${albumShelf(app.albums)}
  <div class="sectionhead"><div><h2>Go your own way</h2><p>Quick access to music that matters</p></div></div>
- <div class="quicklinks"><button data-nav="library">▦ <strong>Your favourites</strong><small>Releases, artists, playlists</small></button><button data-nav="search">⌕ <strong>Search catalogue</strong><small>Tracks, artists and albums</small></button></div>`}
+ <div class="quicklinks"><button data-nav="library"><span class="quicklink-icon" aria-hidden="true">${ic('library',27)}</span><strong>Your favourites</strong><small>Releases, artists, playlists</small></button><button data-nav="search"><span class="quicklink-icon" aria-hidden="true">${ic('search',27)}</span><strong>Search catalogue</strong><small>Tracks, artists and albums</small></button></div>`}
  <p class="disclaimer">AUREL is an independent client. Catalogue and streaming depend on Qobuz authorization.</p>`;
 };
 function renderMagazine(){
  $('#screen').innerHTML=`<div class="page-heading"><h1>Magazine</h1></div><div class="magazine-hero"><span class="kicker">MUSIC / STORIES / ARTISTS</span><h2>Go beyond<br>the recording.</h2><p>Reviews, interviews and listening guides from Qobuz's editorial magazine.</p><button class="action-pill" data-open-magazine>Read Qobuz Magazine ↗</button></div>
  <div class="sectionhead"><div><h2>Music has a story</h2><p>Editorial articles open on Qobuz's official site</p></div></div>
- <div class="magazine-features"><div class="magazine-tile">✎<strong>Interviews</strong><small>The people behind the music</small></div><div class="magazine-tile">◎<strong>Album stories</strong><small>Context for deeper listening</small></div><div class="magazine-tile">♬<strong>Discoveries</strong><small>Genres, labels and recordings</small></div></div>
+ <div class="magazine-features"><div class="magazine-tile">${ic('info',27)}<strong>Interviews</strong><small>The people behind the music</small></div><div class="magazine-tile">${ic('album',27)}<strong>Album stories</strong><small>Context for deeper listening</small></div><div class="magazine-tile">${ic('audio',27)}<strong>Discoveries</strong><small>Genres, labels and recordings</small></div></div>
  <p class="disclaimer">Articles are not mirrored or redistributed inside AUREL.</p>`;
 };
 renderSearch=function(){
  const recent=remembered();
  $('#screen').innerHTML=`<div class="page-heading"><h1>Search</h1></div>
- <form id="searchForm" class="searchbox qsearch"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" enterkeyhint="search" placeholder="Artists, albums, tracks…" autocomplete="off" value="${html(app.searchQuery)}"><button class="search-submit" type="submit" aria-label="Search">→</button></form>
+ <form id="searchForm" class="searchbox qsearch"><span class="aurel-search-leading" aria-hidden="true">${ic('search',24)}</span><input id="searchInput" type="search" enterkeyhint="search" placeholder="Artists, albums, tracks…" autocomplete="off" value="${html(app.searchQuery)}"><button class="search-submit" type="submit" aria-label="Search">${ic('arrow-right',27)}</button></form>
  <div class="tabs search-tabs">${['tracks','albums','artists'].map(t=>`<button class="tab ${app.searchType===t?'active':''}" data-search-type="${t}">${({tracks:'Tracks',albums:'Albums',artists:'Artists'})[t]}</button>`).join('')}</div>
  ${!app.searchQuery&&recent.length?`<div class="recent-head"><h2>Recent searches</h2><button data-clear-recent aria-label="Clear recent searches">Clear</button></div><div class="recents">${recent.map(q=>`<button data-search-recent="${html(q)}"><span>↗</span>${html(q)}<b>›</b></button>`).join('')}</div>`:''}
  <div id="searchResults">${app.searchBusy?'<div class="loading"><div class="pulse"></div>Searching catalogue…</div>':searchResults()}</div>`;
@@ -184,6 +184,7 @@ const ic=(key,size=24)=>{
   home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
   library:'<rect x="3" y="3" width="15" height="18" rx="2"/><path d="M7 7h7M7 11h7M7 15h6M21 7v14"/>',
   search:'<circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/>',
+  'arrow-right':'<path d="M4 12h16m-7-7 7 7-7 7"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="m10 2 1 2h2l1-2 3 2-.3 2.1 1.8 1 2-.8 1.1 3.4-1.7 1.4v2l1.7 1.4-1.1 3.4-2-.8-1.8 1L17 20l-3 2-1-2h-2l-1 2-3-2 .3-2.1-1.8-1-2 .8-1.1-3.4 1.7-1.4v-2l-1.7-1.4 1.1-3.4 2 .8 1.8-1L7 4z"/>',
   refresh:'<path d="M20 11a8 8 0 1 0-2 5M20 4v7h-7"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
