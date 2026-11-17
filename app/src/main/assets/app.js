@@ -51,7 +51,7 @@ const artistChoices=o=>[o?.artist,o?.album?.artist,o?.main_artist,o?.mainArtist,
  o?.album?.artist,o?.album?.artist_name,o?.album?.main_artist,o?.album?.performer,o?.album?.artists?.items?.[0],
  Array.isArray(o?.album?.artists)?o.album.artists[0]:null];
 const artistName=o=>nameOf(o)||nameOf(o?.artist)||nameOf(o?.performer)||'Artist not provided';
-const artist=o=>artistChoices(o).map(nameOf).find(Boolean)||'';
+const artist=o=>artistChoices(o).map(v=>nameOf(v)).find(Boolean)||'';
 const artistId=o=>{
  for(const candidate of artistChoices(o)){
   const id=candidate&&typeof candidate==='object'?(candidate.id??candidate.artist_id):null;
