@@ -303,6 +303,9 @@ function renderLogin(){
 }
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
+ const bp=app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
+ const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'Format not supported',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
+ const bpStatus=bpLabels[bp.status]||'Checking USB output';
  $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back',25)}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel"><h3>Streaming account</h3>
  ${app.session.gatewayPlaybackRejected?`<div class="aurel-gateway-warning" role="status"><strong>Streaming verification needed</strong><span>The Zarz gateway rejected audio playback. Catalogue access alone does not confirm streaming authorization.</span><button class="pill secondary" data-reverify-mornye>Verify Mornye session</button></div>`:'' }
 <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
@@ -320,6 +323,14 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  ${app.session.libraryConnected?'<button class="small-link" data-logout-library style="margin-left:18px">Disconnect library</button>':''}</div>
  <div class="panel"><h3>Streaming quality</h3><p class="subline">Maximum requested quality. Actual format depends on rights, availability and decoding support.</p>
  <div class="selectrow">${[5,6,7,27].map(q=>`<button class="quality ${app.session.quality===q?'selected':''}" data-quality="${q}"><strong>${q===5?'MP3':q===6?'CD Lossless':q===7?'Hi-Res':'Max Hi-Res'}</strong><small>${q===5?'320 kbps':q===6?'16 / 44.1':q===7?'24 / 96':'24 / 192'}</small></button>`).join('')}</div>
+ <section class="aurel-bp-panel" aria-label="USB bit-perfect playback setting">
+   <div class="aurel-bp-heading"><div><h3>Bit-perfect USB</h3><p>Android 14+ · compatible external USB DAC</p></div>
+     <button type="button" data-bit-perfect-toggle class="aurel-bp-switch ${bp.enabled?'is-on':''}" role="switch" aria-checked="${bp.enabled?'true':'false'}" aria-label="Enable bit-perfect USB output" title="Toggle bit-perfect USB output"><span aria-hidden="true"></span></button>
+   </div>
+   <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${bp.status==='usb_mixer_routed'?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
+   <p class="aurel-bp-detail">${html(bp.detail||'Connect a compatible USB DAC to test mixer support.')}</p>
+   <p class="aurel-bp-note">The Android USB mixer request cannot independently prove bit-identical PCM after decoding. Bluetooth, internal speakers and analog outputs are not treated as bit-perfect. USB hardware may control volume.</p>
+ </section>
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
@@ -601,6 +612,16 @@ document.addEventListener('click',async ev=>{
  }
  if(b.dataset.likeTrack){like('tracks',b.dataset.likeTrack);return}
  if(b.dataset.likeAlbum){like('albums',b.dataset.likeAlbum);return}
+ if(b.hasAttribute('data-bit-perfect-toggle')){
+   if(b.disabled)return;
+   const wanted=!(app.session?.bitPerfect?.enabled);
+   b.disabled=true;
+   try{
+     await nativeCall('setBitPerfect',{enabled:wanted});
+     showToast(wanted?'USB bit-perfect preference enabled. Check device status below.':'Standard Android output restored.',4200);
+   }catch(e){showToast(e.message||'Could not change USB output mode',5200);b.disabled=false;}
+   return;
+ }
  if(b.dataset.quality){setQuality(Number(b.dataset.quality));return}
  if(b.hasAttribute('data-save-secret')){setSecret();return}
  if(b.hasAttribute('data-add-library')){app.loginTarget='library';app.loginMode='password';renderLogin();return}
