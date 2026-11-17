@@ -42,7 +42,7 @@ assert(modern.includes('if(viewChanged)drawOverlay();'));
 assert(modern.includes("if(badge&&badge.textContent!==text)badge.textContent=text;"));
 assert(player.includes("if(toggle.dataset.icon!==mode)"));
 assert(player.includes("if(repeatButton.dataset.mode!==String(p.repeat))"));
-assert(motion.includes('duration:270'));
+assert(motion.includes('duration:320'));
 assert(language.includes('Доступно для прослуховування з '));
 new Function(js);new Function(player);new Function(modern);new Function(motion);
 const window={};const context=vm.createContext({window,Date});
