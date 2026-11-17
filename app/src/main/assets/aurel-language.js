@@ -153,12 +153,9 @@ var dictionary={
  'English':'Англійська','Ukrainian':'Українська'
 };
 Object.assign(dictionary,{
- 'Audio outputs':'Аудіовиходи',
  'Accounts & library':'Облікові записи й бібліотека',
- 'Appearance & app':'Вигляд і програма',
  'Advanced account credentials':'Додаткові дані облікового запису',
  'Audio outputs':'Аудіовиходи',
- 'Connected device and Android-reported capabilities.':'Під’єднаний пристрій і дані Android.',
  'Connected outputs · USB & Bluetooth':'Під’єднані виходи · USB і Bluetooth',
  'Signal path':'Шлях аудіосигналу',
  'Refresh outputs':'Оновити виходи',
