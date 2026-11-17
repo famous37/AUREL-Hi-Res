@@ -1107,6 +1107,15 @@ public final class MainActivity extends Activity {
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
                                 if(wanted && UsbDirectPlayback.connected(this)){
                                     UsbDirectPlayback.requestPermission(this, granted->ui.post(()->{
+                                        if(granted&&bitPerfect.isEnabled()&&directPlayer==null
+                                            &&player!=null&&prepared&&isAudioPlaying()){
+                                            restoredPositionMs=audioPosition();
+                                            restoredTrackId=current.optString("id","");
+                                            directFallbackTrackId="";
+                                            // Re-authorize a fresh stream when access to
+                                            // the external USB interface becomes available.
+                                            startAtCurrentInternal();
+                                        }
                                         try{emit("session",session());}catch(Exception ignored){}
                                         emit("player",playerState());
                                     }));
@@ -1772,20 +1781,24 @@ public final class MainActivity extends Activity {
                                         if(generation==playGeneration&&playback==directPlayer)advance(1,true);
                                     }
                                     @Override public void onError(UsbDirectPlayback playback,String error){
-                                        if(generation!=playGeneration||directPlayer!=playback)return;
-                                        Log.w(MEDIA_TAG,"Direct USB error: "+error);
-                                        directFallbackTrackId=id;
-                                        int position=prepared?playback.position():0;
-                                        mediaRecovery.rememberPosition(position);
-                                        cleanupPlayer();
-                                        // Fallback ALWAYS obtains a new signed stream URL.
-                                        if(focusPolicy.shouldStartPrepared()){
-                                            buffering=true;startAtCurrentInternal();
-                                        }else{
-                                            buffering=false;
-                                            playerError="USB direct failed: "+error;
-                                            emit("player",playerState());
-                                        }
+                                        // Defer release: Media3 may deliver this callback while
+                                        // notifying its listeners on the playback Looper.
+                                        ui.post(()->{
+                                            if(generation!=playGeneration||directPlayer!=playback)return;
+                                            Log.w(MEDIA_TAG,"Direct USB error: "+error);
+                                            directFallbackTrackId=id;
+                                            int position=prepared?playback.position():0;
+                                            mediaRecovery.rememberPosition(position);
+                                            cleanupPlayer();
+                                            // Never reuse a possibly single-use stream URL.
+                                            if(focusPolicy.shouldStartPrepared()){
+                                                buffering=true;startAtCurrentInternal();
+                                            }else{
+                                                buffering=false;
+                                                playerError="USB direct failed: "+error;
+                                                emit("player",playerState());
+                                            }
+                                        });
                                     }
                                 });
                                 directPlayer.prepare(streamUrl);
