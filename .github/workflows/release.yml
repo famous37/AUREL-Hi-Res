@@ -101,6 +101,7 @@ jobs:
           node tests/bit-perfect.test.cjs
           node tests/playback-continuity.test.cjs
           node tests/swipe-icons.test.cjs
+          node tests/player-icon-seek.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
