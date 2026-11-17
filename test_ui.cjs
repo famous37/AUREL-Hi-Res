@@ -202,7 +202,7 @@ assert(modern.includes('p.streamHeaderVerified&&rate'));
 assert(modern.includes('Quality verified by'));
 assert(modern.includes('MP3 sampled frame bitrate'));
 assert(!modern.includes('Playing · Qobuz up to'));
-assert(java.includes('qualityProbePending=!sourceVerified;'));
+assert(java.includes('qualityProbePending=!sourceVerified&&!viaMornye;'), 'Inspect source headers only for direct Qobuz URLs; do not duplicate signed Mornye requests');
 assert(java.includes('StreamQualityProbe.inspect(streamUrl)'));
 assert(java.includes('if(generation!=playGeneration)return;'));
 assert(java.includes('fileInfo.put("bits_depth",parsed.bitDepth)'));
