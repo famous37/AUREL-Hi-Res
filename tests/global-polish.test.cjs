@@ -41,7 +41,7 @@ assert(motion.includes('previous===next'));
 assert(motion.includes('document.hidden||app.overlay'));
 assert(swipe.includes("if(accepted)dismiss()"));
 assert(swipe.includes("if(app.overlay)closePage()"));
-assert(swipe.includes("window.AurelHistoryBack"));
+assert(swipe.includes("window.AurelMinimizePlayer"));
 assert(murglar.includes('murglar-progress-row'));
 assert(app.includes('renderSearch')&&app.includes('renderSettings'));
 assert(discography.includes('artist'),'Artist library modules remain loaded');
