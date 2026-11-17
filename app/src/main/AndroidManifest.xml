@@ -3,6 +3,7 @@
     <!-- Needed only for the user-confirmed installer of signed GitHub APKs. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-feature android:name="android.hardware.usb.host" android:required="false"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <application android:allowBackup="false" android:label="@string/aurel_app_name"
@@ -28,6 +29,12 @@
             android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".MainActivity" android:exported="true"
             android:windowSoftInputMode="adjustResize" android:configChanges="keyboardHidden|orientation|screenSize">
+            <!-- Direct USB access: user must grant USB permission. -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
+            </intent-filter>
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/usb_audio_device_filter"/>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
