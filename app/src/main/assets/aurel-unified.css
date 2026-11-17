@@ -230,3 +230,49 @@
 @media(prefers-reduced-motion:reduce){
  #overlay *,.app .mini *, .app .bottom-nav *{animation:none!important;transition:none!important}
 }
+
+/* Responsive.js owns the installed mini-player: its text control is a button,
+ * not a metadata div. Explicitly constrain the flex item and its children. */
+.app .mini .mini-track-open{
+ flex:1 1 0!important;
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:flex-start!important;
+ justify-content:center!important;
+ gap:3px!important;
+ min-width:0!important;
+ width:0!important;
+ max-width:100%!important;
+ overflow:hidden!important;
+ white-space:nowrap!important;
+ padding:0!important;
+ margin:0!important;
+ border:0!important;
+ background:transparent!important;
+ text-align:left!important;
+}
+.app .mini .mini-track-open :is(strong,small){
+ display:block!important;
+ min-width:0!important;
+ width:100%!important;
+ max-width:100%!important;
+ overflow:hidden!important;
+ white-space:nowrap!important;
+ text-overflow:ellipsis!important;
+ line-height:1.28!important;
+ text-align:left!important;
+}
+.app .mini .mini-track-open strong{
+ font-size:15.5px!important;
+ font-weight:800!important;
+ color:#f9fafb!important;
+}
+.app .mini .mini-track-open small{
+ font-size:13.5px!important;
+ font-weight:680!important;
+ color:#d1d3d7!important;
+}
+@media(max-width:390px){
+ .app .mini .mini-track-open strong{font-size:14.5px!important}
+ .app .mini .mini-track-open small{font-size:12.8px!important}
+}
