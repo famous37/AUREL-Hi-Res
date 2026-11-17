@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.46: signed USB volume + progress build after full seek and audio checks.
+# v1.1.47: restore USB DAC playback in standard and direct modes.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -163,15 +163,15 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — iBasso DAC hardware-volume and smooth mini-player update**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — USB DAC playback and safe fallback repair**" \
             '' \
-            '- Adds standard USB Audio Class 2.0 Feature Unit hardware volume when supported by the DAC.' \
-            '- Direct USB begins at a safe 35% output setting; software attenuation is explicitly labelled not bit-perfect.' \
-            '- USB volume works with the AUREL slider, Android physical volume keys and lock-screen media session.' \
-            '- The OS USB attachment chooser is enabled only while Bit-perfect USB is on, with single-instance activity reuse.' \
-            '- Mini-player artwork and buttons stay mounted; the progress bar uses a monotonic clock with no layout reset.' \
-            '- Removes half-second seekbar quantization and synchronizes USB mode/volume status in settings.' \
-            '- Hardware qualification remains necessary: verify iBasso DC05 16/44.1 and 24/96, background volume, pause and seek.' \
+            '- Corrects premature USB startup checks: direct USB now has time to activate after PCM begins.' \
+            '- Preserves safe initial USB volume, with hardware and digital attenuation truthfully identified.' \
+            '- Routes standard Android audio to the USB DAC even when Bit-perfect is disabled.' \
+            '- Prevents a failed direct USB session from requesting a conflicting Android bit-perfect mixer.' \
+            '- Releases the native USB stream before starting the Android fallback with a fresh signed URL.' \
+            '- Reports whether Android actually routes audio to USB or merely detects the DAC.' \
+            '- Hardware validation still required: iBasso DC05 16/44.1 and 24/96, pause, seek and reconnect.' \
             '- Preserves AUREL signing certificate, installed package ID, Qobuz credentials and app data.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
