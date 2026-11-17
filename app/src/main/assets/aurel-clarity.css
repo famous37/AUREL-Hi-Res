@@ -2,7 +2,7 @@
 :root{
  --aurel-clarity-paper:#f7f8fb;
  --aurel-clarity-muted:#d2d5db;
- --aurel-clarity-gold:#eac184;
+ --aurel-clarity-accent:#F5F6F7;
  --aurel-clarity-ease:cubic-bezier(.22,1,.36,1);
 }
 .app .screen :is(h1,h2,h3,h4,.panel h3,.sectionhead h2),
@@ -47,7 +47,7 @@
  --aurel-theme-border:#ffffff2b;
  --aurel-theme-on:#f7f8fa;
  --aurel-theme-secondary:#d4d7dc;
- --aurel-theme-accent:#eac184;
+ --aurel-theme-accent:#F5F6F7;
  --aurel-theme-ink:#171819;
  gap:12px;
 }
@@ -64,7 +64,7 @@
  box-shadow:none!important;
 }
 .app #screen .aurel-settings-group[open]{
- border-color:#eac18473!important;
+ border-color:#F5F6F773!important;
 }
 .app #screen .aurel-settings-group>summary{
  font-size:17px!important;
@@ -75,7 +75,7 @@
  color:#f6f7fa!important;
 }
 .app #screen .aurel-settings-group>summary:focus-visible{
- outline:2px solid #eac184;
+ outline:2px solid #F5F6F7;
  outline-offset:-3px;
 }
 .app #screen .aurel-settings-group>summary .aurel-group-icon{
@@ -84,10 +84,10 @@
  min-width:45px;
  display:inline-grid;
  place-items:center;
- border:1px solid #eac1844f;
+ border:1px solid #F5F6F74f;
  border-radius:15px;
- background:linear-gradient(140deg,#454036,#292827);
- color:#eac184;
+ background:linear-gradient(140deg,#35373B,#24262A);
+ color:#F5F6F7;
 }
 .app #screen .aurel-settings-group>summary .aurel-group-icon svg{
  width:26px;
@@ -147,8 +147,8 @@
  color:#f6f7f9!important;
 }
 .app #screen .aurel-pro-button{
- background:#343337!important;
- border-color:#eac18475!important;
+ background:#2D2F33!important;
+ border-color:#F5F6F775!important;
  color:#f8f7f5!important;
  font-weight:760!important;
  font-size:14px!important;
@@ -156,7 +156,7 @@
  min-height:46px;
 }
 .app #screen .aurel-pro-button:active{
- background:#45403b!important;
+ background:#3B3E42!important;
 }
 .app #screen .aurel-dac-results{
  gap:10px;
@@ -169,7 +169,7 @@
  gap:7px!important;
 }
 .app #screen .aurel-dac-device.is-active{
- border-color:#eac184!important;
+ border-color:#F5F6F7!important;
 }
 .app #screen .aurel-dac-device strong{
  color:#fbfbfb!important;
@@ -218,7 +218,7 @@ html[data-aurel-motion="off"] .app #screen
  transition:transform 230ms var(--aurel-clarity-ease),opacity 230ms ease-out!important;
 }
 #overlay.aurel-swipe-dismissing .murglar-view{
- transition:transform 290ms var(--aurel-clarity-ease),opacity 260ms ease-out!important;
+ transition:transform 350ms var(--aurel-clarity-ease),opacity 310ms ease-out!important;
 }
 @media(prefers-reduced-motion:reduce){
  #overlay.aurel-swipe-dismissing .murglar-view,

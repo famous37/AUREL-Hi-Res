@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FF101114" android:pathData="M0,0H108V108H0Z"/>
+    <!-- AUREL high contrast icon for non-adaptive surfaces. -->
+    <path android:pathData="M54,20 A34,34 0,1 1,53.99 20"
+        android:fillColor="#00000000" android:strokeColor="#FF56606C"
+        android:strokeWidth="1.4"/>
+    <path android:pathData="M54,25 A29,29 0,1 1,53.99 25"
+        android:fillColor="#00000000" android:strokeColor="#FF3E4550"
+        android:strokeWidth="1"/>
+    <path android:pathData="M54,30 A24,24 0,1 1,53.99 30"
+        android:fillColor="#00000000" android:strokeColor="#FF2F3640"
+        android:strokeWidth="1"/>
+    <path android:pathData="M30,79 L50,34 L58,34 L78,79"
+        android:fillColor="#00000000" android:strokeColor="#FFF8FAFC"
+        android:strokeWidth="9" android:strokeLineCap="butt"
+        android:strokeLineJoin="round"/>
+    <!-- Symmetric sound wave remains crisp at small launcher sizes. -->
+    <path android:pathData="M41,64 L41,68 M46,61 L46,71 M51,57 L51,75 M56,54 L56,78 M61,57 L61,75 M66,61 L66,71"
+        android:fillColor="#00000000" android:strokeColor="#FFF8FAFC"
+        android:strokeWidth="2.7" android:strokeLineCap="round"/>
+</vector>

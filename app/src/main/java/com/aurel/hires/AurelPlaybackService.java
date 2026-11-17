@@ -51,6 +51,55 @@ public final class AurelPlaybackService extends Service {
     private int coverGeneration=0;
 
 
+    /** Normalize Qobuz/Mornye names before Android MediaMetadata and notifications.
+     * Providers sometimes return {"display":"..."} serialized as a JSON string.
+     * Never pass raw JSON into the media output dialog or lock screen. */
+    static String humanName(Object value,String fallback) {
+        return humanName(value,fallback,0);
+    }
+    private static String humanName(Object value,String fallback,int depth) {
+        if(value==null||value==JSONObject.NULL||depth>5)return fallback;
+        if(value instanceof JSONObject) {
+            JSONObject obj=(JSONObject)value;
+            for(String key:new String[]{"display","name","display_name","displayName",
+                    "full_name","artist_name","title"}) {
+                String found=humanName(obj.opt(key),"",depth+1);
+                if(!found.isEmpty())return found;
+            }
+            for(String key:new String[]{"artist","main_artist","performer"}) {
+                String found=humanName(obj.opt(key),"",depth+1);
+                if(!found.isEmpty())return found;
+            }
+            Object items=obj.opt("items");
+            if(items!=null) return humanName(items,fallback,depth+1);
+            return fallback;
+        }
+        if(value instanceof org.json.JSONArray) {
+            org.json.JSONArray arr=(org.json.JSONArray)value;
+            StringBuilder names=new StringBuilder();
+            for(int i=0;i<Math.min(arr.length(),8);i++) {
+                String part=humanName(arr.opt(i),"",depth+1);
+                if(part.isEmpty())continue;
+                if(names.length()>0)names.append(", ");
+                names.append(part);
+            }
+            return names.length()>0?names.toString():fallback;
+        }
+        if(value instanceof String) {
+            String str=((String)value).trim();
+            if(str.startsWith("{")&&str.endsWith("}")){
+                try{return humanName(new JSONObject(str),fallback,depth+1);}
+                catch(Exception ignored){return fallback;}
+            }
+            if(str.startsWith("[")&&str.endsWith("]")){
+                try{return humanName(new org.json.JSONArray(str),fallback,depth+1);}
+                catch(Exception ignored){return fallback;}
+            }
+            return str.isEmpty()?fallback:str;
+        }
+        return fallback;
+    }
+
     /** Match the same artwork hierarchy as the WebView; do not trust arbitrary hosts. */
     private static String imageField(JSONObject item) {
         if(item==null)return "";
@@ -147,11 +196,14 @@ public final class AurelPlaybackService extends Service {
         boolean active=!trackId.isEmpty()&&state.optInt("index",-1)>=0;
         if(!active){stop(source);return;}
         controller=new WeakReference<>(source);
-        String name=track.optString("title","Music");
-        JSONObject a=track.optJSONObject("artist");
-        String performer=a==null?track.optString("artist","Artist"):a.optString("name","Artist");
+        String name=humanName(track.opt("title"),"Music");
         JSONObject album=track.optJSONObject("album");
-        String albumName=album==null?"":album.optString("title","");
+        String performer=humanName(track.opt("artist"),"");
+        if(performer.isEmpty())performer=humanName(track.opt("main_artist"),"");
+        if(performer.isEmpty())performer=humanName(track.opt("performer"),"");
+        if(performer.isEmpty()&&album!=null)performer=humanName(album.opt("artist"),"");
+        if(performer.isEmpty())performer="Artist";
+        String albumName=album==null?"":humanName(album.opt("title"),"");
         String artwork=coverFromTrack(track);
         boolean playing=state.optBoolean("playing",false);
         boolean buffering=state.optBoolean("buffering",false);
@@ -243,8 +295,8 @@ public final class AurelPlaybackService extends Service {
     private void update(String track,String performer,String albumName,String newCoverUrl,long durationMs,long positionMs,boolean isPlaying,boolean isBuffering){
         if(session==null)return;
         hasTrack=true;
-        title=(track==null||track.trim().isEmpty())?"Music":track;
-        artist=(performer==null||performer.trim().isEmpty())?"Artist":performer;
+        title=humanName(track,"Music");
+        artist=humanName(performer,"Artist");
         duration=Math.max(0,durationMs);
         position=Math.max(0,Math.min(duration,durationMs>0?positionMs:0));
         playing=isPlaying;buffering=isBuffering;
@@ -261,6 +313,9 @@ public final class AurelPlaybackService extends Service {
             .putString(MediaMetadata.METADATA_KEY_ARTIST,artist)
             .putString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST,artist)
             .putString(MediaMetadata.METADATA_KEY_ALBUM,albumTitle)
+            .putString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE,title)
+            .putString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE,artist)
+            .putString(MediaMetadata.METADATA_KEY_DISPLAY_DESCRIPTION,albumTitle)
             .putLong(MediaMetadata.METADATA_KEY_DURATION,duration);
         if(!coverUrl.isEmpty())metadataBuilder.putString(MediaMetadata.METADATA_KEY_ART_URI,coverUrl);
         if(coverBitmap!=null){

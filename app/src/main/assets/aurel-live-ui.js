@@ -21,7 +21,7 @@
     const kind=map[button.dataset.nav];
     if(glyph&&kind){glyph.setAttribute('aria-hidden','true');glyph.innerHTML=ic(kind,23);}
   });
-  let navArtwork='';
+  // All navigation icons remain consistent vectors; track artwork belongs to mini player.
   const themeByCover=new Map();
   // Neutral graphite is the default. Album-derived colours are opt-in.
   const PALETTE_KEY='aurel_palette_artwork_v1';
@@ -83,14 +83,8 @@
   });
   function navSync(){
     if(!tabs)return;
-    const track=app.player&&app.player.track;
-    const url=track?image(track,'thumb'):'';
     syncTheme();
-    const icon=tabs.querySelector('[data-open-player-nav] .aurel-tab-icon');
-    if(icon&&url!==navArtwork){
-      navArtwork=url;
-      icon.innerHTML=url?'<img class="aurel-nav-cover" src="'+html(url)+'" alt="" loading="eager" decoding="async">':ic('queue',23);
-    }
+    // The player tab is a stable queue glyph, including during artwork updates.
     const route=app.overlay?'playing':app.nav==='playlists'?'library':app.nav==='magazine'?'home':app.nav;
     tabs.querySelectorAll('button').forEach(function(b){
       const active=b.hasAttribute('data-open-player-nav')?route==='playing':b.dataset.nav===route;

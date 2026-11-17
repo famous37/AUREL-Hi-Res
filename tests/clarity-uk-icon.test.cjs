@@ -15,12 +15,12 @@ const locale=text(assets+'aurel-language.js');
 const foreground=text('app/src/main/res/drawable/aurel_launcher_foreground.xml');
 const mono=text('app/src/main/res/drawable/aurel_launcher_monochrome.xml');
 const gradle=text('app/build.gradle');
-assert(gradle.includes('versionCode 53') && gradle.includes("'1.1.34'"));
+assert(gradle.includes('versionCode 54') && gradle.includes("'1.1.35'"));
 assert(html.includes('aurel-clarity.css') &&
  html.indexOf('aurel-clarity.css')>html.indexOf('aurel-settings-groups.css'));
 assert(css.includes('stroke-width:2.8!important') &&
  css.includes('font-weight:800!important') &&
- css.includes('--aurel-clarity-gold'));
+ css.includes('--aurel-clarity-accent'));
 for(const section of ['Audio outputs','Playback','Accounts & library','Appearance & app'])
  assert(groups.includes(section),'Missing functional group '+section);
 assert(groups.includes('aurel-group-icon') && groups.includes('glyphs[id]'));
@@ -45,4 +45,4 @@ for(const key of ["'Audio outputs'","'Playback'","'Connected devices'",
  assert(locale.includes(key),'Missing Ukrainian translation for '+key);
 assert(locale.includes('var rates=/^Android rates:'), 'Dynamic sample rates must translate');
 new Function(motion);new Function(swipe);new Function(locale);
-console.log('AUREL 1.1.34 contrast, clean settings, adaptive icon, Ukrainian and smooth motion checks PASS');
+console.log('AUREL 1.1.35 contrast, clean settings, adaptive icon, Ukrainian and smooth motion checks PASS');

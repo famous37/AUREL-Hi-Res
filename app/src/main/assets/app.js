@@ -24,22 +24,34 @@ const withAlbum=(tracks,album)=>tracks.map(t=>({...t,
 // Qobuz releases and tracks may encode an artist as an object, array, display-name
 // object, or nested list. Do not label a known artist as Unknown merely because a
 // shallow 'artist.name' field is absent from one endpoint.
-const nameOf=o=>{
- if(typeof o==='string')return o.trim();
- if(!o||typeof o!=='object')return '';
- for(const v of [o.name,o.display_name,o.displayName,o.display,o.full_name,o.artist_name,o.title]){
-  if(typeof v==='string'&&v.trim())return v.trim();
-  if(v&&typeof v==='object'&&typeof v.display==='string'&&v.display.trim())return v.display.trim();
+// Provider names can be objects, arrays, and even JSON-serialized strings.
+// Keep catalogue titles intact but never print provider objects verbatim.
+const nameOf=(o,depth=0)=>{
+ if(depth>5||o==null)return '';
+ if(typeof o==='string'){
+  const value=o.trim();
+  if(value.startsWith('{')||(value.startsWith('[')&&value.endsWith(']'))){
+   try{return nameOf(JSON.parse(value),depth+1);}catch(_){return '';}
+  }
+  return value;
+ }
+ if(Array.isArray(o))return o.slice(0,8).map(v=>nameOf(v,depth+1)).filter(Boolean).join(', ');
+ if(typeof o!=='object')return '';
+ for(const v of [o.display,o.name,o.display_name,o.displayName,o.full_name,
+                 o.artist_name,o.title,o.artist,o.performer,o.items]){
+  const found=nameOf(v,depth+1);
+  if(found)return found;
  }
  return '';
 };
+const trackTitle=t=>nameOf(t?.title)||'Untitled';
 const artistChoices=o=>[o?.artist,o?.album?.artist,o?.main_artist,o?.mainArtist,o?.performer,o?.performers?.items?.[0],
  o?.artists?.items?.[0],Array.isArray(o?.artists)?o.artists[0]:null,
  o?.artists?.main?.[0],o?.artist_name,o?.main_artist_name,
  o?.album?.artist,o?.album?.artist_name,o?.album?.main_artist,o?.album?.performer,o?.album?.artists?.items?.[0],
  Array.isArray(o?.album?.artists)?o.album.artists[0]:null];
 const artistName=o=>nameOf(o)||nameOf(o?.artist)||nameOf(o?.performer)||'Artist not provided';
-const artist=o=>artistChoices(o).map(nameOf).find(Boolean)||'';
+const artist=o=>artistChoices(o).map(v=>nameOf(v)).find(Boolean)||'';
 const artistId=o=>{
  for(const candidate of artistChoices(o)){
   const id=candidate&&typeof candidate==='object'?(candidate.id??candidate.artist_id):null;
@@ -334,13 +346,13 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.34</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.35</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
  let p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}
  m.classList.remove('hidden');let t=p.track;
- m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(t.title||'Untitled')}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
+ m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
 }
 function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
  const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=p.position||0}

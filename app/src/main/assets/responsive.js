@@ -13,30 +13,48 @@
   });
   updateMini=function(){
     const p=app.player,m=$('#mini');
+    if(!m)return;
     if(!p?.track?.id){
       m.classList.add('hidden');
       m.dataset.fingerprint='';
+      m.dataset.miniPlaying='';
       return;
     }
-    const t=p.track,played=p.duration?Math.max(0,Math.min(100,Math.round((p.position||0)/p.duration*100))):0;
-    const fingerprint=[t.id,t.title,artistLabel(t),image(t),!!p.playing].join('|');
+    const t=p.track,id=String(t.id),cover=image(t,'thumb'),title=trackTitle(t),
+          performer=artistLabel(t);
+    const played=p.duration?Math.max(0,Math.min(100,(Number(p.position)||0)/(Number(p.duration)||1)*100)):0;
+    // Only change the DOM when the track or artwork changes; the name, play
+    // button and progress are updated in place with no UI flash or scroll jump.
+    const fingerprint=id+'|'+cover;
     m.classList.remove('hidden');
-    if(m.dataset.fingerprint!==fingerprint){
+    if(m.dataset.fingerprint!==fingerprint||!m.querySelector('.mini-track-open')){
       m.dataset.fingerprint=fingerprint;
+      m.dataset.miniPlaying='';
       m.innerHTML=`<span class="mini-handle" aria-hidden="true"></span>
-        ${image(t)?`<img class="minicover" src="${html(image(t))}" alt="Album cover · open player" loading="eager" decoding="async" fetchpriority="high">`:'<div class="minicover mini-cover-placeholder">♫</div>'}
+        ${cover?`<img class="minicover" src="${html(cover)}" alt="Album cover" loading="eager" decoding="async" fetchpriority="high">`:'<div class="minicover mini-cover-placeholder">♫</div>'}
         <button class="mini-track-open" data-open-mini-player aria-label="Open Now Playing">
-          <strong>${html(t.title||'Untitled')}</strong><small>${html(artistLabel(t))}</small>
+          <strong class="mini-title">${html(title)}</strong><small class="mini-artist">${html(performer)}</small>
         </button>
         <div class="mini-buttons">
-          <button data-mini-prev aria-label="Previous track">${ic('prev',23)}</button>
-          <button data-mini-toggle aria-label="${p.playing?'Pause':'Play'}" class="mini-play">${ic(p.playing?'pause':'play',25)}</button>
-          <button data-mini-next aria-label="Next track">${ic('next',23)}</button>
+          <button data-mini-prev aria-label="Previous track">${ic('prev',24)}</button>
+          <button data-mini-toggle aria-label="Play" class="mini-play">${ic('play',26)}</button>
+          <button data-mini-next aria-label="Next track">${ic('next',24)}</button>
         </div>
-        <span class="mini-progress" style="--played:${played}%" aria-hidden="true"></span>`;
-    }else{
-      const bar=m.querySelector('.mini-progress');
-      if(bar)bar.style.setProperty('--played',played+'%');
+        <span class="mini-progress" aria-hidden="true"></span>`;
+    }
+    const name=m.querySelector('.mini-title'),artistNode=m.querySelector('.mini-artist');
+    if(name&&name.textContent!==title)name.textContent=title;
+    if(artistNode&&artistNode.textContent!==performer)artistNode.textContent=performer;
+    const toggle=m.querySelector('[data-mini-toggle]'),state=String(!!p.playing);
+    if(toggle&&m.dataset.miniPlaying!==state){
+      toggle.innerHTML=ic(p.playing?'pause':'play',26);
+      toggle.setAttribute('aria-label',p.playing?'Pause':'Play');
+      m.dataset.miniPlaying=state;
+    }
+    const bar=m.querySelector('.mini-progress'),value=played.toFixed(1)+'%';
+    if(bar&&bar.dataset.played!==value){
+      bar.style.setProperty('--played',value);
+      bar.dataset.played=value;
     }
   };
   let down=null;
