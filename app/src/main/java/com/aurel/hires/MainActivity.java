@@ -84,6 +84,19 @@ public final class MainActivity extends Activity {
         if(directPlayer!=null)directPlayer.setOutputLevel(usbOutputVolumePercent);
         emit("player",playerState());
     }
+    void setUsbVolumeFromMediaSession(int percent) {
+        ui.post(()->{
+            if(bitPerfect!=null&&bitPerfect.isEnabled()&&directPlayer!=null &&
+                directPlayer.usbStreamActive())setUsbVolumePercent(percent);
+        });
+    }
+    void adjustUsbVolumeFromMediaSession(int direction) {
+        ui.post(()->{
+            if(bitPerfect!=null&&bitPerfect.isEnabled()&&directPlayer!=null &&
+                directPlayer.usbStreamActive())setUsbVolumePercent(
+                    usbOutputVolumePercent+Math.max(-1,Math.min(1,direction))*2);
+        });
+    }
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         int code=event.getKeyCode();
         if((code==KeyEvent.KEYCODE_VOLUME_UP ||
