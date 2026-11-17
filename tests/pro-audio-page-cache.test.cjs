@@ -34,8 +34,9 @@ assert(native.includes('if(db!=0&&bitPerfect.isEnabled())'),
 assert(bit.includes('getSupportedMixerAttributes(device)'));
 assert(bit.includes('MIXER_BEHAVIOR_BIT_PERFECT'));
 assert(bit.includes('"verifiedEndToEnd",false'));
-for(const term of ['Gapless:','ReplayGain:','PEQ, Crossfeed and FIR:','Network audio buffer:'])
- assert(settings.includes(term),'Unimplemented capability must be disclosed: '+term);
+assert(!settings.includes('Audio engine limits'),'Do not show verbose capabilities notice');
+assert(settings.includes('Signal path'),'Keep optional technical diagnostics');
+assert(settings.includes('Refresh outputs'),'Keep manual output refresh');
 assert(style.includes('html[data-aurel-motion="off"]'));
 assert(style.includes('.aurel-signal-chain'));
 assert(style.includes('.topbar .mobile-logo'));
@@ -94,5 +95,5 @@ assert(fs.readFileSync(path.join(base,'res/mipmap-anydpi-v26/ic_launcher.xml'),'
  assert(cache.info().pages<=12,'LRU max pages enforced');
  cache.clear();
  assert.equal(cache.info().pages,0);
- console.log('AUREL v1.1.33 page buffer, audio diagnostics, animation and launcher checks PASS');
+ console.log('AUREL v1.1.34 page buffer, audio diagnostics, animation and launcher checks PASS');
 })().catch(err=>{console.error(err);process.exitCode=1;});

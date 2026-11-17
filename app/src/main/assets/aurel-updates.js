@@ -39,7 +39,7 @@ function panelMarkup(){
    result+='<button type="button" class="pill" data-aurel-install-update>Install update</button>';
  result+='</div><label class="aurel-update-toggle"><input type="checkbox" data-aurel-auto-updates'+
    (autoOn()?' checked':'')+'/><span>Automatically check for updates once a day</span></label>'+
-   '<p class="aurel-update-disclaimer">Before installation, Android verifies the AUREL package, version and permanent signing certificate. The download is checked against GitHub SHA-256. Installation always requires your confirmation.</p>';
+   '';
  return result;
 }
 function redraw(){

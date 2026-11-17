@@ -104,6 +104,7 @@ jobs:
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
           node tests/bluetooth-settings.test.cjs
+          node tests/clarity-uk-icon.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -144,19 +145,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            '**AUREL Hi-Res v1.1.33 — Bluetooth diagnostics and cleaner settings**' \
+            '**AUREL Hi-Res v1.1.34 — Clearer interface, smoother playback, Ukrainian UI**' \
             '' \
-            '- Android Bluetooth A2DP / LE Audio device name, current playback route, and reported output formats.' \
-            '- Bluetooth codec and transport bitrate are explicitly unavailable where Android hides them; no invented quality claims.' \
-            '- Settings grouped into Audio, Audio outputs, Accounts & library, and Appearance & app.' \
-            '- Output scanning runs on opening diagnostics and can be refreshed manually.' \
-            '- Existing signed update flow, USB bit-perfect controls, headroom, page buffer and account handling remain intact.' \
-            '- All regression checks and Android build tests run before publishing.' \
+            '- New crisp high-contrast AUREL vector launcher and matching monochrome adaptive icon.' \
+            '- Removed Audio engine limits and repetitive diagnostic, account, and update descriptions.' \
+            '- Clearer compact Bluetooth/USB diagnostics, still showing only Android-supported facts.' \
+            '- Bolder readable fonts and clean consistent vector icons.' \
+            '- Smoother route transitions and player swipe-to-minimize or close-button animation.' \
+            '- Additional Ukrainian translations of audio outputs, account settings, and updates.' \
+            '- Existing player, signed in-app updates, USB controls, saved credentials and navigation preserved.' \
             '' \
-            'Install v1.1.33 over permanently signed v1.1.32 without clearing your data. Package name and signing key remain unchanged.' \
-            'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
-            '' \
-            'Qobuz authorization depends on a working session or compatible App ID.' > build/signed-artifacts/release-notes.md
+            'Install v1.1.34 over production-signed v1.1.33; the Android package and signing certificate remain identical.' \
+            'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \

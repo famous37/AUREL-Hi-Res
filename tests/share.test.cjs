@@ -1,4 +1,4 @@
-/* AUREL 1.1.33: native public-link sharing and safe UI actions. */
+/* AUREL 1.1.34: native public-link sharing and safe UI actions. */
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
@@ -10,7 +10,7 @@ const share=read('app/src/main/assets/aurel-share.js');
 const css=read('app/src/main/assets/aurel-share.css');
 const lang=read('app/src/main/assets/aurel-language.js');
 const build=read('app/build.gradle');
-assert(build.includes('versionCode 52')&&build.includes("'1.1.33'"));
+assert(build.includes('versionCode 53')&&build.includes("'1.1.34'"));
 for(const fragment of [
  'private static String publicQobuzLink(JSONObject params)',
  'case "shareQobuzLink":','Intent.ACTION_SEND','Intent.EXTRA_TEXT',

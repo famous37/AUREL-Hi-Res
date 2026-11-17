@@ -1,4 +1,4 @@
-/* AUREL 1.1.33: pre-release rights and calm playback regression. */
+/* AUREL 1.1.34: pre-release rights and calm playback regression. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'..'),source=p=>fs.readFileSync(path.join(root,p),'utf8');
@@ -13,7 +13,7 @@ const css=source('app/src/main/assets/aurel-release.css');
 const motion=source('app/src/main/assets/aurel-motion.js');
 const gradle=source('app/build.gradle');
 const language=source('app/src/main/assets/aurel-language.js');
-assert(gradle.includes('versionCode 52')&&gradle.includes("'1.1.33'"));
+assert(gradle.includes('versionCode 53')&&gradle.includes("'1.1.34'"));
 assert(page.indexOf('aurel-access.js')<page.indexOf('app.js'));
 assert(page.includes('aurel-release.css'));
 assert(page.indexOf('aurel-smooth.css')<page.indexOf('aurel-release.css'));
@@ -42,7 +42,7 @@ assert(modern.includes('if(viewChanged)drawOverlay();'));
 assert(modern.includes("if(badge&&badge.textContent!==text)badge.textContent=text;"));
 assert(player.includes("if(toggle.dataset.icon!==mode)"));
 assert(player.includes("if(repeatButton.dataset.mode!==String(p.repeat))"));
-assert(motion.includes('duration:270'));
+assert(motion.includes('duration:320'));
 assert(language.includes('Доступно для прослуховування з '));
 new Function(js);new Function(player);new Function(modern);new Function(motion);
 const window={};const context=vm.createContext({window,Date});

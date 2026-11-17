@@ -48,7 +48,7 @@
         overlay.style.removeProperty('--aurel-swipe-y');
         overlay.style.removeProperty('--aurel-swipe-alpha');
         restoreTimer=0;
-      },180);
+      },295);
     }else{
       overlay.style.removeProperty('--aurel-swipe-y');
       overlay.style.removeProperty('--aurel-swipe-alpha');
@@ -58,10 +58,10 @@
     frame=0;
     if(!gesture?.dragging||!isOpen())return;
     // Only compositor properties; no layout, album-art resizing or scroll jitter.
-    const move=Math.min(84,Math.max(0,offset-12)*0.58);
+    const move=Math.min(320,Math.max(0,offset-3)*0.86);
     overlay.style.setProperty('--aurel-swipe-y',move.toFixed(1)+'px');
     overlay.style.setProperty('--aurel-swipe-alpha',
-      (1-Math.min(0.10,move/850)).toFixed(3));
+      (1-Math.min(0.13,move/1450)).toFixed(3));
   }
   function start(event){
     if(dismissing)return;
@@ -103,7 +103,9 @@
   function dismiss(){
     if(!app.overlay)return;
     const reduced=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if(reduced){clearVisual(false);closePage();return;}
+    if(reduced||document.documentElement?.dataset?.aurelMotion==='off'){
+      clearVisual(false);closePage();return;
+    }
     dismissing=true;
     if(frame){cancelAnimationFrame(frame);frame=0;}
     if(restoreTimer){clearTimeout(restoreTimer);restoreTimer=0;}
@@ -148,5 +150,13 @@
   document.addEventListener('touchmove',move,{capture:true,passive:false});
   document.addEventListener('touchend',end,{capture:true,passive:true});
   document.addEventListener('touchcancel',cancel,{capture:true,passive:true});
-  window.AurelSwipeMinimize={isInstalled:true};
+  // The player's collapse button uses the same smooth dismissal as a swipe.
+  document.addEventListener('click',event=>{
+    const button=event.target?.closest?.('[data-close-overlay]');
+    if(!button||!isOpen()||dismissing)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    dismiss();
+  },true);
+  window.AurelSwipeMinimize={isInstalled:true,minimize:dismiss};
 })();
