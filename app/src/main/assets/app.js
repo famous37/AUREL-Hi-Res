@@ -69,7 +69,7 @@ const art=(o,cl='')=>{
  const src=image(o,hero?'full':'thumb');
  return src?`<img class="${cl}" loading="${hero?'eager':'lazy'}" decoding="async" ${hero?'fetchpriority="high"':''} src="${html(src)}" alt="Album art">`:'';
 };
-const app={nav:'home',loginMode:'token',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,dragging:false};
+const app={nav:'home',loginMode:'token',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,dragging:false,catalogRequestId:0};
 let sequence=1;const waiting=new Map();
 function nativeCall(action,data={}){
  return new Promise((resolve,reject)=>{
@@ -419,6 +419,7 @@ async function navigate(page){
  // focused. Reset it on navigation so fixed tabs are not painted offscreen.
  const focus=document.activeElement;
  if(focus&&typeof focus.blur==='function')focus.blur();
+ ++app.catalogRequestId;
  app.selected=null;app.selectedTracks=[];app.nav=page;
  render();
  // Restore saved vertical position after switching to this route.
@@ -484,7 +485,7 @@ async function loadPlaylists(force=false){
   if(app.nav==='playlists'||(app.nav==='library'&&app.libType==='playlists'))render();
  }
 }
-async function openArtist(id){if(!id)return;window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('artist',{id});if(buffered){app.selected=buffered;app.selectedKind='artist';app.selectedTracks=[];render();return;}$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){app.selected=null;render()}}
+async function openArtist(id){if(!id)return;const request=++app.catalogRequestId;window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('artist',{id});if(buffered){app.selected=buffered;app.selectedKind='artist';app.selectedTracks=[];render();return;}$('#screen').innerHTML='<div class="loading">Opening artist…</div>';try{let d=await api('artist',{id});if(request!==app.catalogRequestId)return;app.selected=d;app.selectedKind='artist';app.selectedTracks=[];render()}catch(e){if(request!==app.catalogRequestId)return;app.selected=null;render()}}
 async function openArtistFor(entity){
  if(!entity){showToast('No artist metadata for this track');return}
  app.overlay=false;drawOverlay();
@@ -514,10 +515,10 @@ async function loadMoreArtistAlbums(){
   if(!fresh.length)showToast('No further releases returned by Qobuz');
  }catch(e){showToast('Unable to load more releases: '+e.message)}
 }
-async function openAlbum(id){if(!id)return;window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('album',{id});if(buffered){app.selected=buffered;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(buffered,'tracks'),buffered);render();return;}$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
- try{let d=await api('album',{id});app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
-async function openPlaylist(id){window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('playlist',{id});if(buffered){app.selected=buffered;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(buffered,'tracks'),buffered);render();return;}$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
- try{let d=await api('playlist',{id});app.selected=d;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){app.selected=null;render()}}
+async function openAlbum(id){if(!id)return;const request=++app.catalogRequestId;window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('album',{id});if(buffered){app.selected=buffered;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(buffered,'tracks'),buffered);render();return;}$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening album…</div>';
+ try{let d=await api('album',{id});if(request!==app.catalogRequestId)return;app.selected=d;app.selectedKind='album';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){if(request!==app.catalogRequestId)return;app.selected=null;render()}}
+async function openPlaylist(id){const request=++app.catalogRequestId;window.AurelBeforeOpenEntity?.();const buffered=window.AurelPageCache?.peek('playlist',{id});if(buffered){app.selected=buffered;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(buffered,'tracks'),buffered);render();return;}$('#screen').innerHTML='<div class="loading"><div class="pulse"></div>Opening playlist…</div>';
+ try{let d=await api('playlist',{id});if(request!==app.catalogRequestId)return;app.selected=d;app.selectedKind='playlist';app.selectedTracks=withAlbum(sliceItems(d,'tracks'),d);render();}catch(e){if(request!==app.catalogRequestId)return;app.selected=null;render()}}
 async function playFromTracks(items,index=0){
  if(!Array.isArray(items)||!items.length){showToast('No tracks available for streaming');return false;}
  const check=window.AurelTrackAccess?.status||(()=>({playable:true,reason:''}));
@@ -736,7 +737,7 @@ document.addEventListener('click',async ev=>{
  if(b.hasAttribute('data-prev')){nativeCall('previous').catch(()=>{});return}
  if(b.hasAttribute('data-shuffle')){nativeCall('playbackSettings',{repeat:app.player?.repeat||0,shuffle:!app.player?.shuffle}).catch(()=>{});return}
  if(b.hasAttribute('data-repeat')){nativeCall('playbackSettings',{repeat:((app.player?.repeat||0)+1)%3,shuffle:app.player?.shuffle||false}).catch(()=>{});return}
- if(b.hasAttribute('data-close-overlay')){app.overlay=false;drawOverlay();return}
+ if(b.hasAttribute('data-close-overlay')){if(!window.AurelMinimizePlayer?.()){app.overlay=false;drawOverlay();}return}
 });
 document.addEventListener('submit',e=>{
  if(e.target.id==='loginForm'){e.preventDefault();login(e.target)}
