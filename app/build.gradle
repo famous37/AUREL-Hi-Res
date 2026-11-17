@@ -9,6 +9,7 @@ def aurelHasSigning = aurelKeyPath && aurelKeyPassword
 def aurelSigningError = 'AUREL release signing is not configured. Add AUREL_RELEASE_KEYSTORE_BASE64 and AUREL_RELEASE_PASSWORD in GitHub Actions Secrets. Never publish a debug-signed APK as a release.'
 
 android {
+    buildFeatures { resValues true }
     namespace 'com.aurel.hires'
     compileSdk 36
     defaultConfig {
