@@ -130,6 +130,9 @@
     const before=scroll?scroll.scrollTop:0;
     renderArtist();
     if(scroll)scroll.scrollTop=before;
+    // The information sheet is outside #screen, so catalogue refreshes
+    // never close it or reset its scroll while the full biography arrives.
+    window.AurelArtistInfoRefresh?.(id);
   }
   async function extend(id,token,action,params,apply,onError){
     try{
@@ -266,6 +269,24 @@
     await oldOpenArtist(id);
     if(validSelection(id))loadExtras(String(id));
   };
+  const biographyText=value=>{
+    const raw=value?.content||value?.text||value;
+    return typeof raw==='string'
+      ?raw.replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim():'';
+  };
+  // Read-only, Qobuz-backed information for the accessible artist sheet.
+  // Never create biography text from a guess or a generic internet search.
+  window.AurelArtistInfoData=id=>{
+    if(!validSelection(id))return null;
+    const o=app.selected||{},state=detailFor(String(id));
+    return {
+      id:String(id),
+      name:artistName(o),
+      biography:state.biography||biographyText(o.biography)||biographyText(o.description),
+      loading:!state.pageDone,
+      error:!!state.pageError
+    };
+  };
   renderArtist=function(){
     const o=app.selected||{},id=safeId(o);
     if(!id)return;
@@ -281,7 +302,10 @@
     const last=all.slice().sort((a,b)=>releaseDate(b).localeCompare(releaseDate(a)))[0];
     const top=state.top||[];
     const avatar=art(o,'aurel-artist-photo')||'<span class="aurel-artist-photo aurel-art-placeholder">♪</span>';
-    const bio=state.biography?'<p class="aurel-artist-bio">'+html(state.biography.slice(0,260))+(state.biography.length>260?'…':'')+'</p>':'';
+    const fullBio=window.AurelArtistInfoData(id)?.biography||'';
+    const bio=fullBio?'<button type="button" class="aurel-artist-bio" data-artist-info-open aria-label="Read full biography">'
+      +'<span>'+html(fullBio.slice(0,260))+(fullBio.length>260?'…':'')+'</span>'
+      +'<span class="aurel-artist-read-more">Read more '+ic('chevron',16)+'</span></button>':'';
     const showMore=base.length>=Number(o.albums?.limit||100)&&base.length<Number(o.albums?.total||base.length);
     $('#screen').innerHTML='<div class="aurel-artist-page">'
       +'<header class="aurel-artist-hero">'
@@ -292,6 +316,7 @@
       +'<div class="aurel-artist-actions">'
       +'<button type="button" class="aurel-artist-play" data-artist-play-main '+(top.length?'':'disabled')+'>'+ic('play',23)+'<span>Play popular</span></button>'
       +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus',19)+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
+      +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
       +'</div></header>'
       +popularSection(top,!state.pageDone,state.pageError)
       +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
