@@ -24,3 +24,22 @@ git -C "$FLAC_DIR" fetch --depth 1 origin "$FLAC_REV"
 git -C "$FLAC_DIR" checkout --detach "$FLAC_REV"
 test "$(git -C "$FLAC_DIR" rev-parse HEAD)" = "$FLAC_REV"
 printf 'Using libFLAC %s (BSD license)\n' "$FLAC_REV"
+
+# Expose a read-only signal for the UI. A READY ExoPlayer is not proof
+# that the USB isochronous transfer stream successfully opened.
+USB_SINK="$DEST/libs/decent-usb-audio-wrapper-media3/src/main/kotlin/com/decent/usbaudio/media3/UsbAudioSink.kt"
+python3 - "$USB_SINK" <<'PYTHON'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+src = path.read_text()
+marker = "    companion object {"
+method = """    /** True only while the native USB isochronous stream is alive. */
+    fun isDirectUsbStreamActive(): Boolean = usbAudioStream?.isAlive == true
+
+"""
+if "fun isDirectUsbStreamActive()" not in src:
+    if src.count(marker) != 1:
+        raise RuntimeError("Upstream UsbAudioSink changed; review integration patch")
+    path.write_text(src.replace(marker, method + marker, 1))
+PYTHON
