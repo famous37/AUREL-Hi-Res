@@ -63,6 +63,16 @@
   stroke-width:2.25!important;
 }
 
+/* Secondary screens use the same crisp vector strokes, without changing button sizes. */
+.app .screen button svg.ui-icon,
+.app .screen .aurel-share-control svg,
+.app .screen .aurel-favourite-control svg {
+  stroke-width:2.3!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  shape-rendering:geometricPrecision;
+}
+
 /* Shared nav icons: same visual size and weight, stronger inactive contrast. */
 @media(max-width:820px){
   .app .bottom-nav button:not(.active) {
