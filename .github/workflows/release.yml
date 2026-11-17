@@ -99,6 +99,7 @@ jobs:
           node tests/updates.test.cjs
           node tests/minimal-player.test.cjs
           node tests/bit-perfect.test.cjs
+          node tests/swipe-icons.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -139,18 +140,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.28 — USB Bit-perfect audio settings**' \
+            '**AUREL Hi-Res v1.1.29 — Crisp SVG icons and swipe-down player**' \
             '' \
-            '- New Bit-perfect USB toggle for Android 14+ and compatible external DACs.' \
-             '- Negotiates supported sample rate, bit depth and stereo/mono mixer format without a forced 48 kHz fallback.' \
-             '- Reports USB routing and mixer acceptance honestly; no claim of verified decoded PCM identity.' \
+            '- Stronger, sharper high-contrast SVG icons for all player and navigation controls.' \
+             '- Swipe down anywhere on noninteractive player areas to minimize into the originating album, artist or playlist.' \
+             '- Gesture avoids seek, transport, detail drawers, scrolling and horizontal navigation; existing audio quality remains unchanged.' \
             '- Added per-track Qobuz availability checks: unreleased songs remain listed but cannot be played.' \
             '- Play Album, queues, skip, shuffle and repeat avoid scheduled and non-streamable tracks.' \
             '- Already released singles remain playable from an album scheduled for a later date.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
             '- Preserves signed in-app updates, player, navigation, artwork, and audio metadata.' \
             '' \
-            'Install: v1.1.28 over the permanently signed v1.1.27 preserves credentials and settings; package and signing certificate are unchanged.' \
+            'Install: v1.1.29 over the permanently signed v1.1.28 preserves credentials and settings; package and signing certificate are unchanged.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
