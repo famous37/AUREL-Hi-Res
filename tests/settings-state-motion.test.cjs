@@ -11,7 +11,7 @@ const appCode=asset('app.js'),settings=asset('aurel-settings-pro.js');
 const motion=asset('aurel-motion.js'),swipe=asset('aurel-swipe-minimize.js');
 const clarity=asset('aurel-clarity.css'),index=asset('index.html');
 const gradle=fs.readFileSync(path.join(base,'app/build.gradle'),'utf8');
-assert(gradle.includes('versionCode 61')&&gradle.includes("'1.1.42'"));
+assert(gradle.includes('versionCode 62')&&gradle.includes("'1.1.43'"));
 for(const js of [syncCode,motion,swipe,settings])new Function(js);
 assert(index.indexOf('aurel-preference-sync.js')>index.indexOf('aurel-page-cache.js'));
 assert(index.indexOf('aurel-preference-sync.js')<index.indexOf('aurel-settings-pro.js'));
