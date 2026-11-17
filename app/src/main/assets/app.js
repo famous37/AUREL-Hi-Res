@@ -335,12 +335,14 @@ function renderLogin(){
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  const bp=app.player?.bitPerfect||app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
- const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'Preparing direct USB',direct_usb_playback:'Direct USB audio',direct_usb_not_active:'USB unavailable · Android fallback',direct_usb_error:'USB driver failed · Android fallback',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
+ const bpLabels={off:'Standard playback',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'Preparing direct USB',direct_usb_playback:'Direct USB audio',direct_usb_not_active:'USB unavailable · Android fallback',direct_usb_error:'USB driver failed · Android fallback',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
  const bpStatus=bpLabels[bp.status]||'Checking USB output';
  // Render concise, truthful device-state explanations; raw native diagnostic
  // strings are still retained in session but need not crowd the settings UI.
  const bpExplanations={
   off:'',
+  standard_usb_playback:'Android audio is playing through the connected USB DAC; not bit-perfect.',
+  standard_usb_not_routed:'USB DAC detected, but Android has not routed playback to it. Check Developer options → Disable USB audio routing (must be OFF), then reconnect.',
   android_version:'Android 14 or newer required.',
   no_usb:'Connect a compatible USB DAC.',
   waiting_track:'Play a lossless track to check USB output.',
