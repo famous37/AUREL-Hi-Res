@@ -64,12 +64,13 @@
       (1-Math.min(0.13,move/1450)).toFixed(3));
   }
   function start(event){
-    if(dismissing)return;
-    gesture=null;
-    clearVisual(false);
-    if(!isOpen()||event.touches?.length!==1)return;
+    if(dismissing||!isOpen()||event.touches?.length!==1)return;
     const target=event.target?.nodeType===1?event.target:event.target?.parentElement;
     if(!target||!overlay.contains(target)||target.closest?.(blockedSelector))return;
+    gesture=null;
+    // Touching transport or the scrolling list must never interrupt an
+    // in-flight settle animation or reset the transform abruptly.
+    clearVisual(false);
     const view=overlay.querySelector('.murglar-view');
     const scrolling=view?.querySelector('.murglar-player-content');
     const fromHeader=!!target.closest?.('.murglar-header');
@@ -127,8 +128,8 @@
   function end(event){
     const g=gesture;
     gesture=null;
-    if(!g){clearVisual(false);return;}
-    if(!g.dragging||g.aborted){clearVisual(false);return;}
+    if(!g||dismissing)return;
+    if(!g.dragging||g.aborted)return;
     const touch=event.changedTouches?.[0];
     const dy=touch?touch.clientY-g.y:offset;
     const dx=touch?touch.clientX-g.x:0;
@@ -140,7 +141,9 @@
   }
   function cancel(){
     if(dismissing)return;
-    gesture=null;offset=0;clearVisual(true);
+    const dragged=!!gesture?.dragging;
+    gesture=null;offset=0;
+    if(dragged)clearVisual(true);
   }
 
   // Non-passive only on touchmove, to cancel the browser's pull-to-refresh when
