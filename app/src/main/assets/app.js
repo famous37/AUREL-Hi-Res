@@ -149,7 +149,11 @@ window.AurelEvent=(kind,data)=>{
   app.player=data;
   updateMini();
   if(app.overlay){if(changed)drawOverlay();else updateOverlayState()}
-  if(data?.error && data?.error!==app.lastPlayerError){app.lastPlayerError=data.error;showToast(data.error,6000)}
+  if(!data?.error)app.lastPlayerError='';
+  else if(data.error!==app.lastPlayerError){
+    app.lastPlayerError=data.error;
+    showToast(data.error,6000);
+  }
  }
 };
 window.AurelBack=()=>{if(app.overlay){app.overlay=false;drawOverlay();return;}if(app.selected){app.selected=null;app.selectedTracks=[];render();return;}navigate('home')};
@@ -158,7 +162,9 @@ function showToast(msg,ms=3600){
  const now=Date.now();if(showToast.previous===message&&now-showToast.when<1800)return;
  showToast.previous=message;showToast.when=now;
  t.replaceChildren();
- const label=document.createElement('span');label.className='aurel-toast-message';label.textContent=message;t.appendChild(label);
+ const localized=window.AurelLanguage?.get?.()==='uk'
+  ?(window.AurelLanguage.translate?.(message)||message):message;
+ const label=document.createElement('span');label.className='aurel-toast-message';label.textContent=localized;t.appendChild(label);
  if((app.session?.mornyeConnected||app.session?.mornyeConfigured)&&/mornye|zarz|gateway|verification|session grant/i.test(message)&&!/rate limit|try again|too many requests|cooldown/i.test(message)){
   const action=document.createElement('button');action.type='button';action.textContent='Verify';
   action.className='aurel-toast-action';action.setAttribute('data-reverify-mornye','');t.appendChild(action);
