@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.47: restore USB DAC playback in standard and direct modes.
+# v1.1.48: replace native DAC driver; standard mode uses only Android mixer.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -9,7 +9,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/direct-usb-bitperfect-media3]
+    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -165,12 +165,12 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — USB DAC playback and safe fallback repair**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — Android mixer OFF / libusbdac direct USB ON**" \
             '' \
-            '- Corrects premature USB startup checks: direct USB now has time to activate after PCM begins.' \
+            '- Replaces the previous native USB driver with libusbdac v0.2.0 (GPL-3.0) for UAC1/2/3.' \
             '- Preserves safe initial USB volume, with hardware and digital attenuation truthfully identified.' \
-            '- Routes standard Android audio to the USB DAC even when Bit-perfect is disabled.' \
-            '- Prevents a failed direct USB session from requesting a conflicting Android bit-perfect mixer.' \
+            '- Bit-perfect OFF always uses Android MediaPlayer/AudioFlinger and ordinary Android routing.' \
+            '- Bit-perfect ON selects a separate native libusbdac PCM engine; never requests Android HAL bit-perfect mixer.' \
             '- Releases the native USB stream before starting the Android fallback with a fresh signed URL.' \
             '- Reports whether Android actually routes audio to USB or merely detects the DAC.' \
             '- Hardware validation still required: iBasso DC05 16/44.1 and 24/96, pause, seek and reconnect.' \
