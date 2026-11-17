@@ -39,10 +39,8 @@ final class BitPerfectOutput {
         manager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
         enabled = wanted;
         if (wanted) {
-            phase = Build.VERSION.SDK_INT < 34 ? "android_version" : "no_usb";
-            detail = Build.VERSION.SDK_INT < 34
-                ? "Requires Android 14 (API 34) or newer."
-                : "Connect a compatible USB DAC.";
+            phase = "waiting_track";
+            detail = "Direct USB engine selected. Awaiting a compatible DAC and track.";
         }
     }
 
@@ -122,22 +120,32 @@ final class BitPerfectOutput {
         detail = enabled ? "Waiting for an audio stream." : "Standard Android playback";
     }
 
+    /** The USB mode switch chooses the libusbdac engine in MainActivity.
+     * NEVER negotiate the optional Android mixer bit-perfect path here. */
     void setEnabled(boolean wanted, MediaPlayer mediaPlayer, JSONObject stream) {
         enabled = wanted;
-        if (!wanted) {
-            clearPreference();
-            if (mediaPlayer != null) {
-                try { mediaPlayer.setPreferredDevice(null); }
+        clearPreference();
+        if (Build.VERSION.SDK_INT >= 34 && manager != null) {
+            for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                if (!usb(device)) continue;
+                try { manager.clearPreferredMixerAttributes(attributes, device); }
                 catch (RuntimeException ignored) {}
             }
-            phase = "off";
-            detail = "Standard Android playback";
-        } else {
-            apply(mediaPlayer, stream);
         }
+        if (mediaPlayer != null) {
+            try { mediaPlayer.setPreferredDevice(null); }
+            catch (RuntimeException ignored) {}
+        }
+        phase = wanted ? "waiting_track" : "off";
+        detail = wanted ? "libusbdac native USB audio selected; no Android mixer request." :
+            "Standard Android MediaPlayer / AudioFlinger";
     }
 
+    /** Legacy HAL mixer negotiation retained only for diagnostics compatibility.
+     * NOT invoked by the two-engine player (and disabled by the guard below). */
     void apply(MediaPlayer mediaPlayer, JSONObject stream) {
+        if (true) return; // Direct USB must NEVER enter Android's bit-perfect mixer.
+
         if (changing) return;
         changing = true;
         try { applyInternal(mediaPlayer, stream); }
