@@ -193,7 +193,7 @@ async function restore(view){
   }
   if(serial!==renderSerial)return;
   if(view.kind==='artist'&&view.id&&!stored)window.AurelEnsureArtistExtras?.(view.id);
-  shown=key();if(isDetail(view))lastDetail={...view};restoreY(view);
+  shown=key();lastDetail=isDetail(view)?{...view}:null;restoreY(view);
   // Native playback state arrives independently of catalogue recovery.
   // Reopen the saved player sheet after the last artist/album has rendered.
   if(view.overlay&&app.player?.track?.id &&
@@ -268,7 +268,7 @@ navigate=async function(page){
  if(restoring){renderSerial++;restoring=false;}
  if(page!==app.nav||app.selected)push();
  const result=await oldNavigate.apply(this,arguments);
- if(!restoring){shown=key();underlayView=null;restoreY(location());recordAction('tab');}
+ if(!restoring){shown=key();underlayView=null;lastDetail=null;restoreY(location());recordAction('tab');}
  return result;
 };
 const oldRender=render;
