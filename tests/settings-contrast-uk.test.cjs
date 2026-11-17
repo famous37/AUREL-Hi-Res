@@ -13,7 +13,7 @@ new Function(lang);
 assert(html.lastIndexOf('aurel-unified.css')>html.indexOf('aurel-clarity.css'),
   'Final stylesheet must apply contrast rules last');
 
-const contrastMarker='/* 1.1.36 · selected controls must remain legible';
+const contrastMarker='selected controls must remain legible';
 const contrast=css.slice(css.indexOf(contrastMarker));
 assert(contrast.startsWith(contrastMarker),'Missing contrast fix');
 for(const marker of [

@@ -107,6 +107,7 @@ jobs:
           node tests/clarity-uk-icon.test.cjs
           node tests/media-ui-unification.test.cjs
           node tests/settings-contrast-uk.test.cjs
+          node tests/artist-biography-mono.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -147,16 +148,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            '**AUREL Hi-Res v1.1.36 — Readable audio settings and complete Ukrainian USB labels**' \
+            '**AUREL Hi-Res v1.1.37 — Full artist biography and monochrome everywhere**' \
             '' \
-            '- Corrected selected Hi-Res quality tiles: white type on charcoal with a white outline, never white text on white.' \
-            '- Improved the contrast of other selected controls, radio states and focus indicators.' \
-            '- Simplified USB bit-perfect diagnostics into short, accurate status messages without displaying raw technical paragraphs.' \
-            '- Translated all USB mixer states, descriptions and settings controls into Ukrainian.' \
-            '- Added automated WCAG AAA 7:1 contrast assertions for selected and unselected quality labels.' \
-            '- Preserved the AUREL monochrome UI, real USB/BT status, player, queue, logins, signed updates and navigation.' \
+            '- Artist page now opens a full Qobuz-sourced biography from the summary or About artist button.' \
+            '- Accessible scrollable sheet with smooth opening/closing, Android Back and safe loading or unavailable states.' \
+            '- Full biography is never truncated or invented; asynchronous updates preserve reading position.' \
+            '- Monochrome graphite is the default across artist pages, album cards, settings, player, navigation, and overlays.' \
+            '- One-time reset of prior artwork-derived UI tints to monochrome; artwork colour mode remains optional in Appearance.' \
+            '- Album art and artist photographs retain their original colours.' \
+            '- Ukrainian labels for artist information, with original Qobuz biography text preserved.' \
+            '- Android, audio playback, favourites, stored accounts, queue, history and permanent signing remain unchanged.' \
             '' \
-            'Install v1.1.36 directly over permanently signed v1.1.35 without clearing data.' \
+            'Install v1.1.37 over permanently signed v1.1.36 without clearing user data.' \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

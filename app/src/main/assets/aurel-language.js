@@ -407,7 +407,18 @@ Object.assign(dictionary,{
  'Standard playback':'Стандартне відтворення',
  'Android 14+ required':'Потрібен Android 14+'
 });
-var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice';
+/* Artist information controls; Qobuz biography content remains original. */
+Object.assign(dictionary,{
+ 'About artist':'Про виконавця',
+ 'Read full biography':'Читати повну біографію',
+ 'Read more':'Читати далі',
+ 'Close artist information':'Закрити відомості про виконавця',
+ 'Loading biography…':'Завантаження біографії…',
+ 'No biography provided by Qobuz.':'Qobuz не надав біографії виконавця.',
+ 'Biography unavailable. Please try again later.':'Біографія наразі недоступна. Спробуйте пізніше.',
+ 'Artist biography':'Біографія виконавця'
+});
+var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
  var key=String(s||'').trim();
