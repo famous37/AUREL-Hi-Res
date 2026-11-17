@@ -13,5 +13,10 @@ signing.properties
 *signing-secret*
 *keystore-password*
 
-# Pinned third-party USB Audio Class 2.0 sources fetched by setup script
+# Existing USB/FLAC driver source checkout
 /vendor/decent-player/
+
+# The evaluation-only Superpowered SDK and static binary archives must NEVER
+# enter the public AUREL Git repository or public GitHub Actions artifacts.
+/vendor/superpowered-sdk/
+/superpoweredUsbLab/.cxx/

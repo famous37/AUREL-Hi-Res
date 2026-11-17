@@ -1,0 +1,87 @@
+name: Private encrypted AUREL USB Lab APK (Superpowered evaluation)
+on:
+  push:
+    branches: [experiment/superpowered-private-usb-lab]
+    paths:
+      - '.github/workflows/aurel-usb-lab-private-build.yml'
+      - 'superpoweredUsbLab/**'
+      - 'scripts/setup-superpowered-lab.sh'
+      - 'scripts/EncryptPrivateApk.java'
+      - 'scripts/aurel-usb-lab-public-key.pem'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  encrypted-private-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+      - name: Install Android API and native toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+      - name: Fetch pinned official Superpowered evaluation SDK only into temporary runner
+        shell: bash
+        run: bash scripts/setup-superpowered-lab.sh
+      - name: Compile personal evaluation APK; transient plaintext kept ONLY on CI runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if gradle --no-daemon --max-workers=2 :superpoweredUsbLab:assembleDebug -PaurelSuperpoweredLab; then
+              exit 0
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::Gradle failed all retry attempts"
+              exit 1
+            fi
+            echo "Transient Gradle dependency failure; retrying without publishing files..."
+            sleep 30
+          done
+      - name: Encrypt complete APK with user-only RSA public key, AES-256-GCM
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=superpoweredUsbLab/build/outputs/apk/debug/superpoweredUsbLab-debug.apk
+          test -s "$APK"
+          mkdir -p build/private-artifacts
+          javac scripts/EncryptPrivateApk.java
+          java -cp scripts EncryptPrivateApk \
+            "$APK" \
+            scripts/aurel-usb-lab-public-key.pem \
+            build/private-artifacts/AUREL-USB-Lab-private.apk.aesgcm
+          test -s build/private-artifacts/AUREL-USB-Lab-private.apk.aesgcm
+      - name: Shred all plaintext APKs and vendor SDK before any artifact upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf superpoweredUsbLab/build/outputs/apk
+          rm -rf vendor/superpowered-sdk
+          test ! -e superpoweredUsbLab/build/outputs/apk/debug/superpoweredUsbLab-debug.apk
+      - name: Upload ENCRYPTED payload ONLY (unusable without private key)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AUREL-USB-Lab-RSA-OAEP-AES256GCM-encrypted
+          path: build/private-artifacts/AUREL-USB-Lab-private.apk.aesgcm
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Cleanup
+        if: always()
+        shell: bash
+        run: |
+          rm -rf superpoweredUsbLab/build/outputs/apk vendor/superpowered-sdk
+          rm -f scripts/EncryptPrivateApk.class
+          echo "Only encrypted evaluation bytes may appear as workflow artifacts."
