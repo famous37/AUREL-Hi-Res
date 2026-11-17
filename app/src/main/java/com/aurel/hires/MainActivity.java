@@ -79,7 +79,8 @@ public final class MainActivity extends Activity {
     }
     private void setUsbVolumePercent(int value) {
         usbOutputVolumePercent=Math.max(0,Math.min(100,value));
-        secure.put("usbOutputVolumePercent",Integer.toString(usbOutputVolumePercent));
+        try{secure.put("usbOutputVolumePercent",Integer.toString(usbOutputVolumePercent));}
+        catch(Exception error){Log.w(MEDIA_TAG,"Unable to persist USB volume",error);}
         if(directPlayer!=null)directPlayer.setOutputLevel(usbOutputVolumePercent);
         emit("player",playerState());
     }

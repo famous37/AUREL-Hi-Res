@@ -288,7 +288,7 @@ drawOverlay=function(){
  const overlay=$('#overlay');
  if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return}
  const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
- const progressTotal=Math.max(0,Number(p.duration)||0),position=Math.min(progressTotal,Math.max(0,window.AurelProgressClock?.read(p)??Number(p.position)||0));
+ const progressTotal=Math.max(0,Number(p.duration)||0),position=Math.min(progressTotal,Math.max(0,(window.AurelProgressClock?.read(p) ?? Number(p.position) ?? 0)));
  const loading=p.buffering&&!p.error;
  const format=actualSource(p);
  const subtitle=p.error?'Playback unavailable':loading?'Connecting to audio…':p.sourceVerified?'Source format · Qobuz metadata':p.decoderSampleRateHz?'Media track format · Android':'Source format not confirmed';
