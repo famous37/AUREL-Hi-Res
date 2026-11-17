@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.48: replace native DAC driver; standard mode uses only Android mixer.
+# v1.1.50: fail-safe standard Android playback; direct USB disabled pending qualification.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -9,7 +9,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine]
+    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -165,16 +165,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — Android mixer OFF / libusbdac direct USB ON**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — stable Android audio recovery**" \
             '' \
-            '- Replaces the previous native USB driver with libusbdac v0.2.0 (GPL-3.0) for UAC1/2/3.' \
-            '- Preserves safe initial USB volume, with hardware and digital attenuation truthfully identified.' \
-            '- Bit-perfect OFF always uses Android MediaPlayer/AudioFlinger and ordinary Android routing.' \
-            '- Bit-perfect ON selects a separate native libusbdac PCM engine; never requests Android HAL bit-perfect mixer.' \
-            '- Releases the native USB stream before starting the Android fallback with a fresh signed URL.' \
-            '- Reports whether Android actually routes audio to USB or merely detects the DAC.' \
-            '- Hardware validation still required: iBasso DC05 16/44.1 and 24/96, pause, seek and reconnect.' \
-            '- Preserves AUREL signing certificate, installed package ID, Qobuz credentials and app data.' \
+            '- Safe default: Android MediaPlayer/AudioFlinger handles speaker, Bluetooth and USB DAC output.' \
+            '- Direct USB bit-perfect is temporarily disabled after reproducible native crashes. This build does NOT claim bit-perfect output.' \
+            '- libusbdac is never initialized or allowed to claim a DAC in ordinary Android playback mode.' \
+            '- Removed repeated MediaPlayer preferred-device resets on Android routing callbacks.' \
+            '- Disabled concurrent HTTP range probes on a signed audio URL while that stream is playing.' \
+            '- Preserves account data, existing app package name and permanent release signing certificate.' \
+            '- Normal Android USB audio still requires USB routing to be enabled in Android system settings.' \
+            '- Direct USB can be reintroduced only after independent driver integration and real hardware testing.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
