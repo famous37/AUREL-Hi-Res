@@ -11,7 +11,7 @@
       ['settings','Settings','settings']
     ].map(function(entry){
       const action=entry[0]==='playing'?'data-open-player-nav':'data-nav="'+entry[0]+'"';
-      return '<button type="button" '+action+'><span class="aurel-tab-icon" aria-hidden="true">'+ic(entry[2],23)+'</span><span class="aurel-tab-label">'+entry[1]+'</span></button>';
+      return '<button type="button" aria-label="'+entry[1]+'" '+action+'><span class="aurel-tab-icon" aria-hidden="true">'+ic(entry[2],23)+'</span><span class="aurel-tab-label">'+entry[1]+'</span></button>';
     }).join('');
   }
   let navArtwork='';
