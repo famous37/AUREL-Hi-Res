@@ -297,6 +297,10 @@ public final class MainActivity extends Activity {
         if(token!=usbGrantPollToken||bitPerfect==null||!bitPerfect.isEnabled()
             ||usbHost==null)return;
         if(usbHost.permitted()){
+            if(directUsbUnsafe||current.optString("id","").equals(directFallbackTrackId)){
+                emit("player",playerState());
+                return;
+            }
             // Existing Android fallback must acquire a NEW signed stream URL
             // after USB permission becomes available; never reuse the old URL.
             if(directPlayer==null&&player!=null
@@ -1225,7 +1229,8 @@ public final class MainActivity extends Activity {
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
                             ui.post(()->{
                                 final boolean hadEngine=hasEngine();
-                                final boolean wasPlaying=isAudioPlaying();
+                                final boolean resumeRequested=focusPolicy.shouldStartPrepared() &&
+                                     (isAudioPlaying() || buffering);
                                 if(prepared&&hadEngine){
                                     restoredPositionMs=audioPosition();
                                     restoredTrackId=current.optString("id","");
@@ -1247,10 +1252,24 @@ public final class MainActivity extends Activity {
                                 updateUsbAttachHandler();
                                 directUsbUnsafe=false;
                                 directUsbFailure="";
-                                if(hadEngine&&wasPlaying){
-                                    directFallbackTrackId="";
-                                    startAtCurrentInternal(); // obtains a fresh signed URL
-                                }
+                                // Invalidate any outstanding old engine stream callback.
+                                 final int switchGeneration=++playGeneration;
+                                 if(resumeRequested&&queueIndex>=0){
+                                     directFallbackTrackId="";
+                                     if(wanted){
+                                         startAtCurrentInternal();
+                                     }else{
+                                         final String trackId=current.optString("id","");
+                                         // Give the native USB interface time to return
+                                         // to the Android USB audio kernel driver.
+                                         ui.postDelayed(()->{
+                                             if(switchGeneration!=playGeneration ||
+                                                bitPerfect.isEnabled() ||
+                                                !trackId.equals(current.optString("id","")))return;
+                                             startAtCurrentInternal();
+                                         },650L);
+                                     }
+                                 }
                                 try {emit("session",session());}catch(Exception ignored){}
                                 emit("player",playerState());
                             });
@@ -1889,6 +1908,7 @@ public final class MainActivity extends Activity {
                             && !id.equals(directFallbackTrackId);
                         if(attemptDirect){
                             try{
+                                usbHost.setEnabled(true); // activate once for direct output
                                 bitPerfect.release();
                                 qualityProbePending=false;
                                 directPlayer=new UsbDirectPlayback(this,usbHost,usbOutputVolumePercent,
@@ -1931,8 +1951,9 @@ public final class MainActivity extends Activity {
                                             directUsbFailure=error;
                                             int position=prepared?playback.position():0;
                                             mediaRecovery.rememberPosition(position);
-                                            cleanupPlayer();
-                                            // Give the native USB interface a short window
+                                             cleanupPlayer();
+                                             if(usbHost!=null)usbHost.suspendForAndroidAudio();
+                                             // Give the native USB interface a short window
                                             // to release before Android AudioFlinger opens
                                             // the same DAC. Never reuse a signed URL.
                                             if(focusPolicy.shouldStartPrepared()){
@@ -1940,7 +1961,7 @@ public final class MainActivity extends Activity {
                                                 ui.postDelayed(()->{
                                                     if(generation!=playGeneration)return;
                                                     startAtCurrentInternal();
-                                                },350L);
+                                                },650L);
                                             }else{
                                                 buffering=false;
                                                 playerError="USB direct failed: "+error;
@@ -1961,6 +1982,9 @@ public final class MainActivity extends Activity {
                                 directUsbFailure=error.toString();
                             }
                         }
+                        // Never let a claimed native interface compete with
+                        // Android MediaPlayer / AudioFlinger, even in ON fallback.
+                        if(usbHost!=null)usbHost.suspendForAndroidAudio();
                         player=new MediaPlayer();
                         player.setAudioAttributes(bitPerfect.audioAttributes());
                         // Route USB for standard playback too. A failed direct

@@ -43,7 +43,7 @@ final class UsbDirectPlayback {
     private int sourceRate,sourceChannels;
     private String sourceMime="";
     private int outputLevel;
-    private long lastDirectActiveAt,firstPlayAt;
+    private long lastDirectActiveAt,firstPlayAt,lastUrbsSeen=-1L,lastUrbsAdvanceAt;
     private int lastPosition=-1,stagnantSeconds;
 
     private final Runnable healthCheck=new Runnable() {
@@ -52,14 +52,23 @@ final class UsbDirectPlayback {
             if(ready&&player.getPlayWhenReady()&&player.getPlaybackState()==Player.STATE_READY){
                 // Before 8 seconds, the transport can still be activating
                 // asynchronously. Decoder READY is not evidence of USB readiness.
+                long nowMs=SystemClock.elapsedRealtime();
                 if(host.directRoute()){
-                    if(host.directTransportActive()) {
-                        lastDirectActiveAt=SystemClock.elapsedRealtime();
-                    }else if(SystemClock.elapsedRealtime()-firstPlayAt>7000L &&
-                            SystemClock.elapsedRealtime()-lastDirectActiveAt>7000L){
-                        reportUnhealthy("Direct USB PCM transport failed to start");
+                    long submitted=host.submittedUrbs();
+                    if(submitted>lastUrbsSeen && submitted>0){
+                        lastUrbsSeen=submitted;
+                        lastUrbsAdvanceAt=nowMs;
+                        lastDirectActiveAt=nowMs;
+                    }else if(nowMs-firstPlayAt>7000L &&
+                             nowMs-Math.max(lastUrbsAdvanceAt,firstPlayAt)>5000L){
+                        reportUnhealthy("Native USB packets stopped advancing");
                         return;
                     }
+                }else if(nowMs-firstPlayAt>9000L){
+                    reportUnhealthy(host.androidFallback()
+                        ?"Direct USB unavailable; switching to Android playback"
+                        :"Direct USB route did not become active");
+                    return;
                 }
                 if(player.isPlaying()){
                     int now=position();
@@ -156,6 +165,10 @@ final class UsbDirectPlayback {
     }
     void start(){
         firstPlayAt=SystemClock.elapsedRealtime();
+        lastUrbsAdvanceAt=firstPlayAt;
+        lastUrbsSeen=-1L;
+        stagnantSeconds=0;
+        lastPosition=-1;
         player.play();
     }
     void pause(){player.pause();}

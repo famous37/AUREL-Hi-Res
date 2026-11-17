@@ -83,9 +83,20 @@ final class AurelUsbDacHost {
     }
 
     void setEnabled(boolean enabled) {
-        prefs.setEnabled(enabled);
-        if(!enabled) manager.releaseClaim(0L, false, false);
-        else manager.retryActivation();
+        // The preference listener already activates or deactivates libusbdac.
+        // A second explicit retryActivation() aborts a healthy USB stream.
+        if (prefs.getEnabled() != enabled) {
+            prefs.setEnabled(enabled);
+        } else if (!enabled) {
+            manager.releaseClaim(0L, false, false);
+        }
+    }
+
+    void suspendForAndroidAudio() { setEnabled(false); }
+
+    long submittedUrbs() {
+        UsbPipelineStats stats=manager.getPipelineStats().getValue();
+        return stats==null?-1L:stats.getUrbsSubmitted();
     }
 
     boolean connected() {
@@ -176,7 +187,7 @@ final class AurelUsbDacHost {
             j.put("connected",connected());
             j.put("permission",permitted());
             j.put("directUsbActive",direct);
-            j.put("directUsbSelected",true);
+            j.put("directUsbSelected",prefs.getEnabled());
             j.put("directUsbRoute",directRoute());
             j.put("androidFallback",androidFallback());
             j.put("sampleRateHz",sampleRate());
