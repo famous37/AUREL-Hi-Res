@@ -1,4 +1,4 @@
-/* AUREL 1.1.42: pre-release rights and calm playback regression. */
+/* AUREL 1.1.43: pre-release rights and calm playback regression. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'..'),source=p=>fs.readFileSync(path.join(root,p),'utf8');
@@ -13,7 +13,7 @@ const css=source('app/src/main/assets/aurel-release.css');
 const motion=source('app/src/main/assets/aurel-motion.js');
 const gradle=source('app/build.gradle');
 const language=source('app/src/main/assets/aurel-language.js');
-assert(gradle.includes('versionCode 61')&&gradle.includes("'1.1.42'"));
+assert(gradle.includes('versionCode 62')&&gradle.includes("'1.1.43'"));
 assert(page.indexOf('aurel-access.js')<page.indexOf('app.js'));
 assert(page.includes('aurel-release.css'));
 assert(page.indexOf('aurel-smooth.css')<page.indexOf('aurel-release.css'));
