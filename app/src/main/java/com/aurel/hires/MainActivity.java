@@ -290,10 +290,7 @@ public final class MainActivity extends Activity {
             start=Math.max(0,end-180);
             for(int i=start;i<end;i++)items.put(safePlaybackTrack(queue.get(i)));
             int position=restoredPositionMs;
-            if(player!=null&&prepared){
-                try{position=Math.max(0,player.getCurrentPosition());}
-                catch(RuntimeException ignored){}
-            }
+            if(hasEngine()&&prepared)position=audioPosition();
             out.put("tracks",items).put("index",queueIndex-start)
                 .put("positionMs",Math.min(86_400_000,Math.max(0,position)))
                 .put("repeat",repeatMode).put("shuffle",shuffle);
@@ -428,7 +425,7 @@ public final class MainActivity extends Activity {
         @Override public void run() {
             if(web!=null) {
                 long now=System.currentTimeMillis();
-                if(player!=null&&now-lastStateSent>900) { emit("player",playerState()); lastStateSent=now; }
+                if(hasEngine()&&now-lastStateSent>900) { emit("player",playerState()); lastStateSent=now; }
                 ui.postDelayed(this,1000);
             }
         }
@@ -596,6 +593,14 @@ public final class MainActivity extends Activity {
                     issue.getMessage()==null?"Gateway grant exchange failed":issue.getMessage());
             }
         });
+    }
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if(bitPerfect!=null&&bitPerfect.isEnabled()&&Build.VERSION.SDK_INT>=29)
+            try{com.decent.usbaudio.UsbAudioPermissionHelper.INSTANCE.handleIntent(this,intent);}
+            catch(RuntimeException | LinkageError error){Log.w(MEDIA_TAG,"USB attach: "+error);}
+        refreshBitPerfectOutput();
     }
     @Override public void onBackPressed() {
         if(web!=null)web.evaluateJavascript("window.AurelBack ? window.AurelBack() : null",null);
