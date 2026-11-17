@@ -152,15 +152,16 @@ document.addEventListener('click',async e=>{
    await scanOutputs();
  }else if(b.hasAttribute('data-aurel-headroom')){
    const db=Number(b.getAttribute('data-aurel-headroom'));
+   if(db===Number(app.session?.digitalHeadroomDb||0))return;
+   b.disabled=true;
    try{
-     await nativeCall('setDigitalHeadroom',{db});
-     app.session={...(app.session||{}),digitalHeadroomDb:db};
-     document.querySelectorAll('[data-aurel-headroom]').forEach(x=>{
-       const yes=Number(x.dataset.aurelHeadroom)===db;
-       x.classList.toggle('is-selected',yes);x.setAttribute('aria-pressed',String(yes));
-     });
-     showToast(db?'Digital headroom: '+db+' dB':'Digital headroom off');
+     const sync=window.AurelPreferenceSync;
+     const result=sync?await sync.change('digitalHeadroomDb',db,
+       value=>nativeCall('setDigitalHeadroom',{db:value})):
+       await nativeCall('setDigitalHeadroom',{db});
+     if(!result?.superseded)showToast(db?'Digital headroom: '+db+' dB':'Digital headroom off');
    }catch(err){showToast(err?.message||'Cannot change digital headroom',5500);}
+   finally{if(b.isConnected)b.disabled=false;}
  }else if(b.hasAttribute('data-aurel-cache-clear')){
    window.AurelPageCache?.clear();updateCache();
    showToast('Page buffer cleared');
@@ -179,11 +180,18 @@ document.addEventListener('change',async e=>{
  }else if(input.matches?.('[data-aurel-cache-limit]')){
    window.AurelPageCache?.configure({limit:Number(input.value)});updateCache();
  }else if(input.matches?.('[data-aurel-preload]')){
-   const value=input.checked;input.disabled=true;
-   try{await nativeCall('setMetadataPreload',{enabled:value});
-     app.session={...(app.session||{}),preloadNextMetadata:value};}
-   catch(err){input.checked=!value;showToast(err?.message||'Unable to save preload setting');}
-   finally{input.disabled=false;}
+   const value=input.checked;
+   input.disabled=true;
+   try{
+     const sync=window.AurelPreferenceSync;
+     if(sync)await sync.change('preloadNextMetadata',value,
+       enabled=>nativeCall('setMetadataPreload',{enabled}));
+     else {
+       await nativeCall('setMetadataPreload',{enabled:value});
+       app.session={...(app.session||{}),preloadNextMetadata:value};
+     }
+   }catch(err){showToast(err?.message||'Unable to save preload setting');}
+   finally{if(input.isConnected)input.disabled=false;}
  }
 },false);
 window.AurelProSettings={applyMotion,signalPath,scanOutputs};
