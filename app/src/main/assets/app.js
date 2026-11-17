@@ -335,7 +335,7 @@ function renderLogin(){
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  const bp=app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
- const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'Format not supported',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
+ const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
  const bpStatus=bpLabels[bp.status]||'Checking USB output';
  // Render concise, truthful device-state explanations; raw native diagnostic
  // strings are still retained in session but need not crowd the settings UI.
@@ -345,14 +345,18 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
   no_usb:'Connect a compatible USB DAC.',
   waiting_track:'Play a lossless track to check USB output.',
   unknown_format:'Track audio format cannot be verified.',
-  unsupported_format:'Android offers no matching bit-perfect USB mixer format.',
+  unsupported_format:'Android has a bit-perfect mixer, but not for this track format.',
+  policy_unavailable:'Android does not offer bit-perfect through its USB audio driver.',
+  policy_error:'Could not check the Android USB audio policy.',
   unsupported:'USB mixer controls are unavailable on this device.',
   rejected:'Android rejected the USB mixer request.',
   requested:'USB mixer preference accepted; PCM bit identity unverified.',
   usb_mixer_routed:'USB audio routed; PCM bit identity unverified.'
  };
- const bpDescription=Object.prototype.hasOwnProperty.call(bpExplanations,bp.status)
-  ?bpExplanations[bp.status]:(bp.detail||'');
+ const bpDescription=['unsupported_format','policy_unavailable','policy_error'].includes(bp.status)
+  ?(bp.detail||bpExplanations[bp.status]):
+  (Object.prototype.hasOwnProperty.call(bpExplanations,bp.status)
+    ?bpExplanations[bp.status]:(bp.detail||''));
  $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back',25)}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel"><h3>Streaming account</h3>
  ${app.session.gatewayPlaybackRejected?`<div class="aurel-gateway-warning" role="status"><strong>Streaming verification needed</strong><span>The Zarz gateway rejected audio playback. Catalogue access alone does not confirm streaming authorization.</span><button class="pill secondary" data-reverify-mornye>Verify Mornye session</button></div>`:'' }
 <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
