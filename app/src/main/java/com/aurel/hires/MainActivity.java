@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.content.Context;
 import android.graphics.Color;
 import android.media.AudioManager;
+import android.media.AudioFocusRequest;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
@@ -55,6 +56,88 @@ public final class MainActivity extends Activity {
     private MediaPlayer player;
     private BitPerfectOutput bitPerfect;
     private AudioManager systemAudio;
+    private AudioFocusRequest audioFocusRequest;
+    private boolean audioFocusGranted=false;
+    private final AurelFocusPolicy focusPolicy=new AurelFocusPolicy();
+    private final AudioManager.OnAudioFocusChangeListener audioFocusListener=
+        change->ui.post(()->onAudioFocusChanged(change));
+
+    /** Focus must be granted BEFORE an actual MediaPlayer.start().
+     * A delayed grant waits quietly and a user pause cancels auto-resume. */
+    private void startWithAudioFocus(MediaPlayer mp) {
+        if(mp==null||mp!=player||!prepared||!focusPolicy.shouldStartPrepared())return;
+        if(!audioFocusGranted){
+            int decision=AudioManager.AUDIOFOCUS_REQUEST_FAILED;
+            if(systemAudio!=null&&audioFocusRequest!=null){
+                try{decision=systemAudio.requestAudioFocus(audioFocusRequest);}
+                catch(RuntimeException ignored){}
+            }
+            if(decision==AudioManager.AUDIOFOCUS_REQUEST_DELAYED){
+                focusPolicy.focusDelayed();
+                emit("player",playerState());
+                return;
+            }
+            if(decision!=AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
+                focusPolicy.focusDenied();
+                playerError="Audio focus is unavailable. Open AUREL to resume playback.";
+                emit("player",playerState());
+                return;
+            }
+            audioFocusGranted=true;
+        }
+        try {
+            if(!mp.isPlaying())mp.start();
+            playerError="";
+        }catch(RuntimeException error){
+            focusPolicy.focusDenied();
+            abandonPlaybackFocus();
+            playerError="Audio playback could not start.";
+            emit("player",playerState());
+        }
+    }
+
+    private void abandonPlaybackFocus() {
+        audioFocusGranted=false;
+        if(systemAudio!=null&&audioFocusRequest!=null){
+            try{systemAudio.abandonAudioFocusRequest(audioFocusRequest);}
+            catch(RuntimeException ignored){}
+        }
+    }
+
+    private void pauseByUser() {
+        focusPolicy.userPause();
+        if(player!=null&&prepared){
+            try{if(player.isPlaying())player.pause();}catch(RuntimeException ignored){}
+        }
+        abandonPlaybackFocus();
+    }
+
+    /** The playback source stays paused after a permanent loss. Android only
+     * guarantees GAIN after transient focus loss or a delayed focus request. */
+    private void onAudioFocusChanged(int change) {
+        if(change==AudioManager.AUDIOFOCUS_GAIN){
+            boolean resume=focusPolicy.focusGained();
+            if(!focusPolicy.shouldStartPrepared()){
+                audioFocusGranted=false;
+                return; // stale GAIN posted after the user already pressed Pause
+            }
+            audioFocusGranted=true;
+            if(resume&&player!=null&&prepared)startWithAudioFocus(player);
+            emit("player",playerState());
+            return;
+        }
+        if(change==AudioManager.AUDIOFOCUS_LOSS ||
+           change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ||
+           change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK){
+            audioFocusGranted=false;
+            if(change==AudioManager.AUDIOFOCUS_LOSS)focusPolicy.focusLostPermanent();
+            else focusPolicy.focusLostTransient();
+            if(player!=null&&prepared){
+                try{if(player.isPlaying())player.pause();}catch(RuntimeException ignored){}
+            }
+            emit("player",playerState());
+        }
+    }
     private final AudioDeviceCallback usbCallback = new AudioDeviceCallback() {
         @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
         @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
@@ -118,7 +201,15 @@ public final class MainActivity extends Activity {
         if(bitPerfect.isEnabled())digitalHeadroomDb=0;
         prefetchNextMetadata=!"0".equals(secure.get("preloadNextMetadata"));
         systemAudio=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
-        if(systemAudio!=null)systemAudio.registerAudioDeviceCallback(usbCallback,ui);
+        if(systemAudio!=null){
+            audioFocusRequest=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(bitPerfect.audioAttributes())
+                .setOnAudioFocusChangeListener(audioFocusListener,ui)
+                .setWillPauseWhenDucked(true)
+                .setAcceptsDelayedFocusGain(true)
+                .build();
+            systemAudio.registerAudioDeviceCallback(usbCallback,ui);
+        }
         api=new QobuzApi(secure);
         mornye=new MornyeGateway(secure);
         updateManager=new AurelUpdateManager(this,update->emit("update",update));
@@ -336,6 +427,8 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         ui.removeCallbacks(ticker);
+        focusPolicy.userPause();
+        abandonPlaybackFocus();
         if(systemAudio!=null)systemAudio.unregisterAudioDeviceCallback(usbCallback);
         cleanupPlayer();
         AurelPlaybackService.stop(this);
@@ -367,10 +460,11 @@ public final class MainActivity extends Activity {
                 if(player!=null&&prepared&&player.getCurrentPosition()>3500)player.seekTo(0);
                 else advance(-1,false);
             }else if("toggle".equals(action)){
-                if(player!=null&&prepared){
-                    if(play&&!player.isPlaying())player.start();
-                    else if(!play&&player.isPlaying())player.pause();
-                }
+                if(play){
+                    focusPolicy.userPlay();
+                    if(player!=null&&prepared)startWithAudioFocus(player);
+                    else if(player==null&&queueIndex>=0&&!buffering)startAtCurrent();
+                }else pauseByUser();
             }
             emit("player",playerState());
         });
@@ -1000,9 +1094,10 @@ public final class MainActivity extends Activity {
                             });
                             data=param("queued",eligible.size());break;
                         }
-                        case "pause":ui.post(()->{if(player!=null&&prepared&&player.isPlaying())player.pause();emit("player",playerState());});data=new JSONObject();break;
+                        case "pause":ui.post(()->{pauseByUser();emit("player",playerState());});data=new JSONObject();break;
                         case "resume":ui.post(()->{
-                            if(player!=null&&prepared&&!player.isPlaying())player.start();
+                            focusPolicy.userPlay();
+                            if(player!=null&&prepared)startWithAudioFocus(player);
                             else if(!buffering&&queueIndex>=0&&player==null)startAtCurrent();
                             emit("player",playerState());
                         });data=new JSONObject();break;
@@ -1316,6 +1411,7 @@ public final class MainActivity extends Activity {
 
     private void startAtCurrent() {
         if(queueIndex<0||queueIndex>=queue.size())return;
+        focusPolicy.userPlay();
         // Native final guard: no audio ticket for scheduled or restricted tracks.
         final String denial=TrackAccess.reason(queue.get(queueIndex));
         if(denial!=null){
@@ -1439,7 +1535,7 @@ public final class MainActivity extends Activity {
                                 }
                             }
                             applyDigitalHeadroom(mp);
-                            try{mp.start();}catch(Exception ignored){}
+                            if(focusPolicy.shouldStartPrepared())startWithAudioFocus(mp);
                             // Probe the existing media URL, never the ticket endpoint.
                             // Run after playback starts to protect single-use stream links.
                             if(qualityProbePending){
@@ -1489,6 +1585,7 @@ public final class MainActivity extends Activity {
                         player.setOnErrorListener((mp,what,extra)->{
                             if(generation!=playGeneration)return true;
                             prepared=false;buffering=false;qualityProbePending=false;
+                            focusPolicy.userPause();abandonPlaybackFocus();
                             playerError="Media decoder error ("+what+" / "+extra+")";
                             emit("player",playerState());return true;
                         });
@@ -1538,6 +1635,8 @@ public final class MainActivity extends Activity {
         }
         if(next<0){
             if(completion){
+                focusPolicy.userPause();
+                abandonPlaybackFocus();
                 cleanupPlayer();buffering=false;qualityProbePending=false;
                 emit("player",playerState());
             }
