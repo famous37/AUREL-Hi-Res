@@ -253,14 +253,37 @@ final class BitPerfectOutput {
                     JSONObject item=new JSONObject();
                     boolean isUsb=usb(device);
                     int type=device.getType();
+                    // AudioDeviceInfo exposes real connected Android audio outputs.
+                    // Codec negotiated for an A2DP link is NOT public to normal apps:
+                    // BluetoothA2dp.getCodecStatus requires privileged access.
+                    boolean isA2dp=type==AudioDeviceInfo.TYPE_BLUETOOTH_A2DP;
+                    boolean isBle=Build.VERSION.SDK_INT>=31 &&
+                        (type==AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                         type==AudioDeviceInfo.TYPE_BLE_SPEAKER);
+                    boolean isBtVoice=type==AudioDeviceInfo.TYPE_BLUETOOTH_SCO;
+                    boolean isHearingAid=Build.VERSION.SDK_INT>=28 &&
+                        type==AudioDeviceInfo.TYPE_HEARING_AID;
+                    boolean isBluetooth=isA2dp||isBle||isBtVoice||isHearingAid;
                     String kind=isUsb?"USB DAC / USB audio":
-                        type==AudioDeviceInfo.TYPE_BLUETOOTH_A2DP?"Bluetooth A2DP":
+                        isA2dp?"Bluetooth A2DP":
+                        isBle?"Bluetooth LE audio":
+                        isBtVoice?"Bluetooth call audio":
+                        isHearingAid?"Bluetooth hearing aid":
                         type==AudioDeviceInfo.TYPE_BUILTIN_SPEAKER?"Built-in speaker":
                         type==AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
-                            type==AudioDeviceInfo.TYPE_WIRED_HEADSET?"Analog headphones":"Other output";
+                            type==AudioDeviceInfo.TYPE_WIRED_HEADSET?"Analog headphones":
+                        type==AudioDeviceInfo.TYPE_HDMI?"HDMI audio":"Other output";
                     item.put("name",String.valueOf(device.getProductName()));
                     item.put("category",kind);
                     item.put("usb",isUsb);
+                    item.put("bluetooth",isBluetooth);
+                    item.put("bluetoothTransport",isA2dp?"A2DP":isBle?"LE Audio":
+                        isBtVoice?"SCO":isHearingAid?"Hearing aid":"");
+                    // A codec (LDAC, aptX, AAC, SBC etc) must never be guessed.
+                    if(isBluetooth) {
+                        item.put("negotiatedCodec",JSONObject.NULL);
+                        item.put("codecStatus","Unavailable to standard Android apps");
+                    }
                     item.put("currentlyRouted",route!=null&&route.getId()==device.getId());
                     org.json.JSONArray rates=new org.json.JSONArray();
                     for(int hz:device.getSampleRates())rates.put(hz);
@@ -289,6 +312,7 @@ final class BitPerfectOutput {
                     devices.put(item);
                 }
             }
+            out.put("routeKnown",route!=null);
             out.put("outputs",devices);
             out.put("verifiedEndToEnd",false);
             out.put("note","Hardware-reported capabilities, not measured DAC output. "+
