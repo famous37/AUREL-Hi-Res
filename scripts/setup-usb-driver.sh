@@ -43,3 +43,33 @@ if "fun isDirectUsbStreamActive()" not in src:
         raise RuntimeError("Upstream UsbAudioSink changed; review integration patch")
     path.write_text(src.replace(marker, method + marker, 1))
 PYTHON
+
+# libFLAC 1.5.0's generic compat header otherwise aliases Android's
+# fseeko/ftello declarations to fseek/ftell, creating conflicting C signatures
+# under modern NDKs. Android API 29 has native fseeko/ftello.
+python3 - "$FLAC_DIR/include/share/compat.h" <<'PYTHON'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+src = path.read_text()
+needle = "#if defined _MSC_VER || defined __BORLANDC__ || defined __MINGW32__"
+patch = "#if defined(__ANDROID__) && !defined(HAVE_FSEEKO)\n#define HAVE_FSEEKO 1\n#endif\n\n"
+if patch not in src:
+    if src.count(needle) != 1:
+        raise RuntimeError("libFLAC compat.h changed; review Android build patch")
+    path.write_text(src.replace(needle, patch + needle, 1))
+PYTHON
+# AUREL's experimental build targets 64-bit Android phones. Do not compile
+# obsolete ABIs while USB hardware support is being qualified.
+python3 - "$DEST/libs/decent-usb-audio-driver/build.gradle.kts" "$DEST/libs/decent-media3-decoder-flac/build.gradle.kts" <<'PYTHON'
+from pathlib import Path
+import sys
+for name in sys.argv[1:]:
+    path = Path(name)
+    src = path.read_text()
+    if 'abiFilters.add("arm64-v8a")' not in src:
+        needle = "minSdk = 29"
+        if src.count(needle) != 1: raise RuntimeError("Native Gradle structure changed")
+        src = src.replace(needle, needle + '\n        ndk { abiFilters.add("arm64-v8a") }')
+        path.write_text(src)
+PYTHON
