@@ -26,9 +26,9 @@
   const isOpen=()=>!!(app.overlay&&!app.playerSheet&&
     overlay.querySelector('.murglar-view'));
   const closePage=()=>{
-    if(typeof window.AurelHistoryBack==='function'){
-      // Preserves the full originating route, album or playlist, and its scroll.
-      window.AurelHistoryBack();
+    // Player dismissal must NEVER consume an album/artist navigation entry.
+    if(typeof window.AurelMinimizePlayer==='function'){
+      window.AurelMinimizePlayer();
     }else{
       app.overlay=false;app.playerSheet='';
       drawOverlay();
