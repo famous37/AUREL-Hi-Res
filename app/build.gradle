@@ -11,7 +11,7 @@ def aurelSigningError = 'AUREL release signing is not configured. Add AUREL_RELE
 android {
     buildFeatures { resValues true }
     namespace 'com.aurel.hires'
-    compileSdk 37
+    compileSdk { version = release(37) { minorApiLevel = 0 } }
     defaultConfig {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 29
