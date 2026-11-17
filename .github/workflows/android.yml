@@ -49,6 +49,8 @@ jobs:
         run: node tests/playback-continuity.test.cjs
       - name: Verify swipe-down minimization and high-contrast SVG controls
         run: node tests/swipe-icons.test.cjs
+      - name: Verify restored icon and precise seek gesture regression
+        run: node tests/player-icon-seek.test.cjs
       - name: Verify global typography, vector icons and motion invariants
         run: node tests/global-polish.test.cjs
       - name: Verify vector action buttons, search and quicklinks
