@@ -45,6 +45,8 @@ jobs:
         run: node tests/minimal-player.test.cjs
       - name: Verify USB Bit-perfect mixer negotiation and UI safeguards
         run: node tests/bit-perfect.test.cjs
+      - name: Verify swipe-down minimization and high-contrast SVG controls
+        run: node tests/swipe-icons.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
