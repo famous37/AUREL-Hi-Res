@@ -1761,6 +1761,19 @@ public final class MainActivity extends Activity {
                                 directPlayer=new UsbDirectPlayback(this,new UsbDirectPlayback.Listener(){
                                     @Override public void onReady(UsbDirectPlayback playback){
                                         if(generation!=playGeneration||directPlayer!=playback)return;
+                                        if(!playback.usbStreamActive()){
+                                            // The player may be READY while UAC2 failed to
+                                            // claim/activate the isochronous stream. Never
+                                            // misreport this as direct bit-perfect output.
+                                            directFallbackTrackId=id;
+                                            ui.post(()->{
+                                                if(generation!=playGeneration||directPlayer!=playback)return;
+                                                cleanupPlayer();
+                                                buffering=true;
+                                                startAtCurrentInternal(); // new signed URL
+                                            });
+                                            return;
+                                        }
                                         prepared=true;buffering=false;
                                         decoderSampleRateHz=playback.sourceRate();
                                         decoderChannels=playback.sourceChannels();
