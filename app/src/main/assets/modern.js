@@ -196,7 +196,50 @@ const ic=(key,size=24)=>{
  return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
 };
 const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
-updateMini=function(){const p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}const t=p.track;m.classList.remove('hidden');m.innerHTML=`${art(t,'minicover')||'<span class="minicover placeholder">♪</span>'}<div class="meta"><div class="title">${html(t.title||'Untitled')}</div><div class="artist">${html(artistLabel(t))}</div></div><button class="mini-love" data-mini-fav="${html(t.id)}" aria-label="Add to favourites">${ic('heart',23)}</button><button class="mini-play" data-mini-toggle aria-label="${p.playing?'Pause':'Play'}">${ic(p.playing?'pause':'play',25)}</button><div class="mini-progress" style="--played:${p.duration?Math.round(100*(p.position||0)/p.duration):0}%"></div>`;};
+// Stable mini-player: do not recreate artwork, buttons or metadata on each
+// 250 ms native position event. Preserve favourites state and scroll positions.
+updateMini=function(){
+ const p=app.player,m=$('#mini');
+ if(!m)return;
+ if(!p?.track?.id){m.classList.add('hidden');m.removeAttribute('data-mini-track');return;}
+ const t=p.track,id=String(t.id),title=trackTitle(t),performer=artistLabel(t);
+ const cover=image(t,'thumb');
+ m.classList.remove('hidden');
+ if(m.dataset.miniTrack!==id||!m.querySelector('.mini-track-open')){
+  m.innerHTML=`${cover?'<img class="minicover" src="'+html(cover)+'" alt="Album art" loading="eager">':'<span class="minicover placeholder">♪</span>'}
+   <div class="meta mini-track-open"><strong class="title"></strong><small class="artist"></small></div>
+   <div class="mini-buttons"><button class="mini-love" data-mini-fav="${html(id)}" aria-label="Add to favourites">${ic('heart',24)}</button>
+   <button class="mini-play" data-mini-toggle aria-label="Play">${ic('play',26)}</button></div>
+   <div class="mini-progress" aria-hidden="true"></div>`;
+  m.dataset.miniTrack=id;
+  m.dataset.miniPlaying='';
+  m.dataset.miniArtwork=cover||'';
+ }
+ const titleNode=m.querySelector('.mini-track-open .title'),
+       artistNode=m.querySelector('.mini-track-open .artist');
+ if(titleNode&&titleNode.textContent!==title)titleNode.textContent=title;
+ if(artistNode&&artistNode.textContent!==performer)artistNode.textContent=performer;
+ if((m.dataset.miniArtwork||'')!==cover){
+  const old=m.querySelector('.minicover');
+  if(old){
+   const replacement=document.createElement(cover?'img':'span');
+   replacement.className=cover?'minicover':'minicover placeholder';
+   if(cover){replacement.src=cover;replacement.alt='Album art';}
+   else replacement.textContent='♪';
+   old.replaceWith(replacement);
+  }
+  m.dataset.miniArtwork=cover||'';
+ }
+ const play=m.querySelector('[data-mini-toggle]');
+ if(play&&m.dataset.miniPlaying!==String(!!p.playing)){
+  play.innerHTML=ic(p.playing?'pause':'play',26);
+  play.setAttribute('aria-label',p.playing?'Pause':'Play');
+  m.dataset.miniPlaying=String(!!p.playing);
+ }
+ const bar=m.querySelector('.mini-progress');
+ const percent=p.duration?Math.min(100,Math.max(0,100*(Number(p.position)||0)/Number(p.duration))):0;
+ if(bar)bar.style.setProperty('--played',percent.toFixed(1)+'%');
+};
 drawOverlay=function(){
  const overlay=$('#overlay');
  if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return}
