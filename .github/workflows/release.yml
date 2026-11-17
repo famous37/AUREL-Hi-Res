@@ -1,5 +1,6 @@
 name: Publish permanently signed AUREL release
 # v1.1.47: restore USB DAC playback in standard and direct modes.
+# Revalidate all UI and USB regressions against version 1.1.47.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
