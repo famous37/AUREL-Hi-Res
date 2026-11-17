@@ -12,12 +12,9 @@ import org.json.JSONObject;
 import java.util.List;
 
 /**
- * Optional Android 14+ USB mixer preference, NOT a claim that the MediaPlayer
- * decoder has produced bit-identical PCM. Fail closed when the audio policy
- * reports no supported bit-perfect mixer format matching the source track.
- *
- * All mutation is performed by MainActivity on the UI thread. The snapshots
- * are also used by the WebView bridge's background session requests.
+ * Android output diagnostics and compatibility shim. It does NOT request
+ * bit-perfect Android mixer attributes. Normal playback uses AudioFlinger,
+ * while direct PCM output is owned exclusively by libusbdac.
  */
 final class BitPerfectOutput {
     private final AudioManager manager;
