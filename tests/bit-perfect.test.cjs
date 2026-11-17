@@ -26,6 +26,10 @@ for(const token of [
   'result.put("endToEndVerified", false)'
 ]) assert(java.includes(token),'Missing native protection: '+token);
 assert(manifest.includes('android.permission.MODIFY_AUDIO_SETTINGS'));
+const direct=fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/UsbDirectPlayback.java'),'utf8');
+for(const token of ['UsbAudioSink','ExoPlayer','setRenderersFactory(factory)','direct_usb_playback','endToEndVerified'])
+  assert(direct.includes(token),'Missing direct USB implementation: '+token);
+assert(main.includes('if(directPlayer!=null)return directPlayer.status()'),'Direct USB status must be reported rather than Android mixer state');
 for(const token of [
   'new BitPerfectOutput(this,',
   'bitPerfectEnabled',
@@ -36,8 +40,8 @@ for(const token of [
   'bitPerfect.release()',
   'registerAudioDeviceCallback(usbCallback,ui)',
   'unregisterAudioDeviceCallback(usbCallback)',
-  'state.put("bitPerfect",bitPerfect.status(player))',
-  'j.put("bitPerfect",bitPerfect.status(player))'
+  'state.put("bitPerfect",bitPerfectStatus())',
+  'j.put("bitPerfect",bitPerfectStatus())'
 ]) assert(main.includes(token),'Missing integration: '+token);
 assert(app.includes('data-bit-perfect-toggle'));
 assert(app.includes("nativeCall('setBitPerfect',{enabled:wanted})"));
