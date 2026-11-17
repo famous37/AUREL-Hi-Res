@@ -30,8 +30,7 @@ const nameOf=(o,depth=0)=>{
  if(depth>5||o==null)return '';
  if(typeof o==='string'){
   const value=o.trim();
-  if((value.startsWith('{')&&value.endsWith('}'))||
-     (value.startsWith('[')&&value.endsWith(']'))){
+  if(value.startsWith('{')||(value.startsWith('[')&&value.endsWith(']'))){
    try{return nameOf(JSON.parse(value),depth+1);}catch(_){return '';}
   }
   return value;
