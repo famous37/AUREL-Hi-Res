@@ -10,6 +10,9 @@ import android.os.Looper;
 import android.content.Context;
 import android.graphics.Color;
 import android.media.AudioManager;
+import android.media.AudioAttributes;
+import android.media.AudioDeviceCallback;
+import android.media.AudioDeviceInfo;
 import android.media.MediaPlayer;
 import android.media.MediaFormat;
 import android.webkit.JavascriptInterface;
@@ -50,6 +53,18 @@ public final class MainActivity extends Activity {
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
     private MediaPlayer player;
+    private BitPerfectOutput bitPerfect;
+    private AudioManager systemAudio;
+    private final AudioDeviceCallback usbCallback = new AudioDeviceCallback() {
+        @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
+        @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
+    };
+    private void refreshBitPerfectOutput() {
+        if(bitPerfect==null||!bitPerfect.isEnabled())return;
+        bitPerfect.apply(player,fileInfo);
+        emit("player",playerState());
+        try {emit("session",session());}catch(Exception ignored){}
+    }
     private JSONObject current=new JSONObject();
     private JSONObject fileInfo=new JSONObject();
     private String codec="", sourceLabel="";
@@ -87,6 +102,9 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
+        bitPerfect=new BitPerfectOutput(this,"1".equals(secure.get("bitPerfectEnabled")));
+        systemAudio=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        if(systemAudio!=null)systemAudio.registerAudioDeviceCallback(usbCallback,ui);
         api=new QobuzApi(secure);
         mornye=new MornyeGateway(secure);
         updateManager=new AurelUpdateManager(this,update->emit("update",update));
@@ -304,6 +322,7 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         ui.removeCallbacks(ticker);
+        if(systemAudio!=null)systemAudio.unregisterAudioDeviceCallback(usbCallback);
         cleanupPlayer();
         AurelPlaybackService.stop(this);
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
@@ -477,6 +496,7 @@ public final class MainActivity extends Activity {
         j.put("libraryConnected",hasLibrary);
         j.put("separateLibrary",hasLibrary);
         j.put("quality",quality());
+        j.put("bitPerfect",bitPerfect.status(player));
         // Do not suggest an obsolete legacy App ID to new accounts.
         String storedId=secure.get("streamAppId");
         if(storedId.isEmpty())storedId=secure.get("appId");
@@ -770,8 +790,19 @@ public final class MainActivity extends Activity {
                             data=session();break;
                         }
                         case "logout": {
-                            secure.clear();ui.post(()->{cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
+                            secure.clear();ui.post(()->{bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
                             data=session();break;
+                        }
+                        case "setBitPerfect": {
+                            final boolean wanted=p.getBoolean("enabled");
+                            secure.put("bitPerfectEnabled",wanted?"1":"0");
+                            ui.post(()->{
+                                bitPerfect.setEnabled(wanted,player,fileInfo);
+                                try {emit("session",session());}catch(Exception ignored){}
+                                emit("player",playerState());
+                            });
+                            data=new JSONObject().put("enabled",wanted);
+                            break;
                         }
                         case "saveSettings": {
                             int q=p.optInt("quality",27);
@@ -1220,6 +1251,7 @@ public final class MainActivity extends Activity {
     }
 
     private void cleanupPlayer() {
+        if(bitPerfect!=null)bitPerfect.release();
         prepared=false;buffering=false;
         if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
     }
@@ -1317,7 +1349,15 @@ public final class MainActivity extends Activity {
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
                         player=new MediaPlayer();
-                        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                        player.setAudioAttributes(bitPerfect.audioAttributes());
+                        if(Build.VERSION.SDK_INT>=28){
+                            player.addOnRoutingChangedListener(router->{
+                                if(generation!=playGeneration)return;
+                                if(bitPerfect.isEnabled())bitPerfect.apply(player,fileInfo);
+                                emit("player",playerState());
+                            },ui);
+                        }
+                        if(bitPerfect.isEnabled())bitPerfect.apply(player,fileInfo);
                         player.setOnPreparedListener(mp->{
                             if(generation!=playGeneration)return;
                             prepared=true;buffering=false;
@@ -1326,6 +1366,7 @@ public final class MainActivity extends Activity {
                                 try{emit("session",session());}catch(Exception ignored){}
                             }
                             inspectPreparedTrack(mp);
+                            if(bitPerfect.isEnabled())bitPerfect.apply(mp,fileInfo);
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
                             if(queueIndex+1<queue.size()){
@@ -1368,6 +1409,7 @@ public final class MainActivity extends Activity {
                                                     fileInfo.put("total_samples",parsed.totalSamples);
                                             }catch(Exception ignored){}
                                         }
+                                        if(bitPerfect.isEnabled())bitPerfect.apply(mp,fileInfo);
                                         emit("player",playerState());
                                     });
                                 });
@@ -1452,6 +1494,7 @@ public final class MainActivity extends Activity {
             state.put("buffering",buffering).put("prepared",prepared);
             state.put("repeat",repeatMode).put("shuffle",shuffle).put("error",playerError);
             state.put("quality",quality());
+            state.put("bitPerfect",bitPerfect.status(player));
             state.put("position",player!=null&&prepared?player.getCurrentPosition():0);
             state.put("duration",player!=null&&prepared?player.getDuration():current.optInt("duration",0)*1000);
             state.put("bits",fileInfo.optInt("bits_depth",0));
