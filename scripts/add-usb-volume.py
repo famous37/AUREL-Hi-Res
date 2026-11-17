@@ -164,7 +164,13 @@ Java_com_decent_usbaudio_UsbAudioStream_nativeUsbAudioWriteRaw(""",
 Java_com_decent_usbaudio_UsbAudioStream_nativeSetDigitalGain(
         JNIEnv *, jobject, jlong h, jfloat gain) {
     auto *ctx=reinterpret_cast<UsbAudioContext *>(h);
-    if(ctx)ctx->digitalGain.store(std::max(0.0f,std::min(1.0f,gain)));
+    if(ctx) {
+        float safe=std::max(0.0f,std::min(1.0f,gain));
+        ctx->digitalGain.store(safe);
+        // On the first buffer, initialize at the requested SAFE level;
+        // never ramp from full-scale output down to a quiet setting.
+        if(!ctx->running.load())ctx->appliedGain=safe;
+    }
 }
 
 /**
