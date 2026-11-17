@@ -63,11 +63,20 @@ function updateButton(b){
    return;
  }
  if(b.classList.contains('aurel-favourite-control')){
-   if(b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
+   // The vector icon remains in the DOM during every optimistic state update.
+   if(!b.querySelector('svg')&&b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
    b.setAttribute('title',on?local('Remove from favourites','Вилучити з вибраного'):local('Add to favourites','Додати до вибраного'));
    return;
  }
  if(b.hasAttribute('data-mini-fav'))return;
+ if(b.hasAttribute('data-like-album')){
+   const label=b.querySelector('.aurel-save-label');
+   if(label){
+     const next=on?local('Saved','Збережено'):local('Save','Зберегти');
+     if(label.textContent!==next)label.textContent=next;
+     return;
+   }
+ }
  if(b.classList.contains('aurel-fav-button')||b.closest('.murglar-quick-actions')){
    const label=b.querySelector('span');
    const next=on?local('Saved','Збережено'):local('Favourite','Вибране');
@@ -91,7 +100,7 @@ function makeHeart(type,id){
  b.type='button';
  b.className='aurel-favourite-control';
  b.setAttribute('data-like-'+type.slice(0,-1),id);
- b.textContent='♡';
+ b.innerHTML=ic('heart',24);
  b.setAttribute('aria-pressed','false');
  b.setAttribute('aria-label','Add to favourites');
  return b;
