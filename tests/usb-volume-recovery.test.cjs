@@ -45,7 +45,17 @@ assert(source.includes("const usbHardwareVolume=bp.usbVolumeMode==='hardware'") 
 assert(svc.includes('VolumeProvider.VOLUME_CONTROL_ABSOLUTE')&&
        svc.includes('setPlaybackToRemote')&&svc.includes('setPlaybackToLocal'));
 assert(main.includes('configureAndroidUsb(player,false)'));
-assert(main.includes('if(mp.getPreferredDevice()!=null) mp.setPreferredDevice(null)'));
+assert(!main.includes('if(mp.getPreferredDevice()!=null) mp.setPreferredDevice(null)'),
+ 'Standard Android route must never be repeatedly reset');
+assert(main.includes('bitPerfect=new BitPerfectOutput(this,false)') &&
+ main.includes('usbHost=null;') && main.includes('usbHost=AurelUsbDacHost.get('),
+ 'USB native driver should be initialized only after an explicit ON');
+assert(main.includes('catch(RuntimeException | LinkageError failure)'),
+ 'Java native init errors must fail back to Android');
+assert(host.includes('prefs = new Prefs(false)') &&
+ host.includes('if(enabled) prefs.setEnabled(true)') &&
+ !host.includes('if(enabled) manager.retryActivation()'),
+ 'Native USB should be activated once via the preference listener');
 assert(source.includes('data-aurel-usb-volume')&&source.includes("nativeCall('setUsbVolume'"));
 assert(modern.includes('mini-progress-fill')&&modern.includes('AurelProgressClock'));
 

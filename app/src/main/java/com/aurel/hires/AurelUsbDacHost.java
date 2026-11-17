@@ -73,13 +73,14 @@ final class AurelUsbDacHost {
 
     AurelUsbDacHost(Context appContext, boolean enabled, int volumePercent) {
         context = appContext.getApplicationContext();
-        prefs = new Prefs(enabled);
+        prefs = new Prefs(false);
         // The library's third parameter is an optional decoded PCM bit-depth
         // provider; returning null does not fabricate unverified 24-bit data.
         manager = new UsbAudioManagerImpl(context, prefs, format -> null);
         requestedVolume = Math.max(0, Math.min(100, volumePercent));
         manager.start();
-        if(enabled) manager.retryActivation();
+        // Exactly one activation through the preference listener.
+        if(enabled) prefs.setEnabled(true);
     }
 
     void setEnabled(boolean enabled) {

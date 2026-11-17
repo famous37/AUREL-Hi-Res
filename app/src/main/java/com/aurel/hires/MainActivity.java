@@ -287,10 +287,8 @@ public final class MainActivity extends Activity {
      * Android's optional BIT_PERFECT mixer profile on the standard path.
      * This method is intentionally independent of the direct USB engine. */
     private void configureAndroidUsb(MediaPlayer mp, boolean active) {
-        if(mp==null)return;
-        try {
-            if(mp.getPreferredDevice()!=null) mp.setPreferredDevice(null);
-        }catch(RuntimeException ignored){}
+        // Deliberately no-op: default MediaPlayer routing is Android AudioFlinger.
+        // Do not reset the preferred device repeatedly on route callbacks.
     }
     private int usbGrantPollToken=0;
     private void pollForUsbPermission(int token,int remaining){
@@ -480,16 +478,16 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
-        bitPerfect=new BitPerfectOutput(this,"1".equals(secure.get("bitPerfectEnabled")));
+        // Do not auto-reopen an unstable native USB engine after a process restart.
+        if("1".equals(secure.get("bitPerfectEnabled")))
+            secure.put("bitPerfectEnabled","0");
+        bitPerfect=new BitPerfectOutput(this,false);
         try{usbOutputVolumePercent=Integer.parseInt(secure.get("usbOutputVolumePercent"));}
         catch(NumberFormatException ignored){usbOutputVolumePercent=35;}
         usbOutputVolumePercent=Math.max(0,Math.min(100,usbOutputVolumePercent));
-        usbHost=AurelUsbDacHost.get(this,bitPerfect.isEnabled(),usbOutputVolumePercent);
+        // OFF: zero libusbdac initialization or USB interface claims.
+        usbHost=null;
         updateUsbAttachHandler();
-        if(bitPerfect.isEnabled()){
-            usbHost.requestPermission();
-            pollForUsbPermission(++usbGrantPollToken,20);
-        }
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
         catch(NumberFormatException ignored){digitalHeadroomDb=0;}
         if(digitalHeadroomDb>0||digitalHeadroomDb< -12||digitalHeadroomDb%3!=0)digitalHeadroomDb=0;
@@ -1239,6 +1237,28 @@ public final class MainActivity extends Activity {
                                 // then change mode. Never claim/release the same
                                 // endpoint while an old engine still owns it.
                                 if(hadEngine)cleanupPlayer();
+                                // Construct native USB only on an explicit ON action.
+                                if(wanted && usbHost==null) {
+                                    try {
+                                        usbHost=AurelUsbDacHost.get(
+                                            this,true,usbOutputVolumePercent);
+                                    }catch(RuntimeException | LinkageError failure){
+                                        Log.e(MEDIA_TAG,"Native USB initialization failed",failure);
+                                        bitPerfect.setEnabled(false,null,fileInfo);
+                                        secure.put("bitPerfectEnabled","0");
+                                        updateUsbAttachHandler();
+                                        ++usbGrantPollToken;
+                                        final int safeGeneration=++playGeneration;
+                                        playerError="Direct USB driver failed to initialize; Android audio restored.";
+                                        if(resumeRequested&&queueIndex>=0)ui.postDelayed(()->{
+                                            if(safeGeneration==playGeneration && !bitPerfect.isEnabled())
+                                                startAtCurrentInternal();
+                                        },350L);
+                                        try{emit("session",session());}catch(Exception ignored){}
+                                        emit("player",playerState());
+                                        return;
+                                    }
+                                }
                                 bitPerfect.setEnabled(wanted,null,fileInfo);
                                 if(usbHost!=null) {
                                     usbHost.setEnabled(wanted);
