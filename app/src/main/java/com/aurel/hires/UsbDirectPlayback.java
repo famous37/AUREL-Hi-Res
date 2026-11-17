@@ -148,6 +148,10 @@ final class UsbDirectPlayback {
     void pause() { player.pause(); }
     boolean isPlaying() { return player.isPlaying(); }
     boolean isReady() { return ready; }
+    boolean usbStreamActive() {
+        try { return sink != null && sink.isDirectUsbStreamActive(); }
+        catch (RuntimeException | LinkageError error) { return false; }
+    }
     int position() { return (int)Math.min(Integer.MAX_VALUE,Math.max(0,player.getCurrentPosition())); }
     int duration() {
         long d = player.getDuration();
@@ -167,16 +171,20 @@ final class UsbDirectPlayback {
         JSONObject out = new JSONObject();
         try {
             out.put("enabled",true);
-            out.put("status",failure.isEmpty() ? (ready ? "direct_usb_playback" : "direct_usb_preparing")
-                                              : "direct_usb_error");
+            boolean actualUsb = usbStreamActive();
+            out.put("status",failure.isEmpty() ?
+                    (ready && actualUsb ? "direct_usb_playback" :
+                     ready ? "direct_usb_not_active" : "direct_usb_preparing")
+                    : "direct_usb_error");
             out.put("detail",failure.isEmpty()
-                ? "Userspace USB Audio Class driver selected. USB transfer and decoded PCM "
-                  + "must be verified on the connected DAC; Android mixer is bypassed only "
-                  + "when the native USB stream successfully opens."
+                ? (actualUsb
+                  ? "Native USB isochronous stream active; decoded PCM sample identity is not independently measured."
+                  : "Native USB stream is not active. Audio may be using Android fallback.")
                 : failure);
             out.put("usbRouted",false); // Android AudioTrack is NOT the direct USB route
             out.put("mixerPreferenceAccepted",false); // no Android mixer is used
             out.put("directUsbSelected",true);
+            out.put("directUsbActive",actualUsb);
             out.put("nativeFlacEngine",sink != null && sink.isNativeEngineActive());
             out.put("endToEndVerified",false);
             out.put("sampleRateHz",sourceRate);
