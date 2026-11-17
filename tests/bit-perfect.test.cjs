@@ -29,7 +29,11 @@ assert(manifest.includes('android.permission.MODIFY_AUDIO_SETTINGS'));
 const direct=fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/UsbDirectPlayback.java'),'utf8');
 for(const token of ['UsbAudioSink','ExoPlayer','setRenderersFactory(factory)','direct_usb_playback','endToEndVerified'])
   assert(direct.includes(token),'Missing direct USB implementation: '+token);
-assert(main.includes('return directPlayer!=null?directPlayer.status():bitPerfect.status(player);'),'Direct USB status must be reported rather than Android mixer state');
+assert(main.includes('if(directPlayer!=null)return directPlayer.status();'),'Live direct USB status must take precedence over Android mixer state');
+assert(main.includes('directUsbUnsafe') && main.includes('directUsbFailure'),'A failed USB route must trip the session circuit breaker');
+const harden=fs.readFileSync(path.join(root,'scripts/harden-usb-driver.py'),'utf8');
+for(const token of ['bSubslotSize * 8','selectedOut.address','rateReadback != sampleRate','accumulatorBeforeUrb','@Synchronized'])
+  assert(harden.includes(token),'Missing transport safety fix: '+token);
 for(const token of [
   'new BitPerfectOutput(this,',
   'bitPerfectEnabled',
