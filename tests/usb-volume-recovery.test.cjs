@@ -14,8 +14,8 @@ const svc=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java');
 const source=read('app/src/main/assets/app.js');
 const modern=read('app/src/main/assets/modern.js');
 
-assert.match(manifest,/<activity-alias[^>]*android:name="\\.UsbBitPerfectHandler"[\\s\\S]*?android:enabled="false"/);
-assert.equal((manifest.match(/android\\.hardware\\.usb\\.action\\.USB_DEVICE_ATTACHED/g)||[]).length,2);
+assert.match(manifest,/<activity-alias[^>]*android:name="\.UsbBitPerfectHandler"[\s\S]*?android:enabled="false"/);
+assert.equal((manifest.match(/android\.hardware\.usb\.action\.USB_DEVICE_ATTACHED/g)||[]).length,2);
 for(const token of ['setComponentEnabledSetting','COMPONENT_ENABLED_STATE_DISABLED',
                      'COMPONENT_ENABLED_STATE_ENABLED','updateUsbAttachHandler()',
                      'setUsbVolumePercent','dispatchKeyEvent','case "setUsbVolume"'])
