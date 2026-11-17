@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/replace-usb-driver-dual-engine]
   pull_request:
     branches: [main]
 jobs:
@@ -24,9 +24,9 @@ jobs:
           gradle-version: '9.3.1'
       - name: Install Android SDK 36, NDK 29, and CMake
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
-      - name: Fetch pinned MIT USB driver and libFLAC
+      - name: Fetch legacy native FLAC decoder sources (no old USB driver linked)
         run: bash scripts/setup-usb-driver.sh
-      - name: Compile native USB and Android player before UI regressions
+      - name: Compile libusbdac USB engine and Android player before UI regressions
         run: gradle --no-daemon :app:compileDebugJavaWithJavac --stacktrace
       - name: Validate all player scripts
         run: |
