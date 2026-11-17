@@ -55,6 +55,8 @@ const meta=vm.runInNewContext(app.slice(a,b)+';({nameOf,trackTitle})');
 assert.equal(meta.nameOf('{"display":"Benny Benassi"}'),'Benny Benassi');
 assert.equal(meta.nameOf({display:{display:'Benny Benassi'}}),'Benny Benassi');
 assert.equal(meta.nameOf([{name:'A'},{display:'B'}]),'A, B');
+assert(app.includes('artistChoices(o).map(v=>nameOf(v))'),
+ 'Artist mapper must never pass an array index as recursion depth');
 assert.equal(meta.nameOf('{"display"'),'', 'Malformed JSON must not leak to UI');
 assert.equal(meta.trackTitle({title:'Cinema'}),'Cinema');
 assert.equal(meta.trackTitle({title:'{"display":"Cinema"}'}),'Cinema');
