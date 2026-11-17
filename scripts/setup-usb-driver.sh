@@ -76,3 +76,6 @@ PYTHON
 
 # Reject invalid PCM/USB configurations instead of sending corrupt audio.
 python3 "$ROOT/scripts/harden-usb-driver.py" "$DEST"
+
+# Hardware UAC2 volume: true PCM passthrough where possible; labelled DSP fallback.
+python3 "$ROOT/scripts/add-usb-volume.py" "$DEST"

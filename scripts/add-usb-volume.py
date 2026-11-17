@@ -151,6 +151,7 @@ edit(header,[
 ])
 native="libs/decent-usb-audio-driver/src/main/jni/usb-audio-output.cpp"
 edit(native,[
+("""#include <cmath>""","""#include <cmath>\n#include <algorithm>"""),
 ("""    ctx->running.store(false);
     ctx->transferBuffer = nullptr;""",
 """    ctx->running.store(false);
