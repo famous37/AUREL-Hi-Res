@@ -55,7 +55,7 @@ src = path.read_text()
 needle = "#if defined _MSC_VER || defined __BORLANDC__ || defined __MINGW32__"
 patch = "#if defined(__ANDROID__) && !defined(HAVE_FSEEKO)\n#define HAVE_FSEEKO 1\n#endif\n\n"
 if patch not in src:
-    if src.count(needle) != 1:
+    if needle not in src:
         raise RuntimeError("libFLAC compat.h changed; review Android build patch")
     path.write_text(src.replace(needle, patch + needle, 1))
 PYTHON
