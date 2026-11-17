@@ -23,8 +23,7 @@ function signalPath(){
  const decode=p.decoderSampleRateHz?Math.round(p.decoderSampleRateHz)+' Hz'+
    (p.decoderChannels?' / '+p.decoderChannels+' channels':''):'Android did not report decoder format';
  const routed=lastDiagnostics?.outputs?.find(d=>d.currentlyRouted);
- const output=routed?.bluetooth?'Bluetooth · '+(routed.name||routed.category||'Audio device')+
-     ' (codec not exposed)':
+ const output=routed?.bluetooth?'Bluetooth · '+(routed.name||routed.category||'Audio device'):
    routed?.usb?'USB · '+(routed.name||'DAC')+
      (bp.mixerPreferenceAccepted?' · mixer preference accepted':''):
    routed?(routed.name||routed.category||'Android output')+' · routed':
@@ -34,7 +33,7 @@ function signalPath(){
    '<div><b>Source</b><strong>'+h(source)+'</strong></div>'+
    '<div><b>Decoder</b><strong>'+h(decode)+'</strong></div>'+
    '<div><b>Android / DAC</b><strong>'+h(output)+'</strong></div>'+
-   '<small>Catalogue quality and Android mixer properties are not evidence of physical DAC samples.</small></div>';
+   '</div>';
 }
 function statusText(){
  const s=window.AurelPageCache?.info()||{pages:0,limit:0,hits:0,bytes:0};
@@ -47,27 +46,19 @@ function audioPanel(){
   (n===0?'Off':n+' dB')+'</button>').join('');
  return '<section class="panel aurel-pro-settings" data-aurel-pro-settings="audio">'+
    '<h3>Audio outputs</h3>'+
-   '<p class="aurel-pro-intro">Live Android routing and reported device capabilities.</p>'+
-   '<div class="aurel-pro-feature"><strong>Signal path</strong>'+
-   '<small>Verified stream data versus Android routing.</small>'+
-   signalPath()+'</div>'+
-   '<div class="aurel-pro-feature"><strong>Connected outputs · USB &amp; Bluetooth</strong>'+
-   '<small>Active route, device name and reported formats. Bluetooth codec is restricted by Android.</small>'+
-   '<button type="button" class="aurel-pro-button" data-aurel-scan-dac>Refresh outputs</button>'+
+   '<div class="aurel-pro-feature aurel-output-feature">'+
+   '<div class="aurel-output-heading"><strong>Connected devices</strong>'+
+   '<button type="button" class="aurel-pro-button" data-aurel-scan-dac>Refresh outputs</button></div>'+
    '<div class="aurel-dac-results" aria-live="polite"></div></div>'+
+   '<div class="aurel-pro-feature aurel-technical-details">'+
+   '<details class="aurel-pro-disclosure"><summary>Signal path</summary>'+
+   signalPath()+'</details></div>'+
    '<div class="aurel-pro-feature"><strong>Digital headroom</strong>'+
-   '<small>Reduces digital volume. Not ReplayGain; unavailable with USB bit-perfect.</small>'+
    '<div class="aurel-pro-choice" role="group" aria-label="Digital headroom">'+choices+'</div></div>'+
    '<div class="aurel-pro-feature"><label class="aurel-pro-switch-label">'+
-   '<span><strong>Preload next track metadata</strong>'+
-   '<small>Preload track details only, not audio.</small></span>'+
+   '<span><strong>Preload next track metadata</strong></span>'+
    '<input type="checkbox" data-aurel-preload '+(preload?'checked':'')+'></label></div>'+
-   '<details class="aurel-pro-limits"><summary>Audio engine limits</summary>'+
-   '<p><b>Gapless:</b> Android MediaPlayer does not guarantee sample-accurate joins.</p>'+
-   '<p><b>ReplayGain:</b> Requires verified loudness tags or PCM analysis; digital headroom is not normalization.</p>'+
-   '<p><b>PEQ, Crossfeed and FIR:</b> Require an integrated DSP engine; these effects are not enabled.</p>'+
-   '<p><b>Network audio buffer:</b> MediaPlayer manages its own buffer and exposes no accurate buffer-size setting.</p>'+
-   '</details></section>';
+   '</section>';
 }
 function perfPanel(){
  const s=window.AurelPageCache?.info()||{enabled:false,limit:32};
@@ -79,16 +70,16 @@ function perfPanel(){
    '<h3>Performance &amp; motion</h3>'+
    '<div class="aurel-pro-feature"><label class="aurel-pro-switch-label">'+
    '<span><strong>Remember recently opened pages</strong>'+
-   '<small>Keep recent pages in memory. No tokens or audio URLs stored.</small></span>'+
+   '</span>'+
    '<input type="checkbox" data-aurel-cache-enable '+(s.enabled?'checked':'')+'></label>'+
    '<div class="aurel-pro-inline"><label>Cache capacity <select data-aurel-cache-limit>'+
    options+'</select></label>'+
    '<button type="button" class="aurel-pro-button secondary" data-aurel-cache-clear>Clear cache</button></div>'+
    '<small class="aurel-pro-cache-status" role="status">'+h(statusText())+'</small></div>'+
    '<div class="aurel-pro-feature"><strong>Transitions</strong>'+
-   '<small>Gentle page transitions, without repeated effects.</small>'+
+   ''+
    '<div class="aurel-pro-choice" role="group" aria-label="Transitions">'+motionChoices+'</div></div>'+
-   '<p class="aurel-pro-footnote">Page memory clears when AUREL closes.</p>'+
+   ''+
    '</section>';
 }
 function addPanels(){
@@ -117,29 +108,25 @@ function renderDac(data){
  const target=document.querySelector('.aurel-dac-results');
  if(!target)return;
  const all=Array.isArray(data?.outputs)?data.outputs:[];
- // Keep the relevant output choices visible, never dozens of unused devices.
  let devices=all.filter(d=>d.currentlyRouted||d.bluetooth||d.usb||
    /headphone|headset|analog/i.test(d.category||''));
  if(!devices.length)devices=all.filter(d=>d.currentlyRouted);
  devices.sort((a,b)=>Number(!!b.currentlyRouted)-Number(!!a.currentlyRouted)||
    Number(!!b.bluetooth)-Number(!!a.bluetooth));
  if(!devices.length){target.textContent='No audio outputs reported.';return;}
- const lines=devices.slice(0,10).map(d=>{
+ target.innerHTML=devices.slice(0,10).map(d=>{
    const rates=Array.isArray(d.advertisedSampleRates)?d.advertisedSampleRates:[];
    const supported=Array.isArray(d.mixerFormats)?d.mixerFormats.filter(v=>v.bitPerfect):[];
-   const status=d.currentlyRouted?'ACTIVE OUTPUT':'AVAILABLE · route not confirmed';
+   const status=d.currentlyRouted?'ACTIVE OUTPUT':'AVAILABLE';
    const rateText=rates.length?rates.map(n=>n>=1000?(n/1000)+' kHz':n+' Hz').join(', '):'Not reported';
    return '<div class="aurel-dac-device'+(d.currentlyRouted?' is-active':'')+'">'+
      '<strong>'+h(d.name||'Audio device')+'</strong>'+
      '<small>'+h(d.category||'Android output')+' · '+status+'</small>'+
-     '<small>Android-reported rates: '+h(rateText)+'</small>'+
-     (d.bluetooth?'<small>Active Bluetooth codec / bitrate: unavailable to standard Android apps</small>':'')+
-     (d.usb?'<small>USB bit-perfect mixer formats: '+(supported.length?
-       h(supported.slice(0,8).map(v=>v.hz+' Hz').join(', ')):'Not exposed')+'</small>':'')+
+     '<small>Android rates: '+h(rateText)+'</small>'+
+     (d.usb&&supported.length?'<small>USB mixer: '+
+       h(supported.slice(0,8).map(v=>v.hz+' Hz').join(', '))+'</small>':'')+
      '</div>';
  }).join('');
- target.innerHTML=lines+
-   '<small class="aurel-pro-footnote">Reported rates are not measured output rates.</small>';
  const chain=document.querySelector('.aurel-signal-chain');
  if(chain)chain.outerHTML=signalPath();
 }
