@@ -51,7 +51,14 @@ function control(dataset){
 const qualities=[5,6,7,27].map(q=>control({quality:String(q)}));
 const headrooms=[0,-3,-6,-9,-12].map(db=>control({aurelHeadroom:String(db)}));
 const preload=control({}),bp=control({});
+const statusNode={textContent:''};
+const dot=control({});
 const document={
+ querySelector(sel){
+  if(sel==='.aurel-bp-status strong')return statusNode;
+  if(sel==='.aurel-bp-dot')return dot;
+  return null;
+ },
  querySelectorAll(sel){
   const map={
    '[data-quality]':qualities,
@@ -106,6 +113,8 @@ assert.equal(prefs.reconcileSession({...session,quality:27}).quality,7,
 
  const bitTask=prefs.change('bitPerfect',true,()=>Promise.resolve({enabled:true}));
  await bitTask;
+ assert.equal(bp.getAttribute('aria-checked'),'true');
+ assert.equal(statusNode.textContent,'Standard playback');
  assert.equal(prefs.reconcileSession(session).bitPerfect.enabled,true);
  assert.equal(bp.getAttribute('aria-checked'),'true');
 
