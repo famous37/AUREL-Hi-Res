@@ -32,7 +32,7 @@ const snapshot=native.slice(native.indexOf('private void savePlaybackContinuity(
 assert(!snapshot.includes('streamUrl')&&!snapshot.includes('fileInfo')
  &&!snapshot.includes('getToken')&&!snapshot.includes('authToken'),
  'Never save signed media URLs or account credentials');
-assert(native.includes('else if(!buffering&&queueIndex>=0&&player==null)startAtCurrent()'),
+assert(native.includes('else if(!buffering&&queueIndex>=0&&!hasEngine())startAtCurrent()'),
  'Restored tracks must not automatically start on cold launch');
 assert(history.includes("lastAction={type,at:Date.now()}"));
 assert(history.includes('window.AurelHistoryClear='));
