@@ -150,10 +150,10 @@ function audioPanel(p){
   ['Android parsed sample rate',decoderHz||'Not exposed'],
   ['MediaPlayer channels',p?.decoderChannels||'Not reported'],
   ['Android mixer property',p?.androidMixerHz?`${p.androidMixerHz} Hz (not DAC format)`:'Not reported'],
-  ['USB bit-perfect preference',p?.bitPerfect?.enabled?(p.bitPerfect.mixerPreferenceAccepted?'Requested by Android':'Enabled · not engaged'):'Off'],
+  ['USB bit-perfect preference',p?.bitPerfect?.enabled?(p.bitPerfect.directUsbSelected?'Userspace USB driver selected':p.bitPerfect.mixerPreferenceAccepted?'Requested by Android':'Enabled · not engaged'):'Off'],
   ['USB output routing',p?.bitPerfect?.usbRouted?'Routed to selected USB DAC':'Not confirmed'],
   ['USB mixer status',p?.bitPerfect?.detail||'No bit-perfect status'],
-  ['End-to-end bit identity','Not independently measurable via MediaPlayer'],
+  ['End-to-end bit identity','Not yet independently verified on the attached USB DAC'],
   ['Media size',bytesText(p?.fileSize)],
   ['Requested maximum',qualityText(p?.quality)]
  ];
