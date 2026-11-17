@@ -43,6 +43,8 @@ jobs:
         run: node tests/navigation.test.cjs
       - name: Verify icon-only player, accessible controls and navigation hooks
         run: node tests/minimal-player.test.cjs
+      - name: Verify USB Bit-perfect mixer negotiation and UI safeguards
+        run: node tests/bit-perfect.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
