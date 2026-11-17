@@ -59,6 +59,8 @@ jobs:
         run: node tests/clarity-uk-icon.test.cjs
       - name: Verify full media metadata and monochrome player design
         run: node tests/media-ui-unification.test.cjs
+      - name: Validate contrast and Ukrainian audio settings
+        run: node tests/settings-contrast-uk.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
