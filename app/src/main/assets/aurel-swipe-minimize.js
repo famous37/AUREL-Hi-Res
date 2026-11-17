@@ -116,13 +116,13 @@
     frame=requestAnimationFrame(()=>{
       frame=0;
       overlay.style.setProperty('--aurel-swipe-y',
-        Math.round(Math.max(380,(window.innerHeight||720)*0.85))+'px');
+        Math.round(Math.max(960,(window.innerHeight||720)*1.18))+'px');
       overlay.style.setProperty('--aurel-swipe-alpha','0');
     });
     restoreTimer=setTimeout(()=>{
       if(app.overlay)closePage();
       clearVisual(false);
-    },235);
+    },385);
   }
   function end(event){
     const g=gesture;
