@@ -136,6 +136,21 @@ fix(device, [
 sink = "libs/decent-usb-audio-wrapper-media3/src/main/kotlin/com/decent/usbaudio/media3/UsbAudioSink.kt"
 fix(sink, [
     (
+        """    private val QUEUE_BACKPRESSURE_THRESHOLD = 16""",
+        """    // More decoded PCM must be queued for high-rate Qobuz streaming.
+    // 16 buffers at 192 kHz can exhaust in a few milliseconds.
+    private val queueBackpressureThreshold: Int
+        get() = when {
+            currentSampleRate >= 176400 -> 64
+            currentSampleRate >= 88200 -> 48
+            else -> 24
+        }"""
+    ),
+    (
+        """if (thread.queueSize() >= QUEUE_BACKPRESSURE_THRESHOLD) {""",
+        """if (thread.queueSize() >= queueBackpressureThreshold) {"""
+    ),
+    (
         """        if (config.bitPerfectEnabled && sr != null && ch != null) {""",
         """        // Float PCM cannot be bit-identical to integer FLAC samples.
         // Unsupported PCM must use Android's decoder/output fallback.
