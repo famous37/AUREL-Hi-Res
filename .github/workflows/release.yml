@@ -108,6 +108,7 @@ jobs:
           node tests/media-ui-unification.test.cjs
           node tests/settings-contrast-uk.test.cjs
           node tests/artist-biography-mono.test.cjs
+          node tests/settings-state-motion.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -148,18 +149,17 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            '**AUREL Hi-Res v1.1.37 — Full artist biography and monochrome everywhere**' \
+            '**AUREL Hi-Res v1.1.38 — Stable settings and smooth navigation**' \
             '' \
-            '- Artist page now opens a full Qobuz-sourced biography from the summary or About artist button.' \
-            '- Accessible scrollable sheet with smooth opening/closing, Android Back and safe loading or unavailable states.' \
-            '- Full biography is never truncated or invented; asynchronous updates preserve reading position.' \
-            '- Monochrome graphite is the default across artist pages, album cards, settings, player, navigation, and overlays.' \
-            '- One-time reset of prior artwork-derived UI tints to monochrome; artwork colour mode remains optional in Appearance.' \
-            '- Album art and artist photographs retain their original colours.' \
-            '- Ukrainian labels for artist information, with original Qobuz biography text preserved.' \
-            '- Android, audio playback, favourites, stored accounts, queue, history and permanent signing remain unchanged.' \
+            '- Fixed settings resetting when Android sends late session updates: no more full page re-creation for audio preference changes.' \
+            '- Digital headroom, preload and streaming-quality changes are reflected immediately and reconciled against delayed responses.' \
+            '- Concurrent edits of the same parameter are serialized; failed writes restore the previous saved state.' \
+            '- Saving App Secret no longer rewrites streaming quality, and native SecureStore settings remain persistent across relaunch.' \
+            '- Reduced unnecessary whole-screen motion to a short opacity-only route transition without layout translation.' \
+            '- Removed repeated settings accordion entrance animations and prevented incidental touch events from snapping the player during swipe.' \
+            '- Kept monochrome style, Qobuz biography, player, favourites, cache, account management and permanent signature.' \
             '' \
-            'Install v1.1.37 over permanently signed v1.1.36 without clearing user data.' \
+            'Install v1.1.38 over permanently signed v1.1.37 without clearing data.' \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
