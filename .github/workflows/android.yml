@@ -49,6 +49,8 @@ jobs:
         run: node tests/swipe-icons.test.cjs
       - name: Verify global typography, vector icons and motion invariants
         run: node tests/global-polish.test.cjs
+      - name: Verify vector action buttons, search and quicklinks
+        run: node tests/precise-ui.test.cjs
       - name: Verify signed in-app updater safeguards
         run: node tests/updates.test.cjs
       - name: Verify actual FLAC and MP3 stream header parsing
