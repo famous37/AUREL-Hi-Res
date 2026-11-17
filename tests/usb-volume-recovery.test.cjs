@@ -28,6 +28,20 @@ assert(direct.includes('firstPlayAt=SystemClock.elapsedRealtime()')&&
 assert(host.includes('getVolumeRange()')&&host.includes('manager.setVolume(target)'),
  'When DAC hardware volume exists use Feature Unit, never PCM digital scaling');
 assert(host.includes('return state!=null&&state.getVolumeRange()!=null?"hardware":"unity"'));
+assert(host.includes('prefs.getEnabled() != enabled') && !host.includes('else manager.retryActivation()'),
+ 'USB enable must not double-activate the native DAC');
+assert(host.includes('suspendForAndroidAudio()') && host.includes('submittedUrbs()'),
+ 'Android handoff and live USB stats must be available');
+assert(direct.includes('lastUrbsSeen') &&
+ direct.includes('Native USB packets stopped advancing') &&
+ direct.includes('Direct USB unavailable; switching to Android playback'),
+ 'Native output must detect transport stalls and fail over to Android');
+assert(main.includes('usbHost.suspendForAndroidAudio()') &&
+ main.includes('final int switchGeneration=++playGeneration'),
+ 'Engine switch must reject stale callbacks and release DAC ownership');
+assert(source.includes("const usbHardwareVolume=bp.usbVolumeMode==='hardware'") &&
+ source.includes("${usbHardwareVolume?'':'disabled'}"),
+ 'A unity-gain USB DAC cannot offer a functional hardware volume slider');
 assert(svc.includes('VolumeProvider.VOLUME_CONTROL_ABSOLUTE')&&
        svc.includes('setPlaybackToRemote')&&svc.includes('setPlaybackToLocal'));
 assert(main.includes('configureAndroidUsb(player,false)'));

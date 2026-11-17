@@ -15,6 +15,17 @@
   previously used `decent-player` USB transport has been removed;
   its separately built native FLAC decoder is retained.
 
+## Native USB / Android mixer stability
+
+- Avoid double activation of the native USB Audio Class transport.
+- Release the native DAC interface before starting ordinary Android
+  MediaPlayer output, both for OFF and unsupported ON fallback.
+- Invalidate old signed Qobuz streams at each engine change, restore the
+  position and start with a fresh authorization URL.
+- Watch actual progress of USB isochronous transfers, and fail over to
+  Android playback when the native route is stalled.
+- Disable USB gain controls when the DAC has no hardware Feature Unit.
+
 ## Verification status
 
 A passing CI build verifies build integration, static routing separation and
