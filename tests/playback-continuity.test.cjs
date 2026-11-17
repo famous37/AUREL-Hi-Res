@@ -36,7 +36,7 @@ assert(native.includes('else if(!buffering&&queueIndex>=0&&player==null)startAtC
  'Restored tracks must not automatically start on cold launch');
 assert(history.includes("lastAction={type,at:Date.now()}"));
 assert(history.includes('window.AurelHistoryClear='));
-assert(history.includes("if(!started||!hasAuth()||restoring)return;"));
+assert(history.includes("if(!started||restoring)return;"));
 assert(history.includes("if(view.overlay&&app.player?.track?.id"));
 assert(ui.includes('window.AurelHistoryClear?.()'));
 for(const s of ['phase = "policy_unavailable"','phase = "policy_error"',
@@ -46,5 +46,5 @@ for(const s of ['phase = "policy_unavailable"','phase = "policy_error"',
 assert(!mixer.includes('MIXER_BEHAVIOR_DEFAULT;'), 'Never call normal playback bit-perfect');
 for(const s of ['policy_unavailable','policy_error','unsupported_format'])
  assert(pref.includes(s)&&ui.includes(s),'Missing UI status: '+s);
-assert(gradle.includes('versionCode 60')&&gradle.includes("'1.1.41'"));
+assert(gradle.includes('versionCode 61')&&gradle.includes("'1.1.42'"));
 console.log('Native resume, persisted navigation, signed-update safety and USB policy diagnoses validated.');
