@@ -182,6 +182,79 @@ Object.assign(dictionary,{"Account connected but streaming was not verified. You
 Object.assign(dictionary,{"Appearance":"Вигляд","Use album artwork colours":"Використовувати кольори обкладинки","Off by default · neutral dark theme":"Усталено вимкнено · нейтральна темна тема","Add to favourites":"Додати до вибраного","Remove from favourites":"Вилучити з вибраного","Removed from favourites":"Вилучено з вибраного","Added to favourites":"Додано до вибраного","No favourites in this category.":"У цій категорії немає вибраного.","Saved":"Збережено","Favourite":"Вибране","Connect a personal Qobuz library in Settings to manage favourites.":"Щоб керувати вибраним, під’єднайте особисту бібліотеку Qobuz у налаштуваннях.","Could not update favourites":"Не вдалося змінити вибране","Could not load Qobuz favourites.":"Не вдалося завантажити вибране Qobuz.","Qobuz did not return a complete favourites list.":"Qobuz не повернув повного списку вибраного.","Account changed; try again.":"Обліковий запис змінено. Спробуйте знову.","♡ Save":"♡ Зберегти","♥ Saved":"♥ Збережено"});
 Object.assign(dictionary,{"Share":"Поширити","Share track":"Поширити трек","Share album":"Поширити альбом","Share artist":"Поширити виконавця","Invalid Qobuz item ID for sharing":"Некоректний ідентифікатор Qobuz для поширення","Unable to share Qobuz link":"Не вдалося поширити посилання Qobuz"});
 Object.assign(dictionary,{"Coming soon":"Незабаром","Unavailable":"Недоступно","Not available for streaming":"Недоступно для потокового відтворення","Unavailable for streaming":"Недоступно для прослуховування","No released tracks available for streaming":"Немає опублікованих треків, доступних для відтворення","No tracks available for streaming":"Немає треків для відтворення","Track information unavailable":"Відомості про трек недоступні","Track information is unavailable.":"Відомості про трек недоступні.","This track is not currently available for streaming.":"Цей трек поки недоступний для прослуховування.","This track has not been released yet.":"Цей трек іще не опубліковано."});
+/* Remaining settings, diagnostics, controls and action strings. */
+Object.assign(dictionary,{
+ 'Playback':'Відтворення',
+ 'Audio':'Аудіо',
+ 'Audio outputs':'Аудіовиходи',
+ 'Connected devices':'Під’єднані пристрої',
+ 'Signal path':'Шлях сигналу',
+ 'Source':'Джерело',
+ 'Decoder':'Декодер',
+ 'Android / DAC':'Android / ЦАП',
+ 'Audio device':'Аудіопристрій',
+ 'Android output':'Аудіовихід Android',
+ 'USB DAC / USB audio':'USB-ЦАП / USB-аудіо',
+ 'Built-in speaker':'Динамік пристрою',
+ 'Analog headphones':'Дротові навушники',
+ 'Bluetooth call audio':'Bluetooth для розмов',
+ 'Bluetooth hearing aid':'Слуховий апарат Bluetooth',
+ 'HDMI audio':'HDMI-аудіо',
+ 'Other output':'Інший вихід',
+ 'AVAILABLE':'ПІД’ЄДНАНО',
+ 'ACTIVE OUTPUT':'АКТИВНИЙ ВИХІД',
+ 'Refresh outputs':'Оновити виходи',
+ 'Scanning…':'Перевірка…',
+ 'Not reported':'Не повідомлено',
+ 'No audio outputs reported.':'Аудіовиходів не знайдено.',
+ 'Source PCM not independently verified':'Формат джерела не підтверджено',
+ 'Android did not report decoder format':'Формат декодера невідомий',
+ 'Playback output not confirmed':'Аудіовихід не підтверджено',
+ 'Digital headroom':'Цифрове зниження рівня',
+ 'Off':'Вимкнено',
+ 'Preload next track metadata':'Попереднє завантаження відомостей треку',
+ 'Performance & motion':'Швидкодія й анімації',
+ 'Remember recently opened pages':'Запам’ятовувати відкриті сторінки',
+ 'Cache capacity':'Місткість кешу',
+ 'Clear cache':'Очистити кеш',
+ 'Transitions':'Переходи',
+ 'Soft':'Плавні',
+ 'None':'Без анімації',
+ 'Advanced account credentials':'Додаткові дані облікового запису',
+ 'Accounts & library':'Облікові записи й бібліотека',
+ 'Appearance & app':'Вигляд і застосунок',
+ 'App updates':'Оновлення застосунку',
+ 'Signed releases via GitHub':'Підписані релізи GitHub',
+ 'Check now':'Перевірити',
+ 'Download update':'Завантажити оновлення',
+ 'Install update':'Встановити оновлення',
+ 'Automatically check for updates once a day':'Щодня перевіряти оновлення',
+ 'What’s new':'Що нового',
+ 'Check GitHub Releases for permanently signed updates.':'Перевірити наявність оновлень.',
+ 'Checking signed GitHub releases…':'Перевірка оновлень…',
+ 'You have the latest published version.':'Установлено найновішу версію.',
+ 'A newer permanently signed version is available.':'Доступне нове оновлення.',
+ 'Downloading APK; audio playback stays available.':'Завантаження APK…',
+ 'Verified APK downloaded. Ready for Android installation.':'Оновлення завантажено.',
+ 'Update could not be completed.':'Не вдалося оновити застосунок.',
+ 'Output diagnostics unavailable:':'Діагностика аудіовиходів недоступна:',
+ 'Stream quality':'Якість потоку',
+ 'Bit-perfect USB':'USB без зміни бітів',
+ 'Standard playback':'Звичайне відтворення',
+ 'Waiting for USB DAC':'Очікування USB-ЦАП',
+ 'Waiting for a track':'Очікування треку',
+ 'Track format unknown':'Формат треку невідомий',
+ 'Format not supported':'Формат не підтримується',
+ 'Mixer request rejected':'Android відхилив налаштування',
+ 'USB mixer requested':'Запитано USB-мікшер',
+ 'USB mixer routed':'USB-мікшер активний',
+ 'Connect a compatible USB DAC to test mixer support.':'Під’єднайте сумісний USB-ЦАП.',
+ 'Audio & account':'Аудіо й обліковий запис',
+ 'About AUREL':'Про AUREL',
+ 'Sign out of all accounts':'Вийти з усіх облікових записів',
+ 'Page buffer cleared':'Кеш сторінок очищено',
+ 'Digital headroom off':'Цифрове зниження рівня вимкнено'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
@@ -189,6 +262,19 @@ function translateEnglish(s){
  var upcoming=/^Available for streaming from (\d{4}-\d{2}-\d{2})\.$/.exec(key);
  if(upcoming)return 'Доступно для прослуховування з '+upcoming[1]+'.';
  if(Object.prototype.hasOwnProperty.call(dictionary,key))return dictionary[key];
+ // Dynamic Android outputs are data, not fixed labels; translate the status only.
+ var output=/^(.*?) · (ACTIVE OUTPUT|AVAILABLE)$/.exec(key);
+ if(output){
+   var category=dictionary[output[1]]||output[1];
+   return category+' · '+dictionary[output[2]];
+ }
+ var rates=/^Android rates: (.+)$/.exec(key);
+ if(rates)return 'Частоти Android: '+rates[1].replace(/ kHz/g,' кГц').replace(/ Hz/g,' Гц');
+ var mixer=/^USB mixer: (.+)$/.exec(key);
+ if(mixer)return 'USB-мікшер: '+mixer[1].replace(/ Hz/g,' Гц');
+ var cache=/^(\\d+) \/ (\\d+) pages · (\\d+) KB · (\\d+) quick opens$/.exec(key);
+ if(cache)return cache[1]+' із '+cache[2]+' сторінок · '+cache[3]+' КБ · '+cache[4]+' повторних відкриттів';
+
  var match=/^(\d+)\s+tracks$/i.exec(key);
  if(match)return match[1]+' треків';
  match=/^(\d+)\s+albums$/i.exec(key);
