@@ -4,6 +4,8 @@ on:
     branches: [experiment/superpowered-private-usb-lab]
     paths:
       - '.github/workflows/aurel-usb-lab-private-build.yml'
+      - 'superpoweredUsbLab/**'
+      - 'scripts/setup-superpowered-lab.sh'
       - 'scripts/EncryptPrivateApk.java'
       - 'scripts/aurel-usb-lab-public-key.pem'
   workflow_dispatch:
