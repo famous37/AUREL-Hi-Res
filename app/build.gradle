@@ -65,6 +65,9 @@ afterEvaluate {
 dependencies {
     implementation project(':decent-media3-decoder-flac')
     implementation 'com.github.ostrichbat2k:libusbdac:v0.2.0'
+    // libusbdac exposes StateFlow types in its public Java-facing API.
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.4.10'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0'
     implementation 'androidx.media3:media3-exoplayer:1.11.0'
     implementation 'androidx.media3:media3-common:1.11.0'
 }
