@@ -23,7 +23,7 @@ function signalPath(){
  const decode=p.decoderSampleRateHz?Math.round(p.decoderSampleRateHz)+' Hz'+
    (p.decoderChannels?' / '+p.decoderChannels+' channels':''):'Android did not report decoder format';
  const routed=lastDiagnostics?.outputs?.find(d=>d.currentlyRouted);
- const output=bp.directUsbSelected?'USB Audio Class 2.0 · native driver (clock not independently verified)':routed?.bluetooth?'Bluetooth · '+(routed.name||routed.category||'Audio device'):
+ const output=bp.directUsbSelected?'USB UAC1/2/3 · libusbdac PCM (clock unverified)':routed?.bluetooth?'Bluetooth · '+(routed.name||routed.category||'Audio device'):
    routed?.usb?'USB · '+(routed.name||'DAC')+
      (bp.mixerPreferenceAccepted?' · mixer preference accepted':''):
    routed?(routed.name||routed.category||'Android output')+' · routed':
