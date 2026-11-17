@@ -1,4 +1,4 @@
-/* AUREL v1.1.26 smooth-motion regression: not connected to real Qobuz. */
+/* AUREL v1.1.27 smooth-motion regression: not connected to real Qobuz. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'..');
@@ -12,7 +12,7 @@ const share=source('app/src/main/assets/aurel-share.js');
 const murglar=source('app/src/main/assets/murglar.js');
 const html=source('app/src/main/assets/index.html');
 const gradle=source('app/build.gradle');
-assert(gradle.includes('versionCode 45')&&gradle.includes("'1.1.26'"));
+assert(gradle.includes('versionCode 46')&&gradle.includes("'1.1.27'"));
 assert(html.includes('<link rel="stylesheet" href="aurel-smooth.css">'));
 assert(html.indexOf('aurel-smooth.css')<html.indexOf('aurel-release.css'));
 assert(html.includes('<script src="aurel-motion.js"></script>'));
