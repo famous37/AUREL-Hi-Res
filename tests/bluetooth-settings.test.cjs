@@ -15,7 +15,7 @@ assert(html.indexOf('aurel-settings-groups.js')>html.indexOf('aurel-settings-pro
  'Grouping must run after functional audio handlers');
 assert(html.indexOf('aurel-settings-groups.css')>html.indexOf('aurel-studio.css'),
  'Settings layout CSS must override the old layout');
-for(const section of ['Audio','Audio outputs','Accounts & library','Appearance & app']){
+for(const section of ['Playback','Audio outputs','Accounts & library','Appearance & app']){
  assert(groups.includes(section),'Missing settings group: '+section);
 }
 assert(groups.includes('original.apply(this,arguments)'),'Original settings must remain intact');
@@ -28,9 +28,10 @@ for(const action of ['audioDiagnostics','setDigitalHeadroom','setMetadataPreload
 }
 assert(pro.includes('d.currentlyRouted')&&pro.includes('d.bluetooth'),
  'Show actual routed and Bluetooth outputs');
-assert(pro.includes('advertisedSampleRates')&&
- pro.includes('Reported rates are not measured output rates.'),
- 'Device capability data must not be described as measured playback');
+assert(pro.includes('advertisedSampleRates')&&pro.includes('Android rates: '),
+ 'Keep correctly labelled Android-reported rates');
+assert(!pro.includes('Active Bluetooth codec / bitrate:'),
+ 'Do not clutter the interface with unavailable codec explanations');
 assert(java.includes('TYPE_BLUETOOTH_A2DP')&&
  java.includes('TYPE_BLE_HEADSET')&&
  java.includes('TYPE_BLE_SPEAKER'),
