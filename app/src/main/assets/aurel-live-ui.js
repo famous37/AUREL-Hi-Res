@@ -14,6 +14,13 @@
       return '<button type="button" aria-label="'+entry[1]+'" '+action+'><span class="aurel-tab-icon" aria-hidden="true">'+ic(entry[2],23)+'</span><span class="aurel-tab-label">'+entry[1]+'</span></button>';
     }).join('');
   }
+  // Vectorise the desktop sidebar too; native nav actions remain unchanged.
+  document.querySelectorAll('.sidebar .nav').forEach(function(button){
+    const glyph=button.querySelector('b');
+    const map={home:'home',magazine:'album',library:'library',search:'search',settings:'settings'};
+    const kind=map[button.dataset.nav];
+    if(glyph&&kind){glyph.setAttribute('aria-hidden','true');glyph.innerHTML=ic(kind,23);}
+  });
   let navArtwork='';
   const themeByCover=new Map();
   // Neutral graphite is the default. Album-derived colours are opt-in.
