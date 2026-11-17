@@ -1,4 +1,5 @@
 name: Publish permanently signed AUREL release
+# v1.1.46: signed USB volume + progress build after full seek and audio checks.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
