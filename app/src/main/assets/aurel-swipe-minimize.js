@@ -19,7 +19,7 @@
     '.murglar-progress-row','.aurel-detail-drawer',
     '.aurel-detail-dimmer'
   ].join(',');
-  let gesture=null,restoreTimer=0,frame=0,offset=0;
+  let gesture=null,restoreTimer=0,frame=0,offset=0,dismissing=false;
 
   const time=()=>typeof performance!=='undefined'&&performance.now
     ?performance.now():Date.now();
@@ -37,7 +37,8 @@
   function clearVisual(animate){
     if(frame){cancelAnimationFrame(frame);frame=0;}
     if(restoreTimer){clearTimeout(restoreTimer);restoreTimer=0;}
-    overlay.classList.remove('aurel-swipe-tracking','aurel-swipe-settling');
+    overlay.classList.remove('aurel-swipe-tracking','aurel-swipe-settling','aurel-swipe-dismissing');
+    dismissing=false;
     if(animate && app.overlay){
       overlay.classList.add('aurel-swipe-settling');
       overlay.style.setProperty('--aurel-swipe-y','0px');
@@ -63,6 +64,7 @@
       (1-Math.min(0.10,move/850)).toFixed(3));
   }
   function start(event){
+    if(dismissing)return;
     gesture=null;
     clearVisual(false);
     if(!isOpen()||event.touches?.length!==1)return;
@@ -98,6 +100,28 @@
     offset=dy;
     if(!frame)frame=requestAnimationFrame(paint);
   }
+  function dismiss(){
+    if(!app.overlay)return;
+    const reduced=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if(reduced){clearVisual(false);closePage();return;}
+    dismissing=true;
+    if(frame){cancelAnimationFrame(frame);frame=0;}
+    if(restoreTimer){clearTimeout(restoreTimer);restoreTimer=0;}
+    overlay.classList.remove('aurel-swipe-tracking','aurel-swipe-settling');
+    overlay.classList.add('aurel-swipe-dismissing');
+    // Start from the last touch transform, then animate the overlay out.
+    // A separate frame prevents an immediate jump caused by resetting styles.
+    frame=requestAnimationFrame(()=>{
+      frame=0;
+      overlay.style.setProperty('--aurel-swipe-y',
+        Math.round(Math.max(380,(window.innerHeight||720)*0.85))+'px');
+      overlay.style.setProperty('--aurel-swipe-alpha','0');
+    });
+    restoreTimer=setTimeout(()=>{
+      if(app.overlay)closePage();
+      clearVisual(false);
+    },235);
+  }
   function end(event){
     const g=gesture;
     gesture=null;
@@ -109,10 +133,11 @@
     const elapsed=Math.max(1,time()-g.started);
     const accepted=isOpen() && dy>0 && dy>Math.abs(dx)*1.35 &&
       (dy>=DISTANCE || (dy>=FLICK_DISTANCE && dy/elapsed>=FLICK_SPEED));
-    clearVisual(!accepted);
-    if(accepted)closePage();
+    if(accepted)dismiss();
+    else clearVisual(true);
   }
   function cancel(){
+    if(dismissing)return;
     gesture=null;offset=0;clearVisual(true);
   }
 
