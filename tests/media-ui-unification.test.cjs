@@ -27,8 +27,8 @@ for(const d of ['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi'])
  'Old launcher icon must be removed from '+d);
 assert(fs.existsSync(path.join(base,res,'mipmap-anydpi-v26/ic_launcher.xml')));
 assert(manifest.includes('android:icon="@mipmap/ic_launcher"'));
-assert(launcher.includes('strokeColor="#FFF8FAFC"') && mono.includes('#FFFFFFFF'));
-assert(fallback.includes('android:fillColor="#FF101114"'));
+assert(launcher.includes('strokeColor="#FFFFFFFF"') && mono.includes('#FFFFFFFF'));
+assert(fallback.includes('android:fillColor="#FF0B0C0E"'));
 assert(stat.includes('strokeColor="#FFFFFFFF"') && stat.includes('M3.5,21 L10.4,3.5'));
 assert(html.includes('aurel-brand-svg') && !html.includes('class="mark">a'));
 assert(live.includes('stable queue glyph') || live.includes('stable vector'));
