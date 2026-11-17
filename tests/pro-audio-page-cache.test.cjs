@@ -16,7 +16,7 @@ new Function(page);new Function(settings);new Function(motion);
 assert(html.indexOf('aurel-studio.css')>html.indexOf('aurel-precision-ui.css'));
 assert(html.indexOf('aurel-settings-pro.js')>html.indexOf('aurel-page-cache.js'));
 assert(html.indexOf('aurel-page-cache.js')>html.indexOf('aurel-continuity.js'));
-assert(motion.includes("document.documentElement.dataset.aurelMotion==='off'"));
+assert(motion.includes("document.documentElement?.dataset?.aurelMotion==='off'"));
 assert(nav.includes("if(before!==shown||!before)restoreY(location());"),
  'Same-route metadata must NOT forcibly reset scroll position');
 assert(!nav.includes("if(before===shown||!before)restoreY(location());"));
