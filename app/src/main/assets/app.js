@@ -24,15 +24,28 @@ const withAlbum=(tracks,album)=>tracks.map(t=>({...t,
 // Qobuz releases and tracks may encode an artist as an object, array, display-name
 // object, or nested list. Do not label a known artist as Unknown merely because a
 // shallow 'artist.name' field is absent from one endpoint.
-const nameOf=o=>{
- if(typeof o==='string')return o.trim();
- if(!o||typeof o!=='object')return '';
- for(const v of [o.name,o.display_name,o.displayName,o.display,o.full_name,o.artist_name,o.title]){
-  if(typeof v==='string'&&v.trim())return v.trim();
-  if(v&&typeof v==='object'&&typeof v.display==='string'&&v.display.trim())return v.display.trim();
+// Provider names can be objects, arrays, and even JSON-serialized strings.
+// Keep catalogue titles intact but never print provider objects verbatim.
+const nameOf=(o,depth=0)=>{
+ if(depth>5||o==null)return '';
+ if(typeof o==='string'){
+  const value=o.trim();
+  if((value.startsWith('{')&&value.endsWith('}'))||
+     (value.startsWith('[')&&value.endsWith(']'))){
+   try{return nameOf(JSON.parse(value),depth+1);}catch(_){return '';}
+  }
+  return value;
+ }
+ if(Array.isArray(o))return o.slice(0,8).map(v=>nameOf(v,depth+1)).filter(Boolean).join(', ');
+ if(typeof o!=='object')return '';
+ for(const v of [o.display,o.name,o.display_name,o.displayName,o.full_name,
+                 o.artist_name,o.title,o.artist,o.performer,o.items]){
+  const found=nameOf(v,depth+1);
+  if(found)return found;
  }
  return '';
 };
+const trackTitle=t=>nameOf(t?.title)||'Untitled';
 const artistChoices=o=>[o?.artist,o?.album?.artist,o?.main_artist,o?.mainArtist,o?.performer,o?.performers?.items?.[0],
  o?.artists?.items?.[0],Array.isArray(o?.artists)?o.artists[0]:null,
  o?.artists?.main?.[0],o?.artist_name,o?.main_artist_name,
@@ -340,7 +353,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
 function updateMini(){
  let p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}
  m.classList.remove('hidden');let t=p.track;
- m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(t.title||'Untitled')}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
+ m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
 }
 function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
  const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=p.position||0}
