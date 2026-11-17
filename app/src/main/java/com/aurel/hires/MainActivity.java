@@ -1526,7 +1526,11 @@ public final class MainActivity extends Activity {
                         sourceVerified=metadata.optBoolean("source_verified",false);
                         sourceLabel=metadata.optString("source_label","Qobuz API");
                         codec=metadata.optString("codec","");
-                        qualityProbePending=!sourceVerified;
+                        // Zarz gateway URLs can be one-use or session-bound.
+                        // A second ranged GET for metadata can invalidate the
+                        // URL while MediaPlayer is consuming it. Never probe a
+                        // Mornye link in parallel with playback.
+                        qualityProbePending=!sourceVerified&&!viaMornye;
                         // Report supplier metadata before MediaPlayer.prepareAsync
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
@@ -1565,7 +1569,10 @@ public final class MainActivity extends Activity {
                             applyDigitalHeadroom(mp);
                             // A new signed stream is used after recovery. Restore the
                             // last reliable position before starting playback.
-                            final int resumedAt=mediaRecovery.consumePosition(mp.getDuration());
+                            int reliableDuration=0;
+                            try{reliableDuration=Math.max(0,mp.getDuration());}
+                            catch(RuntimeException ignored){}
+                            final int resumedAt=mediaRecovery.consumePosition(reliableDuration);
                             if(resumedAt>0){
                                 try{mp.seekTo(resumedAt,MediaPlayer.SEEK_CLOSEST_SYNC);}
                                 catch(RuntimeException ignored){}
