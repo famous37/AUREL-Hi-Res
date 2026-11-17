@@ -44,6 +44,42 @@ final class UsbDirectPlayback {
     private String sourceMime = "";
     private final Listener listener;
 
+    // READY does not guarantee the USB isochronous transport stays alive.
+    // A bounded watchdog restores ordinary Android playback on failure.
+    private final android.os.Handler healthHandler =
+        new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean released, failureReported;
+    private int lastProgressMs = -1, stagnantSeconds;
+    private final Runnable healthCheck = new Runnable() {
+        @Override public void run() {
+            if (released || failureReported) return;
+            if (ready && player.getPlayWhenReady() &&
+                player.getPlaybackState() == Player.STATE_READY) {
+                if (!usbStreamActive()) {
+                    reportUnhealthy("USB stream stopped unexpectedly");
+                    return;
+                }
+                if (player.isPlaying()) {
+                    int now = position();
+                    stagnantSeconds = lastProgressMs >= 0 && now <= lastProgressMs
+                        ? stagnantSeconds + 1 : 0;
+                    lastProgressMs = now;
+                    if (stagnantSeconds >= 5) {
+                        reportUnhealthy("USB transport stalled; reverting to Android audio");
+                        return;
+                    }
+                } else { lastProgressMs = -1; stagnantSeconds = 0; }
+            } else { lastProgressMs = -1; stagnantSeconds = 0; }
+            healthHandler.postDelayed(this, 1000L);
+        }
+    };
+    private void reportUnhealthy(String reason) {
+        if (released || failureReported) return;
+        failureReported = true;
+        failure = reason;
+        listener.onError(this, reason);
+    }
+
     static boolean supported(Context context) {
         if (Build.VERSION.SDK_INT < 29) return false;
         try {
@@ -91,7 +127,7 @@ final class UsbDirectPlayback {
                 // Native USB stream owns the actual audio samples. DefaultAudioSink
                 // is used for timeline tracking and muted while direct USB runs.
                 sink = new UsbAudioSink(delegate, ctx,
-                    new UsbAudioSinkConfig(true, true));
+                    new UsbAudioSinkConfig(true, false));
                 return sink;
             }
         };
@@ -99,7 +135,8 @@ final class UsbDirectPlayback {
         factory.setExtensionRendererMode(
             DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
         player = new ExoPlayer.Builder(context)
-            .setRenderersFactory(factory).build();
+            .setRenderersFactory(factory)
+            .setReleaseTimeoutMs(1500L).build();
         player.setAudioAttributes(
             new androidx.media3.common.AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
@@ -117,9 +154,8 @@ final class UsbDirectPlayback {
                 }
             }
             @Override public void onPlayerError(PlaybackException error) {
-                failure = error.getMessage() == null
-                    ? "USB audio playback error" : error.getMessage();
-                UsbDirectPlayback.this.listener.onError(UsbDirectPlayback.this, failure);
+                reportUnhealthy(error.getMessage() == null
+                    ? "USB audio playback error" : error.getMessage());
             }
             @Override public void onTracksChanged(androidx.media3.common.Tracks tracks) {
                 for (androidx.media3.common.Tracks.Group group : tracks.getGroups()) {
@@ -135,6 +171,7 @@ final class UsbDirectPlayback {
                 }
             }
         });
+        healthHandler.postDelayed(healthCheck, 1000L);
     }
 
     void prepare(String httpsUrl) {
@@ -162,6 +199,8 @@ final class UsbDirectPlayback {
     int sourceChannels() { return sourceChannels; }
     String sourceMime() { return sourceMime; }
     void release() {
+        released = true;
+        healthHandler.removeCallbacks(healthCheck);
         try { if (sink != null) sink.detachFromPlayer(); }
         catch (RuntimeException ignored) {}
         player.release();
