@@ -101,6 +101,7 @@ jobs:
           node tests/bit-perfect.test.cjs
           node tests/swipe-icons.test.cjs
           node tests/global-polish.test.cjs
+          node tests/precise-ui.test.cjs
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -141,18 +142,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\\n' \
-            '**AUREL Hi-Res v1.1.30 — Global typography, bold icons and refined motion**' \
+            '**AUREL Hi-Res v1.1.31 — Sharp consistent icons and refined cards**' \
             '' \
-            '- Consistent bolder, high-contrast typography across Discover, Search, Library, artists, albums, playlists, Settings and player panels.' \
-             '- Crisp 2.45–2.5 stroke SVG icons throughout the app, without raster upscaling or size jumps.' \
-             '- Gentle route-only fade and smoother swipe-down finish. No repeated entrance animation when streaming metadata or screen contents update.' \
+            '- Clear high-resolution SVG controls for Search, Discover, Magazine, albums, playlists and desktop sidebar.' \
+             '- Full-size Search button arrow, readable quick-access cards and uniform album track actions.' \
+             '- Consistent heart, play, queue and share controls with preserved favourite state and tap actions.' \
             '- Added per-track Qobuz availability checks: unreleased songs remain listed but cannot be played.' \
             '- Play Album, queues, skip, shuffle and repeat avoid scheduled and non-streamable tracks.' \
             '- Already released singles remain playable from an album scheduled for a later date.' \
             '- Verified Android package identity, APK signing schemes, and signing certificate.' \
             '- Preserves signed in-app updates, player, navigation, artwork, and audio metadata.' \
             '' \
-            'Install: v1.1.30 over the permanently signed v1.1.29 preserves credentials and settings; package and signing certificate are unchanged.' \
+            'Install: v1.1.31 over the permanently signed v1.1.30 preserves credentials and settings; package and signing certificate are unchanged.' \
             '' \
             'SHA-256 signing certificate: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' \
             '' \
