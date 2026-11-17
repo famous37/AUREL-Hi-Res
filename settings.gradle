@@ -1,9 +1,8 @@
 pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } } }
 rootProject.name = 'AurelHiRes'
 include ':app'
-// MIT userspace UAC2 driver. Run scripts/setup-usb-driver.sh before building.
-['decent-usb-audio-driver','decent-usb-audio-wrapper-media3','decent-media3-decoder-flac'].each { name ->
-  include ":${name}"
-  project(":${name}").projectDir = file("vendor/decent-player/libs/${name}")
-}
+// Keep the native FLAC decoder, but remove the old decent USB transport.
+include ':decent-media3-decoder-flac'
+project(':decent-media3-decoder-flac').projectDir =
+    file('vendor/decent-player/libs/decent-media3-decoder-flac')
