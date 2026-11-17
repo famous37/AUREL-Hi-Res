@@ -149,7 +149,11 @@ window.AurelEvent=(kind,data)=>{
   app.player=data;
   updateMini();
   if(app.overlay){if(changed)drawOverlay();else updateOverlayState()}
-  if(data?.error && data?.error!==app.lastPlayerError){app.lastPlayerError=data.error;showToast(data.error,6000)}
+  if(!data?.error)app.lastPlayerError='';
+  else if(data.error!==app.lastPlayerError){
+    app.lastPlayerError=data.error;
+    showToast(data.error,6000);
+  }
  }
 };
 window.AurelBack=()=>{if(app.overlay){app.overlay=false;drawOverlay();return;}if(app.selected){app.selected=null;app.selectedTracks=[];render();return;}navigate('home')};
@@ -158,7 +162,9 @@ function showToast(msg,ms=3600){
  const now=Date.now();if(showToast.previous===message&&now-showToast.when<1800)return;
  showToast.previous=message;showToast.when=now;
  t.replaceChildren();
- const label=document.createElement('span');label.className='aurel-toast-message';label.textContent=message;t.appendChild(label);
+ const localized=window.AurelLanguage?.get?.()==='uk'
+  ?(window.AurelLanguage.translate?.(message)||message):message;
+ const label=document.createElement('span');label.className='aurel-toast-message';label.textContent=localized;t.appendChild(label);
  if((app.session?.mornyeConnected||app.session?.mornyeConfigured)&&/mornye|zarz|gateway|verification|session grant/i.test(message)&&!/rate limit|try again|too many requests|cooldown/i.test(message)){
   const action=document.createElement('button');action.type='button';action.textContent='Verify';
   action.className='aurel-toast-action';action.setAttribute('data-reverify-mornye','');t.appendChild(action);
@@ -375,7 +381,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.39</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.40</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){

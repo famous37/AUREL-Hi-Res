@@ -10,7 +10,7 @@ const css=read('app/src/main/assets/aurel-player-scroll.css');
 const html=read('app/src/main/assets/index.html');
 const manifest=read('app/src/main/AndroidManifest.xml');
 const gradle=read('app/build.gradle');
-assert(gradle.includes('versionCode 58') && gradle.includes("'1.1.39'"));
+assert(gradle.includes('versionCode 59') && gradle.includes("'1.1.40'"));
 assert(html.indexOf('aurel-player-scroll.css')>html.indexOf('aurel-artist-info.css'),
  'Player scroll overrides must load after all legacy player skins');
 assert(css.includes('#overlay:not(.hidden) .murglar-view'));

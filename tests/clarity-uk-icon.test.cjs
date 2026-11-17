@@ -15,7 +15,7 @@ const locale=text(assets+'aurel-language.js');
 const foreground=text('app/src/main/res/drawable/aurel_launcher_foreground.xml');
 const mono=text('app/src/main/res/drawable/aurel_launcher_monochrome.xml');
 const gradle=text('app/build.gradle');
-assert(gradle.includes('versionCode 58') && gradle.includes("'1.1.39'"));
+assert(gradle.includes('versionCode 59') && gradle.includes("'1.1.40'"));
 assert(html.includes('aurel-clarity.css') &&
  html.indexOf('aurel-clarity.css')>html.indexOf('aurel-settings-groups.css'));
 assert(css.includes('stroke-width:2.8!important') &&
@@ -45,4 +45,4 @@ for(const key of ["'Audio outputs'","'Playback'","'Connected devices'",
  assert(locale.includes(key),'Missing Ukrainian translation for '+key);
 assert(locale.includes('var rates=/^Android rates:'), 'Dynamic sample rates must translate');
 new Function(motion);new Function(swipe);new Function(locale);
-console.log('AUREL 1.1.39 contrast, clean settings, adaptive icon, Ukrainian and smooth motion checks PASS');
+console.log('AUREL 1.1.40 contrast, clean settings, adaptive icon, Ukrainian and smooth motion checks PASS');

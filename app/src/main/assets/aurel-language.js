@@ -418,6 +418,12 @@ Object.assign(dictionary,{
  'Biography unavailable. Please try again later.':'Біографія наразі недоступна. Спробуйте пізніше.',
  'Artist biography':'Біографія виконавця'
 });
+/* User-facing media recovery notifications; diagnostic codes stay in Logcat. */
+Object.assign(dictionary,{
+ 'Android audio system error. Tap Play to try again.':'Збій аудіосистеми Android. Натисніть відтворення, щоб спробувати ще раз.',
+ 'Audio playback could not start.':'Не вдалося запустити відтворення.',
+ 'Audio focus is unavailable. Open AUREL to resume playback.':'Аудіофокус недоступний. Відкрийте AUREL, щоб відновити відтворення.'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){

@@ -110,6 +110,10 @@ jobs:
           node tests/artist-biography-mono.test.cjs
           node tests/settings-state-motion.test.cjs
           node tests/player-scroll-focus.test.cjs
+          node tests/webview-scroll-media-recovery.test.cjs
+          mkdir -p build/media-recovery-test
+          javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
+          java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
           mkdir -p build/audio-focus-test
           javac -d build/audio-focus-test app/src/main/java/com/aurel/hires/AurelFocusPolicy.java tests/AurelFocusPolicyTest.java
           java -cp build/audio-focus-test com.aurel.hires.AurelFocusPolicyTest
@@ -153,19 +157,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            '**AUREL Hi-Res v1.1.39 — Player scrollbar and Android audio focus**' \
+            '**AUREL Hi-Res v1.1.40 — Native scrollbar fix and recoverable Android audio errors**' \
             '' \
-            '- Eliminated the occasional empty vertical scrollbar caused by mismatched player/overlay viewport heights and legacy scroll styles.' \
-            '- Kept actual scrolling available on shorter displays and long titles while hiding unwanted WebView scroll indicators.' \
-            '- Implemented Android AudioFocusRequest before every playback start (including preparation, media controls and resume).' \
-            '- Pause on other apps'\'' audio focus, including transient and duck-eligible interruptions, rather than mixing audio streams.' \
-            '- Auto-resume after temporary interruption only if AUREL was playing before it and the user did not pause manually.' \
-            '- Permanent focus loss remains paused, avoiding unsolicited replay after another app takes over.' \
-            '- Clear audio focus on user pause, queue end, account logout and playback failure.' \
-            '- Added JVM state-machine checks and UI/source integration regression tests.' \
-            '- Preserved monochrome styling, audio outputs, library accounts, favourites and permanently signed updates.' \
+            '- Disabled Android WebView native vertical and horizontal scrollbar overlays that briefly flash after unlocking or resizing the screen.' \
+            '- Preserved actual touch scrolling for long tracks, queues and smaller screens.' \
+            '- Corrected low-level system error classification: Android code 1 / -2147483648 is not proof of a damaged FLAC decoder or track.' \
+            '- Recover once from likely transient Android MediaPlayer system, I/O or timeout errors with a fresh signed stream URL, keeping the same track and last valid playback position.' \
+            '- Limit retries strictly to one per manually selected track; do not retry malformed or unsupported streams, nor after explicit pause or focus loss.' \
+            '- Release unusable MediaPlayer instances safely even if reset() throws; manual Play creates a fresh player after final failure.' \
+            '- Do not probe signed Mornye stream links with a simultaneous second network request; preserve accurate metadata when supplied without duplicating one-time links.' \
+            '- Improved Ukrainian media error messages and reset notification suppression after recovery.' \
+            '- All existing monochrome UI, settings persistence, audio focus rules and permanent APK signing remain intact.' \
             '' \
-            'Install v1.1.39 over production-signed v1.1.38 without clearing app data.' \
+            'Install v1.1.40 over signed v1.1.39 without uninstalling or clearing app data.' \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
