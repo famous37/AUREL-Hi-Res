@@ -310,7 +310,7 @@ drawOverlay=function(){
     </div>
     <button class="aurel-fav-button" data-like-track="${html(t.id||'')}" aria-label="Add to favourites">${ic('heart',27)}</button></section>
    <section class="aurel-timeline" aria-label="Track progress">
-    <input id="progress" class="progress" type="range" min="0" max="${progressTotal||100}" step="500" value="${position}" aria-label="Playback position">
+    <input id="progress" class="progress" type="range" min="0" max="${progressTotal||100}" step="any" value="${position}" aria-label="Playback position">
     <div class="aurel-timeline-labels"><span id="elapsed">${duration(position/1000)}</span><button class="aurel-source-pill" data-player-sheet="audio" aria-label="Show audio source information">${ic('audio',17)}<span>${html(format)}</span></button><span id="remaining">${duration(progressTotal/1000)}</span></div>
    </section>
    <section class="aurel-main-actions" aria-label="Playback controls">
