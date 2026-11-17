@@ -131,7 +131,7 @@ assert(overlay.includes('Now Playing'));
 const html=fs.readFileSync(base+'index.html','utf8');
 assert(html.includes('aurel.css'));
 assert(!html.includes('responsive.css'));
-assert(!html.includes('polish.css'));
+assert(!html.includes('href="polish.css"')); // legacy stylesheet only; global polish is intentional
 assert(!html.includes('finish.css'));
 assert(!html.includes('data-nav="downloads"'));
 const css=fs.readFileSync(base+'aurel.css','utf8');
