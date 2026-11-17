@@ -85,10 +85,19 @@ function createHarness(){
  h.scroll(215);
  await vm.runInContext("openAlbum('92')",x);
  assert.equal(h.rendered(),'album:92');
+ h.scroll(163);
  h.app.overlay=true;
+ vm.runInContext('drawOverlay()',x); // captures the actual originating album
+ // Simulate an asynchronous UI reset while the full player is still on screen.
+ h.app.nav='home';h.app.selected=null;h.app.selectedKind='';
+ h.window.AurelMinimizePlayer();await pause();
+ assert.equal(h.app.overlay,false,'collapse must only close the full player');
+ assert.equal(h.rendered(),'album:92','collapse restores the originating album, not Discover');
+ assert.equal(h.y(),163,'album scroll position survives a temporary route reset');
+ h.app.overlay=true;vm.runInContext('drawOverlay()',x);
  h.window.AurelBack();await pause();
- assert.equal(h.app.overlay,false,'first Android Back minimizes player');
- assert.equal(h.rendered(),'album:92','minimizing keeps the album');
+ assert.equal(h.app.overlay,false,'Android Back also minimizes player');
+ assert.equal(h.rendered(),'album:92','physical Back preserves the album route');
  h.backButton();await pause();
  assert.equal(h.rendered(),'artist:17','album Back returns to artist');
  assert.equal(h.y(),215,'artist scroll position restored');
