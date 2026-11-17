@@ -133,8 +133,9 @@ final class AurelUsbDacHost {
 
     boolean directTransportActive() {
         UsbPipelineStats stats = manager.getPipelineStats().getValue();
-        return directRoute() && stats != null && stats.getUrbsSubmitted() > 0 &&
-            stats.getReapErrors()==0;
+        // Nonzero historical error counters alone do not mean a dead stream.
+        // Actual liveness is confirmed by URBs + the playback clock watchdog.
+        return directRoute() && stats != null && stats.getUrbsSubmitted() > 0;
     }
 
     boolean androidFallback() {
