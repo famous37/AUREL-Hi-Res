@@ -335,7 +335,7 @@ function renderLogin(){
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  const bp=app.player?.bitPerfect||app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
- const bpLabels={off:'Standard playback',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'Preparing direct USB',direct_usb_playback:'Direct USB audio',direct_usb_not_active:'USB unavailable · Android fallback',direct_usb_error:'USB driver failed · Android fallback',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
+ const bpLabels={off:'Standard playback',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'libusbdac · preparing USB',direct_usb_playback:'Direct USB · libusbdac',direct_usb_not_active:'Android fallback · not bit-perfect',direct_usb_error:'USB driver failed · Android fallback',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
  const bpStatus=bpLabels[bp.status]||'Checking USB output';
  // Render concise, truthful device-state explanations; raw native diagnostic
  // strings are still retained in session but need not crowd the settings UI.
@@ -351,7 +351,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
   policy_unavailable:'Android does not offer bit-perfect through its USB audio driver.',
   policy_error:'Could not check the Android USB audio policy.',
    direct_usb_preparing:'Opening a direct USB Audio Class 2.0 stream.',
-   direct_usb_playback:'Native USB playback selected. Verify actual sample rate at the DAC.',
+   direct_usb_playback:'USB PCM transported directly to DAC by libusbdac. Verify rate at the DAC.',
    direct_usb_not_active:'Native USB stream is not active; using Android playback.',
    direct_usb_error:'Native USB transport failed. Android playback restored; toggle USB off/on to retry.',
   unsupported:'USB mixer controls are unavailable on this device.',
@@ -396,7 +396,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.47</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.48</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
