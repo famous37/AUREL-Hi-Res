@@ -1224,12 +1224,17 @@ public final class MainActivity extends Activity {
                                 throw new Exception("Set Digital headroom to 0 dB before enabling USB bit-perfect.");
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
                             ui.post(()->{
-                                boolean wasPlaying=isAudioPlaying();
-                                if(prepared&&hasEngine()){
+                                final boolean hadEngine=hasEngine();
+                                final boolean wasPlaying=isAudioPlaying();
+                                if(prepared&&hadEngine){
                                     restoredPositionMs=audioPosition();
                                     restoredTrackId=current.optString("id","");
                                 }
-                                bitPerfect.setEnabled(wanted,player,fileInfo);
+                                // Release the old native USB driver/decoder FIRST,
+                                // then change mode. Never claim/release the same
+                                // endpoint while an old engine still owns it.
+                                if(hadEngine)cleanupPlayer();
+                                bitPerfect.setEnabled(wanted,null,fileInfo);
                                 if(usbHost!=null) {
                                     usbHost.setEnabled(wanted);
                                     if(wanted){
@@ -1242,11 +1247,9 @@ public final class MainActivity extends Activity {
                                 updateUsbAttachHandler();
                                 directUsbUnsafe=false;
                                 directUsbFailure="";
-                                // Switching outputs requires a new decoder/USB stream.
-                                // Signed Qobuz/Mornye stream URLs are never reused.
-                                if(hasEngine()){
-                                    if(wasPlaying){directFallbackTrackId="";startAtCurrentInternal();}
-                                    else cleanupPlayer();
+                                if(hadEngine&&wasPlaying){
+                                    directFallbackTrackId="";
+                                    startAtCurrentInternal(); // obtains a fresh signed URL
                                 }
                                 try {emit("session",session());}catch(Exception ignored){}
                                 emit("player",playerState());
