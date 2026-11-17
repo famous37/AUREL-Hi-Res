@@ -272,7 +272,7 @@ function translateEnglish(s){
  if(rates)return 'Частоти Android: '+rates[1].replace(/ kHz/g,' кГц').replace(/ Hz/g,' Гц');
  var mixer=/^USB mixer: (.+)$/.exec(key);
  if(mixer)return 'USB-мікшер: '+mixer[1].replace(/ Hz/g,' Гц');
- var cache=/^(\\d+) \/ (\\d+) pages · (\\d+) KB · (\\d+) quick opens$/.exec(key);
+ var cache=/^(\d+) \/ (\d+) pages · (\d+) KB · (\d+) quick opens$/.exec(key);
  if(cache)return cache[1]+' із '+cache[2]+' сторінок · '+cache[3]+' КБ · '+cache[4]+' повторних відкриттів';
 
  var match=/^(\d+)\s+tracks$/i.exec(key);
