@@ -1,0 +1,45 @@
+plugins { id 'com.android.application' }
+
+// This project is never included by normal AUREL builds. The official
+// Superpowered SDK must be obtained locally under its own evaluation license.
+def sdkDir = file(System.getenv('AUREL_SUPERPOWERED_DIR') ?:
+    rootProject.file('vendor/superpowered-sdk/Superpowered').absolutePath)
+if (!new File(sdkDir, 'SuperpoweredAndroidUSB.h').isFile() ||
+    !new File(sdkDir, 'libSuperpoweredAndroidarm64-v8a.a').isFile()) {
+    throw new GradleException(
+        'Superpowered SDK missing. Run bash scripts/setup-superpowered-lab.sh ' +
+        'or set AUREL_SUPERPOWERED_DIR to the SDK Superpowered directory.')
+}
+
+android {
+    namespace 'com.aurel.usblab'
+    compileSdk { version = release(37) { minorApiLevel = 0 } }
+    defaultConfig {
+        applicationId 'com.aurel.usblab'
+        minSdk 29
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0-private-experiment'
+        ndk { abiFilters 'arm64-v8a' }
+        externalNativeBuild {
+            cmake {
+                arguments "-DSUPERPOWERED_SDK_DIR:PATH=${sdkDir.absolutePath}",
+                    '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+                cppFlags '-std=c++17', '-O2', '-fexceptions'
+            }
+        }
+    }
+    externalNativeBuild {
+        cmake { path 'src/main/cpp/CMakeLists.txt' }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    buildTypes {
+        debug { debuggable true }
+        release { // No published release of evaluation SDKs.
+            debuggable false
+        }
+    }
+}
