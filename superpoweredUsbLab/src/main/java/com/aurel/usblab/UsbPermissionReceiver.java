@@ -16,8 +16,10 @@ public final class UsbPermissionReceiver extends BroadcastReceiver {
            !"com.aurel.usblab.USB_PERMISSION".equals(original.getAction()))return;
         Intent callback=new Intent("com.aurel.usblab.USB_PERMISSION_CALLBACK")
             .setPackage(context.getPackageName());
+        // The generic getParcelableExtra() result must be explicitly typed:
+        // otherwise Java 21 sees ambiguous Parcelable vs String putExtra().
         callback.putExtra(UsbManager.EXTRA_DEVICE,
-            original.getParcelableExtra(UsbManager.EXTRA_DEVICE));
+            (android.os.Parcelable)original.getParcelableExtra(UsbManager.EXTRA_DEVICE));
         callback.putExtra(UsbManager.EXTRA_PERMISSION_GRANTED,
             original.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED,false));
         context.sendBroadcast(callback);
