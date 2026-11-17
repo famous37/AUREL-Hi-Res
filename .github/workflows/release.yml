@@ -6,7 +6,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/direct-usb-bitperfect-media3]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -51,15 +51,17 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-      - name: Install Android SDK 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          gradle-version: '9.3.1'
+      - name: Install Android SDK 36, NDK 29, and CMake
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+      - name: Fetch pinned native USB Audio and libFLAC sources
+        run: bash scripts/setup-usb-driver.sh
 
       - name: Validate release version and prevent replacing signed artifacts
         env:
@@ -133,8 +135,8 @@ jobs:
           set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
-          "${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
-          ACTUAL_CERT="$("${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | \
+          "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"
+          ACTUAL_CERT="$("${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$APK" | \
             sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | \
             head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
           EXPECTED_CERT="C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA"
@@ -142,7 +144,7 @@ jobs:
             echo "::error::APK is not signed by the permanent AUREL release certificate."
             exit 1
           fi
-          "${ANDROID_HOME}/build-tools/35.0.0/aapt" dump badging "$APK" | \
+          "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$APK" | \
             grep -q "package: name='com.aurel.hires'"
           mkdir -p build/signed-artifacts
           cp "$APK" "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk"
@@ -159,16 +161,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — classic AUREL icon and responsive player**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — experimental direct USB bit-perfect preview**" \
             '' \
-            '- Restores the original three vinyl rings, bold A and six equalizer bars with stronger contrast.' \
-            '- Uses consistent scalable vector branding across Android launcher, monochrome, notifications, and in-app headers.' \
-            '- Sends one bounded seek on slider release and recovers cancelled touches without losing player state.' \
-            '- Avoids invalid seeking before duration becomes known.' \
-            '- Adds accessible shuffle/repeat state and high-contrast time, source and playback status.' \
-            '- Refreshes codec, bitrate, USB route and mixer information in place without destroying the player view.' \
-            '- Preserves prior artist/album page, queue, playback, session and back-navigation during an in-place update.' \
-            '- Distinguishes reported stream format from independently unverified bit-perfect output.' \
+            '- Adds the Media3 / Decent USB Audio userspace UAC2 output engine for external USB DACs.' \
+            '- Direct USB bypasses the Android mixer only when the native isochronous USB stream successfully opens.' \
+            '- Uses libFLAC and FFmpeg for lossless PCM decoding, with USB Audio Class 2.0 permission handling.' \
+            '- Preserves Play/Pause, seek, playback queue, and audio focus with fallback to standard playback.' \
+            '- Requires compatible USB hardware; direct USB status is not independently measured bit identity.' \
+            '- DO NOT treat Android mixer flags or source FLAC metadata as proof of DAC bit-perfect output.' \
+            '- Experimental prerelease; verify FLAC 16/44.1 and 24/96 on your USB DAC before depending on it.' \
+            '- Preserves AUREL signing certificate, installed package ID, Qobuz credentials and app data.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
