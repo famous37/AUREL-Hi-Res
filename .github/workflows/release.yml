@@ -62,7 +62,7 @@ jobs:
         with:
           gradle-version: '9.3.1'
       - name: Install Android API 37, NDK 29, and CMake
-        run: sdkmanager 'platforms;android-37' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - name: Fetch pinned native USB Audio and libFLAC sources
         run: bash scripts/setup-usb-driver.sh
 
