@@ -479,8 +479,10 @@ public final class MainActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         // Do not auto-reopen an unstable native USB engine after a process restart.
-        if("1".equals(secure.get("bitPerfectEnabled")))
-            secure.put("bitPerfectEnabled","0");
+        if("1".equals(secure.get("bitPerfectEnabled"))) {
+            try { secure.put("bitPerfectEnabled","0"); }
+            catch(Exception error) { Log.w(MEDIA_TAG,"Cannot persist safe USB OFF preference",error); }
+        }
         bitPerfect=new BitPerfectOutput(this,false);
         try{usbOutputVolumePercent=Integer.parseInt(secure.get("usbOutputVolumePercent"));}
         catch(NumberFormatException ignored){usbOutputVolumePercent=35;}
@@ -1245,7 +1247,8 @@ public final class MainActivity extends Activity {
                                     }catch(RuntimeException | LinkageError failure){
                                         Log.e(MEDIA_TAG,"Native USB initialization failed",failure);
                                         bitPerfect.setEnabled(false,null,fileInfo);
-                                        secure.put("bitPerfectEnabled","0");
+                                        try{secure.put("bitPerfectEnabled","0");}
+                                        catch(Exception ignored){}
                                         updateUsbAttachHandler();
                                         ++usbGrantPollToken;
                                         final int safeGeneration=++playGeneration;
