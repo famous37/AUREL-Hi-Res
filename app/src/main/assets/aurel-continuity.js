@@ -230,7 +230,9 @@ render=function(){
  const out=oldRender.apply(this,arguments);
  if(started){
   shown=key();
-  if(before===shown||!before)restoreY(location());
+  // Restore scroll only on a genuine route change. Re-rendering metadata or
+  // favourites on the same page must never reset scroll on the next two frames.
+  if(before!==shown||!before)restoreY(location());
   persist();
   if(boot){
    const initial=boot;boot=null;
