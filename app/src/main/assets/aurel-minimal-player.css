@@ -219,9 +219,8 @@
   background:#f0f2f5;
   transform:scaleX(0);
   transform-origin:left center;
-  transition:transform .15s linear;
+  /* Progress is driven by the monotonic frame clock, not a stacking
+     transition that competes with every native audio tick. */
   will-change:transform;
 }
-@media (prefers-reduced-motion:reduce){
-  .app .mini .mini-progress .mini-progress-fill{transition:none}
-}
+
