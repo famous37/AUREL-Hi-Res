@@ -806,7 +806,10 @@ public final class MainActivity extends Activity {
                             data=session();break;
                         }
                         case "logout": {
-                            secure.clear();ui.post(()->{bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
+                            secure.clear();
+                            digitalHeadroomDb=0;
+                            prefetchNextMetadata=true;
+                            ui.post(()->{bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
                             data=session();break;
                         }
                         case "setBitPerfect": {
@@ -856,9 +859,13 @@ public final class MainActivity extends Activity {
                             break;
                         }
                         case "saveSettings": {
-                            int q=p.optInt("quality",27);
-                            if(q!=5&&q!=6&&q!=7&&q!=27)throw new Exception("Invalid quality");
-                            secure.put("quality",Integer.toString(q));
+                            // Updating App Secret must never silently reset the separately
+                            // persisted streaming quality to an older/default value.
+                            if(p.has("quality")){
+                                int q=p.getInt("quality");
+                                if(q!=5&&q!=6&&q!=7&&q!=27)throw new Exception("Invalid quality");
+                                secure.put("quality",Integer.toString(q));
+                            }
                             // Credentials can be updated independently; no token shown to JS.
                             if(p.has("appSecret"))secure.put("streamAppSecret",p.optString("appSecret").trim());
                             data=session();break;
