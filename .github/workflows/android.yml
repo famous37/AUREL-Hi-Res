@@ -49,6 +49,8 @@ jobs:
         run: node tests/minimal-player.test.cjs
       - name: Verify USB Bit-perfect mixer negotiation and UI safeguards
         run: node tests/bit-perfect.test.cjs
+      - name: Verify USB hardware volume, opt-in chooser and stable progress
+        run: node tests/usb-volume-recovery.test.cjs
       - name: Verify playback, history, USB diagnosis and update continuity
         run: node tests/playback-continuity.test.cjs
       - name: Verify swipe-down minimization and high-contrast SVG controls

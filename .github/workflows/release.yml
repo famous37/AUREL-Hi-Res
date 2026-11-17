@@ -101,6 +101,7 @@ jobs:
           node tests/updates.test.cjs
           node tests/minimal-player.test.cjs
           node tests/bit-perfect.test.cjs
+          node tests/usb-volume-recovery.test.cjs
           node tests/playback-continuity.test.cjs
           node tests/swipe-icons.test.cjs
           node tests/player-icon-seek.test.cjs
