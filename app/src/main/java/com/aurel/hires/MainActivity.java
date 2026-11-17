@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 import android.media.AudioManager;
 import android.media.AudioFocusRequest;
 import android.media.AudioAttributes;
@@ -175,6 +176,9 @@ public final class MainActivity extends Activity {
     private int repeatMode=0; // 0 off, 1 list, 2 one
     private boolean shuffle=false;
     private boolean prepared=false, buffering=false;
+    private final AurelMediaRecoveryPolicy mediaRecovery=new AurelMediaRecoveryPolicy();
+    private int mediaRecoveryScheduledGeneration=-1;
+    private static final String MEDIA_TAG="AUREL.Playback";
     // Safe negative digital headroom. Explicitly incompatible with bit-perfect.
     private int digitalHeadroomDb=0;
     private boolean prefetchNextMetadata=true;
@@ -214,6 +218,12 @@ public final class MainActivity extends Activity {
         mornye=new MornyeGateway(secure);
         updateManager=new AurelUpdateManager(this,update->emit("update",update));
         web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
+        // Disable native WebView scrollbar overlays (not content scrolling).
+        // Android briefly displays them after unlock/viewport resize even if
+        // CSS scrollbar-width:none hides the inner HTML scroll indicators.
+        web.setVerticalScrollBarEnabled(false);
+        web.setHorizontalScrollBarEnabled(false);
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebSettings s=web.getSettings();
         s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true);
@@ -1408,10 +1418,23 @@ public final class MainActivity extends Activity {
     private void cleanupPlayer() {
         if(bitPerfect!=null)bitPerfect.release();
         prepared=false;buffering=false;
-        if(player!=null){try{player.reset();player.release();}catch(Exception ignored){}player=null;}
+        final MediaPlayer obsolete=player;
+        player=null;
+        if(obsolete!=null){
+            try{obsolete.reset();}catch(RuntimeException ignored){}
+            // Always release, even when a decoder error makes reset() fail.
+            try{obsolete.release();}catch(RuntimeException ignored){}
+        }
     }
 
+    /** Called only for an explicit track change/replay. Automatic recovery
+     * must not reset its own retry budget or create infinite reconnects. */
     private void startAtCurrent() {
+        mediaRecovery.newSelection();
+        startAtCurrentInternal();
+    }
+
+    private void startAtCurrentInternal() {
         if(queueIndex<0||queueIndex>=queue.size())return;
         focusPolicy.userPlay();
         // Native final guard: no audio ticket for scheduled or restricted tracks.
@@ -1427,6 +1450,7 @@ public final class MainActivity extends Activity {
         }
         playGeneration++;
         final int generation=playGeneration;
+        mediaRecoveryScheduledGeneration=-1;
         cleanupPlayer();
         current=queue.get(queueIndex);fileInfo=new JSONObject();sourceVerified=false;codec="";sourceLabel="";
         decoderSampleRateHz=0;decoderChannels=0;decoderBitrateKbps=0;decoderMime="";
@@ -1539,6 +1563,13 @@ public final class MainActivity extends Activity {
                                 }
                             }
                             applyDigitalHeadroom(mp);
+                            // A new signed stream is used after recovery. Restore the
+                            // last reliable position before starting playback.
+                            final int resumedAt=mediaRecovery.consumePosition(mp.getDuration());
+                            if(resumedAt>0){
+                                try{mp.seekTo(resumedAt,MediaPlayer.SEEK_CLOSEST_SYNC);}
+                                catch(RuntimeException ignored){}
+                            }
                             if(focusPolicy.shouldStartPrepared())startWithAudioFocus(mp);
                             // Probe the existing media URL, never the ticket endpoint.
                             // Run after playback starts to protect single-use stream links.
@@ -1587,11 +1618,50 @@ public final class MainActivity extends Activity {
                         });
                         player.setOnCompletionListener(mp->advance(1,true));
                         player.setOnErrorListener((mp,what,extra)->{
-                            if(generation!=playGeneration)return true;
-                            prepared=false;buffering=false;qualityProbePending=false;
+                            if(generation!=playGeneration||mp!=player)return true;
+                            if(mediaRecoveryScheduledGeneration==generation)return true;
+                            Log.w(MEDIA_TAG,"MediaPlayer failure what="+what+" extra="+extra+
+                                " generation="+generation+" retry="+mediaRecovery.attempts());
+                            int lastPosition=0;
+                            if(prepared){
+                                try{lastPosition=Math.max(0,mp.getCurrentPosition());}
+                                catch(RuntimeException ignored){}
+                            }
+                            prepared=false;qualityProbePending=false;
+                            if(mediaRecovery.retryAfter(what,extra,
+                                    focusPolicy.shouldStartPrepared())){
+                                mediaRecovery.rememberPosition(lastPosition);
+                                mediaRecoveryScheduledGeneration=generation;
+                                buffering=true;
+                                playerError="";
+                                emit("player",playerState());
+                                // Fresh stream authorization: never reuse a signed or
+                                // potentially single-use URL after a native decoder error.
+                                ui.postDelayed(()->{
+                                    if(generation!=playGeneration)return;
+                                    mediaRecoveryScheduledGeneration=-1;
+                                    if(!focusPolicy.shouldStartPrepared()){
+                                        cleanupPlayer();playerError="";
+                                        emit("player",playerState());
+                                        return;
+                                    }
+                                    startAtCurrentInternal();
+                                },450);
+                                return true;
+                            }
+                            buffering=false;
                             focusPolicy.userPause();abandonPlaybackFocus();
-                            playerError="Media decoder error ("+what+" / "+extra+")";
-                            emit("player",playerState());return true;
+                            playerError=extra==Integer.MIN_VALUE?
+                                "Android audio system error. Tap Play to try again.":
+                                "Audio playback error ("+what+" / "+extra+"). Tap Play to retry.";
+                            // The MediaPlayer instance entered Error state. It cannot be
+                            // resumed directly; release it so Play opens a fresh stream.
+                            ui.post(()->{
+                                if(generation!=playGeneration||player!=mp)return;
+                                cleanupPlayer();
+                                emit("player",playerState());
+                            });
+                            return true;
                         });
                         player.setDataSource(streamUrl);
                         player.prepareAsync();
