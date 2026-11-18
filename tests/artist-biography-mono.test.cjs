@@ -13,7 +13,7 @@ const css=asset('aurel-artist-info.css');
 const locale=asset('aurel-language.js');
 const gradle=fs.readFileSync(path.join(root,'app/build.gradle'),'utf8');
 
-assert(/versionCode\s+77/.test(gradle) && gradle.includes("'1.1.59'"));
+assert(/versionCode\s+78/.test(gradle) && gradle.includes("'1.1.59'"));
 assert(html.includes('href="aurel-artist-info.css"'));
 assert(html.includes('src="aurel-artist-info.js"'));
 assert(html.indexOf('aurel-artist-info.css')>html.indexOf('aurel-unified.css'));
