@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fix/off-native-usb-isolation, feature/android14-platform-bitperfect-1-1-52]
+    branches: [main, fix/off-native-usb-isolation, feature/android14-platform-bitperfect-1-1-52, feat/unified-bold-icons-loading-spinner-1-1-53]
   pull_request:
     branches: [main]
 jobs:
@@ -57,6 +57,8 @@ jobs:
         run: node tests/swipe-icons.test.cjs
       - name: Verify restored icon and precise seek gesture regression
         run: node tests/player-icon-seek.test.cjs
+      - name: Verify uniform bold SVG player buttons and loading spinner states
+        run: node tests/ui-bold-loading.test.cjs
       - name: Verify global typography, vector icons and motion invariants
         run: node tests/global-polish.test.cjs
       - name: Verify vector action buttons, search and quicklinks

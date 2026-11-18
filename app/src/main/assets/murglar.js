@@ -1,14 +1,5 @@
 (function installMurglarPlayer(){
   'use strict';
-  const navigationIcon=(key)=>{
-    const paths={
-      library:'<path d="M4 5h14v14H4zM8 9h6M8 13h6"/><path d="M20 8v13H7"/>',
-      search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
-      playing:'<path d="M4 7h16M4 12h12M4 17h8"/><path d="m17 16 4 2.5-4 2.5z"/>',
-      settings:'<path d="M12 2.5 14 4l2.4-.3 1 2.3 2.3 1 .1 2.5 1.7 1.8-1.7 1.9-.1 2.5-2.3.9-1 2.3-2.4-.3-2 1.5-2-1.5-2.4.3-1-2.3-2.3-.9-.1-2.5-1.7-1.9 1.7-1.8.1-2.5 2.3-1 1-2.3 2.4.3z"/><circle cx="12" cy="12" r="3.1"/>'
-    };
-    return `<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${paths[key]||''}</svg>`;
-  };
   const stateCaption=p=>p?.error?'UNAVAILABLE':p?.buffering?'BUFFERING':p?.playing?'PLAYING':'PAUSED';
   const repeatCaption=p=>Number(p?.repeat)===2?'Repeat one':Number(p?.repeat)===1?'Repeat all':'Repeat off';
   drawOverlay=function(){
@@ -23,6 +14,7 @@
     const played=total?Math.min(100,Math.round(position/total*100)):0;
     const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" aria-label="No cover art available">♫</div>';
     const source=actualSource(p);
+    const loading=aurelPlaybackMode(p)==='loading';
     // Persistent app bottom navigation remains mounted outside this overlay.
     overlay.classList.remove('hidden');
     overlay.style.setProperty('--cover-image','none');
@@ -45,7 +37,7 @@
           <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',25)}<span>Info</span></button>
           <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-expanded="${active==='audio'}" aria-label="Source quality details" title="Audio">${ic('audio',25)}<span>Audio</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',26)}<span>Favourite</span></button>
-          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.2"/><circle cx="5.5" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m7.5 11 8.4-4.9M7.5 13l8.4 4.9"/></svg><span>Share</span></button>
+          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',25)}<span>Share</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>
@@ -55,7 +47,7 @@
         <section class="murglar-transport aurel-main-actions" aria-label="Playback controls">
           <button id="full-shuffle" data-shuffle class="murglar-control peripheral ${p.shuffle?'active':''}" aria-label="Shuffle" aria-pressed="${!!p.shuffle}">${ic('shuffle',25)}</button>
           <button data-prev class="murglar-control aurel-transport side" aria-label="Previous track">${ic('prev',32)}</button>
-          <button id="full-toggle" data-full-toggle class="murglar-control aurel-transport middle" aria-label="${p.playing?'Pause':'Play'}">${ic(p.playing?'pause':'play',41)}</button>
+          <button id="full-toggle" data-full-toggle class="murglar-control aurel-transport middle ${loading?'is-loading':''}" aria-label="${aurelPlaybackLabel(p)}" aria-busy="${loading}">${aurelPlaybackIcon(p,39)}</button>
           <button data-next class="murglar-control aurel-transport side" aria-label="Next track">${ic('next',32)}</button>
           <button id="full-repeat" data-repeat class="murglar-control peripheral ${p.repeat?'active':''}" aria-label="${repeatCaption(p)}" aria-pressed="${!!p.repeat}">${ic('repeat',25)}${p.repeat===2?'<sup>1</sup>':''}</button>
         </section>
@@ -108,13 +100,16 @@
     const a=duration((p.position||0)/1000),b=duration((p.duration||0)/1000);
     if(elapsed&&elapsed.textContent!==a)elapsed.textContent=a;
     if(remaining&&remaining.textContent!==b)remaining.textContent=b;
-    const toggle=$('#full-toggle'),mode=p.playing?'pause':'play';
+    const toggle=$('#full-toggle'),mode=aurelPlaybackMode(p);
     if(toggle){
       if(toggle.dataset.icon!==mode){
         toggle.dataset.icon=mode;
-        toggle.innerHTML=ic(mode,41);
+        toggle.innerHTML=aurelPlaybackIcon(p,39);
       }
-      const label=p.playing?'Pause':'Play';
+      toggle.classList.toggle('is-loading',mode==='loading');
+      if(toggle.getAttribute('aria-busy')!==String(mode==='loading'))
+        toggle.setAttribute('aria-busy',String(mode==='loading'));
+      const label=aurelPlaybackLabel(p);
       if(toggle.getAttribute('aria-label')!==label)toggle.setAttribute('aria-label',label);
     }
     const shuffleButton=$('#full-shuffle');
