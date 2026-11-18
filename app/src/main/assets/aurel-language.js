@@ -453,7 +453,8 @@ Object.assign(dictionary,{
  'Checking Android USB audio':'Перевірка системного USB-аудіо',
  'The system USB audio driver is used. Bit-perfect is optional and may be unavailable on this device.':'Використовується системний USB-аудіодрайвер. Підтримка bit-perfect не обов’язкова і може бути відсутня.',
  'Android bit-perfect preference enabled. Support depends on your USB DAC and system audio HAL.':'Системний bit-perfect увімкнено. Доступність залежить від ЦАП та аудіопідсистеми телефона.',
- 'Standard Android output restored.':'Відновлено стандартне відтворення через Android.'
+ 'Standard Android output restored.':'Відновлено стандартне відтворення через Android.',
+ 'When Android bit-perfect is active, software volume and effects are bypassed. Reduce volume at the DAC or amplifier before playback.':'Коли системний bit-perfect активний, програмне регулювання гучности та звукові ефекти оминаються. Перед відтворенням зменште гучність на ЦАПі або підсилювачі.'
 });
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
