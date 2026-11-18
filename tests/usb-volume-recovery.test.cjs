@@ -34,8 +34,9 @@ assert(host.includes('suspendForAndroidAudio()') && host.includes('submittedUrbs
  'Android handoff and live USB stats must be available');
 assert(direct.includes('lastUrbsSeen') &&
  direct.includes('Native USB packets stopped advancing') &&
- direct.includes('Direct USB unavailable; switching to Android playback'),
- 'Native output must detect transport stalls and fail over to Android');
+ direct.includes('!host.androidFallback() && nowMs-firstPlayAt>12000L') &&
+ !direct.includes('Direct USB unavailable; switching to Android playback'),
+ 'Native output must recover real stalls but preserve a functioning Android fallback');
 assert(main.includes('usbHost.suspendForAndroidAudio()') &&
  main.includes('final int switchGeneration=++playGeneration'),
  'Engine switch must reject stale callbacks and release DAC ownership');
