@@ -1,6 +1,6 @@
 name: Publish permanently signed AUREL release
-# v1.1.64: actionable WebView JavaScript diagnostics and source-attribution.
-# Keep the existing FFT, USB bit-perfect, smoothing, account and local state.
+# v1.1.65: optional iridescent glow surrounding album art and play control.
+# Preserve existing music FFT, USB bit-perfect, landscape and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -111,6 +111,8 @@ jobs:
           node tests/landscape-nav-safe.test.cjs
           node tests/cover-rhythm.test.cjs
           node tests/cover-rhythm-runtime.test.cjs
+          node tests/aurora-glow.test.cjs
+          node tests/aurora-glow-runtime.test.cjs
           node tests/error-log.test.cjs
           node tests/fluid-windows.test.cjs
           node tests/global-polish.test.cjs
@@ -173,18 +175,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — actionable WebView error reports**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — iridescent aurora artwork shadows**" \
             '' \
-            '- Script error. in previous versions meant WebView did not reveal its source; it was not evidence of an app crash.' \
-            '- JavaScript exceptions now include the local script filename, line, and column when Android supplies them.' \
-            '- WebView console errors from packaged AUREL scripts can supply additional source information without capturing third-party website content.' \
-            '- Opaque or cross-origin errors are clearly identified as unattributable, not falsely diagnosed as AUREL crashes.' \
-            '- Rejected promises can include an accessible local script frame; script/style resource load failures are recorded.' \
-            '- Only sanitized local error summaries are stored: 70 entries maximum for 14 days, no uploads, streaming URLs or account secrets.' \
-            '- Existing AUREL navigation, smooth transitions, music-reactive cover, Android mixer and USB bit-perfect output remain unchanged.' \
-            '- Automated tests cover local filenames/lines, opaque errors, redaction, error deduplication, Android compilation and audio regressions.' \
+            '- Added layered cyan, blue, violet, magenta and emerald ambient lighting behind album artwork, matching the approved AUREL aurora UI concept.' \
+            '- Colored shadows shimmer smoothly during actual playback and become calm when paused; a restrained multicolor glow also surrounds the main Play/Pause control.' \
+            '- The effect is ON by default and can be disabled in Settings > Appearance with Iridescent album glow.' \
+            '- When genuine Android FFT beat frames are available, they modulate shadow brightness. The decorative color cycle does not masquerade as bass or require audio capture.' \
+            '- Ambient aurora remains available during USB bit-perfect playback; no audio path, decoder, sample rate, volume or DAC routing changes.' \
+            '- Android system reduced-motion and AUREL motion-off preferences prevent constant decorative movement.' \
+            '- Layout-safe implementation does not resize the artwork, icons, timeline, controls or bottom bar; compact portrait and landscape presentation are preserved.' \
+            '- Added tests covering real FFT delegation, bit-perfect, pause, preferences, layout safeguards and Android release signing.' \
             '' \
-            "Install v${AUREL_VERSION} over permanently signed AUREL 1.1.63 without clearing data." \
+            "Install v${AUREL_VERSION} over the existing signed AUREL 1.1.64 without clearing data or account settings." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
