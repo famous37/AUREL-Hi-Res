@@ -2,9 +2,9 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55, fix/visual-consistency-audit-1-1-56, fix/landscape-layout-preserve-portrait-1-1-57, fix/landscape-nav-clipping-motion-1-1-58, fix/album-cover-pulse-visible-1.1.60, fix/music-synced-cover-v1.1.61, fix/fft-capture-diagnostics-v1.1.62, feature/app-error-log-fluid-transitions-v1.1.63, fix/actionable-webview-error-report-v1.1.64, feature/iridescent-aurora-glow-v1.1.65]
+    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55, fix/visual-consistency-audit-1-1-56, fix/landscape-layout-preserve-portrait-1-1-57, fix/landscape-nav-clipping-motion-1-1-58, fix/album-cover-pulse-visible-1.1.60, fix/music-synced-cover-v1.1.61, fix/fft-capture-diagnostics-v1.1.62, feature/app-error-log-fluid-transitions-v1.1.63, fix/actionable-webview-error-report-v1.1.64, feature/iridescent-aurora-glow-v1.1.65, feature/artwork-beat-palette-v1.1.66]
   pull_request:
-    branches: [main]
+    branches: [main, feature/cover-rhythm-v1.1.58]
 jobs:
   build:
     runs-on: ubuntu-latest
