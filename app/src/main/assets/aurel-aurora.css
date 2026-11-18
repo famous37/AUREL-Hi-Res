@@ -2,6 +2,7 @@
  * This is a decorative ambient shadow, NOT a simulated audio waveform.
  * Animations affect only composited opacity/transform, never layout or cover
  * scale; the existing FFT rhythm controls the cover independently. */
+#overlay .murglar-view .aurel-aurora-halo{display:none}
 #overlay.aurel-aurora-enabled .murglar-view .murglar-art-wrap{
  position:relative!important;
  isolation:isolate;
@@ -13,6 +14,7 @@
 }
 #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo{
  position:absolute;
+ display:block;
  pointer-events:none;
  left:50%;top:50%;
  width:min(100%,var(--aurel-fit-art,min(84vw,34dvh,370px)));
