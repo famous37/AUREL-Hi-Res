@@ -1,6 +1,6 @@
 name: Publish permanently signed AUREL release
-# v1.1.62: FFT callback fallback with read-only polling and native diagnostics.
-# Preserve the media engine, Qobuz storage, bit-perfect isolation and signing.
+# v1.1.63: private app-wide support log and smooth compositor-only navigation.
+# Do not change the music-synced FFT, mixer, USB, account or saved state.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -111,6 +111,8 @@ jobs:
           node tests/landscape-nav-safe.test.cjs
           node tests/cover-rhythm.test.cjs
           node tests/cover-rhythm-runtime.test.cjs
+          node tests/error-log.test.cjs
+          node tests/fluid-windows.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -171,18 +173,17 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — Android beat analyzer reliability and diagnostics**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — fluid interface and private app error journal**" \
             '' \
-            '- For music-reactive artwork, AUREL now retries Android Visualizer FFT using the official polling API when callbacks do not arrive or contain no usable spectrum.' \
-            '- Captures only its own MediaPlayer audio session; no microphone recording, audio upload or second Qobuz stream.' \
-            '- Analyzer remains active while viewing Settings during playback, so diagnostic state is no longer reset just by closing Now Playing.' \
-            '- Settings now offers Copy audio analyzer diagnostics with permission, output mode, FFT frame counters and safe error codes (no private audio or account information).' \
-            '- No fake periodic pulsing: genuine bass transients drive the cover, or it remains still if Android exposes no FFT audio.' \
-            '- Android bit-perfect USB path still disables audio effects; switch to normal mixer output to allow Visualizer FFT.' \
-            '- Sound output, DAC routing, volume, account credentials, Qobuz library, player navigation and existing settings are unchanged.' \
-            '- Automated regressions and debug/Preview compilation pass; specific-device Visualizer support must be assessed using the in-app report.' \
+            '- Removed the dedicated Copy FFT diagnostics button from Rhythmic album artwork; music-reactive artwork and bit-perfect audio settings are unchanged.' \
+            '- Added one unified, private, bounded application error journal in Settings > Appearance & app with Copy error log and Clear log controls.' \
+            '- Captures sanitized app JavaScript failures, rejected requests, playback and native-bridge errors. Does not capture audio, account credentials, Qobuz URLs or Android system logcat.' \
+            '- Error log is stored locally, capped at 70 entries and 14 days; copying is explicit, with no background uploads.' \
+            '- Improved page navigation fades, Now Playing entrance, information sheet reveals, and Android Back to reuse existing smooth swipe-to-minimize.' \
+            '- Compositor-only transitions leave icons, cover sizing, timeline, portrait/landscape layout and navigation history stable; accessibility reduced-motion settings are respected.' \
+            '- New automated runtime checks cover log redaction/deduplication/copying and transition stability, in addition to USB, bit-perfect and playback regression tests.' \
             '' \
-            "Install v${AUREL_VERSION} over the existing signed AUREL app; there is no need to uninstall or erase data." \
+            "Install v${AUREL_VERSION} over signed AUREL 1.1.62 without clearing data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
