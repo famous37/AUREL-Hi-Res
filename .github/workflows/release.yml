@@ -1,7 +1,6 @@
 name: Publish permanently signed AUREL release
-# v1.1.60: restore cover animation suppressed by global motion hardening.
-# Preserve existing Android mixer, Qobuz state and permanent signing.
-# CI verified on v1.1.59 branch; initiate permanently signed stable release.
+# v1.1.61: music-synced FFT only, no synthetic 3.1-second cover pulse.
+# Retain audio routing, storage, USB bit-perfect isolation and signing.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -111,6 +110,7 @@ jobs:
           node tests/landscape-layout.test.cjs
           node tests/landscape-nav-safe.test.cjs
           node tests/cover-rhythm.test.cjs
+          node tests/cover-rhythm-runtime.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -128,6 +128,9 @@ jobs:
           mkdir -p build/audio-focus-test
           javac -d build/audio-focus-test app/src/main/java/com/aurel/hires/AurelFocusPolicy.java tests/AurelFocusPolicyTest.java
           java -cp build/audio-focus-test com.aurel.hires.AurelFocusPolicyTest
+          mkdir -p build/beat-check
+          javac -d build/beat-check app/src/main/java/com/aurel/hires/AurelBeatEnvelope.java tests/AurelBeatEnvelopeTest.java
+          java -cp build/beat-check com.aurel.hires.AurelBeatEnvelopeTest
           mkdir -p build/probe-check
           javac -d build/probe-check app/src/main/java/com/aurel/hires/StreamQualityProbe.java tests/StreamQualityProbeTest.java
           java -cp build/probe-check com.aurel.hires.StreamQualityProbeTest
@@ -168,16 +171,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — album cover pulse visibility fix**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — genuinely music-synchronized album cover**" \
             '' \
-            '- Fixes the 1.1.59 regression where the Rhythmic album artwork toggle had no visible effect.' \
-            '- Scoped style overrides let ONLY the opted-in cover animate despite global animation suppression protecting navigation and controls.' \
-            '- Covers now pulse smoothly from about 96% to 109% size: live bass/FFT reaction where Android permits, otherwise ambient breathing.' \
-            '- Verified browser animation, live transitions, pause and reduced-motion handling on portrait and landscape sizes.' \
-            '- Rhythmic album artwork remains optional and retains its state from 1.1.59.' \
-            '- No changes to media playback, Android audio mixer, USB DAC routing, bit-perfect audio, Qobuz account data or saved library.' \
+            '- Removes the fake periodic 3.1-second breathing animation. No audio FFT frames means NO movement, not an invented beat.' \
+            '- Real low-frequency FFT onset and transient energy independently drive the cover scale (96.5–110%).' \
+            '- Fixes a race between Android RECORD_AUDIO permission requests and starting the native FFT analyzer.' \
+            '- Adds native capture diagnostics in the setting: active, waiting, permission needed or unavailable.' \
+            '- Android BIT_PERFECT output cannot reliably expose effect FFT; the cover remains still rather than pretending to follow the beat.' \
+            '- For genuine live beat response, turn off bit-perfect and use Android normal mixer playback.' \
+            '- Automated pure-Java beat impulses/silence tests and WebView playback/permissions/bit-perfect tests.' \
+            '- Preserves USB routing, sound quality, Qobuz login, playback continuity, data, portrait and landscape layouts.' \
             '' \
-            "Install v${AUREL_VERSION} over permanently signed AUREL 1.1.59 or 1.1.58 without clearing data." \
+            "Install v${AUREL_VERSION} over your existing permanently signed AUREL without clearing data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
