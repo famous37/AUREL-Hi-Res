@@ -24,7 +24,7 @@ assert.match(java,/MAX_RECOVERIES=2/);
 assert.match(java,/silent_fft_rebind/);
 assert.match(java,/stale_fft_rebind/);
 assert.match(java,/recoveryAttempts/);
-assert.match(activity,/restartAnalyzer=p\.optBoolean\("restartAnalyzer",false\)/);
+assert.match(activity,/resetAnalyzer=p\.optBoolean\("restartAnalyzer",false\)/);
 assert.match(activity,/beatMonitor\.stop\(\)/);
 assert.match(activity,/result\.put\("appVersion",BuildConfig\.VERSION_NAME\)/);
 assert.match(rhythm,/data-aurel-retry-fft/);
