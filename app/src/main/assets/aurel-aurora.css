@@ -1,8 +1,26 @@
-/* AUREL v1.1.65 — iridescent halo approved in UI concept.
- * This is a decorative ambient shadow, NOT a simulated audio waveform.
- * Animations affect only composited opacity/transform, never layout or cover
- * scale; the existing FFT rhythm controls the cover independently. */
-#overlay .murglar-view .aurel-aurora-halo{display:none}
+/* AUREL 1.1.66 — image-derived, real-transient lighting.
+ * Deliberately NO time-based hue orbit: glow pulses only from AurelBeatFrame.
+ * Paint/compositor-only; no changes to player dimensions or hit targets. */
+#overlay.aurel-aurora-enabled{
+ --aurel-aurora-primary:#82736c;
+ --aurel-aurora-secondary:#a39a89;
+ --aurel-aurora-tertiary:#574b48;
+ --aurel-aurora-pulse-opacity:.30;
+ --aurel-aurora-diffuse-opacity:.20;
+ --aurel-aurora-pulse-scale:1;
+ --aurel-aurora-button-opacity:.24;
+}
+#overlay.aurel-aurora-enabled .murglar-view{
+ color:#fff9f4!important;
+ background:
+  radial-gradient(ellipse 80% 54% at 9% 21%,
+    color-mix(in srgb,var(--aurel-aurora-primary) 28%,transparent),transparent 86%),
+  radial-gradient(ellipse 83% 65% at 91% 50%,
+    color-mix(in srgb,var(--aurel-aurora-tertiary) 34%,transparent),transparent 88%),
+  radial-gradient(ellipse 75% 50% at 52% 9%,
+    color-mix(in srgb,var(--aurel-aurora-secondary) 13%,transparent),transparent 86%),
+  linear-gradient(180deg,#191519 0%,#111216 65%,#0d0e11 100%)!important;
+}
 #overlay.aurel-aurora-enabled .murglar-view .murglar-art-wrap{
  position:relative!important;
  isolation:isolate;
@@ -11,97 +29,104 @@
 #overlay.aurel-aurora-enabled .murglar-view .murglar-cover{
  position:relative!important;
  z-index:2;
+ box-shadow:0 12px 33px rgba(0,0,0,.36)!important;
 }
+#overlay .murglar-view .aurel-aurora-halo{display:none}
 #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo{
- position:absolute;
  display:block;
+ position:absolute;
  pointer-events:none;
  left:50%;top:50%;
  width:min(100%,var(--aurel-fit-art,min(84vw,34dvh,370px)));
  aspect-ratio:1;
  transform:translate3d(-50%,-50%,0);
  z-index:0;
- border-radius:19px;
- opacity:var(--aurel-aurora-opacity,.78);
- transition:opacity 380ms cubic-bezier(.2,.75,.3,1)!important;
+ border-radius:20px;
 }
 #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before,
 #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{
  content:"";
  position:absolute;
  pointer-events:none;
- border-radius:26%;
- transform-origin:50% 50%;
+ border-radius:25%;
  backface-visibility:hidden;
+ transform-origin:50% 50%;
+ animation:none!important;
+ will-change:opacity,transform;
+ transition:opacity 105ms linear,transform 165ms cubic-bezier(.2,.7,.3,1)!important;
 }
-/* Broad silky gradient ribbons glint from behind the cover's crisp edge. */
 #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before{
- inset:-18%;
- opacity:.86;
- background:conic-gradient(
-  from 32deg,
-  #14e4e9 0deg,#2671fd 42deg,#7142fd 92deg,#f12cce 143deg,
-  #ff539f 176deg,#842dfa 227deg,#10d9b1 273deg,#0bbcf1 320deg,
-  #14e4e9 360deg
- );
- filter:blur(19px);
- transform:translate3d(0,0,0) rotate(0deg) scale(1.04);
+ inset:-16%;
+ background:conic-gradient(from 205deg,
+  var(--aurel-aurora-tertiary) 0deg,
+  var(--aurel-aurora-primary) 82deg,
+  var(--aurel-aurora-secondary) 148deg,
+  var(--aurel-aurora-primary) 216deg,
+  var(--aurel-aurora-tertiary) 292deg,
+  var(--aurel-aurora-secondary) 360deg);
+ filter:blur(20px);
+ opacity:var(--aurel-aurora-pulse-opacity,.30);
+ transform:scale(var(--aurel-aurora-pulse-scale,1));
 }
-/* Subtle, more diffuse aurora haze continues into the black background. */
 #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{
- inset:-33%;
- opacity:.52;
+ inset:-28%;
  background:
-   radial-gradient(ellipse at 23% 23%,#0a88ff 0%,transparent 46%),
-   radial-gradient(ellipse at 83% 18%,#f21bc5 0%,transparent 45%),
-   radial-gradient(ellipse at 83% 84%,#00d2a1 0%,transparent 48%),
-   radial-gradient(ellipse at 24% 84%,#8238fd 0%,transparent 48%);
- filter:blur(25px);
- transform:translate3d(0,0,0) scale(1.02);
+  radial-gradient(ellipse at 20% 27%,var(--aurel-aurora-primary),transparent 59%),
+  radial-gradient(ellipse at 80% 70%,var(--aurel-aurora-tertiary),transparent 55%),
+  radial-gradient(ellipse at 82% 19%,var(--aurel-aurora-secondary),transparent 58%);
+ filter:blur(26px);
+ opacity:var(--aurel-aurora-diffuse-opacity,.20);
+ transform:scale(var(--aurel-aurora-pulse-scale,1));
 }
-@keyframes aurelAuroraOrbit {
- from{transform:translate3d(0,0,0) rotate(0deg) scale(1.04)}
- to{transform:translate3d(0,0,0) rotate(360deg) scale(1.04)}
+#overlay.aurel-aurora-enabled .murglar-view .murglar-track-data h1{
+ color:#fffaf5!important;
+ text-shadow:0 1px 12px rgba(0,0,0,.17);
 }
-@keyframes aurelAuroraDrift {
- 0%{transform:translate3d(-2%,2%,0) scale(1.00);opacity:.43}
- 50%{transform:translate3d(2%,-1%,0) scale(1.09);opacity:.58}
- 100%{transform:translate3d(-1%,-2%,0) scale(1.04);opacity:.49}
+#overlay.aurel-aurora-enabled .murglar-view .player-artist-link,
+#overlay.aurel-aurora-enabled .murglar-view .murglar-album-link{
+ color:color-mix(in srgb,var(--aurel-aurora-secondary) 34%,#f9f4ee)!important;
 }
-#overlay.aurel-aurora-playing .murglar-view .aurel-aurora-halo::before{
- animation:aurelAuroraOrbit 26s linear infinite!important;
+#overlay.aurel-aurora-enabled .murglar-view .murglar-quick-actions button,
+#overlay.aurel-aurora-enabled .murglar-view .murglar-transport .murglar-control:not(.middle){
+ background:rgba(33,32,35,.91)!important;
+ border-color:color-mix(in srgb,var(--aurel-aurora-primary) 23%,#52545a)!important;
+ color:#f6f4f2!important;
 }
-#overlay.aurel-aurora-playing .murglar-view .aurel-aurora-halo::after{
- animation:aurelAuroraDrift 11s ease-in-out infinite alternate!important;
+#overlay.aurel-aurora-enabled .murglar-view .murglar-quick-actions button:active,
+#overlay.aurel-aurora-enabled .murglar-view .murglar-transport .murglar-control.active:not(.middle){
+ border-color:var(--aurel-aurora-primary)!important;
 }
-/* A restrained jewel-like rim on the central play/pause button. Keep the
- * existing size, hit target and transport icon untouched. */
 #overlay.aurel-aurora-enabled .murglar-view #full-toggle{
+ position:relative;
  isolation:isolate;
- box-shadow:
-  0 0 0 1px color-mix(in srgb,var(--aurel-theme-accent,#aeb5bf) 48%,transparent),
-  0 0 14px rgba(36,189,255,.30),
-  0 0 23px rgba(177,44,239,.17)!important;
+ background:linear-gradient(140deg,
+   color-mix(in srgb,var(--aurel-aurora-secondary) 82%,#fff 18%),
+   var(--aurel-aurora-primary) 58%,
+   color-mix(in srgb,var(--aurel-aurora-tertiary) 81%,#000 19%))!important;
+ border:1px solid color-mix(in srgb,var(--aurel-aurora-secondary) 70%,#fff)!important;
+ color:#1c1615!important;
+ box-shadow:0 0 0 1px rgba(255,255,255,.08),0 6px 18px rgba(0,0,0,.22)!important;
 }
 #overlay.aurel-aurora-enabled .murglar-view #full-toggle::before{
  content:"";
  position:absolute;
  z-index:-1;
  pointer-events:none;
- inset:-6px;
+ inset:-7px;
  border-radius:50%;
  background:conic-gradient(
-   #15e7ef,#3c7bff,#b03afd,#f13cd3,#19d9b5,#15e7ef
- );
- filter:blur(9px);
- opacity:.52;
- transform:rotate(0deg);
+  var(--aurel-aurora-primary),var(--aurel-aurora-secondary),
+  var(--aurel-aurora-tertiary),var(--aurel-aurora-primary));
+ filter:blur(11px);
+ opacity:var(--aurel-aurora-button-opacity,.24);
+ transform:scale(var(--aurel-aurora-pulse-scale,1));
+ animation:none!important;
+ transition:opacity 105ms linear,transform 165ms ease-out!important;
 }
-#overlay.aurel-aurora-playing .murglar-view #full-toggle::before{
- animation:aurelAuroraOrbit 26s linear infinite!important;
- opacity:.78;
+#overlay.aurel-aurora-enabled .murglar-view #full-toggle svg.ui-icon{
+ color:#1d1715!important;
 }
-/* No animated layout measurements or timer-driven slider changes. */
+/* Preserve the same geometry in landscape, including compact players. */
 @media (orientation:landscape) and (min-width:420px){
  #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo{
   top:0;
@@ -109,28 +134,28 @@
   transform:translate3d(-50%,0,0);
  }
  #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before{
-  inset:-11%;filter:blur(11px);opacity:.65;
+  inset:-11%;filter:blur(12px);
  }
  #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{
-  inset:-18%;filter:blur(16px);opacity:.40;
+  inset:-18%;filter:blur(16px);
  }
 }
 @media (orientation:landscape) and (max-height:350px){
- #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{display:none}
+ #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{
+  display:none;
+ }
 }
 @media (prefers-reduced-motion:reduce){
  #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before,
  #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after,
  #overlay.aurel-aurora-enabled .murglar-view #full-toggle::before{
-  animation:none!important;
-  transition:none!important;
+  transition:none!important;animation:none!important;
  }
 }
 html[data-aurel-motion="off"] #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before,
 html[data-aurel-motion="off"] #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after,
 html[data-aurel-motion="off"] #overlay.aurel-aurora-enabled .murglar-view #full-toggle::before{
- animation:none!important;
- transition:none!important;
+ transition:none!important;animation:none!important;
 }
 .aurel-aurora-setting small{display:block;line-height:1.45;max-width:42rem}
 .aurel-aurora-setting input{flex-shrink:0}
