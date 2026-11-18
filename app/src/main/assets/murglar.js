@@ -4,7 +4,7 @@
   const repeatCaption=p=>Number(p?.repeat)===2?'Repeat one':Number(p?.repeat)===1?'Repeat all':'Repeat off';
   drawOverlay=function(){
     const overlay=$('#overlay');
-    if(!app.overlay){app.dragging=false;overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
+    if(!app.overlay){app.dragging=false;aurelStopLoadingAnimation(overlay);overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
     const priorScroll=overlay.querySelector('.murglar-player-content')?.scrollTop||0;
     const priorDetailScroll=overlay.querySelector('.aurel-detail-scroll')?.scrollTop||0;
     const priorSheet=overlay.dataset.openSheet||'';
@@ -18,6 +18,7 @@
     // Persistent app bottom navigation remains mounted outside this overlay.
     overlay.classList.remove('hidden');
     overlay.style.setProperty('--cover-image','none');
+    aurelStopLoadingAnimation(overlay);
     overlay.innerHTML=`<div class="aurel-listening-screen murglar-view ${active?'murglar-sheet-open':''}">
       <div class="aurel-art-backdrop" aria-hidden="true"></div>
       <header class="murglar-header aurel-listening-nav">
@@ -69,6 +70,7 @@
         </div>
       </section>`:''}
     </div>`;
+    aurelEnsureLoadingAnimation(overlay);
     const scroller=overlay.querySelector('.murglar-player-content');
     const detail=overlay.querySelector('.aurel-detail-scroll');
     const sameTrack=priorTrack===String(t.id||'');
@@ -103,10 +105,12 @@
     const toggle=$('#full-toggle'),mode=aurelPlaybackMode(p);
     if(toggle){
       if(toggle.dataset.icon!==mode){
+        aurelStopLoadingAnimation(toggle);
         toggle.dataset.icon=mode;
         toggle.innerHTML=aurelPlaybackIcon(p,39);
       }
       toggle.classList.toggle('is-loading',mode==='loading');
+      if(mode==='loading')aurelEnsureLoadingAnimation(toggle);
       if(toggle.getAttribute('aria-busy')!==String(mode==='loading'))
         toggle.setAttribute('aria-busy',String(mode==='loading'));
       const label=aurelPlaybackLabel(p);

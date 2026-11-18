@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fix/off-native-usb-isolation, feature/android14-platform-bitperfect-1-1-52, feat/unified-bold-icons-loading-spinner-1-1-53]
+    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54]
   pull_request:
     branches: [main]
 jobs:

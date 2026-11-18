@@ -16,12 +16,12 @@ for(const name of ['modern.js','murglar.js','responsive.js','app.js','aurel-shar
 const begin=modern.indexOf('const aurelPlaybackMode=');
 const end=modern.indexOf('const artistButton=',begin);
 assert(begin>0&&end>begin,'Shared icon helpers must be defined before installed player overrides');
-const context={};
+const context={window:{matchMedia:()=>({matches:false})}};
 vm.runInNewContext(
  'const ic=(name,size)=>"<svg data-name="+name+">";\n'+modern.slice(begin,end)+
- '\nglobalThis.glyphTests={aurelPlaybackMode,aurelPlaybackIcon,aurelPlaybackLabel};',
+ '\nglobalThis.glyphTests={aurelPlaybackMode,aurelPlaybackIcon,aurelPlaybackLabel,aurelEnsureLoadingAnimation,aurelStopLoadingAnimation};',
  context);
-const {aurelPlaybackMode,aurelPlaybackIcon,aurelPlaybackLabel}=context.glyphTests;
+const {aurelPlaybackMode,aurelPlaybackIcon,aurelPlaybackLabel,aurelEnsureLoadingAnimation,aurelStopLoadingAnimation}=context.glyphTests;
 assert.equal(aurelPlaybackMode({buffering:true,playing:false}),'loading');
 assert.equal(aurelPlaybackMode({buffering:true,playing:true}),'loading');
 assert.equal(aurelPlaybackMode({buffering:true,error:'Unavailable',playing:false}),'play');
@@ -42,7 +42,7 @@ assert(murglar.includes('aria-busy='),'Loader requires accessible status');
 assert(responsive.includes('toggle.innerHTML=aurelPlaybackIcon(p,26)'));
 assert(responsive.includes('m.dataset.miniPlaying=state'),'Keep mini-player DOM stable on every tick');
 assert(app.includes('aurelPlaybackIcon(p,33)'),'Fallback full player must also display spinner');
-assert(app.includes('1.1.53'),'Settings must show correct version');
+assert(app.includes('1.1.54'),'Settings must show correct version');
 assert(/@keyframes aurel-bold-spin/.test(styles));
 assert(/prefers-reduced-motion:reduce/.test(styles));
 assert(/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(styles));
@@ -51,4 +51,41 @@ assert(/\.bottom-nav button .*svg\.ui-icon/.test(styles));
 const last=html.lastIndexOf('<link rel="stylesheet"');
 assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-bold-controls.css">'),
  'Bold controls stylesheet should load after legacy themes');
+// Confirm the requested spinner actually starts animating in WebView, even
+// when theme CSS has animation:none!important. Avoid restarting it on ticks.
+let spinStarts=0,spinStops=0,spinDuration=0,inlineDisabled=false;
+const spinner={
+ dataset:{},
+ style:{setProperty:(key,value,priority)=>{inlineDisabled=key==='animation'&&value==='none'&&priority==='important';},removeProperty:()=>{}},
+ animate:(frames,opts)=>{spinStarts++;spinDuration=opts.duration;
+  assert.equal(opts.iterations,Infinity);
+  assert.equal(frames[1].transform,'rotate(360deg)');
+  return {cancel:()=>{spinStops++}};
+ }};
+const root={querySelectorAll:selector=>selector==='svg.aurel-spinner'?[spinner]:[]};
+aurelEnsureLoadingAnimation(root);
+assert.equal(spinStarts,1,'Spinner must start a real Web Animations rotation');
+assert(inlineDisabled,'Legacy CSS rotation must not compete with Web Animations');
+assert.equal(spinDuration,860);
+aurelEnsureLoadingAnimation(root);
+assert.equal(spinStarts,1,'Routine position events must not restart the animation');
+aurelStopLoadingAnimation(root);
+assert.equal(spinStops,1,'Removed player controls must cancel animations');
+context.window.matchMedia=()=>({matches:true});
+const reducedSpinner={...spinner,dataset:{}};
+aurelEnsureLoadingAnimation({querySelectorAll:()=>[reducedSpinner]});
+assert.equal(spinDuration,2400,'Reduced-motion spinner should spin more slowly');
+assert(modern.includes('aurelEnsureLoadingAnimation(m)'));
+assert(murglar.includes('aurelEnsureLoadingAnimation(overlay)'));
+assert(murglar.includes('aurelEnsureLoadingAnimation(toggle)'));
+assert(responsive.includes('aurelEnsureLoadingAnimation(m)'));
+assert(styles.includes('box-sizing:border-box!important'),'Header dimensions must include padding and border');
+assert(styles.includes('width:calc(100% - 28px)!important'),'Header must fit inside screen');
+assert(styles.includes('grid-template-columns:42px minmax(0,1fr) 42px!important'));
+assert(styles.includes('width:40px!important'),'Top controls need small fixed hit targets');
+assert(styles.includes('padding:0!important'),'Top buttons cannot inherit oversized padding');
+assert(styles.includes('border:0!important'),'Do not render a second border around top buttons');
+assert(styles.includes('transform-box:view-box!important'),'SVG spinner should rotate around its own centre');
+assert(styles.includes('animation:aurel-bold-spin 2.4s linear infinite!important'),
+ 'Reduced-motion must preserve slow functional loading feedback');
 console.log('Unified bold SVG icons, loading spinner, responsive player DOM PASS');
