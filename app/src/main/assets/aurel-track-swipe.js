@@ -77,7 +77,8 @@
    setTimeout(()=>{
      Promise.resolve().then(()=>nativeCall(action)).catch(error=>{
        if(typeof showToast==='function')
-         showToast(error?.message||'Could not change track',3500);
+         showToast(window.AurelLanguage?.get?.()==='uk'?
+           'Не вдалося перемкнути трек':(error?.message||'Could not change track'),3500);
      }).finally(()=>{locked=false;setTimeout(clear,210);});
    },motion()?105:0);
  }
