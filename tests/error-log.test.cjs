@@ -1,0 +1,50 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync('app/src/main/assets/index.html','utf8');
+const code=fs.readFileSync('app/src/main/assets/aurel-error-log.js','utf8');
+const css=fs.readFileSync('app/src/main/assets/aurel-error-log.css','utf8');
+const activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
+assert.ok(html.indexOf('aurel-error-log.js')<html.indexOf('app.js'),'Global errors must be observed from app initialization');
+assert.ok(html.includes('aurel-error-log.css'));
+assert.ok(css.includes('data-aurel-error-count'));
+assert.match(activity,/case "copySupportLog":/);
+assert.doesNotMatch(activity,/case "copyBeatDiagnostics":/);
+assert.match(code,/unhandledrejection/);
+assert.match(code,/window\.addEventListener\('error'/);
+assert.match(code,/MAX=70/);
+assert.match(code,/MAX_AGE=/);
+let storage=new Map(),events={};
+const window={addEventListener:(type,fn)=>events[type]=fn,AurelEvent:()=>{}};
+const document={readyState:'complete',querySelector:()=>null,getElementById:()=>null,addEventListener:(name,fn)=>events['doc:'+name]=fn};
+let nativeCalls=[];
+const context={window,document,Date,JSON,Promise,console,
+  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
+  nativeCall(action,data){nativeCalls.push(action);return Promise.reject(new Error('Network failure on https://example.com/private?token=secret'));},
+  renderSettings(){},showToast(){}};
+vm.runInNewContext(code,context);
+const logs=window.AurelErrorLog;
+assert.ok(logs&&logs.count()===0);
+logs.record('playback','Authorization: verysecret at https://example.net/song?token=ab12 user@host.org');
+assert.equal(logs.count(),1);
+const report=logs.report();
+assert.ok(!report.includes('verysecret'));
+assert.ok(!report.includes('example.net'));
+assert.ok(!report.includes('user@host.org'));
+assert.ok(report.includes('[url]')&&report.includes('[email]'));
+logs.record('playback','Authorization: verysecret at https://example.net/song?token=ab12 user@host.org');
+assert.equal(logs.count(),1,'Deduplicate repeated native errors');
+events.error({message:'JavaScript crashed'});assert.equal(logs.count(),2);
+events.unhandledrejection({reason:{message:'Unhandled call'}});assert.equal(logs.count(),3);
+window.AurelEvent('player',{error:'Decoder failure'});
+assert.equal(logs.count(),4,'Native player failure is logged');
+(async()=>{
+ try{await context.nativeCall('seek',{ms:10});assert.fail('Must propagate native rejection');}
+ catch(err){assert.ok(err.message.includes('Network failure'));}
+ assert.equal(logs.count(),5,'Bridge error is logged and still rejects');
+ for(let i=0;i<110;i++)logs.record('system-'+i,'failure-'+i);
+ assert.equal(logs.count(),70,'Error log is bounded');
+ assert.ok(storage.has('aurel_error_journal_v1'),'Support log persists locally');
+ logs.clear();assert.equal(logs.count(),0);
+ assert.ok(!logs.report().includes('failure-109'),'Clearing deletes local history');
+ console.log('Global errors: native, player, script, promises, privacy, dedupe, max size and clear PASS');
+})().catch(e=>{console.error(e);process.exitCode=1;});
