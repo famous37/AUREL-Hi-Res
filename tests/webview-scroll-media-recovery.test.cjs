@@ -10,7 +10,7 @@ const app=read('app/src/main/assets/app.js');
 const lang=read('app/src/main/assets/aurel-language.js');
 const gradle=read('app/build.gradle');
 
-assert(gradle.includes('versionCode 62')&&gradle.includes("'1.1.43'"));
+assert(/versionCode\s+68/.test(gradle) && gradle.includes("'1.1.49'"));
 for(const line of [
  'web.setVerticalScrollBarEnabled(false);',
  'web.setHorizontalScrollBarEnabled(false);',
@@ -48,4 +48,4 @@ assert(!java.includes('playerError="Media decoder error ("+what+" / "+extra+")"'
  'Do not misdiagnose MEDIA_ERROR_SYSTEM as definite FLAC decoding failure');
 assert(lang.includes("'Android audio system error. Tap Play to try again.'"));
 assert(app.includes("if(kind==='player'){"));
-console.log('AUREL v1.1.43 native scroll indicator and bounded recovery integration PASS');
+console.log('AUREL v1.1.46 native scroll indicator and bounded recovery integration PASS');

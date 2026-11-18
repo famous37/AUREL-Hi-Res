@@ -203,3 +203,24 @@
   #overlay .murglar-view .murglar-transport *,
   .app .bottom-nav *{transition:none!important;animation:none!important}
 }
+
+/* Smooth, compositor-only mini progress: no gradient position jumps. */
+.app .mini .mini-progress{
+  height:3px;
+  background:rgba(220,224,231,.22)!important;
+  overflow:hidden;
+  border-radius:4px;
+}
+.app .mini .mini-progress .mini-progress-fill{
+  display:block;
+  width:100%;
+  height:100%;
+  border-radius:inherit;
+  background:#f0f2f5;
+  transform:scaleX(0);
+  transform-origin:left center;
+  /* Progress is driven by the monotonic frame clock, not a stacking
+     transition that competes with every native audio tick. */
+  will-change:transform;
+}
+

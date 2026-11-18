@@ -111,3 +111,9 @@
  .app .screen .aurel-bp-switch,
  .app .screen .aurel-bp-switch span{animation:none!important;transition:none!important}
 }
+
+.app .aurel-usb-volume{padding-top:14px;margin-top:14px;border-top:1px solid #4a4d52;display:grid;gap:10px}
+.app .aurel-usb-volume-head{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#f5f6f7;font-size:15px}
+.app .aurel-usb-volume-head output{font-variant-numeric:tabular-nums;font-size:17px;font-weight:700}
+.app .aurel-usb-volume input{width:100%;accent-color:#e3e6ec;touch-action:pan-y;min-height:40px}
+.app .aurel-usb-volume small{font-size:12px;font-weight:600;line-height:1.45;color:#cbd0d8}

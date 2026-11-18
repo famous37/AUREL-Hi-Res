@@ -32,19 +32,23 @@ const snapshot=native.slice(native.indexOf('private void savePlaybackContinuity(
 assert(!snapshot.includes('streamUrl')&&!snapshot.includes('fileInfo')
  &&!snapshot.includes('getToken')&&!snapshot.includes('authToken'),
  'Never save signed media URLs or account credentials');
-assert(native.includes('else if(!buffering&&queueIndex>=0&&player==null)startAtCurrent()'),
+assert(native.includes('else if(!buffering&&queueIndex>=0&&!hasEngine())startAtCurrent()'),
  'Restored tracks must not automatically start on cold launch');
 assert(history.includes("lastAction={type,at:Date.now()}"));
 assert(history.includes('window.AurelHistoryClear='));
 assert(history.includes("if(!started||restoring)return;"));
 assert(history.includes("if(view.overlay&&app.player?.track?.id"));
 assert(ui.includes('window.AurelHistoryClear?.()'));
-for(const s of ['phase = "policy_unavailable"','phase = "policy_error"',
-  'phase = "unsupported_format"','policyExposesBitPerfect',
-  'getSupportedMixerAttributes(usbDevice)','getPreferredMixerAttributes(attributes, usbDevice)'])
- assert(mixer.includes(s),'Missing accurate DAC diagnosis: '+s);
-assert(!mixer.includes('MIXER_BEHAVIOR_DEFAULT;'), 'Never call normal playback bit-perfect');
-for(const s of ['policy_unavailable','policy_error','unsupported_format'])
- assert(pref.includes(s)&&ui.includes(s),'Missing UI status: '+s);
-assert(gradle.includes('versionCode 62')&&gradle.includes("'1.1.43'"));
+// The default path MUST remain a normal Android mixer playback path.
+assert(native.includes('new MediaPlayer()'));
+assert(native.includes('configureAndroidUsb(player,false)'));
+assert(native.includes('if(bitPerfect.isEnabled() && ensureUsbDriver())'));
+assert(native.includes('usbHost.setEnabled(true)') && native.includes('usbHost.setEnabled(false)'));
+assert(native.includes('usbHost!=null&&usbHost.permitted()'));
+assert(!native.includes('bitPerfect.apply('));
+assert(mixer.includes('Standard Android MediaPlayer / AudioFlinger'));
+assert(!mixer.includes('setPreferredMixerAttributes('));
+assert(fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/AurelUsbDacHost.java'),'utf8')
+  .includes('new RoutingAudioSink(manager,'));
+assert(/versionCode\s+68/.test(gradle) && gradle.includes("'1.1.49'"));
 console.log('Native resume, persisted navigation, signed-update safety and USB policy diagnoses validated.');

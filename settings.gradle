@@ -1,4 +1,8 @@
 pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } } }
 rootProject.name = 'AurelHiRes'
 include ':app'
+// Keep the native FLAC decoder, but remove the old decent USB transport.
+include ':decent-media3-decoder-flac'
+project(':decent-media3-decoder-flac').projectDir =
+    file('vendor/decent-player/libs/decent-media3-decoder-flac')
