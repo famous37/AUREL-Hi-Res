@@ -96,6 +96,7 @@
      intensity(.34);
    }
    wantCapture();
+   updateStatus();
  }
  function onBeat(value){
    if(!enabled||!isPlaying()||!motionAllowed()||bitPerfect())return;
@@ -127,6 +128,34 @@
      sync();
    }
  }
+ function statusText(){
+   if(!enabled)return uk()?'Вимкнено.':'Off.';
+   if(bitPerfect())return uk()?
+     'У bit-perfect Android FFT недоступний: світіння залишається статичним.':
+     'Bit-perfect: Android FFT is unavailable; glow stays static.';
+   if(!motionAllowed())return uk()?
+     'Рух вимкнено в Android або AUREL.':
+     'Motion is disabled in Android or AUREL.';
+   if(!app.player?.playing)return uk()?
+     'Пульсація почнеться під час відтворення.':
+     'Pulse starts when music is playing.';
+   const st=window.AurelCoverRhythm?.status?.()||'waiting';
+   if(st==='live')return uk()?
+     'Світіння реагує на справжні FFT-імпульси.':
+     'Glow follows real FFT bass transients.';
+   if(st==='permission')return uk()?
+     'Потрібен дозвіл Android на аудіоаналіз: вимкни й знову ввімкни світіння.':
+     'Audio analysis permission required: switch glow off/on to retry.';
+   if(st==='unavailable'||st==='silent')return uk()?
+     'Android не передає придатний FFT для поточного аудіовиходу.':
+     'Android is not providing usable FFT from this audio route.';
+   return uk()?'Очікування реальних FFT-даних…':'Waiting for genuine FFT frames…';
+ }
+ function updateStatus(){
+   const element=document.querySelector?.('[data-aurel-aurora-status]');
+   if(element)element.textContent=statusText();
+ }
+
  function installSetting(){
    const root=document.getElementById('screen');
    if(!root?.querySelector('.aurel-settings-heading')||
@@ -143,10 +172,11 @@
      '</strong><small>'+
      (uk()?'Палітра з обкладинки. Світіння змінюється в такт справжнім FFT-імпульсам у звичайному режимі. У bit-perfect залишається статичним.':
        'Colors sampled from the album. Real FFT pulses drive the glow in standard audio; it stays static in bit-perfect.')+
-     '</small></span><input type="checkbox" data-aurel-aurora-toggle '+
+     '</small><small data-aurel-aurora-status aria-live="polite"></small></span><input type="checkbox" data-aurel-aurora-toggle '+
      'aria-label="'+(uk()?'Кольорове світіння':'Album-colored glow')+'" '+
      (enabled?'checked':'')+'>';
    host.appendChild(label);
+   updateStatus();
  }
  const oldSettings=renderSettings;
  renderSettings=function(){
@@ -163,7 +193,7 @@
  const oldEvent=window.AurelEvent;
  window.AurelEvent=function(kind,data){
    const result=oldEvent.apply(this,arguments);
-   if(kind==='player'||kind==='beatStatus')sync();
+   if(kind==='player'||kind==='beatStatus'||kind==='beatPermission')sync();
    return result;
  };
  if(typeof window.AurelBeatFrame==='function'){
@@ -179,7 +209,9 @@
    enabled=!!event.target.checked;
    try{localStorage.setItem(KEY,enabled?'on':'off');}catch(_){}
    resetBeat();
-   sync();
+   // An explicit user toggle can retry the Android Visualizer permission.
+   // Automatic redraws and playback updates never repeatedly prompt.
+   sync(enabled);
  });
  document.addEventListener('visibilitychange',sync);
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);

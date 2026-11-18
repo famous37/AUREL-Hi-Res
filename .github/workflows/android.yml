@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55, fix/visual-consistency-audit-1-1-56, fix/landscape-layout-preserve-portrait-1-1-57, fix/landscape-nav-clipping-motion-1-1-58, fix/album-cover-pulse-visible-1.1.60, fix/music-synced-cover-v1.1.61, fix/fft-capture-diagnostics-v1.1.62, feature/app-error-log-fluid-transitions-v1.1.63, fix/actionable-webview-error-report-v1.1.64, feature/iridescent-aurora-glow-v1.1.65, fix/album-palette-beat-glow-v1.1.66, design/borderless-album-player-v1.1.67, design/unified-borderless-global-v1.1.68]
+    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55, fix/visual-consistency-audit-1-1-56, fix/landscape-layout-preserve-portrait-1-1-57, fix/landscape-nav-clipping-motion-1-1-58, fix/album-cover-pulse-visible-1.1.60, fix/music-synced-cover-v1.1.61, fix/fft-capture-diagnostics-v1.1.62, feature/app-error-log-fluid-transitions-v1.1.63, fix/actionable-webview-error-report-v1.1.64, feature/iridescent-aurora-glow-v1.1.65, fix/album-palette-beat-glow-v1.1.66, design/borderless-album-player-v1.1.67, design/unified-borderless-global-v1.1.68, fix/fft-ambient-global-theme-v1.1.69]
   pull_request:
     branches: [main, feature/cover-rhythm-v1.1.58]
 jobs:
@@ -18,6 +18,7 @@ jobs:
           for file in app/src/main/assets/*.js; do node --check "$file"; done
           node tests/borderless-player.test.cjs
           node tests/universal-borderless-theme.test.cjs
+          node tests/fft-ambient-theme-recovery.test.cjs
           node tests/aurora-glow.test.cjs
           node tests/aurora-glow-runtime.test.cjs
           node tests/landscape-layout.test.cjs

@@ -14,6 +14,9 @@
  let lastFrame=0;
  let nativeWanted=null;
  let auraRequested=false;
+ // Android RECORD_AUDIO permission also gates own-session Visualizer, even
+ // when only the album-colored halo is on and cover scaling is off.
+ let auraPermissionAttempted=false;
  let writeQueue=Promise.resolve();
  let bitPerfectWarned=false;
  let unavailableWarned=false;
@@ -83,7 +86,13 @@
    }
    if(!bitPerfect())bitPerfectWarned=false;
    const wanted=requestCapture();
-   const ask=askPermission&&enabled&&!permissionGranted;
+   // Ask once for the real FFT when artwork light needs it. Never show a
+   // recurring permission dialog after denial or while paused / bit-perfect.
+   // A deliberate switch off/on of album glow allows one fresh attempt.
+   const ask=!!(wanted&&!permissionGranted&&
+     ((askPermission&&(enabled||auraRequested))||
+       (auraRequested&&!auraPermissionAttempted)));
+   if(ask&&auraRequested)auraPermissionAttempted=true;
    if(wanted!==nativeWanted||ask){
      nativeWanted=wanted;
      if(!wanted)lastFrame=0;
@@ -182,6 +191,7 @@
    refresh:sync,
    setAuraCaptureWanted:(wanted,askPermission=false)=>{
      auraRequested=!!wanted;
+     if(auraRequested&&askPermission)auraPermissionAttempted=false;
      sync(!!askPermission);
    },
    hasPermission:()=>permissionGranted
