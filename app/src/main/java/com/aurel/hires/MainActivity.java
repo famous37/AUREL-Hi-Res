@@ -16,6 +16,8 @@ import android.media.AudioAttributes;
 import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
 import android.media.MediaPlayer;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.media.MediaFormat;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -56,6 +58,10 @@ public final class MainActivity extends Activity {
     private final ArrayList<JSONObject> queue=new ArrayList<>();
     private MediaPlayer player;
     private BitPerfectOutput bitPerfect;
+    private AurelBeatMonitor beatMonitor;
+    private static final int BEAT_CAPTURE_PERMISSION_REQUEST=4107;
+    private boolean beatUiWanted=false;
+    private boolean beatForeground=true;
     private AudioManager systemAudio;
     private AudioFocusRequest audioFocusRequest;
     private boolean audioFocusGranted=false;
@@ -290,10 +296,38 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        beatForeground=false;
+        if(beatMonitor!=null)beatMonitor.stop();
         // Flush the JS navigation snapshot while the WebView still exists.
         if(web!=null)web.evaluateJavascript("window.AurelPersistNow && window.AurelPersistNow()",null);
         savePlaybackContinuity();
         super.onPause();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        beatForeground=true;
+        refreshBeatMonitor();
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results) {
+        super.onRequestPermissionsResult(requestCode,permissions,results);
+        if(requestCode!=BEAT_CAPTURE_PERMISSION_REQUEST)return;
+        boolean allowed=results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED;
+        refreshBeatMonitor();
+        try {emit("beatPermission",new JSONObject().put("granted",allowed));}
+        catch(Exception ignored){}
+    }
+
+    /** Optional capture is only for visualization of OUR audio session. */
+    private void refreshBeatMonitor() {
+        if(beatMonitor==null)return;
+        boolean allowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
+        boolean playing=false;
+        if(player!=null&&prepared){try{playing=player.isPlaying();}catch(RuntimeException ignored){}}
+        boolean safe=beatUiWanted&&beatForeground&&allowed&&playing&&
+            bitPerfect!=null&&!bitPerfect.isEnabled();
+        beatMonitor.update(player,safe);
     }
 
     @Override public void onCreate(Bundle state) {
@@ -303,6 +337,10 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
+        beatMonitor=new AurelBeatMonitor(level->{
+            if(beatUiWanted&&beatForeground&&web!=null)
+                script("window.AurelBeatFrame && window.AurelBeatFrame("+level+")");
+        });
         bitPerfect=new BitPerfectOutput(this,"1".equals(secure.get("bitPerfectEnabled")));
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
         catch(NumberFormatException ignored){digitalHeadroomDb=0;}
@@ -370,6 +408,7 @@ public final class MainActivity extends Activity {
             if(web!=null) {
                 long now=System.currentTimeMillis();
                 if(player!=null&&now-lastStateSent>900) { emit("player",playerState()); lastStateSent=now; }
+                if(beatUiWanted)refreshBeatMonitor();
                 ui.postDelayed(this,1000);
             }
         }
@@ -543,6 +582,8 @@ public final class MainActivity extends Activity {
         else super.onBackPressed();
     }
     @Override protected void onDestroy() {
+        beatUiWanted=false;
+        if(beatMonitor!=null)beatMonitor.stop();
         savePlaybackContinuity();
         ui.removeCallbacks(ticker);
         focusPolicy.userPause();
@@ -561,6 +602,7 @@ public final class MainActivity extends Activity {
     private void emit(String event,JSONObject data) {
         script("window.AurelEvent("+JSONObject.quote(event)+","+data.toString()+")");
         if("player".equals(event)) {
+            if(beatUiWanted)ui.post(this::refreshBeatMonitor);
             if(Looper.myLooper()==Looper.getMainLooper() &&
                 System.currentTimeMillis()-lastPlaybackSaveMs>3500)
                 savePlaybackContinuity();
@@ -1040,6 +1082,23 @@ public final class MainActivity extends Activity {
                                 emit("player",playerState());
                             });
                             data=new JSONObject().put("enabled",wanted);
+                            break;
+                        }
+                        case "setBeatVisualization": {
+                            // Never request this permission merely because the app starts.
+                            // Only a direct user toggle may set requestPermission=true.
+                            boolean wanted=p.optBoolean("enabled",false);
+                            boolean ask=p.optBoolean("requestPermission",false);
+                            boolean allowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==
+                                PackageManager.PERMISSION_GRANTED;
+                            ui.post(()->{
+                                beatUiWanted=wanted;
+                                if(ask&&!allowed)requestPermissions(
+                                    new String[]{Manifest.permission.RECORD_AUDIO},BEAT_CAPTURE_PERMISSION_REQUEST);
+                                refreshBeatMonitor();
+                            });
+                            data=new JSONObject().put("enabled",wanted)
+                                .put("permissionGranted",allowed);
                             break;
                         }
                         case "audioDiagnostics": {
@@ -1529,6 +1588,7 @@ public final class MainActivity extends Activity {
     }
 
     private void cleanupPlayer() {
+        if(beatMonitor!=null)beatMonitor.stop();
         if(bitPerfect!=null)bitPerfect.release();
         prepared=false;buffering=false;
         final MediaPlayer obsolete=player;
