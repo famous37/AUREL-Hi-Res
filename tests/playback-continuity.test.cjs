@@ -42,12 +42,13 @@ assert(ui.includes('window.AurelHistoryClear?.()'));
 // The default path MUST remain a normal Android mixer playback path.
 assert(native.includes('new MediaPlayer()'));
 assert(native.includes('configureAndroidUsb(player,false)'));
-assert(native.includes('usbHost.setEnabled(wanted)'));
-assert(native.includes('usbHost!=null&&usbHost.permitted()'));
+assert(native.includes('bitPerfect.setEnabled(wanted,player,fileInfo)'));
+assert(native.includes('bitPerfect.apply(mp,format)'));
+assert(!native.includes('usbHost'));
 assert(!native.includes('bitPerfect.apply('));
 assert(mixer.includes('Standard Android MediaPlayer / AudioFlinger'));
 assert(!mixer.includes('setPreferredMixerAttributes('));
 assert(fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/AurelUsbDacHost.java'),'utf8')
   .includes('new RoutingAudioSink(manager,'));
-assert(/versionCode\s+70/.test(gradle) && gradle.includes("'1.1.51'"));
+assert(/versionCode\s+71/.test(gradle) && gradle.includes("'1.1.52'"));
 console.log('Native resume, persisted navigation, signed-update safety and USB policy diagnoses validated.');
