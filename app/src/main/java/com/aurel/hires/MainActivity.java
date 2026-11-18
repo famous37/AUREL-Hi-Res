@@ -294,7 +294,11 @@ public final class MainActivity extends Activity {
             if(directPlayer!=null)try{directPlayer.pause();}catch(RuntimeException ignored){}
             // An interrupted player must promptly surrender USB to the new
             // audio-focus owner instead of holding it for the pause grace time.
-            if(usbHost!=null && directPlayer!=null)usbHost.releaseClaim();
+            if(usbHost!=null && directPlayer!=null)
+                try{usbHost.releaseClaim();}
+                catch(RuntimeException | LinkageError error){
+                    Log.w(MEDIA_TAG,"USB focus-release failed",error);
+                }
             emit("player",playerState());
         }
     }
@@ -506,8 +510,15 @@ public final class MainActivity extends Activity {
         usbOutputVolumePercent=Math.max(0,Math.min(100,usbOutputVolumePercent));
         // Never construct libusbdac while bit-perfect is disabled.
         if(bitPerfect.isEnabled() && ensureUsbDriver()){
-            usbHost.requestPermission();
-            pollForUsbPermission(++usbGrantPollToken,20);
+            try{
+                usbHost.requestPermission();
+                pollForUsbPermission(++usbGrantPollToken,20);
+            }catch(RuntimeException | LinkageError error){
+                directUsbUnsafe=true;
+                directUsbFailure="USB permission startup failed: "+
+                    error.getClass().getSimpleName();
+                Log.e(MEDIA_TAG,directUsbFailure,error);
+            }
         }
         updateUsbAttachHandler();
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
