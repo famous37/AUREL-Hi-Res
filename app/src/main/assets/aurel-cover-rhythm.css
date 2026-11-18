@@ -1,10 +1,12 @@
-/* AUREL: composited album pulse. No layout-changing transforms or audio DSP. */
-#overlay.aurel-cover-rhythm .murglar-art-wrap {
+/* AUREL 1.1.60: optional cover pulse, no audio DSP or geometry change.
+ * The global UI polish stylesheet suppresses all decorative animation with
+ * !important; an enabled cover must opt out explicitly, and only for itself. */
+#overlay.aurel-cover-rhythm .murglar-view .murglar-art-wrap {
   position:relative;
   isolation:isolate;
-  overflow:visible;
+  overflow:visible!important;
 }
-#overlay.aurel-cover-rhythm .murglar-art-wrap::before {
+#overlay.aurel-cover-rhythm .murglar-view .murglar-art-wrap::before {
   content:"";
   position:absolute;
   z-index:-1;
@@ -17,20 +19,20 @@
   transform:scale(1.06);
   transition:opacity 150ms ease-out;
 }
-#overlay.aurel-cover-rhythm .murglar-cover {
+#overlay.aurel-cover-rhythm .murglar-view .murglar-cover {
   transform-origin:center center;
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
   will-change:transform;
 }
-#overlay.aurel-beat-live .murglar-cover {
+#overlay.aurel-beat-live .murglar-view .murglar-cover {
   transform:scale(var(--aurel-cover-scale,1));
-  transition:transform 135ms cubic-bezier(.22,1,.36,1);
+  transition:transform 135ms cubic-bezier(.22,1,.36,1)!important;
 }
-#overlay.aurel-beat-ambient .murglar-cover {
-  animation:aurel-cover-breathe 3.1s ease-in-out infinite;
+#overlay.aurel-beat-ambient .murglar-view .murglar-cover {
+  animation:aurel-cover-breathe 3.1s ease-in-out infinite!important;
 }
-#overlay.aurel-beat-ambient .murglar-art-wrap::before {
+#overlay.aurel-beat-ambient .murglar-view .murglar-art-wrap::before {
   animation:aurel-cover-aura 3.1s ease-in-out infinite;
 }
 @keyframes aurel-cover-breathe {
@@ -47,12 +49,14 @@
 .aurel-rhythm-setting input {flex-shrink:0}
 /* Users' accessibility preference and AUREL's own motion-off setting win. */
 @media (prefers-reduced-motion:reduce) {
-  #overlay.aurel-cover-rhythm .murglar-cover,
-  #overlay.aurel-cover-rhythm .murglar-art-wrap::before {
+  #overlay.aurel-cover-rhythm.aurel-beat-ambient .murglar-view .murglar-cover,
+  #overlay.aurel-cover-rhythm.aurel-beat-live .murglar-view .murglar-cover,
+  #overlay.aurel-cover-rhythm .murglar-view .murglar-art-wrap::before {
     animation:none!important;transform:none!important;transition:none!important;
   }
 }
-html[data-aurel-motion="off"] #overlay.aurel-cover-rhythm .murglar-cover,
-html[data-aurel-motion="off"] #overlay.aurel-cover-rhythm .murglar-art-wrap::before {
+html[data-aurel-motion="off"] #overlay.aurel-cover-rhythm.aurel-beat-ambient .murglar-view .murglar-cover,
+html[data-aurel-motion="off"] #overlay.aurel-cover-rhythm.aurel-beat-live .murglar-view .murglar-cover,
+html[data-aurel-motion="off"] #overlay.aurel-cover-rhythm .murglar-view .murglar-art-wrap::before {
   animation:none!important;transform:none!important;transition:none!important;
 }
