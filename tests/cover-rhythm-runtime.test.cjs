@@ -64,6 +64,12 @@ const flush=async()=>{for(let n=0;n<40;n++)await Promise.resolve();};
   assert.equal(f.classes.contains('aurel-beat-live'),false,'Bit-perfect never claims live FFT');
   f.ctx.window.AurelBeatFrame(1);
   assert.equal(f.classes.contains('aurel-beat-live'),false,'Ignore FFT when bit-perfect enabled');
+  const settings=setup('on');
+  settings.app.overlay=false;  // Settings remains open while music plays.
+  settings.ctx.window.AurelEvent('player',{});
+  await flush();
+  assert.ok(settings.calls.some(c=>c.name==='setBeatVisualization'&&c.data.enabled===true),
+    'Native FFT must run while music is playing even if the overlay is closed');
   const saved=setup('on');
   assert.equal(saved.classes.contains('aurel-beat-ambient'),false);
   assert.equal(saved.classes.contains('aurel-beat-live'),false,'Saved setting is NOT synthetic signal');
