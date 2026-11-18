@@ -43,6 +43,23 @@
   document.documentElement.setAttribute('data-aurel-palette',artworkPalette?'artwork':'mono');
   let activeCover='';
   const validHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
+  // Material-style palette tokens for all existing settings, search and
+  // library controls. Native artwork RGB remains the only color source.
+  // Real hex values also work on Android 7 WebViews without color-mix().
+  const mixHex=(left,right,part)=>{
+    const a=validHex(left)?left:'#202124',b=validHex(right)?right:'#111214';
+    const t=Math.max(0,Math.min(1,part));
+    return '#'+[1,3,5].map(i=>{
+      const v=Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+
+                         parseInt(b.slice(i,i+2),16)*t);
+      return v.toString(16).padStart(2,'0');
+    }).join('').toUpperCase();
+  };
+  const contrastInk=hex=>{
+    const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255);
+    const L=rgb.map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4));
+    return (.2126*L[0]+.7152*L[1]+.0722*L[2])>.28?'#151517':'#FFFFFF';
+  };
   function coverNow(){return app.player?.track?image(app.player.track):'';}
   function setTheme(colors){
     const root=document.documentElement;
@@ -51,6 +68,23 @@
     root.style.setProperty('--aurel-theme-bg',colors.bg);
     root.style.setProperty('--aurel-theme-surface',colors.surface);
     root.style.setProperty('--aurel-theme-accent',colors.accent);
+    const card=mixHex(colors.surface,colors.bg,.20);
+    const raised=mixHex(colors.surface,'#FFFFFF',.10);
+    const line=mixHex(colors.surface,'#FFFFFF',.15);
+    // Legacy AUREL components use these tokens, not merely --theme-bg.
+    // Set them atomically on each actual cover change and on theme OFF.
+    root.style.setProperty('--aurel-theme-card',card);
+    root.style.setProperty('--aurel-theme-raised',raised);
+    root.style.setProperty('--aurel-theme-border',line);
+    root.style.setProperty('--aurel-theme-line',line);
+    root.style.setProperty('--aurel-theme-on','#F7F5F6');
+    root.style.setProperty('--aurel-theme-secondary','#D6D2D5');
+    root.style.setProperty('--aurel-theme-muted','#C7C2C7');
+    root.style.setProperty('--aurel-theme-ink',contrastInk(colors.accent));
+    root.style.setProperty('--aurel-theme-dark',contrastInk(colors.accent));
+    root.style.setProperty('--aurel-contrast-ink',contrastInk(colors.accent));
+    root.style.setProperty('--aurel-ui-accent',colors.accent);
+    root.style.setProperty('--aurel-theme-card-hover',mixHex(raised,colors.accent,.07));
     // Keep the full player and the rest of AUREL on exactly one palette.
     root.style.setProperty('--aurel-palette-bg',colors.bg);
     root.style.setProperty('--aurel-palette-surface',colors.surface);
