@@ -95,8 +95,9 @@ final class AurelBeatMonitor {
         if(now-lastPollAt<100L)return;
         lastPollAt=now;
         // The callback is preferred. Poll ONLY when it is absent/stalled.
-        if(lastCallbackAt>0L&&now-lastCallbackAt<700L)return;
-        if(callbackFrames==0&&now-attachedAt>1600L&&"callback".equals(captureMode)){
+        if(lastCallbackAt>0L&&now-lastCallbackAt<700L&&nonSilentFrames>0)return;
+        if((callbackFrames==0||nonSilentFrames==0)&&
+            now-attachedAt>2000L&&"callback".equals(captureMode)){
             // Some vendor implementations accept listener registration yet
             // never dispatch FFT frames. Switch to the documented polling API.
             try{
