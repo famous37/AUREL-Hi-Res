@@ -32,7 +32,7 @@
    return app.player?.track&&typeof image==='function'?image(app.player.track):'';
  }
  function setStyle(colors){
-   const c=colors||neutral;
+   const c=(window.AurelTheme?.isArtworkPalette?.()===false)?neutral:(colors||neutral);
    current=c;
    // The full-screen player and its persistent bottom navigation are siblings.
    // Mirror verified artwork CSS tokens onto the nav so they match without
@@ -73,11 +73,11 @@
    captureWanted=wanted;
    window.AurelCoverRhythm?.setAuraCaptureWanted?.(wanted,!!ask);
  }
- function sync(){
+ function sync(askPermission=false){
    const next=coverUrl();
    if(next!==currentCover){
      currentCover=next;
-     setStyle(palettes.get(next)||neutral);
+     setStyle(palettes.get(next)||window.AurelTheme?.cachedPalette?.(next)||neutral);
      resetBeat();
    }
    const visible=enabled&&!!app.overlay;
@@ -95,7 +95,7 @@
      // No unsolicited fabricated beat. Actual FFT will light it up.
      intensity(.34);
    }
-   wantCapture();
+   wantCapture(askPermission);
    updateStatus();
  }
  function onBeat(value){
@@ -193,7 +193,7 @@
  const oldEvent=window.AurelEvent;
  window.AurelEvent=function(kind,data){
    const result=oldEvent.apply(this,arguments);
-   if(kind==='player'||kind==='beatStatus'||kind==='beatPermission')sync();
+   if(kind==='player'||kind==='beatStatus'||kind==='beatPermission'||kind==='appResume')sync();
    return result;
  };
  if(typeof window.AurelBeatFrame==='function'){
@@ -213,12 +213,13 @@
    // Automatic redraws and playback updates never repeatedly prompt.
    sync(enabled);
  });
- document.addEventListener('visibilitychange',sync);
+ document.addEventListener('visibilitychange',()=>sync());
+ window.addEventListener('pageshow',()=>sync());
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);
  window.AurelAuroraPalette=nativePalette;
  window.AurelAurora={enabled:()=>enabled,refresh:sync,isPlaying,
    isCaptureRequested:()=>!!captureWanted,acceptPalette:nativePalette};
- setStyle(neutral);
+ setStyle(window.AurelTheme?.cachedPalette?.(coverUrl())||neutral);
  installSetting();
  sync();
 })();
