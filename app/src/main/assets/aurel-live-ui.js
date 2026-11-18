@@ -103,6 +103,8 @@
     }
     const themeMeta=document.querySelector('meta[name="theme-color"]');
     if(themeMeta)themeMeta.setAttribute('content',colors.bg);
+    try{window.AurelNative?.setWindowPalette?.(colors.bg);}catch(_){}
+    // Match native status and gesture-bar backing without hiding either bar.
   }
   function syncTheme(force=false){
     const next=coverNow();
@@ -114,8 +116,11 @@
     artworkPalette=!!value;
     try{localStorage.setItem(PALETTE_KEY,artworkPalette?'on':'off');}catch(_){}
     syncTheme(true);
+    window.AurelAurora?.refresh?.();
   }
-  window.AurelTheme={isArtworkPalette:()=>artworkPalette,setArtworkPalette};
+  window.AurelTheme={isArtworkPalette:()=>artworkPalette,setArtworkPalette,
+    cachedPalette:url=>themeByCover.get(url)||null,
+    currentColors:()=>artworkPalette?(themeByCover.get(coverNow())||baseTheme):baseTheme};
   const originalSettings=renderSettings;
   renderSettings=function(){
     const result=originalSettings.apply(this,arguments);

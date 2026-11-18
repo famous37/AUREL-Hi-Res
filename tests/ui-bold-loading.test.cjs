@@ -15,12 +15,15 @@ const html=read('index.html');
 
 for(const name of ['modern.js','murglar.js','responsive.js','app.js','aurel-share.js'])
  assert.doesNotThrow(()=>new Function(read(name)),name+' must be valid JavaScript');
-const begin=modern.indexOf('const aurelPlaybackMode=');
-const end=modern.indexOf('const artistButton=',begin);
-assert(begin>0&&end>begin,'Shared icon helpers must be defined before installed player overrides');
+const begin=app.indexOf('const aurelPlaybackMode=');
+const end=app.indexOf('const $=',begin);
+const motionBegin=modern.indexOf('/* WebView may disable CSS animations');
+const motionEnd=modern.indexOf('const artistButton=',motionBegin);
+assert(begin>0&&end>begin&&motionBegin>0&&motionEnd>motionBegin,
+ 'Playback helpers initialize before native events, while animation helpers follow modern overrides');
 const context={window:{matchMedia:()=>({matches:false})}};
 vm.runInNewContext(
- 'const ic=(name,size)=>"<svg data-name="+name+">";\n'+modern.slice(begin,end)+
+ 'const ic=(name,size)=>"<svg data-name="+name+">";\n'+app.slice(begin,end)+modern.slice(motionBegin,motionEnd)+
  '\nglobalThis.glyphTests={aurelPlaybackMode,aurelPlaybackIcon,aurelPlaybackLabel,aurelEnsureLoadingAnimation,aurelStopLoadingAnimation};',
  context);
 const {aurelPlaybackMode,aurelPlaybackIcon,aurelPlaybackLabel,aurelEnsureLoadingAnimation,aurelStopLoadingAnimation}=context.glyphTests;
@@ -32,8 +35,8 @@ assert.equal(aurelPlaybackMode({playing:false,buffering:false}),'play');
 assert.match(aurelPlaybackIcon({buffering:true},33),/class="aurel-spinner"/);
 assert.match(aurelPlaybackIcon({playing:true},33),/data-name=pause/);
 assert.equal(aurelPlaybackLabel({buffering:true}),'Loading audio');
-assert(modern.includes('stroke-width="2.55"'),'SVG renderer should use bold outlines');
-assert(modern.includes("share:'<circle"),'Share must belong to the vector family');
+assert(app.includes('stroke-width="2.55"'),'SVG renderer should use bold outlines');
+assert(app.includes("share:'<circle"),'Share must belong to the vector family');
 assert(share.includes("ic('share',24)"),'Supplemental share control should use shared icon');
 assert(murglar.includes("ic('share',32)"),'Now Playing share should use shared icon');
 assert(!murglar.includes('stroke-width="1.85"'),'No thin standalone icons on Now Playing');
@@ -44,7 +47,7 @@ assert(murglar.includes('aria-busy='),'Loader requires accessible status');
 assert(responsive.includes('toggle.innerHTML=aurelPlaybackIcon(p,26)'));
 assert(responsive.includes('m.dataset.miniPlaying=state'),'Keep mini-player DOM stable on every tick');
 assert(app.includes('aurelPlaybackIcon(p,33)'),'Fallback full player must also display spinner');
-assert(app.includes('1.1.69'),'Settings must show correct version');
+assert(app.includes('1.1.70'),'Settings must show correct version');
 assert(/@keyframes aurel-bold-spin/.test(styles));
 assert(/prefers-reduced-motion:reduce/.test(styles));
 assert(/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(styles));

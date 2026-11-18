@@ -162,45 +162,7 @@ function audioPanel(p){
  <p>FLAC bit depth and sample rate can be verified from STREAMINFO using a short ranged read of the existing media URL. MP3 frame bitrate may vary. Qobuz catalogue maximum and Android mixer / DAC output are different measurements.</p></div>`;
 }
 
-const ic=(key,size=24)=>{
- const path={
-  down:'<path d="m6 9 6 6 6-6"/>',more:'<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
-  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.7 7.7L12 21l8.8-8.7a5.5 5.5 0 0 0 0-7.7Z"/>',
-  shuffle:'<path d="m18 14 4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M18 2l4 4-4 4M2 6h2.5c2 0 3.5 1.6 5 4M14 16c1.6 1.5 3.4 2 6 2"/>',
-  repeat:'<path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3"/>',
-  prev:'<path d="M6 5v14M19 6 9 12l10 6V6Z"/>',next:'<path d="M18 5v14M5 6l10 6-10 6V6Z"/>',
-  play:'<path d="m8 5 12 7-12 7V5Z"/>',pause:'<path d="M8 5v14M16 5v14"/>',
-  queue:'<path d="M4 6h16M4 12h16M4 18h9"/><path d="m17 16 4 2-4 2z"/>',
-  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
-  audio:'<path d="M5 9v6M9 6v12M13 3v18M17 7v10M21 10v4"/>',
-  chevron:'<path d="m9 18 6-6-6-6"/>',
-  eye:'<path d="M2 12s3.6-6.7 10-6.7S22 12 22 12s-3.6 6.7-10 6.7S2 12 2 12z"/><circle cx="12" cy="12" r="3.4"/>',
-  key:'<circle cx="8" cy="15" r="4.5"/><path d="M11.5 11.5 21 2l1 4-4 1-1 4-4 1"/>',
-  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-5 5-5 13 0 18M12 3c5 5 5 13 0 18"/>',
-  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
-  'shield-check':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
-  'external-link':'<path d="M13 5h6v6m0-6-9 9"/><path d="M20 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/>',
-  'eye-off':'<path d="M4 4l16 16M10 5.6a10.7 10.7 0 0 1 2-.2c6.4 0 10 6.6 10 6.6a16 16 0 0 1-3.1 3.8M6.1 6.3C3.4 8.2 2 12 2 12s3.6 6.7 10 6.7c1.1 0 2.2-.2 3.2-.6"/><path d="M9.5 9.5a3.4 3.4 0 0 0 5 5"/>',
-  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
-  library:'<rect x="3" y="3" width="15" height="18" rx="2"/><path d="M7 7h7M7 11h7M7 15h6M21 7v14"/>',
-  search:'<circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/>',
-  'arrow-right':'<path d="M4 12h16m-7-7 7 7-7 7"/>',
-  settings:'<circle cx="12" cy="12" r="3"/><path d="m10 2 1 2h2l1-2 3 2-.3 2.1 1.8 1 2-.8 1.1 3.4-1.7 1.4v2l1.7 1.4-1.1 3.4-2-.8-1.8 1L17 20l-3 2-1-2h-2l-1 2-3-2 .3-2.1-1.8-1-2 .8-1.1-3.4 1.7-1.4v-2l-1.7-1.4 1.1-3.4 2 .8 1.8-1L7 4z"/>',
-  refresh:'<path d="M20 11a8 8 0 1 0-2 5M20 4v7h-7"/>',
-  plus:'<path d="M12 5v14M5 12h14"/>',
-  check:'<path d="m4 12 5 5L20 6"/>',
-  back:'<path d="m15 18-6-6 6-6"/>',
-  close:'<path d="m18 9-6 6-6-6"/>',
-  album:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/>',
-  share:'<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m7.9 11 8.2-4.9M7.9 13l8.2 4.9"/>',
- }[key]||'';
- return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
-};
-/** Shared vector family and playback-state glyph selection. */
-const aurelPlaybackMode=p=>p?.buffering&&!p?.error?'loading':p?.playing?'pause':'play';
-const aurelSpinner=(size=28)=>`<svg class="aurel-spinner" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="aurel-spinner-track" cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.6" opacity=".20"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>`;
-const aurelPlaybackIcon=(p,size=28)=>aurelPlaybackMode(p)==='loading'?aurelSpinner(size):ic(aurelPlaybackMode(p),size);
-const aurelPlaybackLabel=p=>aurelPlaybackMode(p)==='loading'?'Loading audio':p?.playing?'Pause':'Play';
+/* Early icon and playback helpers now live in app.js, before native events. */
 /* WebView may disable CSS animations via older motion/theme rules.
  * Use compositor rotation so the Play control remains a live loading gauge. */
 const aurelEnsureLoadingAnimation=(root)=>{

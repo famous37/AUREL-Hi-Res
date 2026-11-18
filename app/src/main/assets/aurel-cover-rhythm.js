@@ -153,7 +153,7 @@
  const originalEvent=window.AurelEvent;
  window.AurelEvent=function(kind,data){
    const result=originalEvent.apply(this,arguments);
-   if(kind==='player')sync();
+   if(kind==='player'||kind==='appResume')sync();
    if(kind==='beatPermission'){
      permissionGranted=!!data?.granted;
      updateSettingStatus();
@@ -180,7 +180,8 @@
    // which could race across worker threads and leave capture disabled.
    sync(enabled);
  });
- document.addEventListener('visibilitychange',sync);
+ document.addEventListener('visibilitychange',()=>sync());
+ window.addEventListener?.('pageshow',()=>sync());
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);
  installSetting();
  sync();

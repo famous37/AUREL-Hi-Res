@@ -17,7 +17,7 @@ assert(html.includes('<link rel="stylesheet" href="aurel-precision-ui.css">'));
 assert(html.indexOf('aurel-precision-ui.css')>html.indexOf('aurel-global-polish.css'));
 
 for(const name of ['search','library','settings','refresh','arrow-right','heart','play','plus','chevron']){
- assert(modern.includes(name+':')||modern.includes("'"+name+"':"),
+ assert(app.includes(name+':')||app.includes("'"+name+"':"),
   'Missing vector icon map entry: '+name);
 }
 assert(modern.includes("ic('arrow-right',27)"));
