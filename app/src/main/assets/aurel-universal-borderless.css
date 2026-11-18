@@ -347,3 +347,141 @@ html[data-aurel-motion="off"] .app .mini *,
 html[data-aurel-motion="off"] #overlay .murglar-header * {
  animation:none!important;transition:none!important;
 }
+
+
+/* 1.1.69 — the open player has ONE uninterrupted ambient background.
+ * The old isolated header was a dark band above the cover's FFT halo.
+ * Paint a single noninteractive album light behind BOTH header and artwork.
+ * It is static at pause; true FFT frames alone change its opacity. */
+#overlay:not(.hidden){
+ background:var(--aurel-album-bg,var(--aurel-palette-bg,#111214))!important;
+}
+#overlay:not(.hidden) .murglar-view{
+ position:relative!important;
+ isolation:isolate;
+}
+#overlay:not(.hidden) .murglar-view::before{
+ content:"";
+ position:absolute;
+ z-index:0;
+ inset:0 0 auto;
+ width:100%;
+ height:min(39dvh,350px);
+ pointer-events:none;
+ background:
+  radial-gradient(ellipse 64% 81% at 22% 12%,
+    color-mix(in srgb,var(--aurel-album-one,#777579) 76%,transparent),
+    transparent 92%),
+  radial-gradient(ellipse 74% 92% at 82% 30%,
+    color-mix(in srgb,var(--aurel-album-two,#615e64) 60%,transparent),
+    transparent 96%),
+  radial-gradient(ellipse 75% 66% at 50% 96%,
+    color-mix(in srgb,var(--aurel-album-three,#807d82) 33%,transparent),
+    transparent 94%);
+ opacity:.26;
+ transition:opacity 145ms ease-out!important;
+}
+#overlay.aurel-aurora-enabled:not(.hidden) .murglar-view::before{
+ opacity:var(--aurel-aurora-opacity,.26);
+}
+#overlay:not(.hidden) .murglar-view .murglar-header.aurel-listening-nav,
+#overlay.aurel-aurora-enabled:not(.hidden) .murglar-view .murglar-header.aurel-listening-nav{
+ position:relative!important;
+ z-index:3!important;
+ border:0!important;
+ outline:0!important;
+ box-shadow:none!important;
+ background:transparent!important;
+ background-color:transparent!important;
+ background-image:none!important;
+}
+#overlay:not(.hidden) .murglar-view .murglar-player-content{
+ position:relative!important;
+ z-index:1!important;
+ background:transparent!important;
+}
+/* Transparent hit areas must never intercept the reactive ambient layer. */
+#overlay:not(.hidden) .murglar-view .murglar-header .murglar-header-button{
+ position:relative;
+ z-index:4;
+}
+/* Stronger semantic tokens reach every nested surface when artwork mode
+ * is ON; when OFF, all previous neutral graphite rules still apply. */
+html[data-aurel-palette="artwork"] .app #screen :is(
+ .aurel-pro-settings,.aurel-pro-feature,.aurel-pro-feature-card,
+ .aurel-pro-settings .panel,.aurel-settings-advanced,.aurel-dac-device,
+ .aurel-signal-chain,.aurel-appearance-panel,.library-album-row,
+ .playlist-entry,.aurel-release-card,.auth-shell,
+ .searchbox,.qsearch,.tracklist,.welcome-panel,
+ .magazine-tile,.quicklinks button,.quality:not(.selected),
+ .language-option,.aurel-language-choice){
+ background-color:var(--aurel-theme-card,#222326)!important;
+ border-color:transparent!important;
+}
+html[data-aurel-palette="artwork"] .app #screen
+ .aurel-settings-group-content>.panel{
+ background:transparent!important;
+}
+html[data-aurel-palette="artwork"] .app #screen :is(
+ .quality.selected,.quality.active,[data-aurel-quality].selected,
+ .chip.selected,.tab.active,.aurel-headroom-option.active,
+ .aurel-language-choice.active,.aurel-language-choice.selected){
+ background-color:var(--aurel-theme-card-hover,var(--aurel-theme-raised,#303236))!important;
+ color:var(--aurel-theme-on,#f7f5f6)!important;
+ border-color:transparent!important;
+ box-shadow:inset 0 -2px var(--aurel-theme-accent,#d5d7db)!important;
+}
+html[data-aurel-palette="artwork"] .app #screen :is(
+ .aurel-pro-feature input[type="checkbox"],input[type="checkbox"],
+ input[type="radio"],input[type="range"]){
+ accent-color:var(--aurel-theme-accent,#d5d7db)!important;
+}
+html[data-aurel-palette="artwork"] .app #screen :is(
+ select,textarea,input[type="text"],input[type="search"],input[type="password"],
+ input[type="email"],input[type="number"],.searchbox input){
+ color:var(--aurel-theme-on,#f7f5f6)!important;
+ background-color:var(--aurel-theme-raised,#303236)!important;
+ border-color:transparent!important;
+ caret-color:var(--aurel-theme-accent,#d5d7db)!important;
+}
+html[data-aurel-palette="artwork"] .app #screen :is(
+ .aurel-pro-settings button,.aurel-settings-advanced button,
+ .aurel-dac-device button,.aurel-error-log button,
+ .aurel-pro-feature button,.aurel-updates button,
+ .plain-action,.aurel-settings-heading button){
+ border-color:transparent!important;
+ color:var(--aurel-theme-on,#f7f5f6)!important;
+}
+html[data-aurel-palette="artwork"] .app #screen :is(
+ .aurel-appearance-panel h3,.aurel-pro-feature>strong,
+ .aurel-settings-group-content .panel h3,
+ .aurel-dac-device strong,.aurel-pro-settings h3,
+ .aurel-settings-group summary,.aurel-settings-group summary svg){
+ color:var(--aurel-theme-on,#f7f5f6)!important;
+}
+html[data-aurel-palette="artwork"] .app #screen :is(
+ .aurel-pro-feature small,.aurel-dac-device small,
+ .aurel-rhythm-setting small,.aurel-aurora-setting small,
+ .aurel-appearance-toggle small,.aurel-settings-group-content .description){
+ color:var(--aurel-theme-secondary,#d6d2d5)!important;
+}
+html[data-aurel-palette="artwork"] .app .mini .mini-progress{
+ background:var(--aurel-theme-raised,#303236)!important;
+}
+html[data-aurel-palette="artwork"] .app .bottom-nav button.active svg,
+html[data-aurel-palette="artwork"] .app .bottom-nav button.active .aurel-tab-icon{
+ color:var(--aurel-theme-accent,#d5d7db)!important;
+}
+@media (orientation:landscape) and (max-height:510px) {
+ #overlay:not(.hidden) .murglar-view::before{
+   height:min(45dvh,200px);
+ }
+}
+@media (prefers-reduced-motion:reduce){
+ #overlay:not(.hidden) .murglar-view::before{
+   transition:none!important;
+ }
+}
+html[data-aurel-motion="off"] #overlay:not(.hidden) .murglar-view::before{
+ transition:none!important;
+}
