@@ -3,8 +3,6 @@
   position:relative;
   isolation:isolate;
   overflow:visible;
-  --aurel-cover-scale:1;
-  --aurel-beat-glow:.16;
 }
 #overlay.aurel-cover-rhythm .murglar-art-wrap::before {
   content:"";
