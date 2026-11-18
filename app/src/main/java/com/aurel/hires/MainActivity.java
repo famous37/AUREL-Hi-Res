@@ -60,6 +60,23 @@ public final class MainActivity extends Activity {
     private MediaPlayer player;
     private UsbDirectPlayback directPlayer;
     private AurelUsbDacHost usbHost;
+    /** Load JNI only on explicit opt-in; OFF must remain fully Android-only. */
+    private boolean ensureUsbDriver() {
+        if(usbHost!=null)return true;
+        try {
+            usbHost=AurelUsbDacHost.get(this,true,usbOutputVolumePercent);
+            directUsbUnsafe=false;
+            directUsbFailure="";
+            return true;
+        }catch(RuntimeException | LinkageError error){
+            usbHost=null;
+            directUsbUnsafe=true;
+            directUsbFailure="Native USB driver could not initialize: "+
+                error.getClass().getSimpleName();
+            Log.e(MEDIA_TAG,directUsbFailure,error);
+            return false;
+        }
+    }
     private String directFallbackTrackId="";
     private int usbOutputVolumePercent=35; // Conservative headphone-safe first use.
     private void updateUsbAttachHandler() {
@@ -69,7 +86,7 @@ public final class MainActivity extends Activity {
         try {
             ComponentName alias = new ComponentName(this,
                 getPackageName()+".UsbBitPerfectHandler");
-            int state = bitPerfect!=null && bitPerfect.isEnabled()
+            int state = bitPerfect!=null && bitPerfect.isEnabled() && usbHost!=null
                 ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
                 : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
             getPackageManager().setComponentEnabledSetting(alias,state,
@@ -275,6 +292,9 @@ public final class MainActivity extends Activity {
                 try{if(player.isPlaying())player.pause();}catch(RuntimeException ignored){}
             }
             if(directPlayer!=null)try{directPlayer.pause();}catch(RuntimeException ignored){}
+            // An interrupted player must promptly surrender USB to the new
+            // audio-focus owner instead of holding it for the pause grace time.
+            if(usbHost!=null && directPlayer!=null)usbHost.releaseClaim();
             emit("player",playerState());
         }
     }
@@ -484,12 +504,12 @@ public final class MainActivity extends Activity {
         try{usbOutputVolumePercent=Integer.parseInt(secure.get("usbOutputVolumePercent"));}
         catch(NumberFormatException ignored){usbOutputVolumePercent=35;}
         usbOutputVolumePercent=Math.max(0,Math.min(100,usbOutputVolumePercent));
-        usbHost=AurelUsbDacHost.get(this,bitPerfect.isEnabled(),usbOutputVolumePercent);
-        updateUsbAttachHandler();
-        if(bitPerfect.isEnabled()){
+        // Never construct libusbdac while bit-perfect is disabled.
+        if(bitPerfect.isEnabled() && ensureUsbDriver()){
             usbHost.requestPermission();
             pollForUsbPermission(++usbGrantPollToken,20);
         }
+        updateUsbAttachHandler();
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
         catch(NumberFormatException ignored){digitalHeadroomDb=0;}
         if(digitalHeadroomDb>0||digitalHeadroomDb< -12||digitalHeadroomDb%3!=0)digitalHeadroomDb=0;
@@ -1240,18 +1260,33 @@ public final class MainActivity extends Activity {
                                 // endpoint while an old engine still owns it.
                                 if(hadEngine)cleanupPlayer();
                                 bitPerfect.setEnabled(wanted,null,fileInfo);
-                                if(usbHost!=null) {
-                                    usbHost.setEnabled(wanted);
-                                    if(wanted){
-                                        usbHost.requestPermission();
-                                        pollForUsbPermission(++usbGrantPollToken,20);
-                                    }else{
-                                        ++usbGrantPollToken;
+                                if(wanted){
+                                    if(ensureUsbDriver()){
+                                        try {
+                                            usbHost.setEnabled(true);
+                                            usbHost.requestPermission();
+                                            pollForUsbPermission(++usbGrantPollToken,20);
+                                            directUsbUnsafe=false;
+                                            directUsbFailure="";
+                                        }catch(RuntimeException | LinkageError error){
+                                            directUsbUnsafe=true;
+                                            directUsbFailure="Native USB driver failed: "+
+                                                error.getClass().getSimpleName();
+                                            Log.e(MEDIA_TAG,directUsbFailure,error);
+                                        }
                                     }
+                                }else{
+                                    ++usbGrantPollToken;
+                                    if(usbHost!=null) {
+                                        try{usbHost.setEnabled(false);}
+                                        catch(RuntimeException | LinkageError error){
+                                            Log.w(MEDIA_TAG,"USB release failed",error);
+                                        }
+                                    }
+                                    directUsbUnsafe=false;
+                                    directUsbFailure="";
                                 }
                                 updateUsbAttachHandler();
-                                directUsbUnsafe=false;
-                                directUsbFailure="";
                                 // Invalidate any outstanding old engine stream callback.
                                  final int switchGeneration=++playGeneration;
                                  if(resumeRequested&&queueIndex>=0){
@@ -1780,7 +1815,10 @@ public final class MainActivity extends Activity {
         prepared=false;buffering=false;
         final UsbDirectPlayback usb=directPlayer;
         directPlayer=null;
-        if(usb!=null)try{usb.release();}catch(RuntimeException ignored){}
+        if(usb!=null)try{usb.release();}
+        catch(RuntimeException | LinkageError error){
+            Log.w(MEDIA_TAG,"Unable to cleanly release native USB engine",error);
+        }
         final MediaPlayer obsolete=player;
         player=null;
         if(obsolete!=null){
