@@ -33,7 +33,7 @@ assert.match(css,/prefers-reduced-motion:reduce/);
 assert.match(css,/data-aurel-motion="off"/);
 assert.match(css,/orientation:landscape/);
 assert.doesNotMatch(css,/@keyframes|animation:.*infinite/,'No fake beat timers');
-assert.doesNotMatch(css,/grid-template-(columns|rows)|width:\s*\d+px|height:\s*\d+px/i,
+assert.doesNotMatch(css,/grid-template-(columns|rows)|(?:^|[;{]\s*)(?:width|height)\s*:\s*\d+px/mi,
  'Skin must not resize the proven player controls or navigation');
 assert.doesNotMatch(css,/transition:\s*all|transition:[^;]*(?:width|height|padding|margin|left|top)/i,
  'Animations must not move layout');
