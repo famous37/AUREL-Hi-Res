@@ -14,6 +14,7 @@ applyMotion(motion());
 const h=x=>html(x==null?'':String(x));
 let lastDiagnostics=null;
 let scanInFlight=null;
+const bitPerfectActive=()=>!!(app.player?.bitPerfect||app.session?.bitPerfect)?.enabled;
 function signalPath(){
  const p=app.player||{},bp=p.bitPerfect||app.session?.bitPerfect||{};
  const verified=p.sourceVerified&&p.bits&&p.sampleRateHz;
@@ -40,9 +41,12 @@ function statusText(){
  return s.pages+' / '+s.limit+' pages · '+Math.round(s.bytes/1024)+' KB · '+s.hits+' quick opens';
 }
 function audioPanel(){
- const s=app.session||{},db=Number(s.digitalHeadroomDb)||0,preload=s.preloadNextMetadata!==false;
+ const s=app.session||{},locked=bitPerfectActive(),
+       db=locked?0:(Number(s.digitalHeadroomDb)||0),
+       preload=s.preloadNextMetadata!==false;
  const choices=[0,-3,-6,-9,-12].map(n=>'<button type="button" data-aurel-headroom="'+n+
-  '" aria-pressed="'+(n===db)+'" class="'+(n===db?'is-selected':'')+'">'+
+  '" aria-pressed="'+(n===db)+'" '+(locked&&n!==0?'disabled aria-disabled="true" ':'')+
+  'class="'+(n===db?'is-selected':'')+'">'+
   (n===0?'Off':n+' dB')+'</button>').join('');
  return '<section class="panel aurel-pro-settings" data-aurel-pro-settings="audio">'+
    '<h3>Audio outputs</h3>'+
@@ -54,7 +58,10 @@ function audioPanel(){
    '<details class="aurel-pro-disclosure"><summary>Signal path</summary>'+
    signalPath()+'</details></div>'+
    '<div class="aurel-pro-feature"><strong>Digital headroom</strong>'+
-   '<div class="aurel-pro-choice" role="group" aria-label="Digital headroom">'+choices+'</div></div>'+
+   '<div class="aurel-pro-choice" role="group" aria-label="Digital headroom">'+choices+'</div>'+
+   '<small class="aurel-headroom-note">'+(locked?
+     'Disabled in bit-perfect: PCM amplitude must remain unchanged.':
+     'Optional attenuation is applied only through standard Android audio.')+'</small></div>'+
    '<div class="aurel-pro-feature"><label class="aurel-pro-switch-label">'+
    '<span><strong>Preload next track metadata</strong></span>'+
    '<input type="checkbox" data-aurel-preload '+(preload?'checked':'')+'></label></div>'+
@@ -152,6 +159,10 @@ document.addEventListener('click',async e=>{
    await scanOutputs();
  }else if(b.hasAttribute('data-aurel-headroom')){
    const db=Number(b.getAttribute('data-aurel-headroom'));
+   if(bitPerfectActive()&&db!==0){
+     showToast('Digital headroom is disabled in bit-perfect mode.');
+     return;
+   }
    if(db===Number(app.session?.digitalHeadroomDb||0))return;
    b.disabled=true;
    try{
