@@ -336,7 +336,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
  const bp=app.player?.bitPerfect||app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
  const usbHardwareVolume=bp.usbVolumeMode==='hardware' && bp.directUsbActive===true;
- const bpLabels={off:'Standard playback',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'libusbdac · preparing USB',direct_usb_playback:'Direct USB · libusbdac',direct_usb_not_active:'Android fallback · not bit-perfect',direct_usb_error:'USB driver failed · Android fallback',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
+ const bpLabels={off:'Standard playback',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',direct_usb_preparing:'libusbdac · preparing USB',direct_usb_playback:'Direct USB · libusbdac',direct_usb_rate_mismatch:'USB rate mismatch · unverified',direct_usb_not_active:'Android fallback · not bit-perfect',direct_usb_error:'USB driver failed · Android fallback',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
  const bpStatus=bpLabels[bp.status]||'Checking USB output';
  // Render concise, truthful device-state explanations; raw native diagnostic
  // strings are still retained in session but need not crowd the settings UI.
@@ -353,14 +353,15 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
   policy_error:'Could not check the Android USB audio policy.',
    direct_usb_preparing:'Opening a direct USB Audio Class 2.0 stream.',
    direct_usb_playback:'USB PCM transported directly to DAC by libusbdac. Verify rate at the DAC.',
-   direct_usb_not_active:'Native USB stream is not active; using Android playback.',
+   direct_usb_not_active:'Native USB unavailable for this track. Playback continues through Android.',
+   direct_usb_rate_mismatch:'USB transport is active but its sample rate could not be confirmed.',
    direct_usb_error:'Native USB transport failed. Android playback restored; toggle USB off/on to retry.',
   unsupported:'USB mixer controls are unavailable on this device.',
   rejected:'Android rejected the USB mixer request.',
   requested:'USB mixer preference accepted; PCM bit identity unverified.',
   usb_mixer_routed:'USB audio routed; PCM bit identity unverified.'
  };
- const bpDescription=['unsupported_format','policy_unavailable','policy_error','direct_usb_error'].includes(bp.status)
+ const bpDescription=['unsupported_format','policy_unavailable','policy_error','direct_usb_error','direct_usb_not_active','direct_usb_rate_mismatch'].includes(bp.status)
   ?(bp.detail||bpExplanations[bp.status]):
   (Object.prototype.hasOwnProperty.call(bpExplanations,bp.status)
     ?bpExplanations[bp.status]:(bp.detail||''));
@@ -391,7 +392,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
       <div class="aurel-usb-volume-head"><strong>USB DAC volume</strong>
        <output data-aurel-usb-volume-label>${usbHardwareVolume?Number(app.player?.usbOutputVolumePercent??app.session.usbOutputVolumePercent??35)+'%':'—'}</output></div>
       <input data-aurel-usb-volume type="range" min="0" max="100" step="1" value="${Number(app.player?.usbOutputVolumePercent??app.session.usbOutputVolumePercent??35)}" aria-label="USB DAC volume" ${usbHardwareVolume?'':'disabled'}>
-      <small data-aurel-usb-volume-mode>${usbHardwareVolume?'DAC hardware volume · PCM unchanged':bp.usbVolumeMode==='unity'?'This DAC has no hardware volume control. Use DAC controls or Android mixer.':'Hardware volume available only while direct USB playback is active.'}</small>
+      <small data-aurel-usb-volume-mode>${usbHardwareVolume?'DAC hardware volume · PCM unchanged':bp.usbVolumeMode==='unity'?'This DAC exposes no controllable hardware volume. Direct USB is fixed gain: adjust at the DAC or amplifier.':'Hardware volume available only while direct USB playback is active.'}</small>
    </div>`:''}
  </section>
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
