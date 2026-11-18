@@ -20,6 +20,8 @@ assert.match(java,/oldRouteStillPresent\(\)/);
 assert.match(java,/pauseForOutputLoss\("route_changed"\)/);
 assert.match(java,/pauseByUser\(\); \/\/ Cancel delayed audio-focus resume/);
 assert.match(java,/setPlayerImmersive\(boolean open\)/);
+assert.match(java,/MainActivity\.this\.setPlayerImmersive\(open\)/,
+  'The JavaScript bridge must never dispatch recursively to its own method');
 assert.match(java,/setStatusBarColor\(open\?Color\.TRANSPARENT:currentChromeColor\)/);
 assert.match(java,/fullPlayerImmersive\?0:systemInsetTop/);
 assert.match(java,/JSONObject\.quote\("--aurel-native-status-inset"\)/);
