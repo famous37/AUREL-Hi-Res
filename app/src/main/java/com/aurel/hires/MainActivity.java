@@ -358,8 +358,13 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
-        // The platform route is safe to restore across process restarts:
-        // it does not claim USB interfaces or load a native driver.
+        // The first upgrade from the old USB-exclusive implementation starts
+        // with Android bit-perfect OFF: its true hardware path can bypass
+        // Android volume, so the user must explicitly opt in once.
+        if(!"1".equals(secure.get("androidPlatformMixerOptInV1"))) {
+            try{secure.put("bitPerfectEnabled","0");}
+            catch(Exception ignored){}
+        }
         bitPerfect=new BitPerfectOutput(this,
             "1".equals(secure.get("bitPerfectEnabled")));
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
@@ -1093,6 +1098,7 @@ public final class MainActivity extends Activity {
                             final boolean wanted=p.getBoolean("enabled");
                             if(wanted&&digitalHeadroomDb!=0)
                                 throw new Exception("Set Digital headroom to 0 dB before enabling Android bit-perfect.");
+                            if(wanted)secure.put("androidPlatformMixerOptInV1","1");
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
                             ui.post(()->{
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
