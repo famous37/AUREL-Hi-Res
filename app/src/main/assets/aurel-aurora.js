@@ -65,6 +65,7 @@
  function resetBeat(){
    lastFrame=0;lastPeak=0;lastPulse=0;rotation=0;
    overlay.style.setProperty('--aurel-aurora-rotation','0deg');
+   overlay.style.setProperty('--aurel-reactive-scale','1');
  }
  function wantCapture(ask=false){
    // Capture only AUREL's currently-playing MediaPlayer session, not global
@@ -110,8 +111,11 @@
    lastFrame=now;
    const strong=Math.pow(level,.70);
    overlay.style.setProperty('--aurel-aurora-beat',strong.toFixed(3));
+   // The shared ambient layer now reacts to REAL native frames, not only
+   // the halo behind the cover (which may be clipped by the WebView scroller).
+   overlay.style.setProperty('--aurel-reactive-scale',(0.99+strong*.055).toFixed(4));
    intensity(.30+strong*.66);
-   if(level>.27&&level>lastPeak+.11&&now-lastPulse>190){
+   if(level>.10&&level>lastPeak+.045&&now-lastPulse>170){
      lastPulse=now;
      rotation=(rotation+12)%360;
      overlay.style.setProperty('--aurel-aurora-rotation',rotation+'deg');
