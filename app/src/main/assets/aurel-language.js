@@ -583,6 +583,112 @@ Object.assign(dictionary,{
  'Share artist':'Поділитися виконавцем',
  'Open in Qobuz':'Відкрити в Qobuz'
 });
+/* Final audit of user-facing strings from core player, Qobuz accounts, FFT,
+ * update workflow and error log. Do not translate codecs, technical codes
+ * or remote editorial and catalogue metadata. */
+Object.assign(dictionary,{
+ 'Loading audio':'Завантаження аудіо',
+ 'Artist not provided':'Виконавця не зазначено',
+ 'Artist information unavailable':'Відомості про виконавця недоступні',
+ 'MP3 · 320 kbps':'MP3 · 320 кбіт/с',
+ 'FLAC · 16-bit / 44.1 kHz':'FLAC · 16 біт / 44,1 кГц',
+ 'Hi-Res · up to 24-bit / 96 kHz':'Hi-Res · до 24 біт / 96 кГц',
+ 'Hi-Res · up to 24-bit / 192 kHz':'Hi-Res · до 24 біт / 192 кГц',
+ 'Automatic':'Автоматично',
+ 'Android-only function: open inside the APK':'Ця функція доступна лише в застосунку Android.',
+ 'Qobuz did not respond in time':'Qobuz не відповів вчасно',
+ 'Unknown API error':'Невідома помилка API',
+ 'Play track':'Відтворити трек',
+ 'DISCOVER':'ВІДКРИТТЯ',
+ 'What moves you?':'Що вас надихає?',
+ 'The music you love.':'Музика, яку ви любите.',
+ 'YOUR LIBRARY':'ВАША БІБЛІОТЕКА',
+ 'Playlists.':'Плейлисти.',
+ 'PLAYLIST':'ПЛЕЙЛИСТ',
+ 'Open artist discography':'Відкрити дискографію виконавця',
+ 'Qobuz checks credentials. AUREL encrypts the issued token and never saves your password.':
+   'Qobuz перевіряє облікові дані. AUREL шифрує наданий токен і не зберігає ваш пароль.',
+ 'Back to Discover':'Повернутися до відкриттів',
+ 'No artist metadata for this track':'Для цього треку немає даних про виконавця',
+ 'Qobuz did not return a matching artist':'Qobuz не знайшов відповідного виконавця',
+ 'No further releases returned by Qobuz':'Qobuz не повернув інших релізів',
+ 'Could not save quality':'Не вдалося зберегти налаштування якости',
+ 'Could not save secret':'Не вдалося зберегти секретний ключ',
+ 'Could not change USB output mode':'Не вдалося змінити режим USB-аудіовиходу',
+ 'Catalogue may be available, but the audio grant was rejected. Tap Reverify Mornye.':
+   'Каталог може бути доступний, але дозвіл на аудіо відхилено. Натисніть «Повторно перевірити Mornye».',
+ 'Qobuz rejected this token/App ID':'Qobuz відхилив токен або App ID',
+ 'Qobuz verified':'Qobuz підтверджено',
+ 'Qobuz connection check failed':'Не вдалося перевірити з’єднання з Qobuz',
+ 'Could not open official Qobuz login':'Не вдалося відкрити офіційний вхід Qobuz',
+ 'Could not change playback position':'Не вдалося змінити позицію відтворення',
+ 'Visual preview only — Qobuz requests require the Android application':
+   'Це лише попередній перегляд. Для запитів Qobuz потрібен застосунок Android.',
+ 'Userspace USB driver selected':'Вибрано USB-драйвер простору користувача',
+ 'Not yet independently verified on the attached USB DAC':
+   'Наразі не підтверджено незалежною перевіркою під’єднаного USB-ЦАП',
+ 'Show audio source information':'Показати відомості про джерело аудіо',
+ 'DAC hardware volume · PCM unchanged':'Апаратна гучність ЦАП · PCM без змін',
+ 'Digital attenuation · not bit-perfect':'Цифрове ослаблення · не bit-perfect',
+ 'Unchanged PCM · no hardware control':'PCM без змін · апаратне керування недоступне',
+ 'USB control not active':'Керування USB неактивне',
+ 'No album ID in Qobuz metadata':'У метаданих Qobuz немає ідентифікатора альбому',
+ 'Added to play queue':'Додано до черги відтворення',
+ 'Repeat one':'Повторювати один трек',
+ 'Repeat all':'Повторювати всі треки',
+ 'Repeat off':'Повторювання вимкнено',
+ 'USB UAC1/2/3 · libusbdac PCM (clock unverified)':
+   'USB UAC1/2/3 · libusbdac PCM (тактову частоту не підтверджено)',
+ 'Cannot change digital headroom':'Не вдалося змінити цифрове ослаблення',
+ 'Unable to save preload setting':'Не вдалося зберегти попереднє завантаження',
+ 'Update action failed':'Помилка під час оновлення',
+ 'Motion is disabled in Android or AUREL.':'Анімацію вимкнено в Android або AUREL.',
+ 'Bit-perfect: Android FFT is unavailable. Disable bit-perfect in Audio settings to react to bass.':
+   'FFT недоступний у режимі bit-perfect. Вимкніть його в налаштуваннях звуку для реакції на бас.',
+ 'Grant Android audio analysis permission: switch off and on again.':
+   'Надайте Android дозвіл на аудіоаналіз: вимкніть і знову ввімкніть цю функцію.',
+ 'Android is not delivering FFT frames. Try standard playback without bit-perfect.':
+   'Android не передає кадрів FFT. Спробуйте звичайне відтворення без bit-perfect.',
+ 'FFT frames arrive but contain no usable signal. Android may bypass the mixer.':
+   'Кадри FFT надходять, але не містять придатного сигналу. Можливо, Android оминає мікшер.',
+ 'Real bass-reactive animation is active.':
+   'Анімація реагує на справжні басові імпульси.',
+ 'Open Now Playing during playback for a music-reactive cover.':
+   'Відкрийте повний програвач під час відтворення, щоб побачити пульсацію обкладинки.',
+ 'Android cannot analyze bass in bit-perfect mode. Disable bit-perfect for real rhythm.':
+   'Android не аналізує бас у режимі bit-perfect. Вимкніть його для справжньої пульсації.',
+ 'Beat-reactive album artwork':'Пульсація обкладинки в такт музиці',
+ 'Only real bass transients from Android FFT, never a timed animation. Nothing is recorded.':
+   'Лише справжні басові імпульси з Android FFT, без штучної анімації. Аудіо не записується.',
+ 'FFT retry failed':'Не вдалося повторно запустити FFT',
+ 'Pulse starts when music is playing.':'Пульсація почнеться під час відтворення.',
+ 'Glow follows real FFT bass transients.':'Світіння реагує на справжні імпульси FFT.',
+ 'Audio analysis permission required: switch glow off/on to retry.':
+   'Потрібен дозвіл на аудіоаналіз: вимкніть і знову ввімкніть світіння.',
+ 'Android is not providing usable FFT from this audio route.':
+   'Android не надає придатного сигналу FFT із цього аудіовиходу.',
+ 'Album-colored glow':'Світіння в кольорах обкладинки',
+ 'No application errors recorded':'Помилок застосунку не зареєстровано',
+ 'Script error.':'Помилка сценарію.',
+ 'Unhandled rejected promise':'Необроблена відмова асинхронної операції',
+ 'Android FFT capture unavailable':'Аудіоаналіз FFT через Android недоступний',
+ 'Records AUREL errors only. No audio, passwords or automatic uploads.':
+   'Зберігаються лише помилки AUREL. Без аудіо, паролів чи автоматичного надсилання.',
+ 'Android clipboard did not confirm copying':'Android не підтвердив копіювання',
+ 'Application error log copied':'Журнал помилок скопійовано',
+ 'Copy unavailable':'Копіювання недоступне',
+ 'Source PCM not independently verified':'PCM джерела незалежно не підтверджено',
+ 'Android did not report decoder format':'Android не повідомив формат декодера',
+ 'Source':'Джерело',
+ 'Stream format':'Формат потоку',
+ 'Android / DAC':'Android / ЦАП',
+ 'channels':'каналів',
+ 'depth unknown':'розрядність невідома',
+ 'mixer preference accepted':'запит до мікшера прийнято',
+ 'Playback output not confirmed':'Аудіовихід не підтверджено',
+ 'Now Playing gestures: swipe down to minimize · right for next track · left for previous track.':
+   'Жести програвача: униз — згорнути · праворуч — наступний трек · ліворуч — попередній.'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
@@ -598,6 +704,18 @@ function translateEnglish(s){
  }
  var rates=/^Android rates: (.+)$/.exec(key);
  if(rates)return 'Частоти Android: '+rates[1].replace(/ kHz/g,' кГц').replace(/ Hz/g,' Гц');
+ var dynamicPrefixes=[
+  ['Qobuz discovery unavailable: ','Недоступні відкриття Qobuz: '],
+  ['Could not identify the artist: ','Не вдалося визначити виконавця: '],
+  ['Unable to load more releases: ','Не вдалося завантажити інші релізи: '],
+  ['Connection check unavailable: ','Перевірка з’єднання недоступна: '],
+  ['Output diagnostics unavailable: ','Діагностика аудіовиходів недоступна: '],
+  ['Digital headroom: ','Цифрове ослаблення: ']
+ ];
+ for(var pi=0;pi<dynamicPrefixes.length;pi++){
+  var part=dynamicPrefixes[pi];
+  if(key.indexOf(part[0])===0)return part[1]+key.slice(part[0].length);
+ }
  var mixer=/^USB mixer: (.+)$/.exec(key);
  if(mixer)return 'USB-мікшер: '+mixer[1].replace(/ Hz/g,' Гц');
  var cache=/^(\d+) \/ (\d+) pages · (\d+) KB · (\d+) quick opens$/.exec(key);
