@@ -24,6 +24,8 @@ import android.content.pm.PackageManager;
 import android.media.MediaFormat;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.webkit.WebChromeClient;
+import android.webkit.ConsoleMessage;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
 import android.view.View;
@@ -484,6 +486,26 @@ public final class MainActivity extends Activity {
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setDefaultTextEncodingName("UTF-8");
         web.addJavascriptInterface(new Bridge(),"AurelNative");
+        // Preserve the WebView console's local script filename/line for errors
+        // that window.onerror only exposes as opaque "Script error.".
+        // Never copy external origins, tokens, stack traces or full URLs.
+        web.setWebChromeClient(new WebChromeClient(){
+            @Override public boolean onConsoleMessage(ConsoleMessage item){
+                if(item==null||item.messageLevel()!=ConsoleMessage.MessageLevel.ERROR)
+                    return false;
+                String source=item.sourceId();
+                if(source==null||!source.startsWith("file:///android_asset/"))return false;
+                String asset=source.substring("file:///android_asset/".length());
+                if(!asset.matches("[A-Za-z0-9_./-]{1,160}"))return false;
+                String message=item.message();
+                if(message==null||message.isEmpty())return false;
+                final String detail=message.substring(0,Math.min(280,message.length()))+
+                    " @ "+asset+":"+Math.max(0,item.lineNumber());
+                script("window.AurelErrorLog && window.AurelErrorLog.record("+
+                    JSONObject.quote("webview")+","+JSONObject.quote(detail)+")");
+                return false;
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view,android.webkit.WebResourceRequest request) {
                 // Keep all navigation inside our packaged UI; no remote web content gets the JS bridge.
@@ -1221,7 +1243,7 @@ public final class MainActivity extends Activity {
                             java.util.concurrent.FutureTask<JSONObject> task=
                                 new java.util.concurrent.FutureTask<>(()->{
                                     JSONObject result=new JSONObject();
-                                    result.put("appVersion","1.1.63");
+                                    result.put("appVersion","1.1.64");
                                     result.put("android",Build.VERSION.SDK_INT);
                                     result.put("permission",checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED);
                                     result.put("requested",beatUiWanted);
@@ -1240,7 +1262,7 @@ public final class MainActivity extends Activity {
                             // Copy only a user-requested, bounded app-error report.
                             // This is not Android system logcat or an audio capture.
                             String report=p.optString("report","");
-                            if(!report.startsWith("AUREL Hi-Res 1.1.63 | App error log")||
+                            if(!report.startsWith("AUREL Hi-Res 1.1.64 | App error log")||
                                report.length()>48000)
                                 throw new IllegalArgumentException("Invalid application error log");
                             final String clipboardText=report;

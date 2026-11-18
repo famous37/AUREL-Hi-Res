@@ -1,4 +1,4 @@
-/* AUREL 1.1.63 — bounded, private application error journal.
+/* AUREL 1.1.64 — bounded, private actionable application error journal.
  * No Android system-log access, audio samples, account data or telemetry.
  * Errors stay on this device; they leave only through explicit Copy. */
 (function installAurelErrorJournal(){
@@ -44,18 +44,55 @@
    }catch(_){}finally{writing=false;}
  }
  function report(){
-   return 'AUREL Hi-Res 1.1.63 | App error log\n'+
+   return 'AUREL Hi-Res 1.1.64 | App error log\n'+
      'Local diagnostic only. No audio, account tokens, URLs or system logcat.\n'+
-     JSON.stringify({version:'1.1.63',count:entries.length,errors:entries},null,2);
+     JSON.stringify({version:'1.1.64',count:entries.length,errors:entries},null,2);
  }
  function clear(){entries=[];persist();refreshCount();}
  window.AurelErrorLog={record:capture,report,clear,count:()=>entries.length};
 
+ // Retain only the local asset NAME and line — never external origins, query
+ // parameters, tokens, full stack traces, user filenames, or private paths.
+ function safeSource(raw){
+   const source=String(raw||'');
+   if(!source)return '';
+   const matched=source.match(/(?:^|\\/)([A-Za-z0-9_.-]{1,95}\\.(?:js|html|css))(?::[0-9]+)?(?:[?#]|$)/i);
+   if(source.indexOf('file:///android_asset/')===0)
+     return matched?matched[1]:'packaged asset';
+   return '[external script]';
+ }
+ function diagnosticLocation(source,line,col){
+   const name=safeSource(source);
+   const ln=Number(line),cn=Number(col);
+   const suffix=(Number.isInteger(ln)&&ln>0&&ln<1000000
+      ? ':'+ln+(Number.isInteger(cn)&&cn>0&&cn<1000000?':'+cn:''):'');
+   return name?name+suffix:'';
+ }
  window.addEventListener('error',e=>{
-   if(e?.message)capture('javascript',e.message);
- });
+   // Capture resource load errors too; these do not trigger window.onerror.
+   const tag=String(e?.target?.tagName||'').toLowerCase();
+   if(tag==='script'||tag==='link'){
+     const source=tag==='script'?e.target.src:e.target.href;
+     capture('resource',tag+' could not load: '+(safeSource(source)||'[unknown resource]'));
+     return;
+   }
+   const message=String(e?.message||e?.error?.message||'Script error.');
+   const location=diagnosticLocation(e?.filename,e?.lineno,e?.colno);
+   if(/^Script error\\.?$/i.test(message)&&!location&&!e?.error){
+     capture('opaque-script','Script error. WebView withheld script name and line; source cannot be identified. This alone does not indicate an AUREL crash.');
+     return;
+   }
+   capture('javascript',message+(location?' @ '+location:' (source unavailable)'));
+ },true);
  window.addEventListener('unhandledrejection',e=>{
-   capture('promise',e?.reason?.message||e?.reason?.name||'Unhandled rejected promise');
+   const reason=e?.reason;
+   const message=reason?.message||reason?.name||'Unhandled rejected promise';
+   const stack=String(reason?.stack||'');
+   const frame=stack.split('\\n').find(x=>x.includes('file:///android_asset/'))||'';
+   const loc=frame.match(/file:\\/\\/\\/android_asset\\/[^\\s():]+\\.(?:js|html):([0-9]+):([0-9]+)/);
+   const source=frame.match(/file:\\/\\/\\/android_asset\\/[^\\s():]+\\.(?:js|html)/);
+   const site=source?diagnosticLocation(source[0],loc?.[1],loc?.[2]):'';
+   capture('promise',message+(site?' @ '+site:''));
  });
  function attach(){
    if(typeof nativeCall==='function'){

@@ -8,6 +8,11 @@ assert.ok(html.indexOf('aurel-error-log.js')<html.indexOf('app.js'),'Global erro
 assert.ok(html.includes('aurel-error-log.css'));
 assert.ok(css.includes('data-aurel-error-count'));
 assert.match(activity,/case "copySupportLog":/);
+assert.match(activity,/setWebChromeClient\\(new WebChromeClient/);
+assert.match(activity,/onConsoleMessage\\(ConsoleMessage item\\)/);
+assert.match(code,/safeSource\\(raw\\)/);
+assert.match(code,/opaque-script/);
+assert.match(code,/file:\\\\/\\\\/\\\\/android_asset/);
 assert.doesNotMatch(activity,/case "copyBeatDiagnostics":/);
 assert.match(code,/unhandledrejection/);
 assert.match(code,/window\.addEventListener\('error'/);
@@ -33,14 +38,19 @@ assert.ok(!report.includes('user@host.org'));
 assert.ok(report.includes('[url]')&&report.includes('[email]'));
 logs.record('playback','Authorization: verysecret at https://example.net/song?token=ab12 user@host.org');
 assert.equal(logs.count(),1,'Deduplicate repeated native errors');
-events.error({message:'JavaScript crashed'});assert.equal(logs.count(),2);
-events.unhandledrejection({reason:{message:'Unhandled call'}});assert.equal(logs.count(),3);
+events.error({message:'JavaScript crashed',filename:'file:///android_asset/aurel-motion.js',lineno:42,colno:7});
+assert.equal(logs.count(),2);
+assert.ok(logs.report().includes('aurel-motion.js:42:7'),'Local script line and column retained');
+events.error({message:'Script error.',filename:'',lineno:0,colno:0});
+assert.equal(logs.count(),3);
+assert.ok(logs.report().includes('opaque-script'),'Opaque external script errors must not be misattributed');
+events.unhandledrejection({reason:{message:'Unhandled call'}});assert.equal(logs.count(),4);
 window.AurelEvent('player',{error:'Decoder failure'});
-assert.equal(logs.count(),4,'Native player failure is logged');
+assert.equal(logs.count(),5,'Native player failure is logged');
 (async()=>{
  try{await context.nativeCall('seek',{ms:10});assert.fail('Must propagate native rejection');}
  catch(err){assert.ok(err.message.includes('Network failure'));}
- assert.equal(logs.count(),5,'Bridge error is logged and still rejects');
+ assert.equal(logs.count(),6,'Bridge error is logged and still rejects');
  for(let i=0;i<110;i++)logs.record('system-'+i,'failure-'+i);
  assert.equal(logs.count(),70,'Error log is bounded');
  assert.ok(storage.has('aurel_error_journal_v1'),'Support log persists locally');
