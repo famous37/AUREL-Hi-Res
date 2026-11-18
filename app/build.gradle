@@ -16,9 +16,9 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 29
         targetSdk 35
-        // AUREL 1.1.65: original vinyl/equalizer logo and resilient player controls.
-        versionCode 84
-        versionName (project.hasProperty('aurelPreview') ? '1.1.65-preview' : '1.1.65')
+        // AUREL 1.1.66: original vinyl/equalizer logo and resilient player controls.
+        versionCode 85
+        versionName (project.hasProperty('aurelPreview') ? '1.1.66-preview' : '1.1.66')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     signingConfigs {
