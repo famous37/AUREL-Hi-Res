@@ -277,3 +277,39 @@ html[data-aurel-motion="off"] #overlay.aurel-track-settling
  :is(.murglar-art-wrap,.murglar-track-data){
   transition:none!important;
 }
+
+/* Direct-manipulation minimise: fade and translate the player together so
+   the previous route is progressively revealed, rather than jumping in. */
+:root[data-aurel-palette] .app:has(#overlay.aurel-swipe-tracking)
+ .main,
+:root[data-aurel-palette] .app:has(#overlay.aurel-swipe-dismissing)
+ .main{
+  visibility:visible!important;
+  pointer-events:none!important;
+}
+#overlay.aurel-swipe-tracking{
+  background:transparent!important;
+}
+#overlay.aurel-swipe-tracking .murglar-view{
+  transform:translate3d(0,var(--aurel-swipe-y,0px),0)!important;
+  opacity:var(--aurel-swipe-alpha,1)!important;
+  transition:none!important;
+  will-change:transform,opacity;
+}
+#overlay.aurel-swipe-settling .murglar-view{
+  transform:translate3d(0,0,0)!important;
+  opacity:1!important;
+  transition:transform 270ms cubic-bezier(.22,1,.36,1),
+    opacity 240ms ease-out!important;
+}
+#overlay.aurel-swipe-dismissing .murglar-view{
+  transition:transform 270ms cubic-bezier(.22,1,.36,1),
+    opacity 245ms ease-in!important;
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay.aurel-swipe-tracking .murglar-view,
+ #overlay.aurel-swipe-settling .murglar-view,
+ #overlay.aurel-swipe-dismissing .murglar-view{
+  transition:none!important;
+ }
+}
