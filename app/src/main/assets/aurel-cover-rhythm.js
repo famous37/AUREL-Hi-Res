@@ -19,10 +19,13 @@
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)');
  const safeMotion=()=>!document.hidden&&!reduced?.matches&&
    document.documentElement.dataset.aurelMotion!=='off';
- const playing=()=>!!(enabled&&app.overlay&&app.player?.playing&&
+ const audioPlaying=()=>!!(enabled&&app.player?.playing&&
    !app.player?.buffering&&!app.player?.error&&safeMotion());
+ const playing=()=>!!(app.overlay&&audioPlaying());
  const bitPerfect=()=>!!app.player?.bitPerfect?.enabled;
- const requestCapture=()=>playing()&&!bitPerfect();
+ // Capture is allowed while viewing Settings, otherwise diagnostics would
+ // always report "off" as soon as the user leaves Now Playing.
+ const requestCapture=()=>audioPlaying()&&!bitPerfect();
  const uk=()=>window.AurelLanguage?.get?.()==='uk';
  const setScale=level=>{
    const amount=Math.max(0,Math.min(1,Number(level)||0));
@@ -43,6 +46,9 @@
    if(nativeStatus==='unavailable')
      return uk()?'Android не надсилає аудіокадрів FFT. Спробуй звичайне відтворення без bit-perfect.':
        'Android is not delivering FFT frames. Try standard playback without bit-perfect.';
+   if(nativeStatus==='silent')
+     return uk()?'FFT надходить, але аудіосигнал нульовий — можливий обхід мікшера або обмеження Android.':
+       'FFT frames arrive but contain no usable signal. Android may bypass the mixer.';
    if(nativeStatus==='live')
      return uk()?'Справжня реакція на бас активна.':'Real bass-reactive animation is active.';
    if(playing())return uk()?'Очікування справжніх аудіоданих…':'Waiting for real audio data…';
@@ -90,8 +96,10 @@
    const value=Number(level);
    if(!Number.isFinite(value))return;
    lastFrame=Date.now();
-   setScale(value);
-   if(!overlay.classList.contains('aurel-beat-live'))sync();
+   if(app.overlay){
+     setScale(value);
+     if(!overlay.classList.contains('aurel-beat-live'))sync();
+   }
  };
  function installSetting(){
    const root=document.getElementById('screen');
@@ -116,6 +124,12 @@
      (ukrainian?'Пульсація обкладинки':'Beat-reactive album artwork')+
      '" '+(enabled?'checked':'')+'>';
    host.appendChild(label);
+   const diagnosticButton=document.createElement('button');
+   diagnosticButton.type='button';
+   diagnosticButton.className='aurel-rhythm-diagnostic-button';
+   diagnosticButton.setAttribute('data-aurel-beat-diagnostics','');
+   diagnosticButton.textContent=uk()?'Скопіювати діагностику аналізатора':'Copy audio analyzer diagnostics';
+   host.appendChild(diagnosticButton);
    updateSettingStatus();
  }
  const originalSettings=renderSettings;
@@ -150,6 +164,23 @@
    }
    return result;
  };
+ document.addEventListener('click',async event=>{
+   const button=event.target.closest?.('[data-aurel-beat-diagnostics]');
+   if(!button)return;
+   event.preventDefault();
+   event.stopPropagation();
+   if(button.disabled)return;
+   button.disabled=true;
+   try{
+     const diagnosis=await nativeCall('beatDiagnostics');
+     const report='AUREL FFT diagnostics\\n'+JSON.stringify(diagnosis,null,2);
+     await nativeCall('copyBeatDiagnostics',{report});
+     showToast(uk()?'Діагностику скопійовано. Надішли її для точного аналізу.':
+       'Analyzer diagnostics copied. Share the report for precise troubleshooting.',4800);
+   }catch(error){
+     showToast(error?.message||'FFT diagnostic unavailable',5000);
+   }finally{button.disabled=false;}
+ });
  document.addEventListener('change',event=>{
    if(!event.target.matches?.('[data-aurel-rhythm-toggle]'))return;
    enabled=!!event.target.checked;
