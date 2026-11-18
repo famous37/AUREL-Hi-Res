@@ -60,7 +60,7 @@ function fixture(mode){
  const initial=new Map([['aurel_mono_default_1_1_37','done'],['aurel_palette_artwork_v1',mode]]);
  const styles={setProperty:(k,v)=>values.set(k,v)};
  const attrs=new Map(),root={style:styles,setAttribute:(k,v)=>attrs.set(k,v)};
- const tabs={innerHTML:'',addEventListener(){},querySelectorAll:()=>[]};
+ const tabs={innerHTML:'',setAttribute(){},addEventListener(){},querySelectorAll:()=>[]};
  const overlay={style:{setProperty(){}}};
  const meta={setAttribute:(k,v)=>{meta[k]=v}};
  const events={};
