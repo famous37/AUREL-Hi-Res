@@ -34,12 +34,19 @@
  function setStyle(colors){
    const c=colors||neutral;
    current=c;
-   overlay.style.setProperty('--aurel-album-bg',c.bg);
-   overlay.style.setProperty('--aurel-album-surface',c.surface);
-   overlay.style.setProperty('--aurel-album-accent',c.accent);
-   overlay.style.setProperty('--aurel-album-one',c.one);
-   overlay.style.setProperty('--aurel-album-two',c.two);
-   overlay.style.setProperty('--aurel-album-three',c.three);
+   // The full-screen player and its persistent bottom navigation are siblings.
+   // Mirror verified artwork CSS tokens onto the nav so they match without
+   // changing the appearance of unrelated app pages.
+   const nav=document.querySelector?.('.bottom-nav');
+   for(const target of [overlay,nav]){
+     if(!target?.style)continue;
+     target.style.setProperty('--aurel-album-bg',c.bg);
+     target.style.setProperty('--aurel-album-surface',c.surface);
+     target.style.setProperty('--aurel-album-accent',c.accent);
+     target.style.setProperty('--aurel-album-one',c.one);
+     target.style.setProperty('--aurel-album-two',c.two);
+     target.style.setProperty('--aurel-album-three',c.three);
+   }
  }
  function addHalo(){
    const art=overlay.querySelector('.murglar-view .murglar-art-wrap');

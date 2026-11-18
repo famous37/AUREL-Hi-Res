@@ -1246,7 +1246,7 @@ public final class MainActivity extends Activity {
                             java.util.concurrent.FutureTask<JSONObject> task=
                                 new java.util.concurrent.FutureTask<>(()->{
                                     JSONObject result=new JSONObject();
-                                    result.put("appVersion","1.1.66");
+                                    result.put("appVersion","1.1.67");
                                     result.put("android",Build.VERSION.SDK_INT);
                                     result.put("permission",checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED);
                                     result.put("requested",beatUiWanted);
@@ -1265,7 +1265,7 @@ public final class MainActivity extends Activity {
                             // Copy only a user-requested, bounded app-error report.
                             // This is not Android system logcat or an audio capture.
                             String report=p.optString("report","");
-                            if(!report.startsWith("AUREL Hi-Res 1.1.66 | App error log")||
+                            if(!report.startsWith("AUREL Hi-Res 1.1.67 | App error log")||
                                report.length()>48000)
                                 throw new IllegalArgumentException("Invalid application error log");
                             final String clipboardText=report;
