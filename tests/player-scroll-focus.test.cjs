@@ -10,7 +10,7 @@ const css=read('app/src/main/assets/aurel-player-scroll.css');
 const html=read('app/src/main/assets/index.html');
 const manifest=read('app/src/main/AndroidManifest.xml');
 const gradle=read('app/build.gradle');
-assert(/versionCode\s+70/.test(gradle) && gradle.includes("'1.1.51'"));
+assert(/versionCode\s+71/.test(gradle) && gradle.includes("'1.1.52'"));
 assert(html.indexOf('aurel-player-scroll.css')>html.indexOf('aurel-artist-info.css'),
  'Player scroll overrides must load after all legacy player skins');
 assert(css.includes('#overlay:not(.hidden) .murglar-view'));
@@ -53,8 +53,8 @@ assert(!/try\{mp\.start\(\);\}catch\(Exception ignored\)/.test(java),
  'Prepared playback must be gated on focus');
 assert(java.includes('if(!mp.isPlaying())mp.start();'),
  'MediaPlayer.start must remain gated by audio focus');
-assert(java.includes('try{directPlayer.start();playerError="";}'),
- 'Native USB play must also be gated by audio focus');
+assert(!java.includes('directPlayer'),
+ 'Only the Android MediaPlayer engine may handle audio focus');
 assert(policy.includes('resumeOnGain = wantsPlayback;'));
 assert(policy.includes('focusLostPermanent()'));
 assert(policy.includes('userPause();'));
