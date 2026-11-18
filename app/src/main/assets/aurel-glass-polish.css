@@ -1,0 +1,172 @@
+/* AUREL 1.1.73 — last cascade: native immersive status region, uniform
+   album/graphite glass, and soft-edged visualizer. Only opacity/transform
+   animate; no geometric relayout, fake FFT loops or draggable overlays. */
+:root{
+  --aurel-native-status-inset:env(safe-area-inset-top,0px);
+}
+:root[data-aurel-palette]{
+  --aurel-glass-bg:color-mix(in srgb,var(--aurel-seam-card,#242529) 91%,transparent);
+  --aurel-glass-hover:color-mix(in srgb,var(--aurel-seam-raised,#303136) 88%,transparent);
+  --aurel-glass-stroke:color-mix(in srgb,var(--aurel-seam-accent,#d5d7db) 13%,transparent);
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view{
+  padding-top:var(--aurel-native-status-inset,0px)!important;
+  background-clip:border-box!important;
+  border-top:0!important;
+  box-shadow:none!important;
+}
+@media (orientation:portrait){
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+    .murglar-header.aurel-listening-nav{
+   top:var(--aurel-native-status-inset,0px)!important;
+   border:0!important;outline:0!important;
+   background:transparent!important;box-shadow:none!important;
+ }
+}
+/* Paint the same translucent artwork on the status region, including under
+   white Android icons. No extra header rectangle or optical seam. */
+:root[data-aurel-palette] #overlay:not(.hidden){
+  background:var(--aurel-album-bg,var(--aurel-seam-bg,#111214))!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view::before{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:
+   radial-gradient(ellipse 90% 79% at 52% 24%,
+    color-mix(in srgb,var(--aurel-album-one,#777579) 38%,transparent),transparent 90%),
+   radial-gradient(ellipse 90% 72% at 76% 40%,
+    color-mix(in srgb,var(--aurel-album-two,#777579) 30%,transparent),transparent 93%),
+   radial-gradient(ellipse 88% 60% at 23% 66%,
+    color-mix(in srgb,var(--aurel-album-three,#777579) 21%,transparent),transparent 97%)!important;
+  opacity:var(--aurel-aurora-opacity,.64);
+  transition:opacity 200ms ease-out,transform 250ms cubic-bezier(.2,.7,.28,1)!important;
+}
+:root[data-aurel-palette] #overlay .murglar-view .aurel-art-backdrop{
+  display:none!important;
+}
+/* An unmasked conic gradient produced a thin rectangular/glancing light line
+   outside the cover and controls. The diffuse glow must taper to alpha=0. */
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view
+  .aurel-aurora-halo{
+  border:0!important;
+  box-shadow:none!important;
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);
+}
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view
+  .aurel-aurora-halo::before{
+  border:0!important;
+  background:
+    radial-gradient(ellipse at 22% 42%,var(--aurel-album-one,#999) 0%,transparent 67%),
+    radial-gradient(ellipse at 78% 50%,var(--aurel-album-two,#aaa) 0%,transparent 70%),
+    radial-gradient(ellipse at 48% 79%,var(--aurel-album-three,#bbb) 0%,transparent 72%)!important;
+  filter:blur(18px)!important;
+}
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view
+  .aurel-aurora-halo::after{
+  border:0!important;
+  opacity:.36!important;
+  filter:blur(25px)!important;
+}
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view
+  #full-toggle::before{
+  border:0!important;
+  border-radius:50%!important;
+  background:radial-gradient(circle at center,
+    color-mix(in srgb,var(--aurel-album-one,#bbb) 45%,transparent),
+    transparent 76%)!important;
+}
+/* Uniform accent-coloured surfaces and glyphs in both appearance modes. */
+:root[data-aurel-palette] .app #screen :is(
+ .aurel-pro-settings,.aurel-pro-feature,.aurel-settings-advanced,
+ .aurel-technical-details,.aurel-dac-device,.aurel-bp-panel,.aurel-error-panel,
+ .aurel-appearance-panel,.aurel-language-panel,.aurel-settings-group,
+ .aurel-release-card,.aurel-signal-chain,.aurel-pro-disclosure,
+ .aurel-pro-feature-card,.aurel-pro-inline,.aurel-settings-group-content){
+  border-color:var(--aurel-glass-stroke)!important;
+}
+:root[data-aurel-palette="artwork"] .app #screen :is(
+ .aurel-pro-settings,.aurel-pro-feature,.aurel-dac-device,.aurel-bp-panel,
+ .aurel-error-panel,.aurel-appearance-panel,.aurel-language-panel,
+ .aurel-release-card,.aurel-pro-feature-card,.aurel-signal-chain){
+  background:var(--aurel-glass-bg)!important;
+  color:var(--aurel-theme-on,#f6f7f7)!important;
+}
+:root[data-aurel-palette="mono"] .app #screen :is(
+ .aurel-pro-feature,.aurel-dac-device,.aurel-bp-panel,
+ .aurel-error-panel,.aurel-release-card,.aurel-pro-feature-card){
+  background:color-mix(in srgb,#242529 92%,transparent)!important;
+}
+:root[data-aurel-palette] .app #screen .aurel-settings-group{
+  box-shadow:inset 0 1px #ffffff0b,0 3px 14px #0002!important;
+}
+:root[data-aurel-palette] .app #screen :is(
+ .aurel-pro-choice button,.aurel-pro-button,.quality,.aurel-language-choice,
+ .aurel-updates button,.aurel-error-actions button,.aurel-headroom-option,
+ .aurel-settings-group-content button,.aurel-pro-inline select){
+  border:1px solid var(--aurel-glass-stroke)!important;
+  border-radius:13px!important;
+  color:var(--aurel-theme-on,#f5f6f7)!important;
+}
+:root[data-aurel-palette] .app #screen :is(
+ .aurel-pro-choice button[aria-pressed="true"],.aurel-pro-choice button.is-selected,
+ .quality.selected,.aurel-language-choice[aria-checked="true"],
+ .aurel-settings-group-content button[aria-pressed="true"]){
+  background:color-mix(in srgb,var(--aurel-seam-accent,#ddd) 17%,
+    var(--aurel-seam-surface,#282a2c))!important;
+  box-shadow:inset 0 -2px var(--aurel-seam-accent,#ddd)!important;
+}
+:root[data-aurel-palette] .app #screen button:disabled{
+  opacity:.48!important;
+  cursor:not-allowed!important;
+}
+:root[data-aurel-palette] .app #screen .aurel-headroom-note{
+  display:block;
+  color:var(--aurel-seam-secondary,#c6c7c9)!important;
+  font-size:13px;
+  line-height:1.5;
+  margin-top:10px;
+}
+:root[data-aurel-palette] .app #screen :is(
+ .aurel-pro-choice button,.aurel-pro-button,.aurel-settings-group>summary,
+ .aurel-settings-group-content button,.quality,.aurel-language-choice){
+  transition:background-color 210ms ease,color 190ms ease,
+    border-color 180ms ease,box-shadow 220ms ease!important;
+}
+/* Lightweight glass only for elevated, static elements. Blurring the entire
+   player/screen would re-rasterize the FFT background and cause stutter. */
+:root[data-aurel-palette] .app .mini:not(.hidden){
+  background:var(--aurel-glass-bg)!important;
+  border:1px solid var(--aurel-glass-stroke)!important;
+  box-shadow:0 8px 23px #0004,inset 0 1px #ffffff0b!important;
+  -webkit-backdrop-filter:blur(4px) saturate(1.06);
+  backdrop-filter:blur(4px) saturate(1.06);
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-drawer{
+  background:color-mix(in srgb,var(--aurel-seam-surface,#232427) 96%,transparent)!important;
+  border:1px solid var(--aurel-glass-stroke)!important;
+  border-bottom:0!important;
+  box-shadow:0 -13px 35px #0005,inset 0 1px #ffffff0b!important;
+  -webkit-backdrop-filter:blur(4px) saturate(1.07);
+  backdrop-filter:blur(4px) saturate(1.07);
+}
+:root[data-aurel-palette] #overlay:not(.hidden) :is(
+ .aurel-detail-sheet,.murglar-detail-sheet,.aurel-detail-scroll){
+  background:transparent!important;
+  box-shadow:none!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
+  background:rgba(0,0,0,.40)!important;
+}
+@media (prefers-reduced-motion:reduce){
+ :root[data-aurel-palette] #overlay .murglar-view::before,
+ :root[data-aurel-palette] .app #screen *,
+ :root[data-aurel-palette] .app .mini{
+   transition:none!important;animation:none!important;
+ }
+}
+html[data-aurel-motion="off"] #overlay .murglar-view::before,
+html[data-aurel-motion="off"] .app #screen *{
+  transition:none!important;
+}

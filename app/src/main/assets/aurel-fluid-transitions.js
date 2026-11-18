@@ -27,20 +27,22 @@
    if(!view)return result;
    if(!wasOpen){
      cancel(entering);
+     // A nearly opaque compositor fade prevents the bright WebView flash.
+     // Do not translate the full player: its cover and native insets remain stable.
      entering=enter(view,[
-       {opacity:.48,transform:'translate3d(0,12px,0)'},
-       {opacity:.94,transform:'translate3d(0,1px,0)',offset:.76},
-       {opacity:1,transform:'translate3d(0,0,0)'}
-     ],{duration:330,easing:'cubic-bezier(.22,1,.36,1)'});
+       {opacity:.96},
+       {opacity:1}
+     ],{duration:220,easing:'cubic-bezier(.22,1,.36,1)'});
    }else if(!hadDrawer&&app.playerSheet){
      cancel(drawerEntering);
-     drawerEntering=enter(overlay.querySelector('.aurel-detail-drawer'),[
-       {opacity:.38,transform:'translate3d(0,10px,0)'},
+     const drawer=overlay.querySelector('.aurel-detail-drawer');
+     drawerEntering=enter(drawer,[
+       {opacity:.96,transform:'translate3d(0,5px,0)'},
        {opacity:1,transform:'translate3d(0,0,0)'}
-     ],{duration:265,easing:'cubic-bezier(.22,1,.36,1)'});
+     ],{duration:230,easing:'cubic-bezier(.2,.7,.25,1)'});
      enter(overlay.querySelector('.aurel-detail-dimmer'),[
-       {opacity:0},{opacity:1}
-     ],{duration:230,easing:'ease-out'});
+       {opacity:.9},{opacity:1}
+     ],{duration:200,easing:'ease-out'});
    }
    return result;
  };

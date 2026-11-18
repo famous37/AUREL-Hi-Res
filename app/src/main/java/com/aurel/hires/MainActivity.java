@@ -2,6 +2,8 @@ package com.aurel.hires;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
 import android.net.Uri;
 import java.nio.charset.StandardCharsets;
 import android.os.Bundle;
@@ -48,6 +50,30 @@ public final class MainActivity extends Activity {
     private FrameLayout systemInsetFrame;
     private volatile String lastArtworkPaletteJs="";
     private static final int GRAPHITE_CHROME=Color.rgb(17,18,20);
+    private int currentChromeColor=GRAPHITE_CHROME;
+    private boolean fullPlayerImmersive=false;
+    private int systemInsetTop=0,systemInsetLeft=0,systemInsetRight=0,
+        systemInsetBottom=0,imeInsetBottom=0;
+    private void applyPlayerWindowInsets(){
+        if(systemInsetFrame==null)return;
+        systemInsetFrame.setPadding(systemInsetLeft,
+            fullPlayerImmersive?0:systemInsetTop,
+            systemInsetRight,Math.max(systemInsetBottom,imeInsetBottom));
+        if(web!=null)script("document.documentElement.style.setProperty("+
+            JSONObject.quote("--aurel-native-status-inset")+","+
+            JSONObject.quote(systemInsetTop+"px")+")");
+    }
+    private void setPlayerImmersive(boolean open){
+        if(fullPlayerImmersive==open)return;
+        fullPlayerImmersive=open;
+        final View decor=getWindow().getDecorView();
+        decor.setSystemUiVisibility(open?
+            (View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_STABLE):0);
+        getWindow().setStatusBarColor(open?Color.TRANSPARENT:currentChromeColor);
+        if(Build.VERSION.SDK_INT>=29)getWindow().setStatusBarContrastEnforced(false);
+        applyPlayerWindowInsets();
+        if(systemInsetFrame!=null)systemInsetFrame.requestApplyInsets();
+    }
     private SecureStore secure;
     private QobuzApi api;
     private MornyeGateway mornye;
@@ -114,6 +140,74 @@ public final class MainActivity extends Activity {
     private AudioManager systemAudio;
     private AudioFocusRequest audioFocusRequest;
     private boolean audioFocusGranted=false;
+    // Track the real output, not just all currently plugged-in devices.
+    private int lastRoutedOutputId=-1;
+    private boolean lastRoutedOutputExternal=false;
+    private boolean noisyReceiverRegistered=false;
+    private final BroadcastReceiver noisyReceiver=new BroadcastReceiver(){
+        @Override public void onReceive(Context context,Intent intent){
+            if(intent!=null&&AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction()))
+                pauseForOutputLoss("android_noisy");
+        }
+    };
+    private boolean playbackRequestedOrRunning(){
+        return isAudioPlaying()||focusPolicy.shouldStartPrepared();
+    }
+    private static boolean externalAudioOutput(AudioDeviceInfo d){
+        if(d==null)return false;
+        switch(d.getType()){
+            case AudioDeviceInfo.TYPE_WIRED_HEADSET:
+            case AudioDeviceInfo.TYPE_WIRED_HEADPHONES:
+            case AudioDeviceInfo.TYPE_USB_DEVICE:
+            case AudioDeviceInfo.TYPE_USB_HEADSET:
+            case AudioDeviceInfo.TYPE_USB_ACCESSORY:
+            case AudioDeviceInfo.TYPE_BLUETOOTH_A2DP:
+            case AudioDeviceInfo.TYPE_BLUETOOTH_SCO:
+            case AudioDeviceInfo.TYPE_BLE_HEADSET:
+            case AudioDeviceInfo.TYPE_BLE_SPEAKER:return true;
+            default:return false;
+        }
+    }
+    private void rememberAudioRoute(MediaPlayer mp){
+        if(mp==null||mp!=player||!isAudioPlaying())return;
+        try{
+            AudioDeviceInfo output=mp.getRoutedDevice();
+            if(output!=null){
+                lastRoutedOutputId=output.getId();
+                lastRoutedOutputExternal=externalAudioOutput(output);
+            }
+        }catch(RuntimeException ignored){}
+    }
+    private void pauseForOutputLoss(String reason){
+        if(!playbackRequestedOrRunning())return;
+        pauseByUser(); // Cancel delayed audio-focus resume. Do not play on speaker.
+        lastRoutedOutputId=-1;
+        lastRoutedOutputExternal=false;
+        emit("player",playerState());
+        try{emit("audioRouteLost",new JSONObject().put("reason",reason));}
+        catch(Exception ignored){}
+    }
+    private boolean oldRouteStillPresent(){
+        if(systemAudio==null||lastRoutedOutputId<0)return false;
+        for(AudioDeviceInfo output:systemAudio.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
+            if(output.getId()==lastRoutedOutputId)return true;
+        return false;
+    }
+    private void onActualRouteChanged(MediaPlayer mp){
+        if(mp==null||mp!=player)return;
+        int route=-1;
+        try{
+            AudioDeviceInfo output=mp.getRoutedDevice();
+            if(output!=null)route=output.getId();
+        }catch(RuntimeException ignored){}
+        if(!oldRouteStillPresent() &&
+            AurelUnplugPolicy.pauseForRoutingChange(playbackRequestedOrRunning(),
+                lastRoutedOutputId,lastRoutedOutputExternal,route)){
+            pauseForOutputLoss("route_changed");
+            return;
+        }
+        rememberAudioRoute(mp);
+    }
     private final AurelFocusPolicy focusPolicy=new AurelFocusPolicy();
     private final AudioManager.OnAudioFocusChangeListener audioFocusListener=
         change->ui.post(()->onAudioFocusChanged(change));
@@ -149,6 +243,7 @@ public final class MainActivity extends Activity {
             // MediaPlayer has no active audio output.
             ui.postDelayed(()->{
                 if(player==mp&&prepared){
+                    rememberAudioRoute(mp);
                     configureAndroidUsb(mp,true);
                     emit("player",playerState());
                 }
@@ -209,6 +304,17 @@ public final class MainActivity extends Activity {
             refreshBitPerfectOutput();
         }
         @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices){
+            if(devices!=null){
+                for(AudioDeviceInfo removed:devices){
+                    if(AurelUnplugPolicy.pauseForRemovedOutput(
+                        playbackRequestedOrRunning(),lastRoutedOutputId,
+                        lastRoutedOutputExternal,removed.getId(),
+                        externalAudioOutput(removed))){
+                        pauseForOutputLoss("output_removed");
+                        break;
+                    }
+                }
+            }
             refreshBitPerfectOutput();
         }
     };
@@ -464,6 +570,15 @@ public final class MainActivity extends Activity {
         prefetchNextMetadata=!"0".equals(secure.get("preloadNextMetadata"));
         restorePlaybackContinuity();
         systemAudio=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        try{
+            IntentFilter filter=new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+            if(Build.VERSION.SDK_INT>=33)
+                registerReceiver(noisyReceiver,filter,Context.RECEIVER_EXPORTED);
+            else registerReceiver(noisyReceiver,filter);
+            noisyReceiverRegistered=true;
+        }catch(RuntimeException error){
+            Log.w(MEDIA_TAG,"Could not register output-loss listener",error);
+        }
         if(systemAudio!=null){
             audioFocusRequest=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(bitPerfect.audioAttributes())
@@ -534,7 +649,10 @@ public final class MainActivity extends Activity {
             content.setOnApplyWindowInsetsListener((v,insets)->{
                 Insets sys=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
                 Insets ime=insets.getInsets(WindowInsets.Type.ime());
-                v.setPadding(sys.left,sys.top,sys.right,Math.max(sys.bottom,ime.bottom));
+                systemInsetTop=sys.top;systemInsetLeft=sys.left;
+                systemInsetRight=sys.right;systemInsetBottom=sys.bottom;
+                imeInsetBottom=ime.bottom;
+                applyPlayerWindowInsets();
                 return WindowInsets.CONSUMED;
             });
         }else{
@@ -734,6 +852,10 @@ public final class MainActivity extends Activity {
         focusPolicy.userPause();
         abandonPlaybackFocus();
         if(systemAudio!=null)systemAudio.unregisterAudioDeviceCallback(usbCallback);
+        if(noisyReceiverRegistered){
+            try{unregisterReceiver(noisyReceiver);}catch(RuntimeException ignored){}
+            noisyReceiverRegistered=false;
+        }
         cleanupPlayer();
 
         AurelPlaybackService.stop(this);
@@ -767,7 +889,8 @@ public final class MainActivity extends Activity {
         double luminance=(0.2126*Color.red(color)+0.7152*Color.green(color)+
             0.0722*Color.blue(color))/255.0;
         if(luminance>0.28)return;
-        getWindow().setStatusBarColor(color);
+        currentChromeColor=color;
+        getWindow().setStatusBarColor(fullPlayerImmersive?Color.TRANSPARENT:color);
         getWindow().setNavigationBarColor(color);
         if(Build.VERSION.SDK_INT>=29){
             getWindow().setStatusBarContrastEnforced(false);
@@ -1008,6 +1131,9 @@ public final class MainActivity extends Activity {
     private final class Bridge {
         @JavascriptInterface public void setWindowPalette(String color) {
             ui.post(()->setSystemChrome(color));
+        }
+        @JavascriptInterface public void setPlayerImmersive(boolean open) {
+            ui.post(()->MainActivity.this.setPlayerImmersive(open));
         }
         @JavascriptInterface public void call(String requestId,String action,String payload) {
             if(requestId==null||requestId.length()>72)return;
@@ -1256,7 +1382,8 @@ public final class MainActivity extends Activity {
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
                                 // Do not discard the current Qobuz stream URL,
                                 // restart the decoder, or steal a USB interface.
-                                configureAndroidUsb(player,true);
+                                onActualRouteChanged(player);
+                                if(isAudioPlaying())configureAndroidUsb(player,true);
                                 emit("player",playerState());
                                 try{emit("session",session());}catch(Exception ignored){}
                             });
@@ -1349,8 +1476,12 @@ public final class MainActivity extends Activity {
                             final int db=p.getInt("db");
                             if(db!=0&&db!=-3&&db!=-6&&db!=-9&&db!=-12)
                                 throw new Exception("Unsupported digital headroom level.");
-                            if(db!=0&&bitPerfect.isEnabled())
-                                throw new Exception("Digital attenuation is unavailable in USB bit-perfect mode.");
+                            if(db!=0&&bitPerfect.isEnabled()){
+                                // Expected unsupported operation, not an application failure.
+                                data=new JSONObject().put("db",0).put("unavailable",true)
+                                    .put("reason","Digital headroom is inactive in bit-perfect.");
+                                break;
+                            }
                             digitalHeadroomDb=db;
                             secure.put("digitalHeadroomDb",Integer.toString(db));
                             ui.post(()->{
@@ -1826,6 +1957,7 @@ public final class MainActivity extends Activity {
     private void cleanupPlayer() {
         if(beatMonitor!=null)beatMonitor.stop();
         if(bitPerfect!=null)bitPerfect.release();
+        lastRoutedOutputId=-1;lastRoutedOutputExternal=false;
         prepared=false;buffering=false;
         final MediaPlayer obsolete=player;
         player=null;

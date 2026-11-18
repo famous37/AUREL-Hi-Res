@@ -129,12 +129,18 @@ jobs:
           node tests/settings-state-motion.test.cjs
           node tests/player-scroll-focus.test.cjs
           node tests/webview-scroll-media-recovery.test.cjs
+          node tests/output-loss-glass-immersive.test.cjs
+          node tests/immersive-theme-log.test.cjs
+          node tests/floating-header-fft-recovery.test.cjs
           mkdir -p build/media-recovery-test
           javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
           java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
           mkdir -p build/audio-focus-test
           javac -d build/audio-focus-test app/src/main/java/com/aurel/hires/AurelFocusPolicy.java tests/AurelFocusPolicyTest.java
           java -cp build/audio-focus-test com.aurel.hires.AurelFocusPolicyTest
+          mkdir -p build/unplug-policy-test
+          javac -d build/unplug-policy-test app/src/main/java/com/aurel/hires/AurelUnplugPolicy.java tests/AurelUnplugPolicyTest.java
+          java -cp build/unplug-policy-test com.aurel.hires.AurelUnplugPolicyTest
           mkdir -p build/beat-check
           javac -d build/beat-check app/src/main/java/com/aurel/hires/AurelBeatEnvelope.java tests/AurelBeatEnvelopeTest.java
           java -cp build/beat-check com.aurel.hires.AurelBeatEnvelopeTest

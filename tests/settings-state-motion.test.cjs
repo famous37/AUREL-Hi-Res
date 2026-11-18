@@ -11,7 +11,7 @@ const appCode=asset('app.js'),settings=asset('aurel-settings-pro.js');
 const motion=asset('aurel-motion.js'),swipe=asset('aurel-swipe-minimize.js');
 const clarity=asset('aurel-clarity.css'),index=asset('index.html');
 const gradle=fs.readFileSync(path.join(base,'app/build.gradle'),'utf8');
-assert(/versionCode\s+91/.test(gradle) && gradle.includes("'1.1.72'"),
+assert(/versionCode\s+92/.test(gradle) && gradle.includes("'1.1.73'"),
  'New release must advance versionCode and versionName');
 for(const js of [syncCode,motion,swipe,settings])new Function(js);
 assert(index.indexOf('aurel-preference-sync.js')>index.indexOf('aurel-page-cache.js'));
@@ -26,7 +26,7 @@ assert(java.includes('if(p.has("quality")){')&&java.includes('p.getInt("quality"
 assert(java.includes('digitalHeadroomDb=0;')&&java.includes('prefetchNextMetadata=true;'));
 assert(settings.includes("sync.change('digitalHeadroomDb',db"));
 assert(settings.includes("sync.change('preloadNextMetadata',value"));
-assert(motion.includes("duration:265")&&!motion.includes("translate3d(0,5px,0)"));
+assert(motion.includes("duration:215")&&!motion.includes("translate3d(0,5px,0)"));
 assert(motion.includes("previous===next"));
 assert(clarity.includes('animation:none!important;')&&!clarity.includes('animation:aurel-settings-enter'));
 assert(swipe.includes('if(!g||dismissing)return;'));
