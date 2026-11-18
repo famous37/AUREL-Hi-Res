@@ -8,7 +8,7 @@ const fit=read('aurel-player-fit.js');
 const source=read('murglar.js');
 const nav=read('aurel-bold-controls.css');
 
-assert(css.trim().startsWith('/* AUREL 1.1.57'));
+assert(css.trim().startsWith('/* AUREL 1.1.58'));
 assert.equal((css.match(/@media\s*\(orientation:landscape\)\s*and\s*\(min-width:420px\)/g)||[]).length,3);
 assert(css.includes('(max-width:599px)'),'Compact split-screen layout missing');
 assert(css.includes('(max-width:419px)'),'Ultra-narrow stacked fallback missing');
@@ -54,4 +54,4 @@ assert(css.includes('> button.aurel-share-control > svg.ui-icon'));
 assert(css.includes('width:29px!important'));
 const nOpen=(css.match(/\{/g)||[]).length,nClose=(css.match(/\}/g)||[]).length;
 assert.equal(nOpen,nClose,'Balanced CSS braces');
-console.log('AUREL 1.1.57 isolated landscape media queries, two-column player, portrait guard and responsive controls PASS');
+console.log('AUREL 1.1.58 isolated landscape media queries, two-column player, portrait guard and responsive controls PASS');
