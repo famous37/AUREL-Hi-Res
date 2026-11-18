@@ -43,6 +43,7 @@
    const wanted=requestCapture();
    if(wanted!==nativeWanted){
      nativeWanted=wanted;
+     if(!wanted)lastFrame=0;
      queueNative(wanted,false).then(result=>{
        if(result?.permissionGranted===true)permissionGranted=true;
      }).catch(()=>{});
@@ -118,8 +119,7 @@
  });
  document.addEventListener('visibilitychange',sync);
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);
- // Watch only the active player; no animation timer survives pause/closing.
- setInterval(()=>{if(enabled&&app.overlay)sync();},650);
+ // Player state events and FFT callbacks drive the effect; no idle timer.
  installSetting();
  sync();
  window.AurelCoverRhythm={
