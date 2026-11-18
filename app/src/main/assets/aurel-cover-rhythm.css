@@ -33,21 +33,6 @@
 .aurel-rhythm-setting {cursor:pointer}
 .aurel-rhythm-setting small {display:block;line-height:1.45;max-width:42rem}
 .aurel-rhythm-setting input {flex-shrink:0}
-.aurel-rhythm-diagnostic-button {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:9px 13px;
-  margin:8px 0 3px;
-  min-height:40px;
-  border:1px solid var(--aurel-theme-stroke,#65656b);
-  border-radius:11px;
-  font-size:14px;
-  font-weight:650;
-  color:var(--aurel-theme-text,#e9e9ec);
-  background:transparent;
-}
-.aurel-rhythm-diagnostic-button:disabled{opacity:.5}
 .aurel-rhythm-setting [data-aurel-rhythm-status]{
   margin-top:5px;
   opacity:.90;
