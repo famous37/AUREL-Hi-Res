@@ -16,10 +16,12 @@ assert(css.includes('@media (orientation:landscape) {'));
 assert(!css.includes('@media (orientation:portrait)'));
 assert(!css.includes('@media(max-width:820px)'));
 const last=html.lastIndexOf('<link rel="stylesheet"');
-assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-seamless-theme.css">'),
+assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-glass-polish.css">'),
  'The final borderless layer must load after proven landscape geometry');
 assert(html.indexOf('aurel-landscape-nav.css')<html.indexOf('aurel-universal-borderless.css'));
 assert(html.indexOf('aurel-universal-borderless.css')<html.indexOf('aurel-seamless-theme.css'));
+assert(html.indexOf('aurel-seamless-theme.css')<html.indexOf('aurel-glass-polish.css'));
+assert(!read('aurel-glass-polish.css').includes('grid-template-rows:'),'Glass styling cannot change landscape navigation grid');
 assert(!read('aurel-universal-borderless.css').includes('grid-template-rows:'),
  'Final borderless layer must not damage landscape navigation grid');
 assert(html.indexOf('aurel-landscape.css')<html.indexOf('aurel-landscape-nav.css'));
