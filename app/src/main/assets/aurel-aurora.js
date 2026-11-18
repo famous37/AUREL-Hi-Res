@@ -37,7 +37,7 @@
    // The full-screen player and its persistent bottom navigation are siblings.
    // Mirror verified artwork CSS tokens onto the nav so they match without
    // changing the appearance of unrelated app pages.
-   const nav=document.querySelector('.bottom-nav');
+   const nav=document.querySelector?.('.bottom-nav');
    for(const target of [overlay,nav]){
      if(!target?.style)continue;
      target.style.setProperty('--aurel-album-bg',c.bg);
