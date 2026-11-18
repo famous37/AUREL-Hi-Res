@@ -51,6 +51,18 @@ assert.equal(logs.count(),5,'Native player failure is logged');
  try{await context.nativeCall('seek',{ms:10});assert.fail('Must propagate native rejection');}
  catch(err){assert.ok(err.message.includes('Network failure'));}
  assert.equal(logs.count(),6,'Bridge error is logged and still rejects');
+ events.error({target:{tagName:'SCRIPT',src:'file:///android_asset/secondary-player.js'}});
+ assert.ok(logs.report().includes('secondary-player.js'),'Missing internal JS resource is actionable');
+ const n=logs.count();
+ events.error({message:'External failure',filename:'https://private.example.net/secret.js?token=abc',lineno:4,colno:6});
+ assert.equal(logs.count(),n+1);
+ assert.ok(logs.report().includes('[external script]:4:6'),'External scripts are distinguished');
+ assert.ok(!logs.report().includes('private.example.net'),'External origins never appear in support logs');
+ events.unhandledrejection({reason:{
+   message:'Promise load failed',
+   stack:'Error: Promise load failed\\n at run (file:///android_asset/aurel-continuity.js:28:9)'
+ }});
+ assert.ok(logs.report().includes('aurel-continuity.js:28:9'),'Local promise stack source is preserved');
  for(let i=0;i<110;i++)logs.record('system-'+i,'failure-'+i);
  assert.equal(logs.count(),70,'Error log is bounded');
  assert.ok(storage.has('aurel_error_journal_v1'),'Support log persists locally');
