@@ -65,6 +65,27 @@ public final class MainActivity extends Activity {
     private boolean beatUiWanted=false;
     private boolean beatForeground=true;
     private String lastBeatStatus="";
+    private boolean beatTickScheduled=false;
+    private final Runnable beatTicker=new Runnable(){
+        @Override public void run(){
+            beatTickScheduled=false;
+            if(!beatUiWanted||!beatForeground||web==null)return;
+            refreshBeatMonitor();
+            if(beatMonitor!=null)beatMonitor.poll();
+            refreshBeatMonitor();
+            startBeatTicker();
+        }
+    };
+    private void startBeatTicker(){
+        if(beatUiWanted&&beatForeground&&!beatTickScheduled){
+            beatTickScheduled=true;
+            ui.postDelayed(beatTicker,130L);
+        }
+    }
+    private void stopBeatTicker(){
+        ui.removeCallbacks(beatTicker);
+        beatTickScheduled=false;
+    }
     private boolean hasEngine(){return player!=null;}
     private boolean isAudioPlaying(){return player!=null&&prepared&&player.isPlaying();}
     private int audioPosition(){
@@ -353,6 +374,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onPause() {
         beatForeground=false;
+        stopBeatTicker();
         if(beatMonitor!=null)beatMonitor.stop();
         // Flush the JS navigation snapshot while the WebView still exists.
         if(web!=null)web.evaluateJavascript("window.AurelPersistNow && window.AurelPersistNow()",null);
@@ -364,6 +386,7 @@ public final class MainActivity extends Activity {
         super.onResume();
         beatForeground=true;
         refreshBeatMonitor();
+        startBeatTicker();
     }
 
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results) {
@@ -400,7 +423,8 @@ public final class MainActivity extends Activity {
         else if(pureOutput)status="bitperfect";
         else if(!allowed)status="permission";
         else if(!playing)status="paused";
-        else if(beatMonitor.hasFrames())status="live";
+        else if(beatMonitor.hasSignal())status="live";
+        else if(beatMonitor.hasFrames())status="silent";
         else if(beatMonitor.waitingForFrames())status="waiting";
         else status="unavailable";
         updateBeatStatus(status);
@@ -668,6 +692,7 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         beatUiWanted=false;
+        stopBeatTicker();
         if(beatMonitor!=null)beatMonitor.stop();
         savePlaybackContinuity();
         ui.removeCallbacks(ticker);
@@ -1184,10 +1209,46 @@ public final class MainActivity extends Activity {
                                 beatUiWanted=wanted;
                                 if(ask&&!allowed)requestPermissions(
                                     new String[]{Manifest.permission.RECORD_AUDIO},BEAT_CAPTURE_PERMISSION_REQUEST);
+                                if(wanted)startBeatTicker();
+                                else stopBeatTicker();
                                 refreshBeatMonitor();
                             });
                             data=new JSONObject().put("enabled",wanted)
                                 .put("permissionGranted",allowed);
+                            break;
+                        }
+                        case "beatDiagnostics": {
+                            java.util.concurrent.FutureTask<JSONObject> task=
+                                new java.util.concurrent.FutureTask<>(()->{
+                                    JSONObject result=new JSONObject();
+                                    result.put("appVersion","1.1.62");
+                                    result.put("android",Build.VERSION.SDK_INT);
+                                    result.put("permission",checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED);
+                                    result.put("requested",beatUiWanted);
+                                    result.put("foreground",beatForeground);
+                                    result.put("isPlaying",player!=null&&prepared&&player.isPlaying());
+                                    result.put("bitPerfect",bitPerfect!=null&&bitPerfect.isEnabled());
+                                    result.put("state",lastBeatStatus);
+                                    result.put("visualizer",beatMonitor==null?new JSONObject():beatMonitor.diagnostics());
+                                    return result;
+                                });
+                            ui.post(task);
+                            data=task.get(3,java.util.concurrent.TimeUnit.SECONDS);
+                            break;
+                        }
+                        case "copyBeatDiagnostics": {
+                            String report=p.optString("report","");
+                            if(report.length()>1800)report=report.substring(0,1800);
+                            final String clipboardText=report;
+                            ui.post(()->{
+                                try {
+                                    android.content.ClipboardManager clipboard=(android.content.ClipboardManager)
+                                        getSystemService(Context.CLIPBOARD_SERVICE);
+                                    if(clipboard!=null)clipboard.setPrimaryClip(
+                                        android.content.ClipData.newPlainText("AUREL FFT diagnostics",clipboardText));
+                                }catch(RuntimeException ignored){}
+                            });
+                            data=new JSONObject().put("copied",true);
                             break;
                         }
                         case "audioDiagnostics": {
