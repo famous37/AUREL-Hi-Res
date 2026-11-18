@@ -30,6 +30,10 @@ assert.match(script,/!bitPerfect\(\)/);
 assert.match(script,/prefers-reduced-motion: reduce/);
 assert.match(script,/requestPermission:!!ask/);
 assert.match(script,/aurel-beat-ambient/);
+assert.match(script,/0\.963\+amount\*0\.127/, 'Beat pulse must shrink and expand, not only enlarge');
+assert.match(css,/@keyframes aurel-cover-breathe/);
+assert.match(css,/scale\(\.965\)/);
+assert.match(css,/scale\(1\.08\)/);
 
 assert.match(css,/#overlay\.aurel-beat-live \.murglar-cover/);
 assert.match(css,/#overlay\.aurel-beat-ambient \.murglar-cover/);
