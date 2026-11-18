@@ -11,7 +11,7 @@ const main=read('app/src/main/java/com/aurel/hires/MainActivity.java');
 const html=read('app/src/main/assets/index.html');
 const gradle=read('app/build.gradle');
 assert.match(gradle,/versionCode\s+86/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.66'/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.67'/);
 assert.ok(html.includes('href="aurel-aurora.css"'));
 assert.ok(html.includes('src="aurel-aurora.js"'));
 assert.ok(html.indexOf('aurel-aurora.css')>html.indexOf('aurel-cover-rhythm.css'));
