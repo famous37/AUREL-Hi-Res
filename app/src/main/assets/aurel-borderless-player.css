@@ -147,7 +147,7 @@
  #full-toggle::before {
   inset:-5px;
   filter:blur(11px)!important;
-  opacity:calc(var(--aurel-aurora-opacity,.26) * .68)!important;
+  opacity:var(--aurel-aurora-opacity,.26)!important;
 }
 /* Timeline: one slender album-accent line and a solid knob; no outlined pill. */
 :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
@@ -240,6 +240,24 @@
  .bottom-nav button:focus-visible {
   outline:2px solid var(--aurel-clean-gold,var(--aurel-album-accent,#f4f5f7))!important;
   outline-offset:-2px!important;
+  border-radius:12px!important;
+}
+/* All framed surfaces stay borderless, but D-pad and keyboard focus is
+ * explicitly visible. Selector strength exceeds the box-removal rules. */
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-quick-actions > button:focus-visible,
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-transport .murglar-control:focus-visible,
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-source-line:focus-visible {
+  outline:2px solid var(--aurel-clean-gold)!important;
+  outline-offset:-2px!important;
+  border-radius:12px!important;
+}
+:root[data-aurel-palette] .app:has(#overlay:not(.hidden))
+ .bottom-nav button.active:focus-visible {
+  outline:2px solid var(--aurel-album-accent,#d5d7db)!important;
+  outline-offset:-3px!important;
   border-radius:12px!important;
 }
 /* Do not create tiny/unclickable hit areas in phone or landscape modes. */
