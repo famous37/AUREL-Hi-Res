@@ -23,7 +23,7 @@
       <div class="aurel-art-backdrop" aria-hidden="true"></div>
       <header class="murglar-header aurel-listening-nav">
         <button data-close-overlay class="murglar-header-button" aria-label="Minimize player">${ic('down',26)}</button>
-        <strong class="murglar-now-heading">${src?`<img class="murglar-heading-cover" src="${html(src)}" alt="Album cover" loading="eager">`:`<span class="murglar-heading-cover placeholder">♪</span>`}<span>Now Playing</span></strong>
+        <span class="murglar-now-heading" aria-hidden="true"></span>
         <button data-player-sheet="audio" class="murglar-header-button" aria-label="Audio information">${ic('more',27)}</button>
       </header>
       <div class="murglar-player-content">

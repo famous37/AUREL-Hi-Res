@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.67: borderless premium Now Playing, retaining actual FFT and album colors.
+# v1.1.68: fully borderless AUREL and opt-in native album palette on every screen.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -114,6 +114,7 @@ jobs:
           node tests/aurora-glow.test.cjs
           node tests/aurora-glow-runtime.test.cjs
           node tests/borderless-player.test.cjs
+          node tests/universal-borderless-theme.test.cjs
           node tests/error-log.test.cjs
           node tests/fluid-windows.test.cjs
           node tests/global-polish.test.cjs
@@ -176,19 +177,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — borderless album-aware Now Playing**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — unified borderless design across AUREL**" \
             '' \
-            '- Removed bulky bordered capsules from the player header, action buttons, secondary transport controls, FLAC format indicator, and active bottom navigation.' \
-            '- Unified the player and bottom navigation with the verified colors of the current artwork, while keeping white/ivory text legible.' \
-            '- Kept one elegant album-accented Play/Pause disc, understated native-gradient background and subtle soft shadows.' \
-            '- No neon CSS timers: existing real bass FFT continues driving restrained glow without altering PCM, USB, sample rate or volume.' \
+            '- Removed the redundant Now Playing heading and thumbnail from the open player header, leaving the ambient album light unobstructed.' \
+            '- Applied coherent borderless icons to Discover, search, library, Settings, album actions, mini-player and all navigation areas.' \
+            '- When Use album artwork colours is ON, the entire app follows the actual album palette; OFF restores neutral graphite without stale colors.' \
+            '- Aligned text contrast, highlights, progress, active tabs and non-player surfaces to one quiet album-aware design system.' \
             '- Aurora Glow now independently enables the existing own-session FFT analyzer in standard Android output, even if the separate cover-pulsation setting is off.' \
             '- In bit-perfect mode Android Visualizer remains disabled and album-colored glow stays static: no artificial beat and no audio modification.' \
-            '- Consistent touch target sizes, precise icon alignment and contrast in compact portrait and two-column landscape.' \
+            '- Preserved all touch target dimensions, labels, keyboard focus, short portrait and two-column landscape fitting.' \
             '- All sizing, scrolling, bottom navigation and portrait/landscape safety rules are preserved; reduced-motion and pause disable rhythmic motion.' \
-            '- Added borderless UI and palette/nav synchronization regression tests, retaining all existing FFT, transport, navigation and permanent-signing checks.' \
+            '- Added global theme opt-in/off and stale-cover race tests alongside all prior FFT, navigation, USB, and signing regressions.' \
             '' \
-            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.66 without clearing library or account information." \
+            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.67 without clearing library or account information." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
