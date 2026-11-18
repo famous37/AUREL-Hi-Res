@@ -251,6 +251,10 @@ public final class AurelPlaybackService extends Service {
             notifications.createNotificationChannel(c);
         }
         session=new MediaSession(this,"AUREL Hi-Res");
+        // All output, including USB DAC and volume keys, is owned by Android.
+        session.setPlaybackToLocal(new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build());
         session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS|MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         session.setCallback(new MediaSession.Callback(){
             @Override public void onPlay(){dispatch("toggle",true);}

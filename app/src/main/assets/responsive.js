@@ -45,12 +45,16 @@
     const name=m.querySelector('.mini-title'),artistNode=m.querySelector('.mini-artist');
     if(name&&name.textContent!==title)name.textContent=title;
     if(artistNode&&artistNode.textContent!==performer)artistNode.textContent=performer;
-    const toggle=m.querySelector('[data-mini-toggle]'),state=String(!!p.playing);
+    const toggle=m.querySelector('[data-mini-toggle]'),state=aurelPlaybackMode(p);
     if(toggle&&m.dataset.miniPlaying!==state){
-      toggle.innerHTML=ic(p.playing?'pause':'play',26);
-      toggle.setAttribute('aria-label',p.playing?'Pause':'Play');
+      aurelStopLoadingAnimation(toggle);
+      toggle.innerHTML=aurelPlaybackIcon(p,26);
+      toggle.setAttribute('aria-label',aurelPlaybackLabel(p));
+      toggle.setAttribute('aria-busy',String(state==='loading'));
+      toggle.classList.toggle('is-loading',state==='loading');
       m.dataset.miniPlaying=state;
     }
+    if(state==='loading')aurelEnsureLoadingAnimation(m);
     const bar=m.querySelector('.mini-progress'),value=played.toFixed(1)+'%';
     if(bar&&bar.dataset.played!==value){
       bar.style.setProperty('--played',value);

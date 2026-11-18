@@ -334,29 +334,10 @@ function renderLogin(){
 }
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
  let p=app.session.profile||{},lp=app.session.libraryProfile||{};
- const bp=app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
- const bpLabels={off:'Standard playback',android_version:'Android 14+ required',no_usb:'Waiting for USB DAC',waiting_track:'Waiting for a track',unknown_format:'Track format unknown',unsupported_format:'PCM format unavailable',policy_unavailable:'USB driver lacks bit-perfect',policy_error:'USB mixer query failed',unsupported:'Not supported',rejected:'Mixer request rejected',requested:'USB mixer requested',usb_mixer_routed:'USB mixer routed'};
- const bpStatus=bpLabels[bp.status]||'Checking USB output';
- // Render concise, truthful device-state explanations; raw native diagnostic
- // strings are still retained in session but need not crowd the settings UI.
- const bpExplanations={
-  off:'',
-  android_version:'Android 14 or newer required.',
-  no_usb:'Connect a compatible USB DAC.',
-  waiting_track:'Play a lossless track to check USB output.',
-  unknown_format:'Track audio format cannot be verified.',
-  unsupported_format:'Android has a bit-perfect mixer, but not for this track format.',
-  policy_unavailable:'Android does not offer bit-perfect through its USB audio driver.',
-  policy_error:'Could not check the Android USB audio policy.',
-  unsupported:'USB mixer controls are unavailable on this device.',
-  rejected:'Android rejected the USB mixer request.',
-  requested:'USB mixer preference accepted; PCM bit identity unverified.',
-  usb_mixer_routed:'USB audio routed; PCM bit identity unverified.'
- };
- const bpDescription=['unsupported_format','policy_unavailable','policy_error'].includes(bp.status)
-  ?(bp.detail||bpExplanations[bp.status]):
-  (Object.prototype.hasOwnProperty.call(bpExplanations,bp.status)
-    ?bpExplanations[bp.status]:(bp.detail||''));
+ const bp=app.player?.bitPerfect||app.session.bitPerfect||{enabled:false,status:'off',detail:'Standard Android playback'};
+ const bpLabels={off:'Android audio',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Requires Android 14+',no_usb:'USB DAC not connected',waiting_track:'Waiting for track',unknown_format:'Audio format unverified',unsupported_format:'PCM format not supported',policy_unavailable:'Android bit-perfect unavailable',policy_error:'Android mixer error',rejected:'Android mixer rejected request',requested:'Android bit-perfect preference accepted',usb_mixer_routed:'Android USB policy routed'};
+ const bpStatus=bpLabels[bp.status]||'Checking Android USB audio';
+ const bpDescription=bp.detail||'The system USB audio driver is used. Bit-perfect is optional and may be unavailable on this device.';
  $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back',25)}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel"><h3>Streaming account</h3>
  ${app.session.gatewayPlaybackRejected?`<div class="aurel-gateway-warning" role="status"><strong>Streaming verification needed</strong><span>The Zarz gateway rejected audio playback. Catalogue access alone does not confirm streaming authorization.</span><button class="pill secondary" data-reverify-mornye>Verify Mornye session</button></div>`:'' }
 <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
@@ -375,29 +356,37 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div class="panel"><h3>Streaming quality</h3>
  <div class="selectrow" role="group" aria-label="Streaming quality">${[5,6,7,27].map(q=>`<button type="button" class="quality ${app.session.quality===q?'selected':''}" data-quality="${q}" aria-pressed="${app.session.quality===q}"><strong>${q===5?'MP3':q===6?'CD Lossless':q===7?'Hi-Res':'Max Hi-Res'}</strong><small>${q===5?'320 kbps':q===6?'16 / 44.1':q===7?'24 / 96':'24 / 192'}</small></button>`).join('')}</div>
  <section class="aurel-bp-panel" aria-label="USB bit-perfect playback setting">
-   <div class="aurel-bp-heading"><div><h3>Bit-perfect USB</h3><p>Android 14+ · USB DAC required</p></div>
+   <div class="aurel-bp-heading"><div><h3>Android USB bit-perfect</h3><p>Android 14+ · AudioManager preferred mixer · no third-party USB driver</p></div>
      <button type="button" data-bit-perfect-toggle class="aurel-bp-switch ${bp.enabled?'is-on':''}" role="switch" aria-checked="${bp.enabled?'true':'false'}" aria-label="Enable bit-perfect USB output" title="Toggle bit-perfect USB output"><span aria-hidden="true"></span></button>
    </div>
-   <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${bp.status==='usb_mixer_routed'?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
+   <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${['usb_mixer_routed'].includes(bp.status)?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
    ${bpDescription?`<p class="aurel-bp-detail">${html(bpDescription)}</p>`:''}
-   
- </section>
+   ${bp.enabled?`<p class="aurel-bp-detail">When Android bit-perfect is active, software volume and effects are bypassed. Reduce volume at the DAC or amplifier before playback.</p>`:''}
+   </section>
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.43</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.55</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
  let p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}
  m.classList.remove('hidden');let t=p.track;
- m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
+ m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">${ic('next',24)}</button><button class="mini-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-mini-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p,26)}</button>`;
 }
 function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
- const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=p.position||0}
- if($('#elapsed'))$('#elapsed').textContent=duration((p.position||0)/1000);
- if($('#remaining'))$('#remaining').textContent='-'+duration(Math.max(0,(p.duration||0)-(p.position||0))/1000);
- if($('#full-toggle'))$('#full-toggle').innerHTML=ic(p.playing?'pause':'play',33);
+ const smoothPosition=window.AurelProgressClock?.read(p)??(Number(p.position)||0);
+ const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=smoothPosition}
+ if($('#elapsed')&&!app.dragging)$('#elapsed').textContent=duration(smoothPosition/1000);
+ if($('#remaining')&&!app.dragging)$('#remaining').textContent='-'+duration(Math.max(0,(p.duration||0)-smoothPosition)/1000);
+ const primary=$('#full-toggle');
+ if(primary){
+  const mode=aurelPlaybackMode(p);
+  if(primary.dataset.icon!==mode){primary.innerHTML=aurelPlaybackIcon(p,33);primary.dataset.icon=mode;}
+  primary.classList.toggle('is-loading',mode==='loading');
+  primary.setAttribute('aria-busy',String(mode==='loading'));
+  primary.setAttribute('aria-label',aurelPlaybackLabel(p));
+ }
  if($('#full-shuffle'))$('#full-shuffle').classList.toggle('active',!!p.shuffle);
  if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').innerHTML=ic('repeat',23)+(p.repeat===2?'<span class="repeat-one">1</span>':'');}
  if($('#playingStatus'))$('#playingStatus').textContent=p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED';
@@ -405,12 +394,12 @@ function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
 function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return;}
  let p=app.player||{},t=p.track||{},src=image(t);overlay.classList.remove('hidden');
  overlay.style.setProperty('--cover-image',src?`url("${src}")`:'none');
- overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>⌄ <span>Now playing</span></button>
+ overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>${ic('down',25)} <span>Now playing</span></button>
  <div class="art-stage">${src?`<img class="now-cover" src="${html(src)}" alt="Album cover">`:'<div class="now-cover empty-art">♫</div>'}</div>
  <div class="now-info"><span>${p.bits?(p.bits+'-bit / '+(p.sampleRate>1000?(p.sampleRate/1000):p.sampleRate)+' kHz'):'AUDIO QUALITY PENDING'}</span><span>${p.formatId===5?'MP3':p.formatId?'FLAC':''}</span></div>
  <div class="now-track-row"><div class="now-title">${html(t.title||'Choose a track')}</div><div class="now-artist">${html(artistLabel(t))}</div></div>
- <input id="progress" class="progress" type="range" min="0" max="${p.duration||100}" value="${p.position||0}" step="500"><div class="timebar"><span id="elapsed">${duration((p.position||0)/1000)}</span><span id="remaining">-${duration(Math.max(0,(p.duration||0)-(p.position||0))/1000)}</span></div>
- <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle>⤨</button><button class="ctrl" data-prev>❚◀</button><button id="full-toggle" class="main-play" data-full-toggle>${p.playing?'Ⅱ':'▶'}</button><button class="ctrl" data-next>▶❚</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat>${p.repeat===2?'↺¹':'↺'}</button></div>
+ <input id="progress" class="progress" type="range" min="0" max="${p.duration||100}" value="${p.position||0}" step="any"><div class="timebar"><span id="elapsed">${duration((p.position||0)/1000)}</span><span id="remaining">-${duration(Math.max(0,(p.duration||0)-(p.position||0))/1000)}</span></div>
+ <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle aria-label="Shuffle">${ic('shuffle',24)}</button><button class="ctrl" data-prev aria-label="Previous track">${ic('prev',28)}</button><button id="full-toggle" class="main-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p,34)}</button><button class="ctrl" data-next aria-label="Next track">${ic('next',28)}</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat aria-label="Repeat">${ic('repeat',24)}${p.repeat===2?'<span class="repeat-one">1</span>':''}</button></div>
  <div class="playing-foot"><span id="playingStatus">${p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED'}</span><span>QUEUE ${p.count?`${p.index+1} / ${p.count}`:'—'}</span></div>
  ${p.error?`<div class="playback-error">${html(p.error)}</div>`:''}</div>`;
 }
@@ -698,7 +687,7 @@ document.addEventListener('click',async ev=>{
        value=>nativeCall('setBitPerfect',{enabled:value})):
        await nativeCall('setBitPerfect',{enabled:wanted});
      if(!result?.superseded)showToast(wanted?
-       'USB bit-perfect preference enabled. Check device status below.':
+       'Android bit-perfect preference enabled. Support depends on your USB DAC and system audio HAL.':
        'Standard Android output restored.',4200);
    }catch(e){showToast(e.message||'Could not change USB output mode',5200);}
    finally{if(b.isConnected)b.disabled=false;}
@@ -734,7 +723,7 @@ document.addEventListener('click',async ev=>{
   }catch(e){showToast(e.message)}return}
  if(b.hasAttribute('data-mini-toggle')||b.hasAttribute('data-full-toggle')){ev.stopPropagation();togglePlayback();return}
  if(b.hasAttribute('data-mini-next')||b.hasAttribute('data-next')){ev.stopPropagation();nativeCall('next').catch(()=>{});return}
- if(b.hasAttribute('data-prev')){nativeCall('previous').catch(()=>{});return}
+ if(b.hasAttribute('data-prev')){if(typeof window!=='undefined')window.AurelProgressClock?.markSeek(0);nativeCall('previous').catch(()=>{});return}
  if(b.hasAttribute('data-shuffle')){nativeCall('playbackSettings',{repeat:app.player?.repeat||0,shuffle:!app.player?.shuffle}).catch(()=>{});return}
  if(b.hasAttribute('data-repeat')){nativeCall('playbackSettings',{repeat:((app.player?.repeat||0)+1)%3,shuffle:app.player?.shuffle||false}).catch(()=>{});return}
  if(b.hasAttribute('data-close-overlay')){if(!window.AurelMinimizePlayer?.()){app.overlay=false;drawOverlay();}return}
@@ -762,6 +751,7 @@ document.addEventListener('change',e=>{
    updateOverlayState();return;
  }
  const ms=Math.round(Math.max(0,Math.min(total,position)));
+ if(typeof window!=='undefined')window.AurelProgressClock?.markSeek(ms);
  nativeCall('seek',{ms}).catch(err=>{
    showToast(err?.message||'Could not change playback position',4500);
    updateOverlayState();

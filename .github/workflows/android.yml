@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55]
   pull_request:
     branches: [main]
 jobs:
@@ -15,15 +15,17 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-      - name: Install Android SDK 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          gradle-version: '9.5.0'
+      - name: Install Android API 37
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Compile Android media player and system mixer
+        run: gradle --no-daemon :app:compileDebugJavaWithJavac --stacktrace
       - name: Validate all player scripts
         run: |
           for file in app/src/main/assets/*.js; do node --check "$file"; done
@@ -43,14 +45,20 @@ jobs:
         run: node tests/navigation.test.cjs
       - name: Verify icon-only player, accessible controls and navigation hooks
         run: node tests/minimal-player.test.cjs
-      - name: Verify USB Bit-perfect mixer negotiation and UI safeguards
+      - name: Verify Android 14 platform bit-perfect mixer negotiation
         run: node tests/bit-perfect.test.cjs
+      - name: Verify Android-only volume and stable progress
+        run: node tests/usb-volume-recovery.test.cjs
+      - name: Verify Android bit-perfect capability and normal output isolation
+        run: node tests/usb-bitperfect-recovery.test.cjs
       - name: Verify playback, history, USB diagnosis and update continuity
         run: node tests/playback-continuity.test.cjs
       - name: Verify swipe-down minimization and high-contrast SVG controls
         run: node tests/swipe-icons.test.cjs
       - name: Verify restored icon and precise seek gesture regression
         run: node tests/player-icon-seek.test.cjs
+      - name: Verify uniform bold SVG player buttons and loading spinner states
+        run: node tests/ui-bold-loading.test.cjs
       - name: Verify global typography, vector icons and motion invariants
         run: node tests/global-polish.test.cjs
       - name: Verify vector action buttons, search and quicklinks
@@ -103,7 +111,7 @@ jobs:
           AUREL_RELEASE_KEYSTORE_PATH="$RUNNER_TEMP/aurel-ci-signing/throwaway-ci-only.p12" \
             AUREL_RELEASE_PASSWORD="ci-temporary-signing-only" \
             gradle --no-daemon :app:assembleRelease --rerun-tasks
-          "${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --verbose \
+          "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --verbose \
             app/build/outputs/apk/release/app-release.apk
           # This APK has an ephemeral CI test key and is NEVER published.
           rm -f app/build/outputs/apk/release/app-release.apk

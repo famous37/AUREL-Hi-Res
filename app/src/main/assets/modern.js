@@ -150,10 +150,10 @@ function audioPanel(p){
   ['Android parsed sample rate',decoderHz||'Not exposed'],
   ['MediaPlayer channels',p?.decoderChannels||'Not reported'],
   ['Android mixer property',p?.androidMixerHz?`${p.androidMixerHz} Hz (not DAC format)`:'Not reported'],
-  ['USB bit-perfect preference',p?.bitPerfect?.enabled?(p.bitPerfect.mixerPreferenceAccepted?'Requested by Android':'Enabled · not engaged'):'Off'],
+  ['USB bit-perfect preference',p?.bitPerfect?.enabled?(p.bitPerfect.directUsbSelected?'Userspace USB driver selected':p.bitPerfect.mixerPreferenceAccepted?'Requested by Android':'Enabled · not engaged'):'Off'],
   ['USB output routing',p?.bitPerfect?.usbRouted?'Routed to selected USB DAC':'Not confirmed'],
   ['USB mixer status',p?.bitPerfect?.detail||'No bit-perfect status'],
-  ['End-to-end bit identity','Not independently measurable via MediaPlayer'],
+  ['End-to-end bit identity','Not yet independently verified on the attached USB DAC'],
   ['Media size',bytesText(p?.fileSize)],
   ['Requested maximum',qualityText(p?.quality)]
  ];
@@ -166,12 +166,12 @@ const ic=(key,size=24)=>{
  const path={
   down:'<path d="m6 9 6 6 6-6"/>',more:'<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
   heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.7 7.7L12 21l8.8-8.7a5.5 5.5 0 0 0 0-7.7Z"/>',
-  shuffle:'<path d="m18 14 4 4-4 4m0-20 4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M2 6h2.5c2 0 3.5 1.6 5 4M14 16c1.6 1.5 3.4 2 6 2h2"/>',
+  shuffle:'<path d="m18 14 4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M18 2l4 4-4 4M2 6h2.5c2 0 3.5 1.6 5 4M14 16c1.6 1.5 3.4 2 6 2"/>',
   repeat:'<path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3"/>',
   prev:'<path d="M6 5v14M19 6 9 12l10 6V6Z"/>',next:'<path d="M18 5v14M5 6l10 6-10 6V6Z"/>',
   play:'<path d="m8 5 12 7-12 7V5Z"/>',pause:'<path d="M8 5v14M16 5v14"/>',
   queue:'<path d="M4 6h16M4 12h16M4 18h9"/><path d="m17 16 4 2-4 2z"/>',
-  info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
   audio:'<path d="M5 9v6M9 6v12M13 3v18M17 7v10M21 10v4"/>',
   chevron:'<path d="m9 18 6-6-6-6"/>',
   eye:'<path d="M2 12s3.6-6.7 10-6.7S22 12 22 12s-3.6 6.7-10 6.7S2 12 2 12z"/><circle cx="12" cy="12" r="3.4"/>',
@@ -192,10 +192,79 @@ const ic=(key,size=24)=>{
   back:'<path d="m15 18-6-6 6-6"/>',
   close:'<path d="m18 9-6 6-6-6"/>',
   album:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/>',
+  share:'<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m7.9 11 8.2-4.9M7.9 13l8.2 4.9"/>',
  }[key]||'';
- return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+ return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+};
+/** Shared vector family and playback-state glyph selection. */
+const aurelPlaybackMode=p=>p?.buffering&&!p?.error?'loading':p?.playing?'pause':'play';
+const aurelSpinner=(size=28)=>`<svg class="aurel-spinner" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="aurel-spinner-track" cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.6" opacity=".20"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>`;
+const aurelPlaybackIcon=(p,size=28)=>aurelPlaybackMode(p)==='loading'?aurelSpinner(size):ic(aurelPlaybackMode(p),size);
+const aurelPlaybackLabel=p=>aurelPlaybackMode(p)==='loading'?'Loading audio':p?.playing?'Pause':'Play';
+/* WebView may disable CSS animations via older motion/theme rules.
+ * Use compositor rotation so the Play control remains a live loading gauge. */
+const aurelEnsureLoadingAnimation=(root)=>{
+ if(!root?.querySelectorAll)return;
+ const reduced=typeof window.matchMedia==='function' &&
+   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ for(const svg of root.querySelectorAll('svg.aurel-spinner')){
+  if(svg.dataset.aurelAnimated==='1')continue;
+  svg.dataset.aurelAnimated='1';
+  if(typeof svg.animate!=='function')continue; // CSS remains fallback
+  try{
+   const animation=svg.animate(
+    [{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],
+    {duration:reduced?2400:860,iterations:Infinity,easing:'linear'});
+   svg.style.setProperty('animation','none','important');
+   svg._aurelSpinnerAnimation=animation;
+  }catch(_){svg.style.removeProperty('animation');}
+ }
+};
+const aurelStopLoadingAnimation=(root)=>{
+ if(!root?.querySelectorAll)return;
+ for(const svg of root.querySelectorAll('svg.aurel-spinner')){
+  try{svg._aurelSpinnerAnimation?.cancel();}catch(_){}
+ }
 };
 const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
+let aurelMiniAnimating=false;
+let aurelLastMiniFrame=0;
+function wakeAurelMiniAnimation(){
+ if(aurelMiniAnimating||!app.player?.playing||typeof requestAnimationFrame!=='function')return;
+ aurelMiniAnimating=true;
+ requestAnimationFrame(aurelMiniFrame);
+}
+function aurelMiniFrame(time){
+ if(!app.player?.playing || document.hidden){
+   aurelMiniAnimating=false;
+   return;
+ }
+ if(time-aurelLastMiniFrame>=110){
+   aurelLastMiniFrame=time;
+   const p=app.player,clock=window.AurelProgressClock;
+   const durationMs=Number(p.duration)||0;
+   if(durationMs>0 && clock){
+     const position=clock.read(p);
+     const ratio=Math.max(0,Math.min(1,position/durationMs));
+     const fill=document.querySelector('#mini .mini-progress-fill');
+     if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
+     const slider=document.querySelector('#overlay #progress');
+     if(slider&&!app.dragging)slider.value=String(Math.round(position));
+     const elapsed=document.querySelector('#overlay #elapsed');
+     if(elapsed&&!app.dragging){
+       const timeLabel=duration(position/1000);
+       if(elapsed.textContent!==timeLabel)elapsed.textContent=timeLabel;
+     }
+     const remaining=document.querySelector('#overlay #remaining');
+     if(remaining&&!app.dragging){
+       const timeLabel='-'+duration(Math.max(0,(durationMs-position)/1000));
+       if(remaining.textContent!==timeLabel)remaining.textContent=timeLabel;
+     }
+   }
+ }
+ requestAnimationFrame(aurelMiniFrame);
+}
+document.addEventListener('visibilitychange',wakeAurelMiniAnimation);
 // Stable mini-player: do not recreate artwork, buttons or metadata on each
 // 250 ms native position event. Preserve favourites state and scroll positions.
 updateMini=function(){
@@ -210,7 +279,7 @@ updateMini=function(){
    <div class="meta mini-track-open"><strong class="title"></strong><small class="artist"></small></div>
    <div class="mini-buttons"><button class="mini-love" data-mini-fav="${html(id)}" aria-label="Add to favourites">${ic('heart',24)}</button>
    <button class="mini-play" data-mini-toggle aria-label="Play">${ic('play',26)}</button></div>
-   <div class="mini-progress" aria-hidden="true"></div>`;
+   <div class="mini-progress" aria-hidden="true"><span class="mini-progress-fill"></span></div>`;
   m.dataset.miniTrack=id;
   m.dataset.miniPlaying='';
   m.dataset.miniArtwork=cover||'';
@@ -231,20 +300,30 @@ updateMini=function(){
   m.dataset.miniArtwork=cover||'';
  }
  const play=m.querySelector('[data-mini-toggle]');
- if(play&&m.dataset.miniPlaying!==String(!!p.playing)){
-  play.innerHTML=ic(p.playing?'pause':'play',26);
-  play.setAttribute('aria-label',p.playing?'Pause':'Play');
-  m.dataset.miniPlaying=String(!!p.playing);
+ const miniMode=aurelPlaybackMode(p);
+ if(play&&m.dataset.miniPlaying!==miniMode){
+  play.innerHTML=aurelPlaybackIcon(p,26);
+  play.setAttribute('aria-label',aurelPlaybackLabel(p));
+  play.setAttribute('aria-busy',String(miniMode==='loading'));
+  play.classList.toggle('is-loading',miniMode==='loading');
+  m.dataset.miniPlaying=miniMode;
  }
+ if(miniMode==='loading')aurelEnsureLoadingAnimation(m);
+ const position=window.AurelProgressClock?.accept(p)??(Number(p.position)||0);
  const bar=m.querySelector('.mini-progress');
- const percent=p.duration?Math.min(100,Math.max(0,100*(Number(p.position)||0)/Number(p.duration))):0;
- if(bar)bar.style.setProperty('--played',percent.toFixed(1)+'%');
+ const percent=p.duration?Math.min(100,Math.max(0,100*position/Number(p.duration))):0;
+ if(bar){
+   bar.style.setProperty('--played',percent.toFixed(2)+'%');
+   const fill=bar.querySelector('.mini-progress-fill');
+   if(fill)fill.style.transform='scaleX('+(percent/100).toFixed(6)+')';
+ }
+ wakeAurelMiniAnimation();
 };
 drawOverlay=function(){
  const overlay=$('#overlay');
  if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return}
  const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
- const progressTotal=Math.max(0,Number(p.duration)||0),position=Math.min(progressTotal,Math.max(0,Number(p.position)||0));
+ const progressTotal=Math.max(0,Number(p.duration)||0),position=Math.min(progressTotal,Math.max(0,(window.AurelProgressClock?.read(p) ?? Number(p.position) ?? 0)));
  const loading=p.buffering&&!p.error;
  const format=actualSource(p);
  const subtitle=p.error?'Playback unavailable':loading?'Connecting to audio…':p.sourceVerified?'Source format · Qobuz metadata':p.decoderSampleRateHz?'Media track format · Android':'Source format not confirmed';
@@ -266,12 +345,12 @@ drawOverlay=function(){
     </div>
     <button class="aurel-fav-button" data-like-track="${html(t.id||'')}" aria-label="Add to favourites">${ic('heart',27)}</button></section>
    <section class="aurel-timeline" aria-label="Track progress">
-    <input id="progress" class="progress" type="range" min="0" max="${progressTotal||100}" step="500" value="${position}" aria-label="Playback position">
+    <input id="progress" class="progress" type="range" min="0" max="${progressTotal||100}" step="any" value="${position}" aria-label="Playback position">
     <div class="aurel-timeline-labels"><span id="elapsed">${duration(position/1000)}</span><button class="aurel-source-pill" data-player-sheet="audio" aria-label="Show audio source information">${ic('audio',17)}<span>${html(format)}</span></button><span id="remaining">${duration(progressTotal/1000)}</span></div>
    </section>
    <section class="aurel-main-actions" aria-label="Playback controls">
     <button data-prev aria-label="Previous track" class="aurel-transport side">${ic('prev',33)}</button>
-    <button id="full-toggle" data-full-toggle aria-label="${p.playing?'Pause':'Play'}" class="aurel-transport middle">${ic(p.playing?'pause':'play',40)}</button>
+    <button id="full-toggle" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${loading}" class="aurel-transport middle ${loading?'is-loading':''}">${aurelPlaybackIcon(p,40)}</button>
     <button data-next aria-label="Next track" class="aurel-transport side">${ic('next',33)}</button>
    </section>
    <section class="aurel-extra-actions" aria-label="Playback options">
@@ -290,6 +369,22 @@ drawOverlay=function(){
 const formerEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const old=app.lastQueueFingerprint;formerEvent(kind,data);if(kind==='player'){
+ const slider=document.querySelector('[data-aurel-usb-volume]');
+ if(slider&&document.activeElement!==slider&&Number.isFinite(Number(data?.usbOutputVolumePercent))){
+   const percent=Math.min(100,Math.max(0,Number(data.usbOutputVolumePercent)));
+   slider.value=String(percent);
+   const label=document.querySelector('[data-aurel-usb-volume-label]');
+   if(label)label.textContent=percent+'%';
+ }
+ const mode=document.querySelector('[data-aurel-usb-volume-mode]');
+ if(mode){
+   const route=data?.bitPerfect?.usbVolumeMode;
+   const status=route==='hardware'?'DAC hardware volume · PCM unchanged':
+     route==='digital'?'Digital attenuation · not bit-perfect':
+     route==='unity'?'Unchanged PCM · no hardware control':
+     'USB control not active';
+   if(mode.textContent!==status)mode.textContent=status;
+ }
  const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
  const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz,data?.sourceBitrateKbps,data?.decoderBitrateKbps,data?.estimatedAvgBitrateKbps,data?.qualityProbePending,data?.qualityProbeAttempted,data?.streamHeaderVerified,data?.sourceEvidence,data?.frameBitrateKbps,data?.fileSize,data?.quality,data?.androidMixerHz,data?.bitPerfect?.enabled,data?.bitPerfect?.usbRouted,data?.bitPerfect?.mixerPreferenceAccepted,data?.bitPerfect?.detail]);
  const trackSignature=JSON.stringify([data?.track?.id,data?.track?.title,artistLabel(data?.track||{}),data?.track?.album?.title,image(data?.track||{}),data?.track?.isrc,data?.track?.composers,data?.track?.performers,data?.track?.album?.label,data?.track?.album?.release_date_original]);

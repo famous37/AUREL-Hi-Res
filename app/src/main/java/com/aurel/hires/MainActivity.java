@@ -8,6 +8,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.content.Context;
+import android.content.ComponentName;
+import android.content.pm.PackageManager;
+import android.view.KeyEvent;
 import android.graphics.Color;
 import android.util.Log;
 import android.media.AudioManager;
@@ -55,6 +58,25 @@ public final class MainActivity extends Activity {
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
     private MediaPlayer player;
+    private boolean hasEngine(){return player!=null;}
+    private boolean isAudioPlaying(){return player!=null&&prepared&&player.isPlaying();}
+    private int audioPosition(){
+        if(player!=null&&prepared)try{return player.getCurrentPosition();}
+        catch(RuntimeException ignored){}
+        return restoredPositionMs;
+    }
+    private int audioDuration(){
+        if(player!=null&&prepared)try{return player.getDuration();}
+        catch(RuntimeException ignored){}
+        return current.optInt("duration",0)*1000;
+    }
+    private void seekAudio(int ms){
+        if(prepared&&player!=null)player.seekTo(ms);
+    }
+    private JSONObject bitPerfectStatus(){return bitPerfect.status(player);}
+    private void startSelectedWithAudioFocus(){
+        if(player!=null)startWithAudioFocus(player);
+    }
     private BitPerfectOutput bitPerfect;
     private AudioManager systemAudio;
     private AudioFocusRequest audioFocusRequest;
@@ -89,6 +111,15 @@ public final class MainActivity extends Activity {
         try {
             if(!mp.isPlaying())mp.start();
             playerError="";
+            // getRoutedDevice() is meaningful only after playback begins.
+            // The Android 14 mixer preference must not be installed while
+            // MediaPlayer has no active audio output.
+            ui.postDelayed(()->{
+                if(player==mp&&prepared){
+                    configureAndroidUsb(mp,true);
+                    emit("player",playerState());
+                }
+            },450L);
         }catch(RuntimeException error){
             focusPolicy.focusDenied();
             abandonPlaybackFocus();
@@ -110,6 +141,7 @@ public final class MainActivity extends Activity {
         if(player!=null&&prepared){
             try{if(player.isPlaying())player.pause();}catch(RuntimeException ignored){}
         }
+
         abandonPlaybackFocus();
     }
 
@@ -123,7 +155,7 @@ public final class MainActivity extends Activity {
                 return; // stale GAIN posted after the user already pressed Pause
             }
             audioFocusGranted=true;
-            if(resume&&player!=null&&prepared)startWithAudioFocus(player);
+            if(resume&&prepared)startSelectedWithAudioFocus();
             emit("player",playerState());
             return;
         }
@@ -139,15 +171,41 @@ public final class MainActivity extends Activity {
             emit("player",playerState());
         }
     }
-    private final AudioDeviceCallback usbCallback = new AudioDeviceCallback() {
-        @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
-        @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
+    private final AudioDeviceCallback usbCallback=new AudioDeviceCallback(){
+        @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices){
+            refreshBitPerfectOutput();
+        }
+        @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices){
+            refreshBitPerfectOutput();
+        }
     };
-    private void refreshBitPerfectOutput() {
+
+    /** Android-only PCM route. Off uses the ordinary mixer. On (API 34+)
+     * requests the platform BIT_PERFECT mixer only if the USB policy and
+     * this stream's real sample rate/depth/channels are compatible.
+     * No custom USB transport, permission dialog, or native driver. */
+    private void configureAndroidUsb(MediaPlayer mp,boolean active){
         if(bitPerfect==null||!bitPerfect.isEnabled())return;
-        bitPerfect.apply(player,fileInfo);
+        if(mp==null||mp!=player||!prepared){
+            if(mp==null)bitPerfect.apply(null,fileInfo);
+            return;
+        }
+        try{
+            JSONObject format=new JSONObject(fileInfo.toString());
+            // Prefer the actual decoder-reported sample rate/channels
+            // to upstream catalogue metadata when both are available.
+            if(decoderSampleRateHz>0)format.put("sample_rate_hz",decoderSampleRateHz);
+            if(decoderChannels>0)format.put("n_channels",decoderChannels);
+            bitPerfect.apply(mp,format);
+        }catch(Exception failure){
+            Log.w(MEDIA_TAG,"Android mixer metadata unavailable",failure);
+        }
+    }
+    private void refreshBitPerfectOutput(){
+        if(bitPerfect==null)return;
+        configureAndroidUsb(player,true);
         emit("player",playerState());
-        try {emit("session",session());}catch(Exception ignored){}
+        try{emit("session",session());}catch(Exception ignored){}
     }
     private JSONObject current=new JSONObject();
     private JSONObject fileInfo=new JSONObject();
@@ -235,10 +293,7 @@ public final class MainActivity extends Activity {
             start=Math.max(0,end-180);
             for(int i=start;i<end;i++)items.put(safePlaybackTrack(queue.get(i)));
             int position=restoredPositionMs;
-            if(player!=null&&prepared){
-                try{position=Math.max(0,player.getCurrentPosition());}
-                catch(RuntimeException ignored){}
-            }
+            if(hasEngine()&&prepared)position=audioPosition();
             out.put("tracks",items).put("index",queueIndex-start)
                 .put("positionMs",Math.min(86_400_000,Math.max(0,position)))
                 .put("repeat",repeatMode).put("shuffle",shuffle);
@@ -303,7 +358,15 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
-        bitPerfect=new BitPerfectOutput(this,"1".equals(secure.get("bitPerfectEnabled")));
+        // The first upgrade from the old USB-exclusive implementation starts
+        // with Android bit-perfect OFF: its true hardware path can bypass
+        // Android volume, so the user must explicitly opt in once.
+        if(!"1".equals(secure.get("androidPlatformMixerOptInV1"))) {
+            try{secure.put("bitPerfectEnabled","0");}
+            catch(Exception ignored){}
+        }
+        bitPerfect=new BitPerfectOutput(this,
+            "1".equals(secure.get("bitPerfectEnabled")));
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
         catch(NumberFormatException ignored){digitalHeadroomDb=0;}
         if(digitalHeadroomDb>0||digitalHeadroomDb< -12||digitalHeadroomDb%3!=0)digitalHeadroomDb=0;
@@ -369,7 +432,7 @@ public final class MainActivity extends Activity {
         @Override public void run() {
             if(web!=null) {
                 long now=System.currentTimeMillis();
-                if(player!=null&&now-lastStateSent>900) { emit("player",playerState()); lastStateSent=now; }
+                if(hasEngine()&&now-lastStateSent>900) { emit("player",playerState()); lastStateSent=now; }
                 ui.postDelayed(this,1000);
             }
         }
@@ -501,6 +564,7 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);
         setIntent(intent);
+        refreshBitPerfectOutput();
         if(intent==null||!MornyeGrantCallbackActivity.ACTION_RESULT.equals(intent.getAction()))
             return;
         if(!mornyeMode()&&!mornye.isConnected()&&secure.get("mornyePendingState").isEmpty())return;
@@ -549,6 +613,7 @@ public final class MainActivity extends Activity {
         abandonPlaybackFocus();
         if(systemAudio!=null)systemAudio.unregisterAudioDeviceCallback(usbCallback);
         cleanupPlayer();
+
         AurelPlaybackService.stop(this);
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
         if(updateManager!=null)updateManager.stop();
@@ -578,13 +643,13 @@ public final class MainActivity extends Activity {
         ui.post(()->{
             if("next".equals(action))advance(1,false);
             else if("previous".equals(action)){
-                if(player!=null&&prepared&&player.getCurrentPosition()>3500)player.seekTo(0);
+                if(prepared&&audioPosition()>3500)seekAudio(0);
                 else advance(-1,false);
             }else if("toggle".equals(action)){
                 if(play){
                     focusPolicy.userPlay();
-                    if(player!=null&&prepared)startWithAudioFocus(player);
-                    else if(player==null&&queueIndex>=0&&!buffering)startAtCurrent();
+                    if(hasEngine()&&prepared)startSelectedWithAudioFocus();
+                    else if(!hasEngine()&&queueIndex>=0&&!buffering)startAtCurrent();
                 }else pauseByUser();
             }
             emit("player",playerState());
@@ -592,8 +657,8 @@ public final class MainActivity extends Activity {
     }
     void seekFromMediaSession(long position) {
         ui.post(()->{
-            if(player!=null&&prepared){
-                player.seekTo((int)Math.max(0,Math.min(Integer.MAX_VALUE,position)));
+            if(hasEngine()&&prepared){
+                seekAudio((int)Math.max(0,Math.min(Integer.MAX_VALUE,position)));
                 emit("player",playerState());
             }
         });
@@ -726,7 +791,7 @@ public final class MainActivity extends Activity {
         j.put("libraryConnected",hasLibrary);
         j.put("separateLibrary",hasLibrary);
         j.put("quality",quality());
-        j.put("bitPerfect",bitPerfect.status(player));
+        j.put("bitPerfect",bitPerfectStatus());
         j.put("digitalHeadroomDb",digitalHeadroomDb);
         j.put("preloadNextMetadata",prefetchNextMetadata);
         // Do not suggest an obsolete legacy App ID to new accounts.
@@ -1032,12 +1097,16 @@ public final class MainActivity extends Activity {
                         case "setBitPerfect": {
                             final boolean wanted=p.getBoolean("enabled");
                             if(wanted&&digitalHeadroomDb!=0)
-                                throw new Exception("Set Digital headroom to 0 dB before enabling USB bit-perfect.");
+                                throw new Exception("Set Digital headroom to 0 dB before enabling Android bit-perfect.");
+                            if(wanted)secure.put("androidPlatformMixerOptInV1","1");
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
                             ui.post(()->{
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
-                                try {emit("session",session());}catch(Exception ignored){}
+                                // Do not discard the current Qobuz stream URL,
+                                // restart the decoder, or steal a USB interface.
+                                configureAndroidUsb(player,true);
                                 emit("player",playerState());
+                                try{emit("session",session());}catch(Exception ignored){}
                             });
                             data=new JSONObject().put("enabled",wanted);
                             break;
@@ -1045,7 +1114,12 @@ public final class MainActivity extends Activity {
                         case "audioDiagnostics": {
                             // Use UI thread to read MediaPlayer routing consistently.
                             java.util.concurrent.FutureTask<JSONObject> task=
-                                new java.util.concurrent.FutureTask<>(()->bitPerfect.diagnostics(player));
+                                new java.util.concurrent.FutureTask<>(()->{
+                                JSONObject result=bitPerfect.diagnostics(player);
+                                result.put("nativeUsbDriver",JSONObject.NULL);
+                                result.put("outputEngine","Android AudioFlinger / AudioManager");
+                                return result;
+                            });
                             ui.post(task);
                             data=task.get(3,java.util.concurrent.TimeUnit.SECONDS);
                             break;
@@ -1221,16 +1295,16 @@ public final class MainActivity extends Activity {
                         case "pause":ui.post(()->{pauseByUser();emit("player",playerState());});data=new JSONObject();break;
                         case "resume":ui.post(()->{
                             focusPolicy.userPlay();
-                            if(player!=null&&prepared)startWithAudioFocus(player);
-                            else if(!buffering&&queueIndex>=0&&player==null)startAtCurrent();
+                            if(hasEngine()&&prepared)startSelectedWithAudioFocus();
+                            else if(!buffering&&queueIndex>=0&&!hasEngine())startAtCurrent();
                             emit("player",playerState());
                         });data=new JSONObject();break;
                         case "next":ui.post(()->advance(1,false));data=new JSONObject();break;
                         case "previous":ui.post(()->{
-                            if(player!=null&&prepared&&player.getCurrentPosition()>3500)player.seekTo(0);
+                            if(prepared&&audioPosition()>3500)seekAudio(0);
                             else advance(-1,false);
                         });data=new JSONObject();break;
-                        case "seek":{final int to=Math.max(0,p.optInt("ms",0));ui.post(()->{if(player!=null&&prepared)player.seekTo(to);});data=new JSONObject();break;}
+                        case "seek":{final int to=Math.max(0,p.optInt("ms",0));ui.post(()->{if(hasEngine()&&prepared)seekAudio(to);});data=new JSONObject();break;}
                         case "queueAdd": {
                             final JSONArray incoming=p.getJSONArray("tracks");
                             final boolean next=p.optBoolean("next",false);
@@ -1639,24 +1713,29 @@ public final class MainActivity extends Activity {
                         sourceVerified=metadata.optBoolean("source_verified",false);
                         sourceLabel=metadata.optString("source_label","Qobuz API");
                         codec=metadata.optString("codec","");
-                        // Zarz gateway URLs can be one-use or session-bound.
-                        // A second ranged GET for metadata can invalidate the
-                        // URL while MediaPlayer is consuming it. Never probe a
-                        // Mornye link in parallel with playback.
-                        qualityProbePending=!sourceVerified&&!viaMornye;
+                        // A second ranged request can invalidate a signed URL
+                        // or starve the active MediaPlayer stream. Keep source
+                        // quality and decoder metadata separate; no live probes.
+                        qualityProbePending=false;
                         // Report supplier metadata before MediaPlayer.prepareAsync
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
+                        // Single playback engine for speaker, Bluetooth and
+                        // USB DAC: Android MediaPlayer + AudioFlinger.
+                        // Android 14+ optional BIT_PERFECT is negotiated
+                        // through AudioManager, not by claiming USB directly.
                         player=new MediaPlayer();
                         player.setAudioAttributes(bitPerfect.audioAttributes());
+                        // The platform prefers USB when selected by the user,
+                        // and ordinary Android routing remains a working fallback.
+                        configureAndroidUsb(player,false);
                         if(Build.VERSION.SDK_INT>=28){
                             player.addOnRoutingChangedListener(router->{
                                 if(generation!=playGeneration)return;
-                                if(bitPerfect.isEnabled())bitPerfect.apply(player,fileInfo);
+                                configureAndroidUsb(player,true);
                                 emit("player",playerState());
                             },ui);
                         }
-                        if(bitPerfect.isEnabled())bitPerfect.apply(player,fileInfo);
                         player.setOnPreparedListener(mp->{
                             if(generation!=playGeneration)return;
                             prepared=true;buffering=false;
@@ -1665,7 +1744,7 @@ public final class MainActivity extends Activity {
                                 try{emit("session",session());}catch(Exception ignored){}
                             }
                             inspectPreparedTrack(mp);
-                            if(bitPerfect.isEnabled())bitPerfect.apply(mp,fileInfo);
+                            configureAndroidUsb(mp,false);
                             // Cache just one next-track catalogue entry. No Zarz
                             // ticket/stream prefetch: respects server rate limits.
                             if(prefetchNextMetadata && queueIndex+1<queue.size()){
@@ -1726,7 +1805,7 @@ public final class MainActivity extends Activity {
                                                     fileInfo.put("total_samples",parsed.totalSamples);
                                             }catch(Exception ignored){}
                                         }
-                                        if(bitPerfect.isEnabled())bitPerfect.apply(mp,fileInfo);
+                                        configureAndroidUsb(mp,true);
                                         emit("player",playerState());
                                     });
                                 });
@@ -1850,15 +1929,15 @@ public final class MainActivity extends Activity {
         JSONObject state=new JSONObject();
         try {
             state.put("track",current).put("index",queueIndex).put("count",queue.size());
-            state.put("playing",player!=null&&prepared&&player.isPlaying());
+            state.put("playing",prepared&&isAudioPlaying());
             state.put("buffering",buffering).put("prepared",prepared);
             state.put("repeat",repeatMode).put("shuffle",shuffle).put("error",playerError);
             state.put("quality",quality());
-            state.put("bitPerfect",bitPerfect.status(player));
+            state.put("bitPerfect",bitPerfectStatus());
             state.put("digitalHeadroomDb",digitalHeadroomDb);
             state.put("preloadNextMetadata",prefetchNextMetadata);
-            state.put("position",player!=null&&prepared?player.getCurrentPosition():restoredPositionMs);
-            state.put("duration",player!=null&&prepared?player.getDuration():current.optInt("duration",0)*1000);
+            state.put("position",prepared?audioPosition():restoredPositionMs);
+            state.put("duration",prepared?audioDuration():current.optInt("duration",0)*1000);
             state.put("bits",fileInfo.optInt("bits_depth",0));
             state.put("sampleRateHz",fileInfo.optDouble("sample_rate_hz",0));
             state.put("channels",fileInfo.optInt("n_channels",0));
@@ -1875,7 +1954,7 @@ public final class MainActivity extends Activity {
             state.put("decoderBitrateKbps",decoderBitrateKbps);
             state.put("sourceBitrateKbps",fileInfo.optLong("source_bitrate_kbps",0));
             long fileSize=fileInfo.optLong("file_size",0);
-            long durationMs=player!=null&&prepared?player.getDuration():
+            long durationMs=prepared?audioDuration():
                 current.optLong("duration",0)*1000L;
             long estimated=0;
             long totalSamples=fileInfo.optLong("total_samples",0);

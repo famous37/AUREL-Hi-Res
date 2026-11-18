@@ -1,4 +1,7 @@
 name: Publish permanently signed AUREL release
+# v1.1.55: equal-size action and transport buttons in Now Playing, audio engine unchanged.
+# Revalidate all UI and USB regressions against version 1.1.47.
+# Versioned snapshot checks repaired after the initial CI run.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -6,7 +9,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -14,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -51,15 +54,15 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-      - name: Install Android SDK 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          gradle-version: '9.5.0'
+      - name: Install Android API 37
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
 
       - name: Validate release version and prevent replacing signed artifacts
         env:
@@ -99,9 +102,12 @@ jobs:
           node tests/updates.test.cjs
           node tests/minimal-player.test.cjs
           node tests/bit-perfect.test.cjs
+          node tests/usb-volume-recovery.test.cjs
+          node tests/usb-bitperfect-recovery.test.cjs
           node tests/playback-continuity.test.cjs
           node tests/swipe-icons.test.cjs
           node tests/player-icon-seek.test.cjs
+          node tests/ui-bold-loading.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -133,8 +139,8 @@ jobs:
           set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
-          "${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
-          ACTUAL_CERT="$("${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | \
+          "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"
+          ACTUAL_CERT="$("${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$APK" | \
             sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | \
             head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
           EXPECTED_CERT="C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA"
@@ -142,7 +148,7 @@ jobs:
             echo "::error::APK is not signed by the permanent AUREL release certificate."
             exit 1
           fi
-          "${ANDROID_HOME}/build-tools/35.0.0/aapt" dump badging "$APK" | \
+          "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$APK" | \
             grep -q "package: name='com.aurel.hires'"
           mkdir -p build/signed-artifacts
           cp "$APK" "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk"
@@ -159,16 +165,14 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — classic AUREL icon and responsive player**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — responsive header and reliable loading animation**" \
             '' \
-            '- Restores the original three vinyl rings, bold A and six equalizer bars with stronger contrast.' \
-            '- Uses consistent scalable vector branding across Android launcher, monochrome, notifications, and in-app headers.' \
-            '- Sends one bounded seek on slider release and recovers cancelled touches without losing player state.' \
-            '- Avoids invalid seeking before duration becomes known.' \
-            '- Adds accessible shuffle/repeat state and high-contrast time, source and playback status.' \
-            '- Refreshes codec, bitrate, USB route and mixer information in place without destroying the player view.' \
-            '- Preserves prior artist/album page, queue, playback, session and back-navigation during an in-place update.' \
-            '- Distinguishes reported stream format from independently unverified bit-perfect output.' \
+            '- Restores compact Now Playing top navigation in one rounded bar without oversized overlapping button borders.' \
+            '- The previous header inherited padding that made icons protrude from its fixed-height container; every control now fits its grid slot.' \
+            '- Fixes frozen Play/Pause loading spinner through compositor Web Animations API and verified CSS fallback.' \
+            '- Keeps functional loading feedback under reduced-motion settings at a gentler rotation speed.' \
+            '- Preserves stable album art, scroll position, player state and Android native audio routing.' \
+            '- Tested SVG loading state, spinner startup and cancellation, and header geometry constraints.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

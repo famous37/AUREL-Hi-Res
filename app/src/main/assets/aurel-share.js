@@ -2,9 +2,8 @@
  * Does not call a streaming endpoint or expose account/session details. */
 (function installAurelSharing(){
 'use strict';
-const icon='<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+
- '<circle cx="18" cy="5" r="2.2"/><circle cx="5.5" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/>'+
- '<path d="m7.5 11 8.4-4.9M7.5 13l8.4 4.9"/></svg>';
+// Use the same high-contrast vector as every player control.
+const icon=()=>ic('share',24);
 const valid={
  track:/^[0-9]{1,20}$/,
  album:/^[A-Za-z0-9]{1,64}$/,
@@ -26,7 +25,7 @@ function make(type,id,mode='icon'){
  button.setAttribute('data-aurel-share-id',String(id));
  button.setAttribute('aria-label','Share '+type);
  button.setAttribute('title','Share '+type);
- button.innerHTML=icon+(mode==='label'?'<span>Share</span>':'');
+ button.innerHTML=icon()+(mode==='label'?'<span>Share</span>':'');
  return button;
 }
 function appendOnce(parent,kind,id,mode='icon'){

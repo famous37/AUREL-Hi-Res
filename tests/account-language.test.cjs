@@ -1,4 +1,4 @@
-/* AUREL 1.1.43 regression: language selection and account isolation. */
+/* AUREL 1.1.46 regression: language selection and account isolation. */
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
@@ -36,7 +36,7 @@ assert(language.includes('createLoginLanguageSwitch'));
 assert(language.includes('data-aurel-locale="uk"'));
 assert(language.includes("current==='uk'?'Англійська':'English'"));
 assert(ui.includes('aurel-language.js')&&ui.includes('aurel-elegant.css'));
-assert(build.includes('versionCode 62')&&build.includes("'1.1.43'"));
+assert(/versionCode\s+74/.test(build) && build.includes("'1.1.55'"));
 const body={nodeType:1,tagName:'BODY',firstChild:null,hasAttribute(){return false;}};
 const document={
  documentElement:{lang:'en'},body,

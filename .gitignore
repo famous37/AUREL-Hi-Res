@@ -12,3 +12,6 @@ local.properties
 signing.properties
 *signing-secret*
 *keystore-password*
+
+# Pinned third-party USB Audio Class 2.0 sources fetched by setup script
+/vendor/decent-player/

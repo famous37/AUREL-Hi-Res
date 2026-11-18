@@ -10,7 +10,7 @@ const app=read('app/src/main/assets/app.js');
 const lang=read('app/src/main/assets/aurel-language.js');
 const gradle=read('app/build.gradle');
 
-assert(gradle.includes('versionCode 62')&&gradle.includes("'1.1.43'"));
+assert(/versionCode\s+74/.test(gradle) && gradle.includes("'1.1.55'"));
 for(const line of [
  'web.setVerticalScrollBarEnabled(false);',
  'web.setHorizontalScrollBarEnabled(false);',
@@ -38,8 +38,8 @@ assert(java.includes('cleanupPlayer();'));
 assert(java.includes('final MediaPlayer obsolete=player;'));
 assert(java.includes('try{obsolete.release();}catch(RuntimeException ignored){}'));
 assert(java.includes('Log.w(MEDIA_TAG'));
-assert(java.includes('qualityProbePending=!sourceVerified&&!viaMornye;'),
- 'Do not open a second ranged GET against one-time signed Mornye streams');
+assert(!java.includes('qualityProbePending=!sourceVerified&&!viaMornye;'),
+ 'Do not open a parallel ranged GET against any signed playback URL');
 assert(recovery.includes('MAX_AUTO_RETRIES=1'));
 assert(recovery.includes('what==1 && (extra==Integer.MIN_VALUE || extra==-1004 || extra==-110)'));
 assert(!recovery.includes('extra==-1007'),'Malformed stream must not auto-retry');
@@ -48,4 +48,4 @@ assert(!java.includes('playerError="Media decoder error ("+what+" / "+extra+")"'
  'Do not misdiagnose MEDIA_ERROR_SYSTEM as definite FLAC decoding failure');
 assert(lang.includes("'Android audio system error. Tap Play to try again.'"));
 assert(app.includes("if(kind==='player'){"));
-console.log('AUREL v1.1.43 native scroll indicator and bounded recovery integration PASS');
+console.log('AUREL v1.1.46 native scroll indicator and bounded recovery integration PASS');

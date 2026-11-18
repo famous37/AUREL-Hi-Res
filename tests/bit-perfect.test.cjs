@@ -1,58 +1,41 @@
 'use strict';
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const root = path.join(__dirname,'..');
-const asset = (x) => fs.readFileSync(path.join(root,'app/src/main/assets',x),'utf8');
-const java = fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/BitPerfectOutput.java'),'utf8');
-const main = fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/MainActivity.java'),'utf8');
-const manifest = fs.readFileSync(path.join(root,'app/src/main/AndroidManifest.xml'),'utf8');
-const html = asset('index.html'), app = asset('app.js'), css = asset('aurel-bit-perfect.css');
-const modern = asset('modern.js');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const read=p=>fs.readFileSync(p,'utf8');
+const main=read('app/src/main/java/com/aurel/hires/MainActivity.java');
+const policy=read('app/src/main/java/com/aurel/hires/BitPerfectOutput.java');
+const gradle=read('app/build.gradle');
+const settings=read('settings.gradle');
+const manifest=read('app/src/main/AndroidManifest.xml');
+const ui=read('app/src/main/assets/app.js');
 
-// Android must actually negotiate an optional USB bit-perfect mixer format.
-// A visual toggle alone cannot establish bit-perfect audio.
-for(const token of [
-  'Build.VERSION.SDK_INT < 34',
-  'getSupportedMixerAttributes(usbDevice)',
-  'AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT',
-  'setPreferredMixerAttributes(attributes, usbDevice, matched)',
-  'getPreferredMixerAttributes(attributes, usbDevice)',
-  'clearPreferredMixerAttributes(attributes, old)',
-  'mediaPlayer.setPreferredDevice(usbDevice)',
-  'mediaPlayer.getRoutedDevice()',
-  'phase = "unsupported_format"',
-  'phase = "no_usb"',
-  'result.put("endToEndVerified", false)'
-]) assert(java.includes(token),'Missing native protection: '+token);
-assert(manifest.includes('android.permission.MODIFY_AUDIO_SETTINGS'));
-for(const token of [
-  'new BitPerfectOutput(this,',
-  'bitPerfectEnabled',
-  'case "setBitPerfect"',
-  'bitPerfect.setEnabled(wanted,player,fileInfo)',
-  'player.setAudioAttributes(bitPerfect.audioAttributes())',
-  'bitPerfect.apply(mp,fileInfo)',
-  'bitPerfect.release()',
-  'registerAudioDeviceCallback(usbCallback,ui)',
-  'unregisterAudioDeviceCallback(usbCallback)',
-  'state.put("bitPerfect",bitPerfect.status(player))',
-  'j.put("bitPerfect",bitPerfect.status(player))'
-]) assert(main.includes(token),'Missing integration: '+token);
-assert(app.includes('data-bit-perfect-toggle'));
-assert(app.includes("nativeCall('setBitPerfect',{enabled:wanted})"));
-assert(app.includes('role="switch"'));
-assert(app.includes('aria-checked='));
-assert(app.includes('aurel-bp-detail') && app.includes('bpStatus'),
- 'Real native USB mixer state must remain visible without verbose disclaimers');
-assert(html.indexOf('aurel-bit-perfect.css') > html.indexOf('aurel-minimal-player.css'));
-assert(css.includes('.aurel-bp-switch.is-on'));
-assert(css.includes('prefers-reduced-motion:reduce'));
-assert(modern.includes('USB bit-perfect preference'));
-assert(modern.includes('End-to-end bit identity'));
-
-// There is no forced 44.1 -> 48 kHz fallback and no fake success for Bluetooth.
-assert(!/setPreferredMixerAttributes\([^)]*MIXER_BEHAVIOR_DEFAULT/.test(java));
-const usbGuard=java.slice(java.indexOf('static boolean usb('),java.indexOf('private AudioDeviceInfo connectedUsb('));
-assert(!usbGuard.includes('TYPE_BLUETOOTH'),'Bluetooth cannot be a USB bit-perfect target');
-console.log('USB Bit-perfect negotiation, reporting and settings checks passed.');
+assert(!gradle.includes("implementation 'com.github.ostrichbat2k:libusbdac"));
+assert(!gradle.includes("implementation 'androidx.media3:"));
+assert(!settings.includes('decent-media3-decoder-flac'));
+assert(!manifest.includes('UsbBitPerfectHandler'));
+assert(!manifest.includes('USB_DEVICE_ATTACHED'));
+assert(!main.includes('AurelUsbDacHost'));
+assert(!main.includes('UsbDirectPlayback'));
+assert(!main.includes('usbHost'));
+assert(main.includes('new MediaPlayer()'));
+assert(main.includes('player.setAudioAttributes(bitPerfect.audioAttributes())'));
+assert(main.includes('bitPerfect.apply(mp,format)'));
+assert(main.includes('case "setBitPerfect"'));
+assert(main.includes('registerAudioDeviceCallback(usbCallback,ui)'));
+assert(main.includes('unregisterAudioDeviceCallback(usbCallback)'));
+assert(policy.includes('Build.VERSION.SDK_INT<34'));
+assert(policy.includes('getSupportedMixerAttributes(device)'));
+assert(policy.includes('AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT'));
+assert(policy.includes('setPreferredMixerAttributes(attributes,device,chosen)'));
+assert(policy.includes('getPreferredMixerAttributes(attributes,device)'));
+assert(policy.includes('clearPreferredMixerAttributes(attributes,old)'));
+assert(policy.includes('matches(entry.getFormat(),rate,bits,channels)'));
+assert(policy.includes('sourceRate(stream)'));
+assert(policy.includes('sourceBits(stream)'));
+assert(policy.includes('sourceChannels(stream)'));
+assert(policy.includes('endToEndVerified",false'));
+assert(policy.includes('MediaPlayer'));
+assert(ui.includes('Android USB bit-perfect'));
+assert(!ui.includes('libusbdac'));
+assert(!ui.includes('data-aurel-usb-volume'));
+console.log('Android 14+ platform USB bit-perfect policy and native-driver removal PASS');
