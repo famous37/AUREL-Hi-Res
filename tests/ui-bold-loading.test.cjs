@@ -9,6 +9,8 @@ const responsive=read('responsive.js');
 const app=read('app.js');
 const share=read('aurel-share.js');
 const styles=read('aurel-bold-controls.css');
+const olderShare=read('aurel-share.css');
+const olderPlayer=read('aurel-minimal-player.css');
 const html=read('index.html');
 
 for(const name of ['modern.js','murglar.js','responsive.js','app.js','aurel-share.js'])
@@ -33,7 +35,7 @@ assert.equal(aurelPlaybackLabel({buffering:true}),'Loading audio');
 assert(modern.includes('stroke-width="2.55"'),'SVG renderer should use bold outlines');
 assert(modern.includes("share:'<circle"),'Share must belong to the vector family');
 assert(share.includes("ic('share',24)"),'Supplemental share control should use shared icon');
-assert(murglar.includes("ic('share',25)"),'Now Playing share should use shared icon');
+assert(murglar.includes("ic('share',32)"),'Now Playing share should use shared icon');
 assert(!murglar.includes('stroke-width="1.85"'),'No thin standalone icons on Now Playing');
 assert(murglar.includes("const loading=aurelPlaybackMode(p)==='loading'"));
 assert(murglar.includes('toggle.innerHTML=aurelPlaybackIcon(p,39)'));
@@ -42,7 +44,7 @@ assert(murglar.includes('aria-busy='),'Loader requires accessible status');
 assert(responsive.includes('toggle.innerHTML=aurelPlaybackIcon(p,26)'));
 assert(responsive.includes('m.dataset.miniPlaying=state'),'Keep mini-player DOM stable on every tick');
 assert(app.includes('aurelPlaybackIcon(p,33)'),'Fallback full player must also display spinner');
-assert(app.includes('1.1.55'),'Settings must show correct version');
+assert(app.includes('1.1.56'),'Settings must show correct version');
 assert(/@keyframes aurel-bold-spin/.test(styles));
 assert(/prefers-reduced-motion:reduce/.test(styles));
 assert(/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(styles));
@@ -102,4 +104,23 @@ for(const [name,block] of [['quick actions',actions],['transport',transport]]){
 }
 assert(styles.includes('--aurel-small-control:clamp(46px,calc((100vw - 80px)/5),62px)'));
 assert(styles.includes('justify-items:center!important'),'Actions must be centered in five equal tracks');
+// Keep the exact share button immune from all legacy CSS specificity.
+assert(!olderPlayer.includes('.murglar-quick-actions .aurel-share-control{'),
+ 'Legacy player CSS must not add a separate Share control size');
+assert(!olderShare.includes('display:flex!important;flex-direction:column!important;gap:5px!important;'),
+ 'Legacy Share CSS must not reapply a special overlay flex layout');
+const shareSurface=styles.slice(styles.indexOf('#overlay .murglar-view .murglar-quick-actions > button.aurel-share-control {'));
+assert(shareSurface.includes('width:var(--aurel-small-control)!important'));
+assert(shareSurface.includes('height:var(--aurel-small-control)!important'));
+assert(shareSurface.includes('border-radius:var(--aurel-small-radius)!important'));
+assert(shareSurface.includes('background:#2d3036!important'));
+assert(shareSurface.includes('display:grid!important'));
+assert(shareSurface.includes('padding:0!important'));
+assert(shareSurface.includes('width:32px!important'));
+assert(shareSurface.includes('height:32px!important'));
+assert(shareSurface.includes('width:29px!important'));
+assert(shareSurface.includes('width:27px!important'));
+assert(styles.includes('--aurel-small-control:42px'));
+assert(styles.includes('gap:2px!important'), 'Ultra-narrow transport layout should not overlap');
+assert(styles.includes('minmax(72px,1.3fr)'),'Small screens should retain a large central Play button');
 console.log('Unified bold SVG icons, loading spinner, responsive player DOM PASS');
