@@ -42,7 +42,8 @@ assert(ui.includes('window.AurelHistoryClear?.()'));
 // The default path MUST remain a normal Android mixer playback path.
 assert(native.includes('new MediaPlayer()'));
 assert(native.includes('configureAndroidUsb(player,false)'));
-assert(native.includes('usbHost.setEnabled(wanted)'));
+assert(native.includes('if(bitPerfect.isEnabled() && ensureUsbDriver())'));
+assert(native.includes('usbHost.setEnabled(true)') && native.includes('usbHost.setEnabled(false)'));
 assert(native.includes('usbHost!=null&&usbHost.permitted()'));
 assert(!native.includes('bitPerfect.apply('));
 assert(mixer.includes('Standard Android MediaPlayer / AudioFlinger'));
