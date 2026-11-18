@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.52: Android framework bit-perfect preference, no third-party USB driver.
+# v1.1.53: unified bold vector icons and smooth loading spinner (audio core unchanged).
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -107,6 +107,7 @@ jobs:
           node tests/playback-continuity.test.cjs
           node tests/swipe-icons.test.cjs
           node tests/player-icon-seek.test.cjs
+          node tests/ui-bold-loading.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -164,16 +165,15 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — Android 14+ native USB mixer support**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — unified controls and responsive loading**" \
             '' \
-            '- Removes libusbdac USB-exclusive engine, JNI code and USB interface permissions.' \
-            '- Playback uses Android MediaPlayer and AudioFlinger in all modes.' \
-            '- Android 14+ optionally requests BIT_PERFECT mixer attributes for a USB DAC when explicitly advertised for the exact PCM source format.' \
-            '- Unsupported USB devices and track formats continue playing through the standard Android mixer without changing signed stream URLs.' \
-            '- Correctly distinguishes an accepted mixer preference from independently verified decoded PCM bit identity.' \
-            '- Volume buttons and media session volume are owned entirely by Android.' \
-            '- Preserves account, library and playback state during in-place updates.' \
-            '- The optional system BIT_PERFECT behavior requires vendor Audio HAL support; Android 14+ alone is not sufficient.' \
+            '- Larger, high-contrast monochrome buttons and consistent 2.7-width SVG glyphs across player, mini-player, navigation and share actions.' \
+            '- A smooth circular spinner replaces Play/Pause while the selected track is buffering, including on first play and track changes.' \
+            '- The large player and mini-player update their glyphs without repeatedly rebuilding album art or seeking controls.' \
+            '- Responsive five-button transport and quick-action rows remain balanced on narrow Android screens.' \
+            '- All icons are vector-based and include keyboard focus and accessible Play/Pause/Loading labels.' \
+            '- Android 14+ optional USB bit-perfect AudioManager behavior remains unchanged; no third-party USB driver.' \
+            '- Preserves account, library, playback state and permanent signing for in-place updates.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
