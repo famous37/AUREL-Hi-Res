@@ -8,11 +8,11 @@ assert.ok(html.indexOf('aurel-error-log.js')<html.indexOf('app.js'),'Global erro
 assert.ok(html.includes('aurel-error-log.css'));
 assert.ok(css.includes('data-aurel-error-count'));
 assert.match(activity,/case "copySupportLog":/);
-assert.match(activity,/setWebChromeClient\\(new WebChromeClient/);
-assert.match(activity,/onConsoleMessage\\(ConsoleMessage item\\)/);
-assert.match(code,/safeSource\\(raw\\)/);
-assert.match(code,/opaque-script/);
-assert.match(code,/file:\\\\/\\\\/\\\\/android_asset/);
+assert.ok(activity.includes('setWebChromeClient(new WebChromeClient')); 
+assert.ok(activity.includes('onConsoleMessage(ConsoleMessage item)'));
+assert.ok(code.includes('safeSource(raw)'));
+assert.ok(code.includes('opaque-script'));
+assert.ok(code.includes('file:///android_asset/'));
 assert.doesNotMatch(activity,/case "copyBeatDiagnostics":/);
 assert.match(code,/unhandledrejection/);
 assert.match(code,/window\.addEventListener\('error'/);
