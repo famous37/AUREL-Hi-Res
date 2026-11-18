@@ -1,4 +1,4 @@
-/* AUREL 1.1.25 — navigation-only compositor fade.
+/* AUREL 1.1.63 — navigation-only compositor fade.
  * A route change may fade once. A Qobuz response, player progress tick,
  * favourites change, artwork update, or page rerender must NEVER replay it. */
 (function installAurelSmoothNavigation(){
@@ -23,8 +23,8 @@
      if(active&&typeof active.cancel==='function')active.cancel();
      // Only fade the whole route. Translating #screen also moves every
      // child while images/fonts settle, producing the visible "jerk".
-     active=screen.animate([{opacity:.93},{opacity:1}],{
-       duration:190,easing:'ease-out',fill:'none'
+     active=screen.animate([{opacity:.82},{opacity:.95,offset:.7},{opacity:1}],{
+       duration:265,easing:'cubic-bezier(.22,1,.36,1)',fill:'none'
      });
    }catch(_){active=null;} // older WebViews simply render immediately
  }
