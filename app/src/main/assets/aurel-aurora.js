@@ -217,7 +217,7 @@
    sync(enabled);
  });
  document.addEventListener('visibilitychange',()=>sync());
- window.addEventListener('pageshow',()=>sync());
+ window.addEventListener?.('pageshow',()=>sync());
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);
  window.AurelAuroraPalette=nativePalette;
  window.AurelAurora={enabled:()=>enabled,refresh:sync,isPlaying,
