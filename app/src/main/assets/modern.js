@@ -201,6 +201,31 @@ const aurelPlaybackMode=p=>p?.buffering&&!p?.error?'loading':p?.playing?'pause':
 const aurelSpinner=(size=28)=>`<svg class="aurel-spinner" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="aurel-spinner-track" cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.6" opacity=".20"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>`;
 const aurelPlaybackIcon=(p,size=28)=>aurelPlaybackMode(p)==='loading'?aurelSpinner(size):ic(aurelPlaybackMode(p),size);
 const aurelPlaybackLabel=p=>aurelPlaybackMode(p)==='loading'?'Loading audio':p?.playing?'Pause':'Play';
+/* WebView may disable CSS animations via older motion/theme rules.
+ * Use compositor rotation so the Play control remains a live loading gauge. */
+const aurelEnsureLoadingAnimation=(root)=>{
+ if(!root?.querySelectorAll)return;
+ const reduced=typeof window.matchMedia==='function' &&
+   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ for(const svg of root.querySelectorAll('svg.aurel-spinner')){
+  if(svg.dataset.aurelAnimated==='1')continue;
+  svg.dataset.aurelAnimated='1';
+  if(typeof svg.animate!=='function')continue; // CSS remains fallback
+  try{
+   const animation=svg.animate(
+    [{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],
+    {duration:reduced?2400:860,iterations:Infinity,easing:'linear'});
+   svg.style.setProperty('animation','none','important');
+   svg._aurelSpinnerAnimation=animation;
+  }catch(_){svg.style.removeProperty('animation');}
+ }
+};
+const aurelStopLoadingAnimation=(root)=>{
+ if(!root?.querySelectorAll)return;
+ for(const svg of root.querySelectorAll('svg.aurel-spinner')){
+  try{svg._aurelSpinnerAnimation?.cancel();}catch(_){}
+ }
+};
 const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
 let aurelMiniAnimating=false;
 let aurelLastMiniFrame=0;
@@ -283,6 +308,7 @@ updateMini=function(){
   play.classList.toggle('is-loading',miniMode==='loading');
   m.dataset.miniPlaying=miniMode;
  }
+ if(miniMode==='loading')aurelEnsureLoadingAnimation(m);
  const position=window.AurelProgressClock?.accept(p)??(Number(p.position)||0);
  const bar=m.querySelector('.mini-progress');
  const percent=p.duration?Math.min(100,Math.max(0,100*position/Number(p.duration))):0;
