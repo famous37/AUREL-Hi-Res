@@ -13,6 +13,7 @@
  let nativeStatus='off';
  let lastFrame=0;
  let nativeWanted=null;
+ let auraRequested=false;
  let writeQueue=Promise.resolve();
  let bitPerfectWarned=false;
  let unavailableWarned=false;
@@ -25,7 +26,9 @@
  const bitPerfect=()=>!!app.player?.bitPerfect?.enabled;
  // Capture is allowed while viewing Settings, otherwise diagnostics would
  // always report "off" as soon as the user leaves Now Playing.
- const requestCapture=()=>audioPlaying()&&!bitPerfect();
+ const requestCapture=()=>!bitPerfect()&&
+   ((audioPlaying())||(auraRequested&&app.player?.playing&&
+     !app.player?.buffering&&!app.player?.error&&safeMotion()));
  const uk=()=>window.AurelLanguage?.get?.()==='uk';
  const setScale=level=>{
    const amount=Math.max(0,Math.min(1,Number(level)||0));
@@ -96,7 +99,7 @@
    const value=Number(level);
    if(!Number.isFinite(value))return;
    lastFrame=Date.now();
-   if(app.overlay){
+   if(app.overlay&&enabled){
      setScale(value);
      if(!overlay.classList.contains('aurel-beat-live'))sync();
    }
@@ -176,6 +179,11 @@
    enabled:()=>enabled,
    isNativeCaptureRequested:()=>!!nativeWanted,
    status:()=>nativeStatus,
-   refresh:sync
+   refresh:sync,
+   setAuraCaptureWanted:(wanted,askPermission=false)=>{
+     auraRequested=!!wanted;
+     sync(!!askPermission);
+   },
+   hasPermission:()=>permissionGranted
  };
 })();

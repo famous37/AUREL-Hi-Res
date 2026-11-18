@@ -136,7 +136,7 @@
     navSync();
     return result;
   };
-  window.AurelCoverPalette=function(url,bg,surface,accent){
+  window.AurelCoverPalette=function(url,bg,surface,accent,glow1,glow2,glow3){
     if(!url||!validHex(bg)||!validHex(surface)||!validHex(accent))return;
     const colors={bg,surface,accent};
     themeByCover.set(url,colors);
@@ -145,6 +145,10 @@
       activeCover=url;
       setTheme(colors);
     }
+    // Playback-only artwork scheme is independent of the global
+    // monochrome/album-colours preference.
+    if(typeof window.AurelAuroraPalette==='function')
+      window.AurelAuroraPalette(url,bg,surface,accent,glow1,glow2,glow3);
   };
   // Physical Android Back should close the information drawer before
   // minimizing the entire player.

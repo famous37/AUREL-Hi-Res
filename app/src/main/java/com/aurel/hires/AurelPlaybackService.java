@@ -110,7 +110,7 @@ public final class AurelPlaybackService extends Service {
                 if(!url.isEmpty())return url;
             } else if(value instanceof JSONObject) {
                 JSONObject images=(JSONObject)value;
-                for(String quality:new String[]{"extralarge","large","medium","small","thumbnail","default"}) {
+                for(String quality:new String[]{"large","extralarge","medium","small","thumbnail","default"}) {
                     String url=approvedCover(images.optString(quality,""));
                     if(!url.isEmpty())return url;
                 }
@@ -151,27 +151,51 @@ public final class AurelPlaybackService extends Service {
     private static String colorHex(int c) {
         return String.format(Locale.US,"#%06X",c&0xFFFFFF);
     }
-    /** Representative saturated pixels, then softened into accessible dark tones. */
-    private static String[] palette(Bitmap bitmap) {
-        float sumSin=0,sumCos=0,total=0;
-        float[] hsv=new float[3];
+    /**
+     * Palette from ACTUAL sampled cover pixels. Choose the strongest hue
+     * cluster instead of circularly averaging unrelated colors (which
+     * formerly mixed orange album artwork into pink/teal styling).
+     * The last three output colors are vivid harmonized shades for shadows.
+     */
+    static String[] palette(Bitmap bitmap) {
+        final float[] bins=new float[24];
+        final float[] hsv=new float[3];
         int w=bitmap.getWidth(),h=bitmap.getHeight();
-        for(int y=1;y<13;y++)for(int x=1;x<13;x++){
-            int pixel=bitmap.getPixel(Math.min(w-1,x*w/14),Math.min(h-1,y*h/14));
+        if(w<1||h<1)return new String[]{"#111214","#232427","#D5D7DB","#B1A8A2","#908781","#D3B9A2"};
+        for(int y=1;y<23;y++)for(int x=1;x<23;x++){
+            int pixel=bitmap.getPixel(Math.min(w-1,x*w/24),Math.min(h-1,y*h/24));
             Color.colorToHSV(pixel,hsv);
-            if(hsv[1]<.15f||hsv[2]<.13f||hsv[2]>.96f)continue;
-            float weight=hsv[1]*(.25f+hsv[2]);
-            double angle=hsv[0]*Math.PI/180.0;
-            sumSin+=Math.sin(angle)*weight;
-            sumCos+=Math.cos(angle)*weight;
-            total+=weight;
+            if(hsv[1]<.21f||hsv[2]<.16f||hsv[2]>.98f)continue;
+            float weight=hsv[1]*hsv[1]*(0.35f+hsv[2]);
+            int index=Math.min(23,(int)(hsv[0]/15f));
+            bins[index]+=weight;
         }
-        if(total<.01f)return new String[]{"#160F15","#2B1A24","#DEA8B9"};
-        float hue=(float)((Math.atan2(sumSin,sumCos)*180/Math.PI+360)%360);
-        int bg=Color.HSVToColor(new float[]{hue,.24f,.085f});
-        int surface=Color.HSVToColor(new float[]{hue,.30f,.165f});
-        int accent=Color.HSVToColor(new float[]{hue,.27f,.86f});
-        return new String[]{colorHex(bg),colorHex(surface),colorHex(accent)};
+        float[] smooth=new float[24];int dominant=0;
+        for(int i=0;i<24;i++){
+            smooth[i]=bins[i]*1.7f+bins[(i+23)%24]*.7f+bins[(i+1)%24]*.7f;
+            if(smooth[i]>smooth[dominant])dominant=i;
+        }
+        if(smooth[dominant]<.05f)
+            return new String[]{"#111214","#232427","#D5D7DB","#B1A8A2","#908781","#D3B9A2"};
+        float hue=((dominant*15f)+7.5f)%360f;
+        float secondHue=hue+16f;
+        float secondWeight=0f;
+        for(int i=0;i<24;i++){
+            int distance=Math.abs(i-dominant);
+            distance=Math.min(distance,24-distance);
+            if(distance<3||distance>7)continue;
+            if(smooth[i]>secondWeight){secondWeight=smooth[i];secondHue=(i*15f+7.5f)%360f;}
+        }
+        if(secondWeight<smooth[dominant]*.29f)secondHue=(hue+17f)%360f;
+        float thirdHue=(hue+345f)%360f;
+        int bg=Color.HSVToColor(new float[]{hue,.37f,.075f});
+        int surface=Color.HSVToColor(new float[]{hue,.43f,.16f});
+        int accent=Color.HSVToColor(new float[]{hue,.35f,.94f});
+        int glow1=Color.HSVToColor(new float[]{hue,.87f,.98f});
+        int glow2=Color.HSVToColor(new float[]{secondHue,.80f,.95f});
+        int glow3=Color.HSVToColor(new float[]{thirdHue,.84f,.95f});
+        return new String[]{colorHex(bg),colorHex(surface),colorHex(accent),
+                            colorHex(glow1),colorHex(glow2),colorHex(glow3)};
     }
     private void refreshCover(String url,int generation) {
         coverJobs.execute(()->{
@@ -182,7 +206,7 @@ public final class AurelPlaybackService extends Service {
                 if(bitmap!=null) {
                     String[] colors=palette(bitmap);
                     MainActivity a=controller.get();
-                    if(a!=null)a.onAlbumArtworkPalette(url,colors[0],colors[1],colors[2]);
+                    if(a!=null)a.onAlbumArtworkPalette(url,colors[0],colors[1],colors[2],colors[3],colors[4],colors[5]);
                 }
                 update(title,artist,albumTitle,coverUrl,duration,position,playing,buffering);
             });

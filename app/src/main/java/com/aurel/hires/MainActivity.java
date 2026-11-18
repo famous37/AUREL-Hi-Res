@@ -744,9 +744,12 @@ public final class MainActivity extends Activity {
         }
     }
     /** Receives verified artwork-derived colours from the native playback service. */
-    void onAlbumArtworkPalette(String url,String bg,String surface,String accent) {
+    void onAlbumArtworkPalette(String url,String bg,String surface,String accent,
+                               String glow1,String glow2,String glow3) {
         script("window.AurelCoverPalette && window.AurelCoverPalette("+
-            JSONObject.quote(url)+","+JSONObject.quote(bg)+","+JSONObject.quote(surface)+","+JSONObject.quote(accent)+")");
+            JSONObject.quote(url)+","+JSONObject.quote(bg)+","+JSONObject.quote(surface)+
+            ","+JSONObject.quote(accent)+","+JSONObject.quote(glow1)+
+            ","+JSONObject.quote(glow2)+","+JSONObject.quote(glow3)+")");
     }
     /** Called by Android MediaSession notification and hardware transport controls. */
     void mediaControl(String action,boolean play) {
