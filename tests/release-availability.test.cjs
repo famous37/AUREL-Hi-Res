@@ -13,7 +13,7 @@ const css=source('app/src/main/assets/aurel-release.css');
 const motion=source('app/src/main/assets/aurel-motion.js');
 const gradle=source('app/build.gradle');
 const language=source('app/src/main/assets/aurel-language.js');
-assert(/versionCode\s+87/.test(gradle) && gradle.includes("'1.1.68'"),
+assert(/versionCode\s+88/.test(gradle) && gradle.includes("'1.1.69'"),
  'New release must advance versionCode and versionName');
 assert(page.indexOf('aurel-access.js')<page.indexOf('app.js'));
 assert(page.includes('aurel-release.css'));
