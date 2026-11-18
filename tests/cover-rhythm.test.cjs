@@ -15,8 +15,8 @@ assert.match(page,/aurel-cover-rhythm.css/);
 assert.match(page,/aurel-cover-rhythm.js/);
 assert.ok(page.indexOf('aurel-cover-rhythm.js')>page.indexOf('aurel-settings-groups.js'),
   'The opt-in module must wrap the final settings renderer');
-assert.ok(page.indexOf('aurel-cover-rhythm.css')>page.indexOf('aurel-landscape-nav.css'),
-  'The scoped player effect must load after latest landscape rules');
+assert.ok(page.indexOf('aurel-cover-rhythm.css')<page.indexOf('aurel-landscape-nav.css'),
+  'Keep v1.1.58 navigation safety stylesheet last; cover effect is separately scoped');
 
 assert.match(script,/aurel_cover_rhythm_v1/);
 assert.match(script,/localStorage\.setItem\(KEY,enabled\?'on':'off'\)/);
