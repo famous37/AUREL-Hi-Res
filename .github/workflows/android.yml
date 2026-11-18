@@ -23,6 +23,8 @@ jobs:
           node tests/landscape-layout.test.cjs
           node tests/landscape-nav-safe.test.cjs
           node test_ui.cjs
+          # Fail fast on every standalone JavaScript regression before SDK setup.
+          for test in tests/*.test.cjs; do node "$test"; done
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
