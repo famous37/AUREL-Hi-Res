@@ -464,6 +464,7 @@ Object.assign(dictionary,{
  'Swipe left for previous track':'Проведіть ліворуч, щоб перейти до попереднього треку',
  'Swipe right for next track':'Проведіть праворуч, щоб перейти до наступного треку',
  'Swipe down to minimize':'Проведіть униз, щоб згорнути програвач',
+ 'Now Playing gestures: swipe down to minimize · right for next track · left for previous track.':'Жести програвача: униз — згорнути · праворуч — наступний трек · ліворуч — попередній.',
  'Could not change track':'Не вдалося перемкнути трек',
  'Could not copy error log':'Не вдалося скопіювати журнал помилок',
  'Copy failed. Use View log to read local errors.':'Не вдалося скопіювати. Виберіть «Переглянути журнал».',
