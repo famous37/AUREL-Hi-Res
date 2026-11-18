@@ -21,7 +21,7 @@
       observer=new ResizeObserver(schedule);
       observer.observe(view);
     }
-    const landscape=window.matchMedia('(orientation:landscape) and (min-width:600px)').matches;
+    const landscape=window.matchMedia('(orientation:landscape) and (min-width:420px)').matches;
     if(landscape){
       view.style.removeProperty('--aurel-fit-art');
       view.classList.remove('aurel-fit-scroll');
