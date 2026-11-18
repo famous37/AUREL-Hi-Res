@@ -44,7 +44,7 @@ assert(murglar.includes('aria-busy='),'Loader requires accessible status');
 assert(responsive.includes('toggle.innerHTML=aurelPlaybackIcon(p,26)'));
 assert(responsive.includes('m.dataset.miniPlaying=state'),'Keep mini-player DOM stable on every tick');
 assert(app.includes('aurelPlaybackIcon(p,33)'),'Fallback full player must also display spinner');
-assert(app.includes('1.1.63'),'Settings must show correct version');
+assert(app.includes('1.1.64'),'Settings must show correct version');
 assert(/@keyframes aurel-bold-spin/.test(styles));
 assert(/prefers-reduced-motion:reduce/.test(styles));
 assert(/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(styles));
