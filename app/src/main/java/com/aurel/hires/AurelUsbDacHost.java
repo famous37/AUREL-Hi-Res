@@ -155,6 +155,16 @@ final class AurelUsbDacHost {
             instanceof UsbAudioManager.PlaybackRoute.Fallback;
     }
 
+    int androidMixerRate() {
+        return Math.max(0,manager.halOutputSampleRate());
+    }
+
+    boolean bitPerfectCapable() {
+        // libusbdac v0.2.0 deliberately requires a verified hardware volume
+        // range to prove safe unity gain before allowing direct PCM.
+        return manager.isBitPerfectCapable();
+    }
+
     void releaseClaim() {
         manager.releaseClaim(0L, false, false);
     }
@@ -192,6 +202,12 @@ final class AurelUsbDacHost {
             j.put("directUsbRoute",directRoute());
             j.put("androidFallback",androidFallback());
             j.put("sampleRateHz",sampleRate());
+            j.put("androidMixerRateHz",androidMixerRate());
+            j.put("nativeUsbBitPerfectCapable",bitPerfectCapable());
+            if(prefs.getEnabled() && connected() && permitted() && !bitPerfectCapable())
+                j.put("nativeUsbLimitation",
+                    "Cannot verify the device's hardware unity gain; "+
+                    "libusbdac refuses a direct bit-perfect route for this DAC.");
             j.put("usbVolumeMode",volumeMode());
             j.put("usbOutputVolumePercent",requestedVolume);
             UsbPipelineStats stats=manager.getPipelineStats().getValue();
