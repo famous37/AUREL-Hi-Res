@@ -42,7 +42,7 @@ assert(murglar.includes('aria-busy='),'Loader requires accessible status');
 assert(responsive.includes('toggle.innerHTML=aurelPlaybackIcon(p,26)'));
 assert(responsive.includes('m.dataset.miniPlaying=state'),'Keep mini-player DOM stable on every tick');
 assert(app.includes('aurelPlaybackIcon(p,33)'),'Fallback full player must also display spinner');
-assert(app.includes('1.1.54'),'Settings must show correct version');
+assert(app.includes('1.1.55'),'Settings must show correct version');
 assert(/@keyframes aurel-bold-spin/.test(styles));
 assert(/prefers-reduced-motion:reduce/.test(styles));
 assert(/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(styles));
@@ -88,4 +88,18 @@ assert(styles.includes('border:0!important'),'Do not render a second border arou
 assert(styles.includes('transform-box:view-box!important'),'SVG spinner should rotate around its own centre');
 assert(styles.includes('animation:aurel-bold-spin 2.4s linear infinite!important'),
  'Reduced-motion must preserve slow functional loading feedback');
+// All four secondary transport controls and all five action buttons must
+// share the same responsive size token, regardless of per-button classes.
+const shared='var(--aurel-small-control)!important';
+const actions=styles.slice(styles.indexOf('#overlay .murglar-view .murglar-quick-actions button {'),styles.indexOf('#overlay .murglar-view .murglar-quick-actions button svg.ui-icon'));
+const transport=styles.slice(styles.indexOf('#overlay .murglar-view .murglar-transport .murglar-control:not(.middle) {'),styles.indexOf('#overlay .murglar-view .murglar-transport .murglar-control:not(.middle) .ui-icon'));
+for(const [name,block] of [['quick actions',actions],['transport',transport]]){
+  assert(block.includes('width:'+shared),name+' width must use unified size');
+  assert(block.includes('height:'+shared),name+' height must use unified size');
+  assert(block.includes('min-width:0!important'),name+' must not overflow at narrow widths');
+  assert(block.includes('padding:0!important'),name+' has no inherited button padding');
+  assert(block.includes('aspect-ratio:1!important'),name+' remains square');
+}
+assert(styles.includes('--aurel-small-control:clamp(46px,calc((100vw - 80px)/5),62px)'));
+assert(styles.includes('justify-items:center!important'),'Actions must be centered in five equal tracks');
 console.log('Unified bold SVG icons, loading spinner, responsive player DOM PASS');
