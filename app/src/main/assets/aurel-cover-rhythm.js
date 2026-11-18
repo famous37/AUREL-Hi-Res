@@ -16,16 +16,18 @@
  let writeQueue=Promise.resolve();
  let bitPerfectWarned=false;
  let unavailableWarned=false;
+ let auroraPermissionAttempted=false;
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)');
  const safeMotion=()=>!document.hidden&&!reduced?.matches&&
    document.documentElement.dataset.aurelMotion!=='off';
- const audioPlaying=()=>!!(enabled&&app.player?.playing&&
+ const audioPlaying=()=>!!(app.player?.playing&&
    !app.player?.buffering&&!app.player?.error&&safeMotion());
- const playing=()=>!!(app.overlay&&audioPlaying());
+ const playing=()=>!!(enabled&&app.overlay&&audioPlaying());
  const bitPerfect=()=>!!app.player?.bitPerfect?.enabled;
  // Capture is allowed while viewing Settings, otherwise diagnostics would
  // always report "off" as soon as the user leaves Now Playing.
- const requestCapture=()=>audioPlaying()&&!bitPerfect();
+ const auroraCapture=()=>!!window.AurelAurora?.wantsBeat?.();
+ const requestCapture=()=>audioPlaying()&&(enabled||auroraCapture())&&!bitPerfect();
  const uk=()=>window.AurelLanguage?.get?.()==='uk';
  const setScale=level=>{
    const amount=Math.max(0,Math.min(1,Number(level)||0));
@@ -80,7 +82,12 @@
    }
    if(!bitPerfect())bitPerfectWarned=false;
    const wanted=requestCapture();
-   const ask=askPermission&&enabled&&!permissionGranted;
+   // The artwork effect can use the same single native analyzer without
+   // enabling movement of the cover itself. Ask permission once at playback,
+   // or again after an explicit toggle, never as an unsolicited idle prompt.
+   const ask=!!(wanted&&!permissionGranted&&
+     (askPermission||(auroraCapture()&&!auroraPermissionAttempted)));
+   if(ask&&auroraCapture())auroraPermissionAttempted=true;
    if(wanted!==nativeWanted||ask){
      nativeWanted=wanted;
      if(!wanted)lastFrame=0;
@@ -96,7 +103,7 @@
    const value=Number(level);
    if(!Number.isFinite(value))return;
    lastFrame=Date.now();
-   if(app.overlay){
+   if(enabled&&app.overlay){
      setScale(value);
      if(!overlay.classList.contains('aurel-beat-live'))sync();
    }
