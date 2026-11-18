@@ -1,6 +1,6 @@
 name: Publish permanently signed AUREL release
-# v1.1.61: music-synced FFT only, no synthetic 3.1-second cover pulse.
-# Retain audio routing, storage, USB bit-perfect isolation and signing.
+# v1.1.62: FFT callback fallback with read-only polling and native diagnostics.
+# Preserve the media engine, Qobuz storage, bit-perfect isolation and signing.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -171,18 +171,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — genuinely music-synchronized album cover**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — Android beat analyzer reliability and diagnostics**" \
             '' \
-            '- Removes the fake periodic 3.1-second breathing animation. No audio FFT frames means NO movement, not an invented beat.' \
-            '- Real low-frequency FFT onset and transient energy independently drive the cover scale (96.5–110%).' \
-            '- Fixes a race between Android RECORD_AUDIO permission requests and starting the native FFT analyzer.' \
-            '- Adds native capture diagnostics in the setting: active, waiting, permission needed or unavailable.' \
-            '- Android BIT_PERFECT output cannot reliably expose effect FFT; the cover remains still rather than pretending to follow the beat.' \
-            '- For genuine live beat response, turn off bit-perfect and use Android normal mixer playback.' \
-            '- Automated pure-Java beat impulses/silence tests and WebView playback/permissions/bit-perfect tests.' \
-            '- Preserves USB routing, sound quality, Qobuz login, playback continuity, data, portrait and landscape layouts.' \
+            '- For music-reactive artwork, AUREL now retries Android Visualizer FFT using the official polling API when callbacks do not arrive or contain no usable spectrum.' \
+            '- Captures only its own MediaPlayer audio session; no microphone recording, audio upload or second Qobuz stream.' \
+            '- Analyzer remains active while viewing Settings during playback, so diagnostic state is no longer reset just by closing Now Playing.' \
+            '- Settings now offers Copy audio analyzer diagnostics with permission, output mode, FFT frame counters and safe error codes (no private audio or account information).' \
+            '- No fake periodic pulsing: genuine bass transients drive the cover, or it remains still if Android exposes no FFT audio.' \
+            '- Android bit-perfect USB path still disables audio effects; switch to normal mixer output to allow Visualizer FFT.' \
+            '- Sound output, DAC routing, volume, account credentials, Qobuz library, player navigation and existing settings are unchanged.' \
+            '- Automated regressions and debug/Preview compilation pass; specific-device Visualizer support must be assessed using the in-app report.' \
             '' \
-            "Install v${AUREL_VERSION} over your existing permanently signed AUREL without clearing data." \
+            "Install v${AUREL_VERSION} over the existing signed AUREL app; there is no need to uninstall or erase data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
