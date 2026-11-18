@@ -2,8 +2,15 @@
   'use strict';
   const stateCaption=p=>p?.error?'UNAVAILABLE':p?.buffering?'BUFFERING':p?.playing?'PLAYING':'PAUSED';
   const repeatCaption=p=>Number(p?.repeat)===2?'Repeat one':Number(p?.repeat)===1?'Repeat all':'Repeat off';
+  let immersiveState=false;
+  const syncImmersive=visible=>{
+    if(visible===immersiveState)return;
+    immersiveState=visible;
+    try{window.AurelNative?.setPlayerImmersive?.(visible);}catch(_){}
+  };
   drawOverlay=function(){
     const overlay=$('#overlay');
+    syncImmersive(!!app.overlay);
     // Keep the underlying route alive for Back, but never let it paint or
     // receive accessibility focus through the full-player navigation strip.
     document.querySelector('.app')?.classList.toggle('aurel-player-open',!!app.overlay);
@@ -23,6 +30,24 @@
     const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" aria-label="No cover art available">♫</div>';
     const source=actualSource(p);
     const loading=aurelPlaybackMode(p)==='loading';
+    // Preserve the actual drawer DOM across all player/session/quality updates.
+    // Replacing the entire WebView sheet restarts its fade and looks like a
+    // bright flash on every native track update.
+    const stableId=String(t.id||'');
+    const stableSheet=active&&active===priorSheet &&
+      stableId===priorTrack&&!overlay.classList.contains('hidden');
+    if(stableSheet){
+      const livePanel=overlay.querySelector('.aurel-detail-sheet');
+      if(livePanel){
+        const contents=active==='upnext'?queuePanel(p):
+          active==='credits'?creditsPanel(p):audioPanel(p);
+        if(livePanel.innerHTML!==contents)livePanel.innerHTML=contents;
+        const sourceLabel=overlay.querySelector('.murglar-source-line span');
+        if(sourceLabel&&sourceLabel.textContent!==source)sourceLabel.textContent=source;
+        updateOverlayState();
+        return;
+      }
+    }
     // Persistent app bottom navigation remains mounted outside this overlay.
     overlay.classList.remove('hidden');
     overlay.style.setProperty('--cover-image','none');
