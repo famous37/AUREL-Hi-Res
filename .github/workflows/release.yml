@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.53: unified bold vector icons and smooth loading spinner (audio core unchanged).
+# v1.1.54: compact Now Playing header and resilient animated buffering spinner.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -165,15 +165,14 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — unified controls and responsive loading**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — responsive header and reliable loading animation**" \
             '' \
-            '- Larger, high-contrast monochrome buttons and consistent 2.7-width SVG glyphs across player, mini-player, navigation and share actions.' \
-            '- A smooth circular spinner replaces Play/Pause while the selected track is buffering, including on first play and track changes.' \
-            '- The large player and mini-player update their glyphs without repeatedly rebuilding album art or seeking controls.' \
-            '- Responsive five-button transport and quick-action rows remain balanced on narrow Android screens.' \
-            '- All icons are vector-based and include keyboard focus and accessible Play/Pause/Loading labels.' \
-            '- Android 14+ optional USB bit-perfect AudioManager behavior remains unchanged; no third-party USB driver.' \
-            '- Preserves account, library, playback state and permanent signing for in-place updates.' \
+            '- Restores compact Now Playing top navigation in one rounded bar without oversized overlapping button borders.' \
+            '- The previous header inherited padding that made icons protrude from its fixed-height container; every control now fits its grid slot.' \
+            '- Fixes frozen Play/Pause loading spinner through compositor Web Animations API and verified CSS fallback.' \
+            '- Keeps functional loading feedback under reduced-motion settings at a gentler rotation speed.' \
+            '- Preserves stable album art, scroll position, player state and Android native audio routing.' \
+            '- Tested SVG loading state, spinner startup and cancellation, and header geometry constraints.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
