@@ -9,7 +9,7 @@ const source=read('murglar.js');
 const nav=read('aurel-bold-controls.css');
 
 assert(css.trim().startsWith('/* AUREL 1.1.57'));
-assert.equal((css.match(/@media\s*\(orientation:landscape\)\s*and\s*\(min-width:420px\)/g)||[]).length,2);
+assert.equal((css.match(/@media\s*\(orientation:landscape\)\s*and\s*\(min-width:420px\)/g)||[]).length,3);
 assert(css.includes('(max-width:599px)'),'Compact split-screen layout missing');
 assert(css.includes('(max-width:419px)'),'Ultra-narrow stacked fallback missing');
 assert(!css.includes('@media (orientation:portrait)'), 'Portrait must use unchanged existing CSS');
