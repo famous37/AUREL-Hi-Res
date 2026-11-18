@@ -73,6 +73,7 @@ assert.equal(x.classList.contains('aurel-aurora-enabled'),false,'Manual toggle h
 assert.equal(x.store.get('aurel_aurora_shadows_v1'),'off','Toggle persists');
 x.events.change({target:{matches:q=>q==='[data-aurel-aurora-toggle]',checked:true}});
 assert.equal(x.classList.contains('aurel-aurora-playing'),true,'Re-enable without music reload');
+assert.equal(x.styles.get('--aurel-aurora-opacity'),'0.82','Re-enabled glow must be immediately visible');
 x.app.overlay=false;x.context.drawOverlay();
 assert.equal(x.classList.contains('aurel-aurora-playing'),false,'Closing player disables compositor animation');
 assert.equal(x.classList.contains('aurel-aurora-enabled'),false);
