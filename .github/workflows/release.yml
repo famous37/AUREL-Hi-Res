@@ -81,6 +81,8 @@ jobs:
           echo "AUREL_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "AUREL_TAG=v$VERSION" >> "$GITHUB_ENV"
 
+      # The native restartAnalyzer request maps to Java resetAnalyzer;
+      # the FFT integration regression checks that exact contract.
       # Glass cascade must be the final CSS layer, yet must never alter
       # geometry of the tested landscape navbar or cover artwork.
       # Keep route/detail animation assertions aligned with deliberate 215ms,
