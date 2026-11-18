@@ -1,6 +1,7 @@
 name: Publish permanently signed AUREL release
 # v1.1.59: stronger opt-in rhythmic album cover with read-only audio monitoring.
 # Preserve existing Android mixer, Qobuz state and permanent signing.
+# CI verified on v1.1.59 branch; initiate permanently signed stable release.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
