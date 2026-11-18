@@ -1241,7 +1241,7 @@ public final class MainActivity extends Activity {
                             // This is not Android system logcat or an audio capture.
                             String report=p.optString("report","");
                             if(!report.startsWith("AUREL Hi-Res 1.1.63 | App error log")||
-                               report.length()>24000)
+                               report.length()>48000)
                                 throw new IllegalArgumentException("Invalid application error log");
                             final String clipboardText=report;
                             java.util.concurrent.FutureTask<Boolean> clipboardJob=
