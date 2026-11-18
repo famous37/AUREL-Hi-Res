@@ -181,7 +181,7 @@
    sync(enabled);
  });
  document.addEventListener('visibilitychange',()=>sync());
- window.addEventListener('pageshow',()=>sync());
+ window.addEventListener?.('pageshow',()=>sync());
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);
  installSetting();
  sync();
