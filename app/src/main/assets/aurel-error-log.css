@@ -1,0 +1,18 @@
+/* AUREL 1.1.63 — scoped support log; does not change player geometry. */
+.app .screen .aurel-error-panel {max-width:100%;min-width:0}
+.app .screen .aurel-error-panel p{font-size:14px;line-height:1.5;opacity:.88}
+.app .screen .aurel-error-panel [data-aurel-error-count]{
+  display:block;margin:9px 0;font-size:14px;font-weight:650;
+}
+.app .screen .aurel-error-actions{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px;
+}
+.app .screen .aurel-error-actions button{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:43px;min-width:0;border-radius:12px;
+  border:1px solid var(--aurel-theme-border,#74767d);
+  padding:9px 13px;font-size:15px;font-weight:680;
+  background:var(--aurel-theme-card,#302e33);
+  color:var(--aurel-theme-on,#f1f1f4);
+}
+.app .screen .aurel-error-actions button:disabled{opacity:.5}
