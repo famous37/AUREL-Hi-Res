@@ -50,6 +50,30 @@ public final class MainActivity extends Activity {
     private FrameLayout systemInsetFrame;
     private volatile String lastArtworkPaletteJs="";
     private static final int GRAPHITE_CHROME=Color.rgb(17,18,20);
+    private int currentChromeColor=GRAPHITE_CHROME;
+    private boolean fullPlayerImmersive=false;
+    private int systemInsetTop=0,systemInsetLeft=0,systemInsetRight=0,
+        systemInsetBottom=0,imeInsetBottom=0;
+    private void applyPlayerWindowInsets(){
+        if(systemInsetFrame==null)return;
+        systemInsetFrame.setPadding(systemInsetLeft,
+            fullPlayerImmersive?0:systemInsetTop,
+            systemInsetRight,Math.max(systemInsetBottom,imeInsetBottom));
+        if(web!=null)script("document.documentElement.style.setProperty("+
+            JSONObject.quote("--aurel-native-status-inset")+","+
+            JSONObject.quote(systemInsetTop+"px")+")");
+    }
+    private void setPlayerImmersive(boolean open){
+        if(fullPlayerImmersive==open)return;
+        fullPlayerImmersive=open;
+        final View decor=getWindow().getDecorView();
+        decor.setSystemUiVisibility(open?
+            (View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_STABLE):0);
+        getWindow().setStatusBarColor(open?Color.TRANSPARENT:currentChromeColor);
+        if(Build.VERSION.SDK_INT>=29)getWindow().setStatusBarContrastEnforced(false);
+        applyPlayerWindowInsets();
+        if(systemInsetFrame!=null)systemInsetFrame.requestApplyInsets();
+    }
     private SecureStore secure;
     private QobuzApi api;
     private MornyeGateway mornye;
@@ -618,7 +642,10 @@ public final class MainActivity extends Activity {
             content.setOnApplyWindowInsetsListener((v,insets)->{
                 Insets sys=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
                 Insets ime=insets.getInsets(WindowInsets.Type.ime());
-                v.setPadding(sys.left,sys.top,sys.right,Math.max(sys.bottom,ime.bottom));
+                systemInsetTop=sys.top;systemInsetLeft=sys.left;
+                systemInsetRight=sys.right;systemInsetBottom=sys.bottom;
+                imeInsetBottom=ime.bottom;
+                applyPlayerWindowInsets();
                 return WindowInsets.CONSUMED;
             });
         }else{
@@ -855,7 +882,8 @@ public final class MainActivity extends Activity {
         double luminance=(0.2126*Color.red(color)+0.7152*Color.green(color)+
             0.0722*Color.blue(color))/255.0;
         if(luminance>0.28)return;
-        getWindow().setStatusBarColor(color);
+        currentChromeColor=color;
+        getWindow().setStatusBarColor(fullPlayerImmersive?Color.TRANSPARENT:color);
         getWindow().setNavigationBarColor(color);
         if(Build.VERSION.SDK_INT>=29){
             getWindow().setStatusBarContrastEnforced(false);
@@ -1096,6 +1124,9 @@ public final class MainActivity extends Activity {
     private final class Bridge {
         @JavascriptInterface public void setWindowPalette(String color) {
             ui.post(()->setSystemChrome(color));
+        }
+        @JavascriptInterface public void setPlayerImmersive(boolean open) {
+            ui.post(()->setPlayerImmersive(open));
         }
         @JavascriptInterface public void call(String requestId,String action,String payload) {
             if(requestId==null||requestId.length()>72)return;
