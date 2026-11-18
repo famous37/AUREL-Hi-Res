@@ -1133,7 +1133,7 @@ public final class MainActivity extends Activity {
             ui.post(()->setSystemChrome(color));
         }
         @JavascriptInterface public void setPlayerImmersive(boolean open) {
-            ui.post(()->setPlayerImmersive(open));
+            ui.post(()->MainActivity.this.setPlayerImmersive(open));
         }
         @JavascriptInterface public void call(String requestId,String action,String payload) {
             if(requestId==null||requestId.length()>72)return;
