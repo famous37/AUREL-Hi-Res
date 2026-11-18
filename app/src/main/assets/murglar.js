@@ -4,6 +4,14 @@
   const repeatCaption=p=>Number(p?.repeat)===2?'Repeat one':Number(p?.repeat)===1?'Repeat all':'Repeat off';
   drawOverlay=function(){
     const overlay=$('#overlay');
+    // Keep the underlying route alive for Back, but never let it paint or
+    // receive accessibility focus through the full-player navigation strip.
+    document.querySelector('.app')?.classList.toggle('aurel-player-open',!!app.overlay);
+    const previousPage=document.querySelector('.main');
+    if(previousPage){
+      if(app.overlay)previousPage.setAttribute('aria-hidden','true');
+      else previousPage.removeAttribute('aria-hidden');
+    }
     if(!app.overlay){app.dragging=false;aurelStopLoadingAnimation(overlay);overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.openSheet='';return}
     const priorScroll=overlay.querySelector('.murglar-player-content')?.scrollTop||0;
     const priorDetailScroll=overlay.querySelector('.aurel-detail-scroll')?.scrollTop||0;

@@ -1,4 +1,4 @@
-/* AUREL 1.1.70 — bounded, private actionable application error journal.
+/* AUREL 1.1.71 — bounded, private actionable application error journal.
  * No Android system-log access, audio samples, account data or telemetry.
  * Errors stay on this device; they leave only through explicit Copy. */
 (function installAurelErrorJournal(){
@@ -44,11 +44,15 @@
    }catch(_){}finally{writing=false;}
  }
  function report(){
-   return 'AUREL Hi-Res 1.1.70 | App error log\n'+
+   return 'AUREL Hi-Res 1.1.71 | App error log\n'+
      'Local diagnostic only. No audio, account tokens, URLs or system logcat.\n'+
-     JSON.stringify({version:'1.1.70',count:entries.length,errors:entries},null,2);
+     JSON.stringify({version:'1.1.71',count:entries.length,errors:entries},null,2);
  }
- function clear(){entries=[];persist();refreshCount();}
+ function clear(){entries=[];persist();refreshCount();refreshReport();}
+ function refreshReport(){
+   const display=document.querySelector?.('[data-aurel-error-report]');
+   if(display&&!display.hidden)display.textContent=report();
+ }
  window.AurelErrorLog={record:capture,report,clear,count:()=>entries.length};
 
  // Retain only the local asset NAME and line — never external origins, query
@@ -143,24 +147,63 @@
      '<small data-aurel-error-count role="status"></small>'+
      '<div class="aurel-error-actions"><button type="button" data-aurel-copy-errors>'+
        (uk?'Скопіювати журнал':'Copy error log')+'</button>'+
+     '<button type="button" data-aurel-view-errors aria-expanded="false">'+
+       (uk?'Переглянути':'View log')+'</button>'+ 
      '<button type="button" data-aurel-clear-errors>'+
-       (uk?'Очистити журнал':'Clear log')+'</button></div>';
+       (uk?'Очистити журнал':'Clear log')+'</button></div>'+ 
+     '<pre data-aurel-error-report hidden aria-label="Local application errors"></pre>';
    host.appendChild(panel);refreshCount();
  }
  document.addEventListener('click',async event=>{
-   const button=event.target?.closest?.('[data-aurel-copy-errors],[data-aurel-clear-errors]');
+   const button=event.target?.closest?.('[data-aurel-copy-errors],[data-aurel-clear-errors],[data-aurel-view-errors]');
    if(!button||button.disabled)return;
    event.preventDefault();event.stopPropagation();
    if(button.hasAttribute('data-aurel-clear-errors')){
      clear();return;
    }
+   if(button.hasAttribute('data-aurel-view-errors')){
+     const display=document.querySelector?.('[data-aurel-error-report]');
+     if(display){
+       display.hidden=!display.hidden;
+       button.setAttribute('aria-expanded',String(!display.hidden));
+       if(!display.hidden)display.textContent=report();
+     }
+     return;
+   }
    button.disabled=true;
    try{
-     const reply=await nativeCall('copySupportLog',{report:report()});
-     if(reply?.copied!==true)throw Error('Android clipboard did not confirm copying');
+     const content=report();
+     try{
+       const reply=await nativeCall('copySupportLog',{report:content});
+       if(reply?.copied!==true)throw Error('Android clipboard did not confirm copying');
+     }catch(nativeError){
+       // Prefer Android clipboard; fallback only to local WebView copy APIs.
+       let copied=false;
+       if(typeof navigator!=='undefined'&&navigator.clipboard?.writeText){
+         try{await navigator.clipboard.writeText(content);copied=true;}catch(_){}
+       }
+       if(!copied&&typeof document.execCommand==='function'){
+         let field;
+         try{
+           field=document.createElement('textarea');
+           field.value=content;field.setAttribute('readonly','');
+           field.style.position='fixed';field.style.opacity='0';
+           field.style.pointerEvents='none';
+           (document.body||document.documentElement).appendChild(field);
+           field.select();copied=!!document.execCommand('copy');
+         }catch(_){}finally{field?.remove?.();}
+       }
+       if(!copied)throw nativeError;
+     }
      showToast(window.AurelLanguage?.get?.()==='uk'?
        'Журнал помилок скопійовано':'Application error log copied',3500);
-   }catch(error){showToast('Could not copy error log',4500);}
+   }catch(error){
+     capture('clipboard',error?.message||'Copy unavailable');
+     refreshReport();
+     showToast(window.AurelLanguage?.get?.()==='uk'?
+       'Не вдалося скопіювати. Натисни «Переглянути», щоб прочитати журнал.':
+       'Copy failed. Use View log to read local errors.',5000);
+   }
    finally{if(button.isConnected)button.disabled=false;}
  });
  if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',attach,{once:true});

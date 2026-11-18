@@ -68,6 +68,18 @@
     root.style.setProperty('--aurel-theme-bg',colors.bg);
     root.style.setProperty('--aurel-theme-surface',colors.surface);
     root.style.setProperty('--aurel-theme-accent',colors.accent);
+    // One authoritative palette for legacy and contemporary components.
+    // Older Qobuz, Settings, player and library rules read these base tokens.
+    root.style.setProperty('--bg',colors.bg);
+    root.style.setProperty('--side',colors.bg);
+    root.style.setProperty('--surface',colors.surface);
+    root.style.setProperty('--surface2',mixHex(colors.surface,'#FFFFFF',.085));
+    root.style.setProperty('--accent',colors.accent);
+    root.style.setProperty('--accent2',colors.one||colors.accent);
+    root.style.setProperty('--text','#F7F5F6');
+    root.style.setProperty('--muted','#D6D2D5');
+    root.style.setProperty('--low','#BDB8BC');
+    root.style.setProperty('--line',mixHex(colors.surface,'#FFFFFF',.12));
     const card=mixHex(colors.surface,colors.bg,.20);
     const raised=mixHex(colors.surface,'#FFFFFF',.10);
     const line=mixHex(colors.surface,'#FFFFFF',.15);

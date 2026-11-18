@@ -440,6 +440,7 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(GRAPHITE_CHROME);
         getWindow().setNavigationBarColor(GRAPHITE_CHROME);
+        getWindow().getDecorView().setBackgroundColor(GRAPHITE_CHROME);
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
@@ -475,7 +476,7 @@ public final class MainActivity extends Activity {
         api=new QobuzApi(secure);
         mornye=new MornyeGateway(secure);
         updateManager=new AurelUpdateManager(this,update->emit("update",update));
-        web=new WebView(this); web.setBackgroundColor(Color.rgb(12,12,16));
+        web=new WebView(this); web.setBackgroundColor(GRAPHITE_CHROME);
         // Disable native WebView scrollbar overlays (not content scrolling).
         // Android briefly displays them after unlock/viewport resize even if
         // CSS scrollbar-width:none hides the inner HTML scroll indicators.
@@ -772,7 +773,10 @@ public final class MainActivity extends Activity {
             getWindow().setStatusBarContrastEnforced(false);
             getWindow().setNavigationBarContrastEnforced(false);
         }
+        // On Android 15+ system bars are transparent and inherit Decor's colour.
+        getWindow().getDecorView().setBackgroundColor(color);
         if(systemInsetFrame!=null)systemInsetFrame.setBackgroundColor(color);
+        if(web!=null)web.setBackgroundColor(color);
     }
 
     void onAlbumArtworkPalette(String url,String bg,String surface,String accent,
@@ -1300,7 +1304,12 @@ public final class MainActivity extends Activity {
                             // Copy only a user-requested, bounded app-error report.
                             // This is not Android system logcat or an audio capture.
                             String report=p.optString("report","");
-                            if(!report.startsWith("AUREL Hi-Res 1.1.69 | App error log")||
+                            // Patch-level version strings must never disable Copy.
+                            // Require the exact private report structure, not a fixed version.
+                            int firstLine=report.indexOf('\n');
+                            String header=firstLine>0?report.substring(0,firstLine):"";
+                            if(!header.matches("AUREL Hi-Res [0-9]+\\.[0-9]+\\.[0-9]+ \\| App error log")||
+                               !report.startsWith(header+"\nLocal diagnostic only. No audio, account tokens, URLs or system logcat.\n{")||
                                report.length()>48000)
                                 throw new IllegalArgumentException("Invalid application error log");
                             final String clipboardText=report;
