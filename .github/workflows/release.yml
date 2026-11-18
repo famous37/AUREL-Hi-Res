@@ -110,6 +110,7 @@ jobs:
           node tests/ui-bold-loading.test.cjs
           node tests/landscape-layout.test.cjs
           node tests/landscape-nav-safe.test.cjs
+          node tests/cover-rhythm.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
