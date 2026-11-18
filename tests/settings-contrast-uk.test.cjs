@@ -48,7 +48,7 @@ assert(contrastRatio('#303136','#d7dbe1')>=7,'Unselected subtitle must meet AAA 
 assert(app.includes('role="group" aria-label="Streaming quality"'));
 assert(app.includes('aria-pressed="${app.session.quality===q}"'),
   'Selected quality must be announced to screen readers');
-assert(app.includes('bpExplanations')&&app.includes('bpDescription'));
+assert(app.includes('bpDescription')&&app.includes('Android USB bit-perfect'));
 assert(!app.includes('<p>Android 14+ · compatible external USB DAC</p>'));
 assert(!app.includes('${html(bp.detail||'),
   'User-facing USB detail must not show raw long native English text');
@@ -57,11 +57,11 @@ const end=lang.indexOf('var skipContent=',start);
 assert(start>=0&&end>start);
 const dictionary=new Function(lang.slice(start,end)+'\nreturn dictionary;')();
 const english=[
- 'Android 14+ · USB DAC required',
- 'Connect a compatible USB DAC.',
- 'Android has a bit-perfect mixer, but not for this track format.',
- 'USB mixer preference accepted; PCM bit identity unverified.',
- 'USB audio routed; PCM bit identity unverified.',
+ 'Android USB bit-perfect',
+ 'Android 14+ · AudioManager preferred mixer · no third-party USB driver',
+ 'Android bit-perfect unavailable',
+ 'Android bit-perfect preference accepted',
+ 'Android USB policy routed',
  'USB bit-perfect playback setting',
  'Digital headroom'
 ];
@@ -70,6 +70,6 @@ for(const key of english){
  assert(value&&/[А-Яа-яІіЇїЄєҐґ]/.test(value),'Missing Ukrainian interface string: '+key);
 }
 for(const state of ['off','android_version','no_usb','waiting_track',
- 'unknown_format','unsupported_format','unsupported','rejected','requested','usb_mixer_routed'])
+ 'unknown_format','unsupported_format','policy_unavailable','rejected','requested','usb_mixer_routed'])
  assert(new RegExp('\\b'+state+':').test(app),'USB state missing '+state);
 console.log('AUREL contrast and Ukrainian USB settings regression PASS');

@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.51: explicit experimental direct USB, fail-safe Android output.
+# v1.1.52: Android framework bit-perfect preference, no third-party USB driver.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -61,10 +61,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
-      - name: Install Android API 37, NDK 29, and CMake
-        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
-      - name: Fetch pinned native USB Audio and libFLAC sources
-        run: bash scripts/setup-usb-driver.sh
+      - name: Install Android API 37
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
 
       - name: Validate release version and prevent replacing signed artifacts
         env:
@@ -166,17 +164,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — experimental USB bit-perfect recovery**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — Android 14+ native USB mixer support**" \
             '' \
-            '- Experimental option: Media3 + libusbdac native UAC1/2/3 direct USB PCM with explicit user opt-in.' \
-            '- Safe default: Android MediaPlayer/AudioFlinger remains entirely independent of USB-exclusive mode.' \
-            '- Native DAC driver does not start on a cold launch, avoiding the earlier startup crash loop.' \
-            '- A healthy Android USB fallback is no longer interpreted as a stalled direct USB stream.' \
-            '- Live USB packet progress, device clock and source sample rate are reported without falsely claiming measured end-to-end bit identity.' \
-            '- A DAC without verifiable hardware unity gain may still be unsupported by libusbdac v0.2.0.' \
-            '- Hardware volume applies only when the USB DAC exposes a compatible control.' \
-            '- USB access is released promptly on audio-focus loss; Android fallback is preserved.' \
-            '- Real DAC hardware testing is required before treating direct USB output as fully qualified.' \
+            '- Removes libusbdac USB-exclusive engine, JNI code and USB interface permissions.' \
+            '- Playback uses Android MediaPlayer and AudioFlinger in all modes.' \
+            '- Android 14+ optionally requests BIT_PERFECT mixer attributes for a USB DAC when explicitly advertised for the exact PCM source format.' \
+            '- Unsupported USB devices and track formats continue playing through the standard Android mixer without changing signed stream URLs.' \
+            '- Correctly distinguishes an accepted mixer preference from independently verified decoded PCM bit identity.' \
+            '- Volume buttons and media session volume are owned entirely by Android.' \
+            '- Preserves account, library and playback state during in-place updates.' \
+            '- The optional system BIT_PERFECT behavior requires vendor Audio HAL support; Android 14+ alone is not sufficient.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

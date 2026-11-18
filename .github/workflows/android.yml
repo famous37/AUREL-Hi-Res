@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation, feature/usb-bitperfect-recovery-1-1-51]
+    branches: [main, fix/off-native-usb-isolation, feature/android14-platform-bitperfect-1-1-52]
   pull_request:
     branches: [main]
 jobs:
@@ -22,11 +22,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
-      - name: Install Android API 37, NDK 29, and CMake
-        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
-      - name: Fetch legacy native FLAC decoder sources (no old USB driver linked)
-        run: bash scripts/setup-usb-driver.sh
-      - name: Compile libusbdac USB engine and Android player before UI regressions
+      - name: Install Android API 37
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Compile Android media player and system mixer
         run: gradle --no-daemon :app:compileDebugJavaWithJavac --stacktrace
       - name: Validate all player scripts
         run: |
@@ -47,11 +45,11 @@ jobs:
         run: node tests/navigation.test.cjs
       - name: Verify icon-only player, accessible controls and navigation hooks
         run: node tests/minimal-player.test.cjs
-      - name: Verify USB Bit-perfect mixer negotiation and UI safeguards
+      - name: Verify Android 14 platform bit-perfect mixer negotiation
         run: node tests/bit-perfect.test.cjs
-      - name: Verify USB hardware volume, opt-in chooser and stable progress
+      - name: Verify Android-only volume and stable progress
         run: node tests/usb-volume-recovery.test.cjs
-      - name: Verify experimental USB bit-perfect recovery and Android route isolation
+      - name: Verify Android bit-perfect capability and normal output isolation
         run: node tests/usb-bitperfect-recovery.test.cjs
       - name: Verify playback, history, USB diagnosis and update continuity
         run: node tests/playback-continuity.test.cjs
