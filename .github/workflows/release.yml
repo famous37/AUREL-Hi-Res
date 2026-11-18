@@ -81,6 +81,8 @@ jobs:
           echo "AUREL_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "AUREL_TAG=v$VERSION" >> "$GITHUB_ENV"
 
+      # Keep route/detail animation assertions aligned with deliberate 215ms,
+      # near-opaque compositor fades. Never weaken the no-rerender guards.
       - name: Check JavaScript, navigation, and audio format tests
         shell: bash
         run: |
