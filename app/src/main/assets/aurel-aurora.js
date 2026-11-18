@@ -66,6 +66,7 @@
    lastFrame=0;lastPeak=0;lastPulse=0;rotation=0;
    overlay.style.setProperty('--aurel-aurora-rotation','0deg');
    overlay.style.setProperty('--aurel-reactive-scale','1');
+   overlay.style.setProperty('--aurel-aurora-drift','0px');
  }
  function wantCapture(ask=false){
    // Capture only AUREL's currently-playing MediaPlayer session, not global
@@ -114,6 +115,8 @@
    // The shared ambient layer now reacts to REAL native frames, not only
    // the halo behind the cover (which may be clipped by the WebView scroller).
    overlay.style.setProperty('--aurel-reactive-scale',(0.99+strong*.055).toFixed(4));
+   // Drift follows genuine FFT energy only; never uses a timed animation.
+   overlay.style.setProperty('--aurel-aurora-drift',Math.round((strong-.45)*9)+'px');
    intensity(.30+strong*.66);
    if(level>.10&&level>lastPeak+.045&&now-lastPulse>170){
      lastPulse=now;

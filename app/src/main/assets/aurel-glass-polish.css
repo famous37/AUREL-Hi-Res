@@ -170,3 +170,146 @@ html[data-aurel-motion="off"] #overlay .murglar-view::before,
 html[data-aurel-motion="off"] .app #screen *{
   transition:none!important;
 }
+
+
+/* 1.1.74 — canonical portrait geometry and edge-free, genuine-FFT ambience.
+ * Correct prior hard cut at the pseudo-layer's 75dvh boundary. Keep all
+ * responsive landscape geometry and screen-reader touch targets intact. */
+@media (orientation:portrait){
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-header.aurel-listening-nav{
+   top:max(42px, calc(var(--aurel-native-status-inset, 0px) + 12px))!important;
+   height:50px!important;
+   min-height:50px!important;
+   z-index:30!important;
+   isolation:isolate;
+ }
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-player-content{
+   padding-top:clamp(10px,1.8dvh,24px)!important;
+ }
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-header.aurel-listening-nav .murglar-header-button{
+   pointer-events:auto!important;
+   touch-action:manipulation;
+ }
+}
+/* Unlike the old <75dvh> paint box, each field fades to alpha zero inside
+   the full viewport; no artificial horizontal boundary crosses progress. */
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view::before{
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  pointer-events:none!important;
+  border:0!important;
+  box-shadow:none!important;
+  background-image:
+    radial-gradient(ellipse 94% 66% at 18% 19%,
+      color-mix(in srgb,var(--aurel-album-one,#999) 46%,transparent) 0%,
+      transparent 95%),
+    radial-gradient(ellipse 103% 72% at 87% 37%,
+      color-mix(in srgb,var(--aurel-album-two,#888) 38%,transparent) 0%,
+      transparent 97%),
+    radial-gradient(ellipse 105% 78% at 47% 55%,
+      color-mix(in srgb,var(--aurel-album-three,#aaa) 24%,transparent) 0%,
+      transparent 98%)!important;
+  transform:translate3d(var(--aurel-aurora-drift,0px),0,0)
+    scale(var(--aurel-reactive-scale,1))!important;
+  transform-origin:50% 40%;
+  transition:transform 240ms cubic-bezier(.22,.68,.25,1),
+    opacity 210ms cubic-bezier(.2,.7,.3,1)!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view{
+  background:var(--aurel-album-bg,var(--aurel-seam-bg,#111214))!important;
+  background-image:radial-gradient(ellipse 128% 91% at 51% 16%,
+    color-mix(in srgb,var(--aurel-album-one,#777) 11%,transparent),
+    transparent 92%)!important;
+}
+:root[data-aurel-palette] #overlay.aurel-cover-rhythm:not(.hidden)
+ .murglar-art-wrap::before{
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 87%);
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 87%);
+}
+/* Lightly translucent navbar, with an opaque fallback for older WebViews.
+   Do not reveal underlying Settings while the fullscreen player is visible. */
+:root[data-aurel-palette] .app .bottom-nav{
+  background:var(--aurel-seam-bg,#111214)!important;
+  background:color-mix(in srgb,var(--aurel-seam-bg,#111214) 88%,transparent)!important;
+  -webkit-backdrop-filter:blur(4px) saturate(1.05);
+  backdrop-filter:blur(4px) saturate(1.05);
+  border-top:1px solid color-mix(in srgb,
+    var(--aurel-seam-accent,#ddd) 10%,transparent)!important;
+}
+:root[data-aurel-palette] .app.aurel-player-open .bottom-nav{
+  background:color-mix(in srgb,
+    var(--aurel-album-bg,var(--aurel-seam-bg,#111214)) 91%,transparent)!important;
+}
+/* Touch gestures only animate cover/text while swiping horizontally.
+   The previous page must not repaint during an active vertical dismissal. */
+#overlay.aurel-track-scrubbing .murglar-art-wrap,
+#overlay.aurel-track-scrubbing .murglar-track-data{
+  transform:translate3d(var(--aurel-track-drag-x,0px),0,0)!important;
+  opacity:var(--aurel-track-drag-alpha,1)!important;
+  transition:none!important;
+  will-change:transform,opacity;
+}
+#overlay.aurel-track-settling .murglar-art-wrap,
+#overlay.aurel-track-settling .murglar-track-data{
+  transform:translate3d(0,0,0)!important;
+  opacity:1!important;
+  transition:transform 260ms cubic-bezier(.22,1,.36,1),
+    opacity 240ms ease-out!important;
+}
+@media(orientation:landscape){
+  #overlay.aurel-track-scrubbing .murglar-art-wrap{
+    transform:translate3d(var(--aurel-track-drag-x,0px),0,0)!important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+ :root[data-aurel-palette] #overlay .murglar-view::before,
+ #overlay.aurel-track-settling :is(.murglar-art-wrap,.murglar-track-data){
+  transition:none!important;
+ }
+}
+html[data-aurel-motion="off"] #overlay .murglar-view::before,
+html[data-aurel-motion="off"] #overlay.aurel-track-settling
+ :is(.murglar-art-wrap,.murglar-track-data){
+  transition:none!important;
+}
+
+/* Direct-manipulation minimise: fade and translate the player together so
+   the previous route is progressively revealed, rather than jumping in. */
+:root[data-aurel-palette] .app:has(#overlay.aurel-swipe-tracking)
+ .main,
+:root[data-aurel-palette] .app:has(#overlay.aurel-swipe-dismissing)
+ .main{
+  visibility:visible!important;
+  pointer-events:none!important;
+}
+#overlay.aurel-swipe-tracking{
+  background:transparent!important;
+}
+#overlay.aurel-swipe-tracking .murglar-view{
+  transform:translate3d(0,var(--aurel-swipe-y,0px),0)!important;
+  opacity:var(--aurel-swipe-alpha,1)!important;
+  transition:none!important;
+  will-change:transform,opacity;
+}
+#overlay.aurel-swipe-settling .murglar-view{
+  transform:translate3d(0,0,0)!important;
+  opacity:1!important;
+  transition:transform 270ms cubic-bezier(.22,1,.36,1),
+    opacity 240ms ease-out!important;
+}
+#overlay.aurel-swipe-dismissing .murglar-view{
+  transition:transform 270ms cubic-bezier(.22,1,.36,1),
+    opacity 245ms ease-in!important;
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay.aurel-swipe-tracking .murglar-view,
+ #overlay.aurel-swipe-settling .murglar-view,
+ #overlay.aurel-swipe-dismissing .murglar-view{
+  transition:none!important;
+ }
+}
