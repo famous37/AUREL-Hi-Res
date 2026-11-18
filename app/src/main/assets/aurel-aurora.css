@@ -2,7 +2,7 @@
  * No infinite keyframes: shadows move/brighten ONLY when FFT frames arrive.
  * No geometric changes to cover, controls, navbar or landscape layout. */
 #overlay .murglar-view .aurel-aurora-halo{display:none}
-#overlay.aurel-aurora-enabled .murglar-view{
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view{
   background-color:var(--aurel-album-bg,#111214)!important;
   background-image:
    radial-gradient(ellipse 102% 31% at 50% 22%,
@@ -56,7 +56,7 @@
     radial-gradient(ellipse at 80% 89%,var(--aurel-album-three,#e3d3c5),transparent 57%);
   filter:blur(26px);
 }
-#overlay.aurel-aurora-enabled .murglar-view #full-toggle{
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view #full-toggle{
   isolation:isolate;
   color:#171717!important;
   background:var(--aurel-album-accent,#d5d7db)!important;
@@ -77,10 +77,10 @@
   transition:opacity 150ms linear,transform 420ms cubic-bezier(.22,1,.36,1)!important;
 }
 /* Contrast stays legible regardless of the artwork's hue. */
-#overlay.aurel-aurora-enabled .murglar-view .murglar-track-data h1{
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view .murglar-track-data h1{
   color:#f8f7f5!important;text-shadow:0 1px 2px #0006!important;
 }
-#overlay.aurel-aurora-enabled .murglar-view .player-artist-link{
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled .murglar-view .player-artist-link{
   color:#e7e2dc!important;
 }
 #overlay.aurel-aurora-enabled .murglar-view .murglar-album-link{
