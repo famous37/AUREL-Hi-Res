@@ -26,7 +26,7 @@ assert(java.includes('if(p.has("quality")){')&&java.includes('p.getInt("quality"
 assert(java.includes('digitalHeadroomDb=0;')&&java.includes('prefetchNextMetadata=true;'));
 assert(settings.includes("sync.change('digitalHeadroomDb',db"));
 assert(settings.includes("sync.change('preloadNextMetadata',value"));
-assert(motion.includes("duration:190")&&!motion.includes("translate3d(0,5px,0)"));
+assert(motion.includes("duration:265")&&!motion.includes("translate3d(0,5px,0)"));
 assert(motion.includes("previous===next"));
 assert(clarity.includes('animation:none!important;')&&!clarity.includes('animation:aurel-settings-enter'));
 assert(swipe.includes('if(!g||dismissing)return;'));
