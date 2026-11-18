@@ -179,7 +179,9 @@
    enabled=!!event.target.checked;
    try{localStorage.setItem(KEY,enabled?'on':'off');}catch(_){}
    resetBeat();
-   sync();
+   // An explicit user toggle can retry the Android Visualizer permission.
+   // Automatic redraws and playback updates never repeatedly prompt.
+   sync(enabled);
  });
  document.addEventListener('visibilitychange',sync);
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);
