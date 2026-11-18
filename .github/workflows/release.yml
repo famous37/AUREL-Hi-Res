@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.59: stronger opt-in rhythmic album cover with read-only audio monitoring.
+# v1.1.60: restore cover animation suppressed by global motion hardening.
 # Preserve existing Android mixer, Qobuz state and permanent signing.
 # CI verified on v1.1.59 branch; initiate permanently signed stable release.
 
@@ -168,17 +168,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — rhythmic album artwork (stable update)**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — album cover pulse visibility fix**" \
             '' \
-            '- New opt-in bass-reactive album cover using read-only FFT from the current MediaPlayer audio session.' \
-            '- Stronger smooth scale-up and scale-down: 96.3–109% with live rhythm, 96.5–108% for ambient animation.' \
-            '- Settings > Appearance & app > Rhythmic album artwork. The selection persists across restarts and updates.' \
-            '- Android audio analysis permission requested only after opting in; no recording, files or uploads.' \
-            '- On USB bit-perfect, the analyzer stays off and the cover uses smooth ambient breathing.' \
-            '- Animation stops when paused, buffering, in background, hidden or when reduced motion is selected.' \
-            '- Retains the v1.1.58 portrait/landscape navigation fixes, Qobuz login, saved data, Android playback and USB routing.' \
+            '- Fixes the 1.1.59 regression where the Rhythmic album artwork toggle had no visible effect.' \
+            '- Scoped style overrides let ONLY the opted-in cover animate despite global animation suppression protecting navigation and controls.' \
+            '- Covers now pulse smoothly from about 96% to 109% size: live bass/FFT reaction where Android permits, otherwise ambient breathing.' \
+            '- Verified browser animation, live transitions, pause and reduced-motion handling on portrait and landscape sizes.' \
+            '- Rhythmic album artwork remains optional and retains its state from 1.1.59.' \
+            '- No changes to media playback, Android audio mixer, USB DAC routing, bit-perfect audio, Qobuz account data or saved library.' \
             '' \
-            "Install v${AUREL_VERSION} over the existing permanently signed AUREL app without clearing app data." \
+            "Install v${AUREL_VERSION} over permanently signed AUREL 1.1.59 or 1.1.58 without clearing data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

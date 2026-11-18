@@ -38,14 +38,14 @@ assert.match(css,/scale\(1\.08\)/);
 
 assert.match(css,/#overlay\.aurel-beat-live \.murglar-view \.murglar-cover/);
 assert.match(css,/#overlay\.aurel-beat-ambient \.murglar-view \.murglar-cover/);
-assert.match(css,/@media \\(prefers-reduced-motion:reduce\\)/);
-assert.match(globalPolish,/#overlay \\.murglar-view :is\\(\\.murglar-cover/);
+assert.ok(css.includes('@media (prefers-reduced-motion:reduce)'));
+assert.ok(globalPolish.includes('#overlay .murglar-view :is(.murglar-cover'));
 assert.match(globalPolish,/animation:none!important/);
-assert.match(css,/animation:aurel-cover-breathe 3\\.1s ease-in-out infinite!important/);
+assert.ok(css.includes('animation:aurel-cover-breathe 3.1s ease-in-out infinite!important'));
 assert.match(css,/transition:transform 135ms[^;]*!important/);
 assert.match(css,/overflow:visible!important/);
-assert.match(css,/html\\[data-aurel-motion="off"\\] #overlay\\.aurel-cover-rhythm\\.aurel-beat-ambient/);
-assert.match(css,/#overlay\\.aurel-cover-rhythm\\.aurel-beat-live \\.murglar-view \\.murglar-cover/);
+assert.ok(css.includes('html[data-aurel-motion="off"] #overlay.aurel-cover-rhythm.aurel-beat-ambient'));
+assert.ok(css.includes('#overlay.aurel-cover-rhythm.aurel-beat-live .murglar-view .murglar-cover'));
 assert.ok(!css.includes('left:')&&!css.includes('top:')&&!css.includes('padding:'),
   'The effect must not alter transport layout or player geometry');
 assert.match(monitor,/new Visualizer\(session\)/);
