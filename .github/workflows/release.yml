@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.68: fully borderless AUREL and opt-in native album palette on every screen.
+# v1.1.69: repaired native FFT consent, seamless player header ambient and global album controls.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -115,6 +115,7 @@ jobs:
           node tests/aurora-glow-runtime.test.cjs
           node tests/borderless-player.test.cjs
           node tests/universal-borderless-theme.test.cjs
+          node tests/fft-ambient-theme-recovery.test.cjs
           node tests/error-log.test.cjs
           node tests/fluid-windows.test.cjs
           node tests/global-polish.test.cjs
@@ -177,19 +178,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — unified borderless design across AUREL**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — genuine FFT glow recovery and complete album color consistency**" \
             '' \
-            '- Removed the redundant Now Playing heading and thumbnail from the open player header, leaving the ambient album light unobstructed.' \
-            '- Applied coherent borderless icons to Discover, search, library, Settings, album actions, mini-player and all navigation areas.' \
-            '- When Use album artwork colours is ON, the entire app follows the actual album palette; OFF restores neutral graphite without stale colors.' \
-            '- Aligned text contrast, highlights, progress, active tabs and non-player surfaces to one quiet album-aware design system.' \
-            '- Aurora Glow now independently enables the existing own-session FFT analyzer in standard Android output, even if the separate cover-pulsation setting is off.' \
-            '- In bit-perfect mode Android Visualizer remains disabled and album-colored glow stays static: no artificial beat and no audio modification.' \
-            '- Preserved all touch target dimensions, labels, keyboard focus, short portrait and two-column landscape fitting.' \
-            '- All sizing, scrolling, bottom navigation and portrait/landscape safety rules are preserved; reduced-motion and pause disable rhythmic motion.' \
-            '- Added global theme opt-in/off and stale-cover race tests alongside all prior FFT, navigation, USB, and signing regressions.' \
+            '- Fixed missing Android RECORD_AUDIO permission request when album glow is ON but the separate cover-scaling setting is OFF; only our own media session is analyzed.' \
+            '- Permission prompts occur at most once automatically. A deliberate glow off/on allows one retry after denial; Android playback or USB never pauses for the analyzer.' \
+            '- Replaced the isolated dark player header with transparent floating controls and a full-width album-colored ambient layer behind the header and artwork.' \
+            '- The top ambient responds in brightness only to genuine FFT frames. When paused, unavailable or bit-perfect it stays calm without simulated bass.' \
+            '- Native artwork palette now drives all legacy semantic surface, raised, border, text and contrast tokens; settings, quality choices, cards and search stay coherent.' \
+            '- Kept opt-in global artwork colors with reliable monochrome fallback; late cover events cannot tint the wrong track.' \
+            '- Added explicit real-time FFT status under the Album-colored glow switch for permission, pause, live signal and unsupported audio output.' \
+            '- Retained the 1.1.68 borderless navigation, touch targets, Android 7+ compatibility, responsive portrait and landscape sizing and all user data.' \
+            '- Added regression tests for permission consent and retry, bit-perfect isolation, album palette consistency and top-layer animation; retained USB and signing checks.' \
             '' \
-            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.67 without clearing library or account information." \
+            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.68 without clearing library or account information." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
