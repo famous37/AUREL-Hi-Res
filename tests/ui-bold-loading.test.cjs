@@ -50,9 +50,11 @@ assert(/prefers-reduced-motion:reduce/.test(styles));
 assert(/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(styles));
 assert(/\.murglar-control\.middle/.test(styles));
 assert(/\.bottom-nav button .*svg\.ui-icon/.test(styles));
-const last=html.lastIndexOf('<link rel="stylesheet"');
-assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-bold-controls.css">'),
- 'Bold controls stylesheet should load after legacy themes');
+const boldAt=html.indexOf('<link rel="stylesheet" href="aurel-bold-controls.css">');
+const monochromeAt=html.indexOf('<link rel="stylesheet" href="aurel-monochrome.css">');
+const landscapeAt=html.indexOf('<link rel="stylesheet" href="aurel-landscape.css">');
+assert(boldAt>monochromeAt && landscapeAt>boldAt,
+ 'Bold control styles should load after legacy themes, followed by landscape-only overrides');
 // Confirm the requested spinner actually starts animating in WebView, even
 // when theme CSS has animation:none!important. Avoid restarting it on ticks.
 let spinStarts=0,spinStops=0,spinDuration=0,inlineDisabled=false;
