@@ -87,8 +87,12 @@
  const originalDraw=drawOverlay;
  drawOverlay=function(){
    const previous=lastTrack;
+   const priorView=overlay.querySelector?.('.murglar-view');
+   const priorSheetHTML=overlay.querySelector?.('.aurel-detail-sheet')?.innerHTML;
    const result=originalDraw.apply(this,arguments);
    const current=identity();
+   const renderedView=overlay.querySelector?.('.murglar-view');
+   const renderedSheetHTML=overlay.querySelector?.('.aurel-detail-sheet')?.innerHTML;
    if(current&&previous&&current!==previous&&app.overlay&&motion()){
      const art=overlay.querySelector?.('.murglar-art-wrap');
      if(art&&typeof art.animate==='function')
@@ -99,7 +103,8 @@
    lastTrack=current;
    // Translate freshly rendered controls before the first browser paint,
    // not asynchronously after the player opens.
-   if(window.AurelLanguage?.get?.()==='uk')
+   if(window.AurelLanguage?.get?.()==='uk'&&
+      (priorView!==renderedView||priorSheetHTML!==renderedSheetHTML))
      window.AurelLanguage.refresh?.(overlay);
    return result;
  };
