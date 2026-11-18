@@ -1,6 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.54: compact Now Playing header and resilient animated buffering spinner.
-# Release gate: header border-box, one loading animation per spinner and accessibility regression checks.
+# v1.1.55: equal-size action and transport buttons in Now Playing, audio engine unchanged.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
