@@ -34,11 +34,11 @@
           ${t.album?.title?`<button class="murglar-album-link" data-open-playing-album aria-label="Open ${html(t.album.title)} album">${html(t.album.title)} ${ic('chevron',16)}</button>`:''}
         </section>
         <div class="murglar-quick-actions" aria-label="Track actions">
-          <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-expanded="${active==='upnext'}" aria-label="Play queue" title="Queue">${ic('queue',25)}<span>Queue</span></button>
-          <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',25)}<span>Info</span></button>
-          <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-expanded="${active==='audio'}" aria-label="Source quality details" title="Audio">${ic('audio',25)}<span>Audio</span></button>
-          <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',26)}<span>Favourite</span></button>
-          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',25)}<span>Share</span></button>
+          <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-expanded="${active==='upnext'}" aria-label="Play queue" title="Queue">${ic('queue',28)}<span>Queue</span></button>
+          <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',28)}<span>Info</span></button>
+          <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-expanded="${active==='audio'}" aria-label="Source quality details" title="Audio">${ic('audio',28)}<span>Audio</span></button>
+          <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',28)}<span>Favourite</span></button>
+          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',32)}<span>Share</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>

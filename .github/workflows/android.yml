@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55]
+    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55, fix/visual-consistency-audit-1-1-56]
   pull_request:
     branches: [main]
 jobs:
@@ -59,6 +59,8 @@ jobs:
         run: node tests/player-icon-seek.test.cjs
       - name: Verify uniform bold SVG player buttons and loading spinner states
         run: node tests/ui-bold-loading.test.cjs
+      - name: Verify Share icon cascade and responsive real button sizes
+        run: node tests/ui-visual-consistency.test.cjs
       - name: Verify global typography, vector icons and motion invariants
         run: node tests/global-polish.test.cjs
       - name: Verify vector action buttons, search and quicklinks

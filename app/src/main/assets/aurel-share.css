@@ -63,12 +63,7 @@
  min-width:0!important;max-width:100%;
  padding-inline:2px!important;
 }
-#overlay .murglar-view .murglar-quick-actions .aurel-share-control{
- display:flex!important;flex-direction:column!important;gap:5px!important;
- background:#252629!important;border-color:#ffffff1f!important;
- padding:5px 1px!important;
- border-radius:14px!important;
-}
+/* Now Playing shares the same quick-action button token as the other four. */
 #overlay .murglar-view .murglar-quick-actions .aurel-share-control span{
  color:#e1e3e5!important;font-size:13px!important;font-weight:620!important;
  line-height:1.1!important;

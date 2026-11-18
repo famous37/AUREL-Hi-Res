@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.55: equal-size action and transport buttons in Now Playing, audio engine unchanged.
+# v1.1.56: verified equal-size surfaces, optical Share SVG balance, responsive ultra-narrow controls.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -165,14 +165,14 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — responsive header and reliable loading animation**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — precise icon calibration across Now Playing**" \
             '' \
-            '- Restores compact Now Playing top navigation in one rounded bar without oversized overlapping button borders.' \
-            '- The previous header inherited padding that made icons protrude from its fixed-height container; every control now fits its grid slot.' \
-            '- Fixes frozen Play/Pause loading spinner through compositor Web Animations API and verified CSS fallback.' \
-            '- Keeps functional loading feedback under reduced-motion settings at a gentler rotation speed.' \
-            '- Preserves stable album art, scroll position, player state and Android native audio routing.' \
-            '- Tested SVG loading state, spinner startup and cancellation, and header geometry constraints.' \
+            '- All five quick-action buttons and four smaller transport buttons use identical responsive square dimensions, padding, corner radius and surface contrast.' \
+            '- Removed legacy Share-specific CSS overrides that previously shrank the button and changed its background.' \
+            '- Optically balanced the Share vector to the same visual scale as Queue, Info, Audio and Favourite.' \
+            '- Verified CSS geometry and non-overlap at 280, 300, 320, 360, 390 and 430 CSS pixels.' \
+            '- Retains the compact top capsule, smoothly animated loading indicator, stable mini-player and album artwork.' \
+            '- Preserves the Android platform audio engine, Qobuz sessions and library; no playback-driver changes.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

@@ -259,3 +259,99 @@
    will-change:auto!important;
  }
 }
+
+/* AUREL 1.1.56 — final optical alignment and share button normalization.
+ * The old share module defined an extra, higher-specificity 44–54px button.
+ * This scoped rule preserves the same responsive surface as all quick actions.
+ * The 32px Share SVG compensates for its 16/24 intrinsic graphic width. */
+#overlay .murglar-view .murglar-quick-actions > button.aurel-share-control {
+  box-sizing:border-box!important;
+  display:grid!important;
+  place-items:center!important;
+  justify-self:center!important;
+  flex-direction:initial!important;
+  flex:none!important;
+  width:var(--aurel-small-control)!important;
+  min-width:0!important;
+  max-width:var(--aurel-small-control)!important;
+  height:var(--aurel-small-control)!important;
+  min-height:0!important;
+  max-height:var(--aurel-small-control)!important;
+  aspect-ratio:1!important;
+  margin:0!important;
+  padding:0!important;
+  gap:0!important;
+  border:1.5px solid #ffffff40!important;
+  border-radius:var(--aurel-small-radius)!important;
+  background:#2d3036!important;
+  color:#f6f7f9!important;
+  box-shadow:inset 0 1px 0 #ffffff0d,0 5px 13px #0004!important;
+  line-height:1!important;
+}
+#overlay .murglar-view .murglar-quick-actions > button.aurel-share-control > svg.ui-icon {
+  box-sizing:border-box!important;
+  display:block!important;
+  width:32px!important;
+  height:32px!important;
+  min-width:32px!important;
+  min-height:32px!important;
+  max-width:32px!important;
+  max-height:32px!important;
+  margin:0!important;
+  padding:0!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:2.55!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  overflow:visible!important;
+  flex:none!important;
+}
+#overlay .murglar-view .murglar-quick-actions > button.aurel-share-control > span {
+  display:none!important;
+}
+#overlay .murglar-view .murglar-quick-actions > button.aurel-share-control:focus-visible {
+  outline:2px solid #fff!important;
+  outline-offset:3px!important;
+}
+#overlay .murglar-view .murglar-quick-actions > button.aurel-share-control:active {
+  background:#393d44!important;
+  border-color:#f5f6f7a8!important;
+}
+#overlay .murglar-view .murglar-quick-actions > button:disabled {
+  opacity:.5!important;
+  cursor:not-allowed!important;
+}
+@media(max-width:360px) {
+  #overlay .murglar-view .murglar-quick-actions > button.aurel-share-control > svg.ui-icon {
+    width:29px!important;
+    height:29px!important;
+    min-width:29px!important;
+    min-height:29px!important;
+    max-width:29px!important;
+    max-height:29px!important;
+  }
+}
+
+/* Ultra-narrow windows: reduce real controls instead of allowing the
+ * transport grid to overlap adjacent buttons below 300 CSS px. */
+@media(max-width:300px) {
+  #overlay .murglar-view { --aurel-small-control:42px; --aurel-small-radius:14px; }
+  #overlay .murglar-view .murglar-transport {
+    grid-template-columns:repeat(2,minmax(0,1fr)) minmax(72px,1.3fr) repeat(2,minmax(0,1fr))!important;
+    gap:2px!important;
+  }
+  #overlay .murglar-view .murglar-transport .murglar-control.middle {
+    width:72px!important;height:72px!important;
+    min-width:72px!important;min-height:72px!important;
+    max-width:72px!important;max-height:72px!important;
+  }
+  #overlay .murglar-view .murglar-quick-actions > button svg.ui-icon {
+    width:24px!important;height:24px!important;
+  }
+  #overlay .murglar-view .murglar-quick-actions > button.aurel-share-control > svg.ui-icon {
+    width:27px!important;height:27px!important;
+    min-width:27px!important;min-height:27px!important;
+    max-width:27px!important;max-height:27px!important;
+  }
+}
