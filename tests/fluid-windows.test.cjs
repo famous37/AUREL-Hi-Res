@@ -22,7 +22,7 @@ const overlay={
  }
 };
 const app={overlay:false,playerSheet:''};
-const win={matchMedia:()=>({matches:reduced}),AurelSwipeMinimize:{minimize:()=>{dismissed++;}},
+const win={matchMedia:()=>({get matches(){return reduced;}}),AurelSwipeMinimize:{minimize:()=>{dismissed++;}},
   AurelBack:()=>{backCalls++;},AurelHistoryBack:()=>{backCalls++;}};
 const context={app,window:win,document:{hidden:false,documentElement:{dataset:{aurelMotion:'soft'}},getElementById:()=>overlay},
  drawOverlay(){playing=app.overlay;sheet=app.playerSheet;}};
