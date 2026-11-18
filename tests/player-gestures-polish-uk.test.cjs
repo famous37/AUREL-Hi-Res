@@ -49,7 +49,7 @@ function harness(){
  const doc={getElementById:n=>n==='overlay'?overlay:null,documentElement:root};
  const ctx={document:doc,window:{matchMedia:()=>({matches:false}),AurelLanguage:{
     get:()=> 'uk',refresh:()=>{}}},
-   },app,performance:{now:()=>tick},nativeCall:command=>{
+   app,performance:{now:()=>tick},nativeCall:command=>{
      commands.push(command);return Promise.resolve({});
    },drawOverlay:()=>{draws++;},requestAnimationFrame:cb=>cb(),
    setTimeout:cb=>{timers.push(cb);return timers.length;},Promise,console,
