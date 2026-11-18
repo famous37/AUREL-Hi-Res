@@ -7,6 +7,7 @@ const css=read('aurel-landscape-nav.css');
 const html=read('index.html');
 const legacy=read('aurel.css');
 const player=read('aurel-landscape.css');
+const tabs=read('aurel-live-ui.js');
 
 assert(legacy.includes('.app .bottom-nav button span{display:grid;place-items:center;line-height:1;min-height:27px}'),
  'Root cause must remain documented: legacy 27px span minimum');
@@ -19,6 +20,8 @@ assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-landscape
  'Landscape-only correction must load after legacy and player styles');
 assert(html.indexOf('aurel-landscape.css')<html.indexOf('aurel-landscape-nav.css'));
 assert(player.includes('--aurel-land-nav:'),'Retain established landscape player hierarchy');
+assert(tabs.includes("aria-label=") && tabs.includes('aurel-tab-label') && tabs.includes('aria-hidden="true"'),
+ 'Short landscape may visually hide captions but tab buttons must retain explicit accessible labels');
 for(const p of [
  'grid-template-rows:26px 14px!important',
  'display:grid!important',
