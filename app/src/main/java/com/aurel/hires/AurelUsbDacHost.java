@@ -154,6 +154,18 @@ final class AurelUsbDacHost {
             instanceof UsbAudioManager.PlaybackRoute.Fallback;
     }
 
+    int androidMixerRate() {
+        // The source file's rate must never be mislabeled as HAL output.
+        return Math.max(0, manager.halOutputSampleRate());
+    }
+
+    boolean bitPerfectCapable() {
+        // libusbdac v0.2.0 deliberately refuses a direct route until it
+        // can read back the DAC's hardware volume range / unity gain.
+        // Expose this limitation instead of marking fallback as bit-perfect.
+        return manager.isBitPerfectCapable();
+    }
+
     void releaseClaim() {
         manager.releaseClaim(0L, false, false);
     }
@@ -191,6 +203,12 @@ final class AurelUsbDacHost {
             j.put("directUsbRoute",directRoute());
             j.put("androidFallback",androidFallback());
             j.put("sampleRateHz",sampleRate());
+            j.put("androidMixerRateHz",androidMixerRate());
+            j.put("nativeUsbBitPerfectCapable",bitPerfectCapable());
+            if(prefs.getEnabled() && connected() && permitted() && !bitPerfectCapable())
+                j.put("nativeUsbLimitation",
+                    "USB hardware gain/unity could not be verified by libusbdac; "+
+                    "direct mode is unavailable for this device until supported by the driver.");
             j.put("usbVolumeMode",volumeMode());
             j.put("usbOutputVolumePercent",requestedVolume);
             UsbPipelineStats stats=manager.getPipelineStats().getValue();
