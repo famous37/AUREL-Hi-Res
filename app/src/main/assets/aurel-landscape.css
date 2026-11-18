@@ -508,3 +508,28 @@
   }
   #overlay .murglar-view .murglar-source-line {width:100%!important;margin:0!important}
 }
+
+@media (orientation:landscape) and (max-width:419px) {
+  .app .bottom-nav,.app:has(#overlay:not(.hidden)) .bottom-nav {
+    height:52px!important;min-height:52px!important;max-height:52px!important;
+    padding:2px 7px!important;
+  }
+  #overlay:not(.hidden) {bottom:52px!important;height:calc(100dvh - 52px)!important;max-height:calc(100dvh - 52px)!important}
+  #overlay .murglar-view .murglar-header.aurel-listening-nav {
+    height:42px!important;min-height:42px!important;max-height:42px!important;
+    flex:0 0 42px!important;margin:0 auto 2px!important;
+  }
+  #overlay .murglar-view .murglar-player-content > :is(
+    .murglar-art-wrap,.murglar-track-data,.murglar-quick-actions,
+    .murglar-progress-row,.murglar-transport,.murglar-source-line) {
+    flex:0 0 auto!important;
+    min-height:0!important;
+  }
+  #overlay .murglar-view .murglar-source-line {
+    box-sizing:border-box!important;
+    height:32px!important;min-height:32px!important;max-height:40px!important;
+    padding:3px 7px!important;
+    overflow:hidden!important;
+    justify-content:center!important;
+  }
+}
