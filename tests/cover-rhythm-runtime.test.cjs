@@ -39,13 +39,14 @@ function setup(saved='off'){
   vm.runInNewContext(source,ctx,{filename:'aurel-cover-rhythm.js'});
   return {ctx,app,calls,classes,styles,listeners,messages};
 }
+const flush=async()=>{for(let n=0;n<40;n++)await Promise.resolve();};
 (async()=>{
   const f=setup();
-  await Promise.resolve();await Promise.resolve();
+  await flush();
   assert.equal(f.classes.contains('aurel-beat-live'),false,'No FFT: no fake visual pulse');
   assert.equal(f.classes.contains('aurel-beat-ambient'),false,'No cyclic ambient animation');
   f.listeners.change({target:{matches:()=>true,checked:true}});
-  await Promise.resolve();await Promise.resolve();await Promise.resolve();
+  await flush();
   const requests=f.calls.filter(c=>c.name==='setBeatVisualization'&&c.data.requestPermission);
   assert.equal(requests.length,1,'One permission request, no competing false/true race');
   assert.equal(requests[0].data.enabled,true,'Enable native analyzer with permission request');
