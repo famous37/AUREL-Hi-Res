@@ -44,7 +44,7 @@ assert(java.includes('focusPolicy.shouldStartPrepared()'));
 assert(java.includes('case "pause":ui.post(()->{pauseByUser();'));
 assert(java.includes('if(focusPolicy.shouldStartPrepared())startWithAudioFocus(mp);'));
 assert(java.includes('if(hasEngine()&&prepared)startSelectedWithAudioFocus();'));
-assert(java.includes('private void startDirectWithAudioFocus()'));
+assert(!java.includes('private void startDirectWithAudioFocus()'), 'Exclusive USB audio focus engine has been removed');
 assert(java.includes('pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);'));
 assert(java.includes('focusPolicy.userPause();\n        abandonPlaybackFocus();'));
 assert(!/if\(player!=null&&prepared&&!player\.isPlaying\(\)\)player\.start\(\)/.test(java),
