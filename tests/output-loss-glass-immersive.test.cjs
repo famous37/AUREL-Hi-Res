@@ -22,7 +22,7 @@ assert.match(java,/pauseByUser\(\); \/\/ Cancel delayed audio-focus resume/);
 assert.match(java,/setPlayerImmersive\(boolean open\)/);
 assert.match(java,/setStatusBarColor\(open\?Color\.TRANSPARENT:currentChromeColor\)/);
 assert.match(java,/fullPlayerImmersive\?0:systemInsetTop/);
-assert.match(java,/setProperty\("[^"]*--aurel-native-status-inset/);
+assert.match(java,/JSONObject\.quote\("--aurel-native-status-inset"\)/);
 assert.match(java,/case "setDigitalHeadroom"/);
 assert.match(java,/put\("unavailable",true\)/);
 assert.doesNotMatch(java,/throw new Exception\("Digital attenuation is unavailable/);
