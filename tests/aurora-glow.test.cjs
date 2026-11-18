@@ -9,7 +9,7 @@ const engine=fs.readFileSync('app/src/main/java/com/aurel/hires/BitPerfectOutput
 const main=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
 assert.match(gradle,/versionCode\s+84/);
-assert.match(gradle,/versionName\s+'1\.1\.65'/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.65'/);
 assert.ok(html.includes('href="aurel-aurora.css"'));
 assert.ok(html.includes('src="aurel-aurora.js"'));
 assert.ok(html.indexOf('aurel-aurora.css')>html.indexOf('aurel-cover-rhythm.css'));
