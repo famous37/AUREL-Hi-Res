@@ -9,11 +9,11 @@ const source=read('murglar.js');
 const nav=read('aurel-bold-controls.css');
 
 assert(css.trim().startsWith('/* AUREL 1.1.57'));
-assert.equal((css.match(/@media\s*\(orientation:landscape\)\s*and\s*\(min-width:600px\)/g)||[]).length,2);
+assert.equal((css.match(/@media\s*\(orientation:landscape\)\s*and\s*\(min-width:420px\)/g)||[]).length,2);\nassert(css.includes('(max-width:599px)'),'Compact split-screen layout missing');\nassert(css.includes('(max-width:419px)'),'Ultra-narrow stacked fallback missing');
 assert(!css.includes('@media (orientation:portrait)'), 'Portrait must use unchanged existing CSS');
 assert(html.includes('<link rel="stylesheet" href="aurel-bold-controls.css"><link rel="stylesheet" href="aurel-landscape.css">'),
  'The isolated landscape stylesheet must load last');
-assert(fit.includes("window.matchMedia('(orientation:landscape) and (min-width:600px)').matches"),
+assert(fit.includes("window.matchMedia('(orientation:landscape) and (min-width:420px)').matches"),
  'Portrait artwork-fit must not reapply while landscape grid is active');
 assert(css.includes('grid-template-areas:'));
 for(const area of ['cover metadata','cover actions','cover timeline','cover transport','cover source']){
