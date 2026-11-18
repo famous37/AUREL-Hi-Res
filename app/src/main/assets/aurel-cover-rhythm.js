@@ -22,8 +22,8 @@
  const requestCapture=()=>playing()&&!bitPerfect();
  const setScale=level=>{
    const amount=Math.max(0,Math.min(1,Number(level)||0));
-   overlay.style.setProperty('--aurel-cover-scale',(1+amount*0.027).toFixed(4));
-   overlay.style.setProperty('--aurel-beat-glow',(0.16+amount*0.27).toFixed(3));
+   overlay.style.setProperty('--aurel-cover-scale',(0.963+amount*0.127).toFixed(4));
+   overlay.style.setProperty('--aurel-beat-glow',(0.17+amount*0.36).toFixed(3));
  };
  function queueNative(wanted,ask=false){
    writeQueue=writeQueue.catch(()=>{}).then(()=>
