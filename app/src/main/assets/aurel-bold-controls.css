@@ -332,3 +332,26 @@
     max-height:29px!important;
   }
 }
+
+/* Ultra-narrow windows: reduce real controls instead of allowing the
+ * transport grid to overlap adjacent buttons below 300 CSS px. */
+@media(max-width:300px) {
+  #overlay .murglar-view { --aurel-small-control:42px; --aurel-small-radius:14px; }
+  #overlay .murglar-view .murglar-transport {
+    grid-template-columns:repeat(2,minmax(0,1fr)) minmax(72px,1.3fr) repeat(2,minmax(0,1fr))!important;
+    gap:2px!important;
+  }
+  #overlay .murglar-view .murglar-transport .murglar-control.middle {
+    width:72px!important;height:72px!important;
+    min-width:72px!important;min-height:72px!important;
+    max-width:72px!important;max-height:72px!important;
+  }
+  #overlay .murglar-view .murglar-quick-actions > button svg.ui-icon {
+    width:24px!important;height:24px!important;
+  }
+  #overlay .murglar-view .murglar-quick-actions > button.aurel-share-control > svg.ui-icon {
+    width:27px!important;height:27px!important;
+    min-width:27px!important;min-height:27px!important;
+    max-width:27px!important;max-height:27px!important;
+  }
+}
