@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.57: isolated responsive landscape with portrait and audio engine preserved.
+# v1.1.58: fix cropped landscape navbar labels and soften paint-only UI transitions.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -109,6 +109,7 @@ jobs:
           node tests/player-icon-seek.test.cjs
           node tests/ui-bold-loading.test.cjs
           node tests/landscape-layout.test.cjs
+          node tests/landscape-nav-safe.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -166,14 +167,14 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — responsive landscape player with portrait preserved**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — properly centred landscape navigation**" \
             '' \
-            '- Native two-column landscape: artwork left; title, actions, timeline, transport and quality on separate aligned rows right.' \
-            '- Portrait layout and its artwork-fit algorithm remain unchanged.' \
-            '- Scrollable player content rather than overlapping text or covering the bottom navigation.' \
-            '- Equal small buttons, larger centered Play/Pause and stable shared navigation in landscape.' \
-            '- Handles short landscape viewports, split-screen and long track titles without absolute positioning.' \
-            '- Keeps Android audio, Qobuz account, library, bit-perfect settings and app data unchanged.' \
+            '- Fixes cropped bottom navigation icons and text in landscape. The old 27px minimum height on every span made icon and label exceed the button height.' \
+            '- Separate, correctly sized SVG and label grid rows keep both fully within the navigation panel across landscape screen sizes.' \
+            '- On short landscapes the navigation displays centred icon-only buttons with accessible names rather than clipping labels.' \
+            '- Gentle 180–220 ms colour and background transitions, without moving, scaling or rebuilding player controls.' \
+            '- Portrait layout, Android system audio, USB DAC routing, Qobuz session and saved app data are unchanged.' \
+            '- Tested icon and label bounds with Chromium at 844x390, 915x412, 736x320, 600x300, 480x270 and compact split screen.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
