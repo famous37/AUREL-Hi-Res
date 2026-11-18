@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55, fix/visual-consistency-audit-1-1-56, fix/landscape-layout-preserve-portrait-1-1-57, fix/landscape-nav-clipping-motion-1-1-58, fix/album-cover-pulse-visible-1.1.60, fix/music-synced-cover-v1.1.61, fix/fft-capture-diagnostics-v1.1.62, feature/app-error-log-fluid-transitions-v1.1.63, fix/actionable-webview-error-report-v1.1.64]
+    branches: [main, fix/off-native-usb-isolation, fix/header-overflow-spinner-animation-1-1-54, fix/consistent-control-sizes-1-1-55, fix/visual-consistency-audit-1-1-56, fix/landscape-layout-preserve-portrait-1-1-57, fix/landscape-nav-clipping-motion-1-1-58, fix/album-cover-pulse-visible-1.1.60, fix/music-synced-cover-v1.1.61, fix/fft-capture-diagnostics-v1.1.62, feature/app-error-log-fluid-transitions-v1.1.63, fix/actionable-webview-error-report-v1.1.64, feature/iridescent-aurora-glow-v1.1.65]
   pull_request:
     branches: [main]
 jobs:
@@ -38,6 +38,10 @@ jobs:
           mkdir -p build/beat-check
           javac -d build/beat-check app/src/main/java/com/aurel/hires/AurelBeatEnvelope.java tests/AurelBeatEnvelopeTest.java
           java -cp build/beat-check com.aurel.hires.AurelBeatEnvelopeTest
+      - name: Verify iridescent artwork shadows and audio isolation
+        run: node tests/aurora-glow.test.cjs
+      - name: Simulate color shimmer, bit-perfect, FFT brightness and reduced-motion
+        run: node tests/aurora-glow-runtime.test.cjs
       - name: Verify private global application error log and redaction
         run: node tests/error-log.test.cjs
       - name: Verify compositor-only window open and close transitions
