@@ -7,13 +7,13 @@
  let entries=[],writing=false;
  function clean(input){
    return String(input==null?'':input).slice(0,1400)
-     .replace(/https?:\\/\\/[^\\s"'<>]+/gi,'[url]')
-     .replace(/(?:bearer\\s+)[^\\s,;]+/gi,'Bearer [redacted]')
-     .replace(/(?:password|passwd|token|secret|authorization|apikey|api_key|sessionid|cookie|credential)\\s*[:=]\\s*[^\\s,;]+/gi,'[credential]')
-     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi,'[email]')
-     .replace(/(?:[A-Za-z0-9_-]{12,}\\.){2}[A-Za-z0-9_-]{10,}/g,'[credential]')
-     .replace(/\\b[A-Za-z0-9_-]{38,}\\b/g,'[identifier]')
-     .replace(/\\/storage\\/[^\\s"'<>]+/gi,'[local path]')
+     .replace(/https?:\/\/[^\s"'<>]+/gi,'[url]')
+     .replace(/(?:bearer\s+)[^\s,;]+/gi,'Bearer [redacted]')
+     .replace(/(?:password|passwd|token|secret|authorization|apikey|api_key|sessionid|cookie|credential)\s*[:=]\s*[^\s,;]+/gi,'[credential]')
+     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]')
+     .replace(/(?:[A-Za-z0-9_-]{12,}\.){2}[A-Za-z0-9_-]{10,}/g,'[credential]')
+     .replace(/\b[A-Za-z0-9_-]{38,}\b/g,'[identifier]')
+     .replace(/\/storage\/[^\s"'<>]+/gi,'[local path]')
      .slice(0,260);
  }
  try{
@@ -44,8 +44,8 @@
    }catch(_){}finally{writing=false;}
  }
  function report(){
-   return 'AUREL Hi-Res 1.1.63 | App error log\\n'+
-     'Local diagnostic only. No audio, account tokens, URLs or system logcat.\\n'+
+   return 'AUREL Hi-Res 1.1.63 | App error log\n'+
+     'Local diagnostic only. No audio, account tokens, URLs or system logcat.\n'+
      JSON.stringify({version:'1.1.63',count:entries.length,errors:entries},null,2);
  }
  function clear(){entries=[];persist();refreshCount();}
