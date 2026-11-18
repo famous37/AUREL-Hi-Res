@@ -29,13 +29,15 @@
  function sync(){
    const visible=enabled&&!!app.overlay;
    const animated=visible&&isPlaying()&&motionAllowed();
+   const wasAnimated=overlay.classList.contains('aurel-aurora-playing');
    overlay.classList.toggle('aurel-aurora-enabled',visible);
    overlay.classList.toggle('aurel-aurora-playing',animated);
    if(visible)addHalo();
    if(!animated){
+     lastPaint=0;
      overlay.style.setProperty('--aurel-aurora-opacity',visible?'0.43':'0');
-   }else if(Date.now()-lastPaint>1000){
-     // Prevent an old FFT sample from keeping the glow permanently bright.
+   }else if(!wasAnimated||Date.now()-lastPaint>1000){
+     // Restore glow immediately on play/resume, not after the next player tick.
      overlay.style.setProperty('--aurel-aurora-opacity','0.82');
    }
  }
