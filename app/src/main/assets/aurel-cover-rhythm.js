@@ -124,12 +124,6 @@
      (ukrainian?'Пульсація обкладинки':'Beat-reactive album artwork')+
      '" '+(enabled?'checked':'')+'>';
    host.appendChild(label);
-   const diagnosticButton=document.createElement('button');
-   diagnosticButton.type='button';
-   diagnosticButton.className='aurel-rhythm-diagnostic-button';
-   diagnosticButton.setAttribute('data-aurel-beat-diagnostics','');
-   diagnosticButton.textContent=uk()?'Скопіювати діагностику аналізатора':'Copy audio analyzer diagnostics';
-   host.appendChild(diagnosticButton);
    updateSettingStatus();
  }
  const originalSettings=renderSettings;
@@ -164,23 +158,6 @@
    }
    return result;
  };
- document.addEventListener('click',async event=>{
-   const button=event.target.closest?.('[data-aurel-beat-diagnostics]');
-   if(!button)return;
-   event.preventDefault();
-   event.stopPropagation();
-   if(button.disabled)return;
-   button.disabled=true;
-   try{
-     const diagnosis=await nativeCall('beatDiagnostics');
-     const report='AUREL FFT diagnostics\\n'+JSON.stringify(diagnosis,null,2);
-     await nativeCall('copyBeatDiagnostics',{report});
-     showToast(uk()?'Діагностику скопійовано. Надішли її для точного аналізу.':
-       'Analyzer diagnostics copied. Share the report for precise troubleshooting.',4800);
-   }catch(error){
-     showToast(error?.message||'FFT diagnostic unavailable',5000);
-   }finally{button.disabled=false;}
- });
  document.addEventListener('change',event=>{
    if(!event.target.matches?.('[data-aurel-rhythm-toggle]'))return;
    enabled=!!event.target.checked;
