@@ -60,7 +60,7 @@ for(let i=0;i<15;i++){ctx.render();ctx.renderLibrary();}
 assert.equal(animations.length,0,'Repeated catalogue/library redraw must not animate');
 app.nav='library';ctx.render();
 assert.equal(animations.length,1,'One animation for one route change');
-assert.equal(animations[0].opts.duration,190);
+assert.equal(animations[0].opts.duration,265);
 for(let i=0;i<20;i++)ctx.renderLibrary();
 assert.equal(animations.length,1,'Data updates should not replay animations');
 app.selected={id:'1234'};app.selectedKind='artist';ctx.renderArtist();
