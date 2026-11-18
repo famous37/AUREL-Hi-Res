@@ -1,7 +1,9 @@
-/* AUREL 1.1.65 — iridescent artwork shadows.
- * Decorative ambient motion uses independent CSS compositing. It does NOT
- * claim to be an FFT visualizer and never touches audio playback or routing.
- * When genuine FFT beat frames exist, they only modulate glow intensity.
+/* AUREL 1.1.66 — album-derived, genuinely beat-reactive ambient light.
+ * A real FFT frame changes shadow brightness and gradient position.
+ * No timer, constant rotation or pretend beat. The native artwork palette
+ * comes from actual Qobuz image pixels, independent of CORS/canvas.
+ * The optional audio capture runs only for AUREL's own audio session and
+ * stops when playback ends or bit-perfect disables Android Visualizer.
  */
 (function installAurelAurora(){
  'use strict';
@@ -10,13 +12,35 @@
  if(!overlay)return;
  let enabled=true;
  try{enabled=localStorage.getItem(KEY)!=='off';}catch(_){}
- let lastPaint=0;
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)');
  const uk=()=>window.AurelLanguage?.get?.()==='uk';
  const motionAllowed=()=>!document.hidden&&!reduced?.matches&&
    document.documentElement?.dataset?.aurelMotion!=='off';
  const isPlaying=()=>!!(app.overlay&&app.player?.playing&&
    !app.player?.buffering&&!app.player?.error);
+ const bitPerfect=()=>!!app.player?.bitPerfect?.enabled;
+ const validHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
+ const neutral={
+   bg:'#111214',surface:'#222326',accent:'#D5D7DB',
+   one:'#D0C8C2',two:'#B6A99F',three:'#E3D3C5'
+ };
+ let currentCover='',current=neutral,captureWanted=null,lastFrame=0;
+ let lastPulse=0,lastPeak=0,rotation=0;
+ const palettes=new Map();
+
+ function coverUrl(){
+   return app.player?.track&&typeof image==='function'?image(app.player.track):'';
+ }
+ function setStyle(colors){
+   const c=colors||neutral;
+   current=c;
+   overlay.style.setProperty('--aurel-album-bg',c.bg);
+   overlay.style.setProperty('--aurel-album-surface',c.surface);
+   overlay.style.setProperty('--aurel-album-accent',c.accent);
+   overlay.style.setProperty('--aurel-album-one',c.one);
+   overlay.style.setProperty('--aurel-album-two',c.two);
+   overlay.style.setProperty('--aurel-album-three',c.three);
+ }
  function addHalo(){
    const art=overlay.querySelector('.murglar-view .murglar-art-wrap');
    const cover=art?.querySelector('.murglar-cover');
@@ -26,40 +50,95 @@
    halo.setAttribute('aria-hidden','true');
    art.insertBefore(halo,cover);
  }
+ function intensity(value){
+   overlay.style.setProperty('--aurel-aurora-opacity',
+     Math.max(0,Math.min(1,value)).toFixed(3));
+ }
+ function resetBeat(){
+   lastFrame=0;lastPeak=0;lastPulse=0;rotation=0;
+   overlay.style.setProperty('--aurel-aurora-rotation','0deg');
+ }
+ function wantCapture(ask=false){
+   // Capture only AUREL's currently-playing MediaPlayer session, not global
+   // output or the microphone. No capture during Android bit-perfect mode.
+   const wanted=enabled&&isPlaying()&&motionAllowed()&&!bitPerfect();
+   if(wanted===captureWanted&&!ask)return;
+   captureWanted=wanted;
+   window.AurelCoverRhythm?.setAuraCaptureWanted?.(wanted,!!ask);
+ }
  function sync(){
+   const next=coverUrl();
+   if(next!==currentCover){
+     currentCover=next;
+     setStyle(palettes.get(next)||neutral);
+     resetBeat();
+   }
    const visible=enabled&&!!app.overlay;
-   const animated=visible&&isPlaying()&&motionAllowed();
-   const wasAnimated=overlay.classList.contains('aurel-aurora-playing');
+   const active=visible&&isPlaying()&&motionAllowed();
+   const real=active&&!bitPerfect()&&lastFrame>0&&Date.now()-lastFrame<1500;
    overlay.classList.toggle('aurel-aurora-enabled',visible);
-   overlay.classList.toggle('aurel-aurora-playing',animated);
+   overlay.classList.toggle('aurel-aurora-playing',active);
+   overlay.classList.toggle('aurel-aurora-beat-live',real);
    if(visible)addHalo();
-   if(!animated){
-     lastPaint=0;
-     overlay.style.setProperty('--aurel-aurora-opacity',visible?'0.43':'0');
-   }else if(!wasAnimated||Date.now()-lastPaint>1000){
-     // Restore glow immediately on play/resume, not after the next player tick.
-     overlay.style.setProperty('--aurel-aurora-opacity','0.82');
+   if(!active){
+     resetBeat();
+     intensity(visible?.26:0);
+   }else if(!real){
+     // Static, dim album tint when Android denies FFT or bit-perfect is on.
+     // No unsolicited fabricated beat. Actual FFT will light it up.
+     intensity(.34);
+   }
+   wantCapture();
+ }
+ function onBeat(value){
+   if(!enabled||!isPlaying()||!motionAllowed()||bitPerfect())return;
+   const n=Number(value);
+   if(!Number.isFinite(n))return;
+   const level=Math.max(0,Math.min(1,n));
+   const now=Date.now();
+   lastFrame=now;
+   const strong=Math.pow(level,.70);
+   overlay.style.setProperty('--aurel-aurora-beat',strong.toFixed(3));
+   intensity(.30+strong*.66);
+   if(level>.27&&level>lastPeak+.11&&now-lastPulse>190){
+     lastPulse=now;
+     rotation=(rotation+12)%360;
+     overlay.style.setProperty('--aurel-aurora-rotation',rotation+'deg');
+   }
+   lastPeak=level;
+   overlay.classList.add('aurel-aurora-beat-live');
+ }
+ function nativePalette(url,bg,surface,accent,one,two,three){
+   if(typeof url!=='string'||!url)return;
+   if(![bg,surface,accent,one,two,three].every(validHex))return;
+   const colors={bg,surface,accent,one,two,three};
+   palettes.set(url,colors);
+   if(palettes.size>30)palettes.delete(palettes.keys().next().value);
+   if(url===coverUrl()){
+     currentCover=url;
+     setStyle(colors);
+     sync();
    }
  }
  function installSetting(){
    const root=document.getElementById('screen');
    if(!root?.querySelector('.aurel-settings-heading')||
-      root.querySelector('[data-aurel-aurora-setting]'))return;
+     root.querySelector('[data-aurel-aurora-setting]'))return;
    const host=root.querySelector('.aurel-appearance-panel')||
-      root.querySelector('[data-aurel-pro-settings="performance"]')||
-      root.querySelector('[data-aurel-settings-group="app"] .aurel-settings-group-content');
+     root.querySelector('[data-aurel-pro-settings="performance"]')||
+     root.querySelector('[data-aurel-settings-group="app"] .aurel-settings-group-content');
    if(!host)return;
    const label=document.createElement('label');
    label.className='aurel-appearance-toggle aurel-aurora-setting';
    label.setAttribute('data-aurel-aurora-setting','');
    label.innerHTML='<span><strong>'+
-      (uk()?'Переливчасте кольорове світіння':'Iridescent album glow')+
-      '</strong><small>'+
-      (uk()?'М’які різноколірні тіні навколо обкладинки й кнопки відтворення. Переливаються, доки грає музика; справжні FFT-імпульси додатково підсилюють світіння. Працює також із bit-perfect.':
-        'Soft multicolor shadows around the cover and play button. Ambient colors flow during playback; genuine FFT beats can amplify the glow. Also works with bit-perfect.')+
-      '</small></span><input type="checkbox" data-aurel-aurora-toggle '+
-      'aria-label="'+(uk()?'Кольорове світіння':'Iridescent album glow')+'" '+
-      (enabled?'checked':'')+'>';
+     (uk()?'Світіння в кольорах обкладинки':'Album-colored glow')+
+     '</strong><small>'+
+     (uk()?'Палітра з обкладинки. Світіння змінюється в такт справжнім FFT-імпульсам у звичайному режимі. У bit-perfect залишається статичним.':
+       'Colors sampled from the album. Real FFT pulses drive the glow in standard audio; it stays static in bit-perfect.')+
+     '</small></span><input type="checkbox" data-aurel-aurora-toggle '+
+     'aria-label="'+(uk()?'Кольорове світіння':'Album-colored glow')+'" '+
+     (enabled?'checked':'')+'>';
    host.appendChild(label);
  }
  const oldSettings=renderSettings;
@@ -77,23 +156,14 @@
  const oldEvent=window.AurelEvent;
  window.AurelEvent=function(kind,data){
    const result=oldEvent.apply(this,arguments);
-   if(kind==='player')sync();
+   if(kind==='player'||kind==='beatStatus')sync();
    return result;
  };
  if(typeof window.AurelBeatFrame==='function'){
-   const oldBeat=window.AurelBeatFrame;
+   const prior=window.AurelBeatFrame;
    window.AurelBeatFrame=function(level){
-     const result=oldBeat.apply(this,arguments);
-     if(enabled&&isPlaying()&&motionAllowed()&&!app.player?.bitPerfect?.enabled){
-       const value=Number(level);
-       if(Number.isFinite(value)){
-         const amount=Math.max(0,Math.min(1,value));
-         // Paint-only opacity updates, no cover measurement or layout reflow.
-         overlay.style.setProperty('--aurel-aurora-opacity',
-           (0.70+Math.pow(amount,.65)*.27).toFixed(3));
-         lastPaint=Date.now();
-       }
-     }
+     const result=prior.apply(this,arguments);
+     onBeat(level);
      return result;
    };
  }
@@ -101,11 +171,15 @@
    if(!event.target.matches?.('[data-aurel-aurora-toggle]'))return;
    enabled=!!event.target.checked;
    try{localStorage.setItem(KEY,enabled?'on':'off');}catch(_){}
+   resetBeat();
    sync();
  });
  document.addEventListener('visibilitychange',sync);
  if(reduced?.addEventListener)reduced.addEventListener('change',sync);
+ window.AurelAuroraPalette=nativePalette;
+ window.AurelAurora={enabled:()=>enabled,refresh:sync,isPlaying,
+   isCaptureRequested:()=>!!captureWanted,acceptPalette:nativePalette};
+ setStyle(neutral);
  installSetting();
  sync();
- window.AurelAurora={enabled:()=>enabled,refresh:sync,isPlaying};
 })();
