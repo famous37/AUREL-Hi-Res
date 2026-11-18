@@ -9,7 +9,9 @@ const source=read('murglar.js');
 const nav=read('aurel-bold-controls.css');
 
 assert(css.trim().startsWith('/* AUREL 1.1.57'));
-assert.equal((css.match(/@media\s*\(orientation:landscape\)\s*and\s*\(min-width:420px\)/g)||[]).length,2);\nassert(css.includes('(max-width:599px)'),'Compact split-screen layout missing');\nassert(css.includes('(max-width:419px)'),'Ultra-narrow stacked fallback missing');
+assert.equal((css.match(/@media\s*\(orientation:landscape\)\s*and\s*\(min-width:420px\)/g)||[]).length,2);
+assert(css.includes('(max-width:599px)'),'Compact split-screen layout missing');
+assert(css.includes('(max-width:419px)'),'Ultra-narrow stacked fallback missing');
 assert(!css.includes('@media (orientation:portrait)'), 'Portrait must use unchanged existing CSS');
 assert(html.includes('<link rel="stylesheet" href="aurel-bold-controls.css"><link rel="stylesheet" href="aurel-landscape.css">'),
  'The isolated landscape stylesheet must load last');
