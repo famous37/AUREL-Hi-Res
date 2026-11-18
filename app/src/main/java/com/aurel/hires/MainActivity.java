@@ -2,6 +2,8 @@ package com.aurel.hires;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
 import android.net.Uri;
 import java.nio.charset.StandardCharsets;
 import android.os.Bundle;
@@ -114,6 +116,67 @@ public final class MainActivity extends Activity {
     private AudioManager systemAudio;
     private AudioFocusRequest audioFocusRequest;
     private boolean audioFocusGranted=false;
+    // Track the real output, not just all currently plugged-in devices.
+    private int lastRoutedOutputId=-1;
+    private boolean lastRoutedOutputExternal=false;
+    private boolean noisyReceiverRegistered=false;
+    private final BroadcastReceiver noisyReceiver=new BroadcastReceiver(){
+        @Override public void onReceive(Context context,Intent intent){
+            if(intent!=null&&AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction()))
+                pauseForOutputLoss("android_noisy");
+        }
+    };
+    private boolean playbackRequestedOrRunning(){
+        return isAudioPlaying()||focusPolicy.shouldStartPrepared();
+    }
+    private static boolean externalAudioOutput(AudioDeviceInfo d){
+        if(d==null)return false;
+        switch(d.getType()){
+            case AudioDeviceInfo.TYPE_WIRED_HEADSET:
+            case AudioDeviceInfo.TYPE_WIRED_HEADPHONES:
+            case AudioDeviceInfo.TYPE_USB_DEVICE:
+            case AudioDeviceInfo.TYPE_USB_HEADSET:
+            case AudioDeviceInfo.TYPE_USB_ACCESSORY:
+            case AudioDeviceInfo.TYPE_BLUETOOTH_A2DP:
+            case AudioDeviceInfo.TYPE_BLUETOOTH_SCO:
+            case AudioDeviceInfo.TYPE_BLE_HEADSET:
+            case AudioDeviceInfo.TYPE_BLE_SPEAKER:return true;
+            default:return false;
+        }
+    }
+    private void rememberAudioRoute(MediaPlayer mp){
+        if(mp==null||mp!=player||!isAudioPlaying())return;
+        try{
+            AudioDeviceInfo output=mp.getRoutedDevice();
+            if(output!=null){
+                lastRoutedOutputId=output.getId();
+                lastRoutedOutputExternal=externalAudioOutput(output);
+            }
+        }catch(RuntimeException ignored){}
+    }
+    private void pauseForOutputLoss(String reason){
+        if(!playbackRequestedOrRunning())return;
+        pauseByUser(); // Cancel delayed audio-focus resume. Do not play on speaker.
+        lastRoutedOutputId=-1;
+        lastRoutedOutputExternal=false;
+        emit("player",playerState());
+        try{emit("audioRouteLost",new JSONObject().put("reason",reason));}
+        catch(Exception ignored){}
+    }
+    private void onActualRouteChanged(MediaPlayer mp){
+        if(mp==null||mp!=player)return;
+        int route=-1;
+        try{
+            AudioDeviceInfo output=mp.getRoutedDevice();
+            if(output!=null)route=output.getId();
+        }catch(RuntimeException ignored){}
+        if(AurelUnplugPolicy.pauseForRoutingChange(playbackRequestedOrRunning(),
+            lastRoutedOutputId,lastRoutedOutputExternal,route)){
+            pauseForOutputLoss("route_changed");
+            return;
+        }
+        rememberAudioRoute(mp);
+    }
     private final AurelFocusPolicy focusPolicy=new AurelFocusPolicy();
     private final AudioManager.OnAudioFocusChangeListener audioFocusListener=
         change->ui.post(()->onAudioFocusChanged(change));
@@ -209,6 +272,17 @@ public final class MainActivity extends Activity {
             refreshBitPerfectOutput();
         }
         @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices){
+            if(devices!=null){
+                for(AudioDeviceInfo removed:devices){
+                    if(AurelUnplugPolicy.pauseForRemovedOutput(
+                        playbackRequestedOrRunning(),lastRoutedOutputId,
+                        lastRoutedOutputExternal,removed.getId(),
+                        externalAudioOutput(removed))){
+                        pauseForOutputLoss("output_removed");
+                        break;
+                    }
+                }
+            }
             refreshBitPerfectOutput();
         }
     };
