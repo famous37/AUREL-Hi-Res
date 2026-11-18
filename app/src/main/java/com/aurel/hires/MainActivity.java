@@ -1267,10 +1267,12 @@ public final class MainActivity extends Activity {
                             // No synthetic pulse: request native FFT capture only with consent.
                             boolean wanted=p.optBoolean("enabled",false);
                             boolean ask=p.optBoolean("requestPermission",false);
+                            boolean resetAnalyzer=p.optBoolean("restartAnalyzer",false);
                             boolean allowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==
                                 PackageManager.PERMISSION_GRANTED;
                             ui.post(()->{
                                 beatUiWanted=wanted;
+                                if(resetAnalyzer&&beatMonitor!=null)beatMonitor.stop();
                                 if(ask&&!allowed)requestPermissions(
                                     new String[]{Manifest.permission.RECORD_AUDIO},BEAT_CAPTURE_PERMISSION_REQUEST);
                                 if(wanted)startBeatTicker();
@@ -1285,7 +1287,7 @@ public final class MainActivity extends Activity {
                             java.util.concurrent.FutureTask<JSONObject> task=
                                 new java.util.concurrent.FutureTask<>(()->{
                                     JSONObject result=new JSONObject();
-                                    result.put("appVersion","1.1.69");
+                                    result.put("appVersion",BuildConfig.VERSION_NAME);
                                     result.put("android",Build.VERSION.SDK_INT);
                                     result.put("permission",checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED);
                                     result.put("requested",beatUiWanted);

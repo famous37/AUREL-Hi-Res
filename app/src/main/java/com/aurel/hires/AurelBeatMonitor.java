@@ -26,6 +26,8 @@ final class AurelBeatMonitor {
     private volatile int callbackFrames,pollFrames,nonSilentFrames,pollErrors;
     private volatile float lastPeak,lastLevel;
     private volatile String captureMode="off",failure="none";
+    private int recoveryAttempts=0,recoverySession=-1;
+    private static final int MAX_RECOVERIES=2;
 
     AurelBeatMonitor(LevelListener listener) {this.listener=listener;}
 
@@ -36,8 +38,28 @@ final class AurelBeatMonitor {
         try{session=player.getAudioSessionId();}
         catch(RuntimeException error){stopVisualizer();failure="audio_session_error";return;}
         if(session<=0){stopVisualizer();failure="invalid_audio_session";return;}
-        if(visualizer!=null&&session==sessionId)return;
         long now=SystemClock.elapsedRealtime();
+        if(session!=recoverySession){
+            recoverySession=session;
+            recoveryAttempts=0;
+            retryAfter=0L;
+        }
+        if(visualizer!=null&&session==sessionId){
+            // A few Android engines attach successfully but deliver only zeros
+            // even while MediaPlayer is audibly playing. Re-bind at most twice,
+            // with cooldown. Never touch the underlying decoder or audio route.
+            final boolean noUsableAudio=nonSilentFrames==0&&
+                now-attachedAt>8500L;
+            final boolean framesStopped=lastFrameAt>0L&&
+                now-lastFrameAt>4500L;
+            if((noUsableAudio||framesStopped)&&recoveryAttempts<MAX_RECOVERIES){
+                recoveryAttempts++;
+                stopVisualizer();
+                retryAfter=now+1800L;
+                captureMode="recovering";
+                failure=noUsableAudio?"silent_fft_rebind":"stale_fft_rebind";
+            }else return;
+        }
         if(now<retryAfter)return;
         stopVisualizer();
         try {
@@ -133,9 +155,18 @@ final class AurelBeatMonitor {
         }
         // Never spin or call into the streaming/decoder paths to force FFT.
         if(lastFrameAt==0L&&now-attachedAt>7000L){
-            stopVisualizer();
-            captureMode="unavailable";
-            retryAfter=now+6000L;
+            if(recoveryAttempts<MAX_RECOVERIES){
+                recoveryAttempts++;
+                stopVisualizer();
+                captureMode="recovering";
+                failure="no_fft_frames_rebind";
+                retryAfter=now+1800L;
+            }else{
+                stopVisualizer();
+                captureMode="unavailable";
+                failure="no_fft_frames";
+                retryAfter=now+30000L;
+            }
         }
     }
 
@@ -179,6 +210,7 @@ final class AurelBeatMonitor {
             j.put("lastPeak",lastPeak);
             j.put("lastLevel",Math.round(lastLevel*100f)/100f);
             j.put("lastError",failure);
+            j.put("recoveryAttempts",recoveryAttempts);
             j.put("dataFresh",hasFrames());
         }catch(Exception ignored){}
         return j;
@@ -200,5 +232,7 @@ final class AurelBeatMonitor {
     void stop(){
         if(visualizer!=null||sessionId>0)stopVisualizer();
         retryAfter=0L;
+        recoveryAttempts=0;
+        recoverySession=-1;
     }
 }
