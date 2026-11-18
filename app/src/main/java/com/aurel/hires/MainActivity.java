@@ -1221,7 +1221,7 @@ public final class MainActivity extends Activity {
                             java.util.concurrent.FutureTask<JSONObject> task=
                                 new java.util.concurrent.FutureTask<>(()->{
                                     JSONObject result=new JSONObject();
-                                    result.put("appVersion","1.1.62");
+                                    result.put("appVersion","1.1.63");
                                     result.put("android",Build.VERSION.SDK_INT);
                                     result.put("permission",checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED);
                                     result.put("requested",beatUiWanted);
@@ -1236,19 +1236,29 @@ public final class MainActivity extends Activity {
                             data=task.get(3,java.util.concurrent.TimeUnit.SECONDS);
                             break;
                         }
-                        case "copyBeatDiagnostics": {
+                        case "copySupportLog": {
+                            // Copy only a user-requested, bounded app-error report.
+                            // This is not Android system logcat or an audio capture.
                             String report=p.optString("report","");
-                            if(report.length()>1800)report=report.substring(0,1800);
+                            if(!report.startsWith("AUREL Hi-Res 1.1.63 | App error log")||
+                               report.length()>24000)
+                                throw new IllegalArgumentException("Invalid application error log");
                             final String clipboardText=report;
-                            ui.post(()->{
-                                try {
-                                    android.content.ClipboardManager clipboard=(android.content.ClipboardManager)
-                                        getSystemService(Context.CLIPBOARD_SERVICE);
-                                    if(clipboard!=null)clipboard.setPrimaryClip(
-                                        android.content.ClipData.newPlainText("AUREL FFT diagnostics",clipboardText));
-                                }catch(RuntimeException ignored){}
-                            });
-                            data=new JSONObject().put("copied",true);
+                            java.util.concurrent.FutureTask<Boolean> clipboardJob=
+                                new java.util.concurrent.FutureTask<>(()->{
+                                    try {
+                                        android.content.ClipboardManager clipboard=
+                                            (android.content.ClipboardManager)
+                                            getSystemService(Context.CLIPBOARD_SERVICE);
+                                        if(clipboard==null)return false;
+                                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "AUREL application error log",clipboardText));
+                                        return true;
+                                    }catch(RuntimeException ignored){return false;}
+                                });
+                            ui.post(clipboardJob);
+                            data=new JSONObject().put("copied",
+                                clipboardJob.get(3,java.util.concurrent.TimeUnit.SECONDS));
                             break;
                         }
                         case "audioDiagnostics": {
