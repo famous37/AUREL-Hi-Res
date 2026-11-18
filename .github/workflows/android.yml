@@ -59,6 +59,8 @@ jobs:
         run: node tests/player-icon-seek.test.cjs
       - name: Verify uniform bold SVG player buttons and loading spinner states
         run: node tests/ui-bold-loading.test.cjs
+      - name: Verify Share icon cascade and responsive real button sizes
+        run: node tests/ui-visual-consistency.test.cjs
       - name: Verify global typography, vector icons and motion invariants
         run: node tests/global-polish.test.cjs
       - name: Verify vector action buttons, search and quicklinks
