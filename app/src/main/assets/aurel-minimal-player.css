@@ -18,8 +18,7 @@
   margin:7px 0 6px!important;
   min-height:var(--aurel-icon-control)!important;
 }
-#overlay .murglar-view .murglar-quick-actions button,
-#overlay .murglar-view .murglar-quick-actions .aurel-share-control{
+#overlay .murglar-view .murglar-quick-actions button{
   box-sizing:border-box!important;
   display:grid!important;
   place-items:center!important;
@@ -44,8 +43,7 @@
 #overlay .murglar-view .murglar-quick-actions button > span{
   display:none!important; /* visual label only; aria-label remains on button */
 }
-#overlay .murglar-view .murglar-quick-actions button svg,
-#overlay .murglar-view .murglar-quick-actions .aurel-share-control svg{
+#overlay .murglar-view .murglar-quick-actions button svg{
   display:block!important;
   box-sizing:border-box!important;
   width:24px!important;

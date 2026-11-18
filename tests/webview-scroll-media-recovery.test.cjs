@@ -10,7 +10,7 @@ const app=read('app/src/main/assets/app.js');
 const lang=read('app/src/main/assets/aurel-language.js');
 const gradle=read('app/build.gradle');
 
-assert(/versionCode\s+68/.test(gradle) && gradle.includes("'1.1.49'"));
+assert(/versionCode\s+77/.test(gradle) && gradle.includes("'1.1.58'"));
 for(const line of [
  'web.setVerticalScrollBarEnabled(false);',
  'web.setHorizontalScrollBarEnabled(false);',
@@ -38,8 +38,8 @@ assert(java.includes('cleanupPlayer();'));
 assert(java.includes('final MediaPlayer obsolete=player;'));
 assert(java.includes('try{obsolete.release();}catch(RuntimeException ignored){}'));
 assert(java.includes('Log.w(MEDIA_TAG'));
-assert(java.includes('qualityProbePending=!sourceVerified&&!viaMornye;'),
- 'Do not open a second ranged GET against one-time signed Mornye streams');
+assert(!java.includes('qualityProbePending=!sourceVerified&&!viaMornye;'),
+ 'Do not open a parallel ranged GET against any signed playback URL');
 assert(recovery.includes('MAX_AUTO_RETRIES=1'));
 assert(recovery.includes('what==1 && (extra==Integer.MIN_VALUE || extra==-1004 || extra==-110)'));
 assert(!recovery.includes('extra==-1007'),'Malformed stream must not auto-retry');

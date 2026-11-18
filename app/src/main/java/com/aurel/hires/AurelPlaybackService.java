@@ -20,7 +20,6 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import android.media.session.MediaSession;
-import android.media.VolumeProvider;
 import android.media.session.PlaybackState;
 import android.os.Build;
 import android.os.IBinder;
@@ -39,39 +38,6 @@ public final class AurelPlaybackService extends Service {
     private static WeakReference<MainActivity> controller=new WeakReference<>(null);
     private static String lastSignature="";
     private MediaSession session;
-    private VolumeProvider usbVolumeProvider;
-    private boolean usbVolumeSessionEnabled=false;
-    private void configureUsbVolumeSession(boolean direct,int level) {
-        if(session==null)return;
-        final int safe=Math.max(0,Math.min(100,level));
-        if(direct) {
-            if(usbVolumeProvider==null) {
-                usbVolumeProvider=new VolumeProvider(
-                    VolumeProvider.VOLUME_CONTROL_ABSOLUTE,100,safe) {
-                    @Override public void onAdjustVolume(int direction) {
-                        MainActivity owner=controller.get();
-                        if(owner!=null)owner.adjustUsbVolumeFromMediaSession(direction);
-                    }
-                    @Override public void onSetVolumeTo(int requested) {
-                        MainActivity owner=controller.get();
-                        if(owner!=null)owner.setUsbVolumeFromMediaSession(requested);
-                    }
-                };
-            }
-            if(usbVolumeProvider.getCurrentVolume()!=safe)
-                usbVolumeProvider.setCurrentVolume(safe);
-            if(!usbVolumeSessionEnabled) {
-                session.setPlaybackToRemote(usbVolumeProvider);
-                usbVolumeSessionEnabled=true;
-            }
-        } else if(usbVolumeSessionEnabled) {
-            session.setPlaybackToLocal(new android.media.AudioAttributes.Builder()
-                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                .build());
-            usbVolumeSessionEnabled=false;
-        }
-    }
     private NotificationManager notifications;
     private boolean isForeground=false;
     private boolean hasTrack=false;
@@ -243,12 +209,8 @@ public final class AurelPlaybackService extends Service {
         boolean buffering=state.optBoolean("buffering",false);
         long length=Math.max(0,state.optLong("duration",0));
         long offset=Math.max(0,state.optLong("position",0));
-        JSONObject usbStatus=state.optJSONObject("bitPerfect");
-        boolean directUsb=usbStatus!=null&&usbStatus.optBoolean("directUsbActive",false);
-        int usbLevel=state.optInt("usbOutputVolumePercent",35);
         String signature=trackId+"|"+name+"|"+performer+"|"+playing+"|"+buffering+"|"+length;
         if(instance!=null){
-            instance.configureUsbVolumeSession(directUsb,usbLevel);
             instance.update(name,performer,albumName,artwork,length,offset,playing,buffering);
             lastSignature=signature;
             return;
@@ -265,8 +227,6 @@ public final class AurelPlaybackService extends Service {
         launch.putExtra("position",offset);
         launch.putExtra("playing",playing);
         launch.putExtra("buffering",buffering);
-        launch.putExtra("directUsb",directUsb);
-        launch.putExtra("usbLevel",usbLevel);
         try {
             if(Build.VERSION.SDK_INT>=26)source.startForegroundService(launch);
             else source.startService(launch);
@@ -291,6 +251,10 @@ public final class AurelPlaybackService extends Service {
             notifications.createNotificationChannel(c);
         }
         session=new MediaSession(this,"AUREL Hi-Res");
+        // All output, including USB DAC and volume keys, is owned by Android.
+        session.setPlaybackToLocal(new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build());
         session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS|MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         session.setCallback(new MediaSession.Callback(){
             @Override public void onPlay(){dispatch("toggle",true);}
@@ -316,8 +280,6 @@ public final class AurelPlaybackService extends Service {
         if((ACTION_PREFIX+"pause").equals(action)){dispatch("toggle",false);return START_STICKY;}
         if((ACTION_PREFIX+"next").equals(action)){dispatch("next",false);return START_STICKY;}
         if((ACTION_PREFIX+"previous").equals(action)){dispatch("previous",false);return START_STICKY;}
-        configureUsbVolumeSession(intent.getBooleanExtra("directUsb",false),
-            intent.getIntExtra("usbLevel",35));
         update(intent.getStringExtra("title"),intent.getStringExtra("artist"),
             intent.getStringExtra("album"),intent.getStringExtra("artwork"),
             intent.getLongExtra("duration",0),intent.getLongExtra("position",0),

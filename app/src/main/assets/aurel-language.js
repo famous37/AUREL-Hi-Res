@@ -433,6 +433,29 @@ Object.assign(dictionary,{
  'Audio playback could not start.':'Не вдалося запустити відтворення.',
  'Audio focus is unavailable. Open AUREL to resume playback.':'Аудіофокус недоступний. Відкрийте AUREL, щоб відновити відтворення.'
 });
+/* Android 14+ platform mixer labels: no libusbdac or USB-exclusive audio. */
+Object.assign(dictionary,{
+ 'Android USB bit-perfect':'Системний USB bit-perfect Android',
+ 'Android 14+ · AudioManager preferred mixer · no third-party USB driver':'Android 14+ · системний аудіомікшер · без стороннього USB-драйвера',
+ 'Android audio':'Аудіовихід Android',
+ 'USB DAC · Android audio':'USB-ЦАП · звук Android',
+ 'USB DAC not routed':'Звук не спрямовано на USB-ЦАП',
+ 'Requires Android 14+':'Потрібен Android 14 або новіший',
+ 'USB DAC not connected':'USB-ЦАП не під’єднано',
+ 'Waiting for track':'Очікування треку',
+ 'Audio format unverified':'Формат аудіо не підтверджено',
+ 'PCM format not supported':'Формат PCM не підтримується',
+ 'Android bit-perfect unavailable':'Системний bit-perfect недоступний',
+ 'Android mixer error':'Помилка системного аудіомікшера',
+ 'Android mixer rejected request':'Системний мікшер відхилив запит',
+ 'Android bit-perfect preference accepted':'Android прийняв запит bit-perfect',
+ 'Android USB policy routed':'Системний USB-маршрут активний',
+ 'Checking Android USB audio':'Перевірка системного USB-аудіо',
+ 'The system USB audio driver is used. Bit-perfect is optional and may be unavailable on this device.':'Використовується системний USB-аудіодрайвер. Підтримка bit-perfect не обов’язкова і може бути відсутня.',
+ 'Android bit-perfect preference enabled. Support depends on your USB DAC and system audio HAL.':'Системний bit-perfect увімкнено. Доступність залежить від ЦАП та аудіопідсистеми телефона.',
+ 'Standard Android output restored.':'Відновлено стандартне відтворення через Android.',
+ 'When Android bit-perfect is active, software volume and effects are bypassed. Reduce volume at the DAC or amplifier before playback.':'Коли системний bit-perfect активний, програмне регулювання гучности та звукові ефекти оминаються. Перед відтворенням зменште гучність на ЦАПі або підсилювачі.'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){

@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.48: replace native DAC driver; standard mode uses only Android mixer.
+# v1.1.58: fix cropped landscape navbar labels and soften paint-only UI transitions.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -9,7 +9,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine]
+    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -61,10 +61,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
-      - name: Install Android API 37, NDK 29, and CMake
-        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
-      - name: Fetch pinned native USB Audio and libFLAC sources
-        run: bash scripts/setup-usb-driver.sh
+      - name: Install Android API 37
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
 
       - name: Validate release version and prevent replacing signed artifacts
         env:
@@ -105,9 +103,13 @@ jobs:
           node tests/minimal-player.test.cjs
           node tests/bit-perfect.test.cjs
           node tests/usb-volume-recovery.test.cjs
+          node tests/usb-bitperfect-recovery.test.cjs
           node tests/playback-continuity.test.cjs
           node tests/swipe-icons.test.cjs
           node tests/player-icon-seek.test.cjs
+          node tests/ui-bold-loading.test.cjs
+          node tests/landscape-layout.test.cjs
+          node tests/landscape-nav-safe.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -165,16 +167,14 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — Android mixer OFF / libusbdac direct USB ON**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — properly centred landscape navigation**" \
             '' \
-            '- Replaces the previous native USB driver with libusbdac v0.2.0 (GPL-3.0) for UAC1/2/3.' \
-            '- Preserves safe initial USB volume, with hardware and digital attenuation truthfully identified.' \
-            '- Bit-perfect OFF always uses Android MediaPlayer/AudioFlinger and ordinary Android routing.' \
-            '- Bit-perfect ON selects a separate native libusbdac PCM engine; never requests Android HAL bit-perfect mixer.' \
-            '- Releases the native USB stream before starting the Android fallback with a fresh signed URL.' \
-            '- Reports whether Android actually routes audio to USB or merely detects the DAC.' \
-            '- Hardware validation still required: iBasso DC05 16/44.1 and 24/96, pause, seek and reconnect.' \
-            '- Preserves AUREL signing certificate, installed package ID, Qobuz credentials and app data.' \
+            '- Fixes cropped bottom navigation icons and text in landscape. The old 27px minimum height on every span made icon and label exceed the button height.' \
+            '- Separate, correctly sized SVG and label grid rows keep both fully within the navigation panel across landscape screen sizes.' \
+            '- On short landscapes the navigation displays centred icon-only buttons with accessible names rather than clipping labels.' \
+            '- Gentle 180–220 ms colour and background transitions, without moving, scaling or rebuilding player controls.' \
+            '- Portrait layout, Android system audio, USB DAC routing, Qobuz session and saved app data are unchanged.' \
+            '- Tested icon and label bounds with Chromium at 844x390, 915x412, 736x320, 600x300, 480x270 and compact split screen.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

@@ -26,6 +26,17 @@
   Android playback when the native route is stalled.
 - Disable USB gain controls when the DAC has no hardware Feature Unit.
 
+## Standard Android audio stability (v1.1.50)
+
+- Direct USB bit-perfect remains disabled after reported native crashes.
+  The signed release does not claim end-to-end bit-perfect output.
+- Standard Android playback initializes no libusbdac host and does not
+  claim USB interfaces while OFF is selected.
+- Android MediaPlayer routing callbacks no longer reset preferred devices.
+- No second ranged GET against an in-use signed Qobuz media URL: this
+  avoids starving playback or invalidating temporary authorization.
+- A new process starts in safe Android audio mode.
+
 ## Verification status
 
 A passing CI build verifies build integration, static routing separation and

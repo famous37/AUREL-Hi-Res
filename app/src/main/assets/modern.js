@@ -166,12 +166,12 @@ const ic=(key,size=24)=>{
  const path={
   down:'<path d="m6 9 6 6 6-6"/>',more:'<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
   heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.7 7.7L12 21l8.8-8.7a5.5 5.5 0 0 0 0-7.7Z"/>',
-  shuffle:'<path d="m18 14 4 4-4 4m0-20 4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M2 6h2.5c2 0 3.5 1.6 5 4M14 16c1.6 1.5 3.4 2 6 2h2"/>',
+  shuffle:'<path d="m18 14 4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M18 2l4 4-4 4M2 6h2.5c2 0 3.5 1.6 5 4M14 16c1.6 1.5 3.4 2 6 2"/>',
   repeat:'<path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3"/>',
   prev:'<path d="M6 5v14M19 6 9 12l10 6V6Z"/>',next:'<path d="M18 5v14M5 6l10 6-10 6V6Z"/>',
   play:'<path d="m8 5 12 7-12 7V5Z"/>',pause:'<path d="M8 5v14M16 5v14"/>',
   queue:'<path d="M4 6h16M4 12h16M4 18h9"/><path d="m17 16 4 2-4 2z"/>',
-  info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
   audio:'<path d="M5 9v6M9 6v12M13 3v18M17 7v10M21 10v4"/>',
   chevron:'<path d="m9 18 6-6-6-6"/>',
   eye:'<path d="M2 12s3.6-6.7 10-6.7S22 12 22 12s-3.6 6.7-10 6.7S2 12 2 12z"/><circle cx="12" cy="12" r="3.4"/>',
@@ -192,8 +192,39 @@ const ic=(key,size=24)=>{
   back:'<path d="m15 18-6-6 6-6"/>',
   close:'<path d="m18 9-6 6-6-6"/>',
   album:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/>',
+  share:'<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m7.9 11 8.2-4.9M7.9 13l8.2 4.9"/>',
  }[key]||'';
- return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+ return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+};
+/** Shared vector family and playback-state glyph selection. */
+const aurelPlaybackMode=p=>p?.buffering&&!p?.error?'loading':p?.playing?'pause':'play';
+const aurelSpinner=(size=28)=>`<svg class="aurel-spinner" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="aurel-spinner-track" cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.6" opacity=".20"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>`;
+const aurelPlaybackIcon=(p,size=28)=>aurelPlaybackMode(p)==='loading'?aurelSpinner(size):ic(aurelPlaybackMode(p),size);
+const aurelPlaybackLabel=p=>aurelPlaybackMode(p)==='loading'?'Loading audio':p?.playing?'Pause':'Play';
+/* WebView may disable CSS animations via older motion/theme rules.
+ * Use compositor rotation so the Play control remains a live loading gauge. */
+const aurelEnsureLoadingAnimation=(root)=>{
+ if(!root?.querySelectorAll)return;
+ const reduced=typeof window.matchMedia==='function' &&
+   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ for(const svg of root.querySelectorAll('svg.aurel-spinner')){
+  if(svg.dataset.aurelAnimated==='1')continue;
+  svg.dataset.aurelAnimated='1';
+  if(typeof svg.animate!=='function')continue; // CSS remains fallback
+  try{
+   const animation=svg.animate(
+    [{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],
+    {duration:reduced?2400:860,iterations:Infinity,easing:'linear'});
+   svg.style.setProperty('animation','none','important');
+   svg._aurelSpinnerAnimation=animation;
+  }catch(_){svg.style.removeProperty('animation');}
+ }
+};
+const aurelStopLoadingAnimation=(root)=>{
+ if(!root?.querySelectorAll)return;
+ for(const svg of root.querySelectorAll('svg.aurel-spinner')){
+  try{svg._aurelSpinnerAnimation?.cancel();}catch(_){}
+ }
 };
 const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
 let aurelMiniAnimating=false;
@@ -269,11 +300,15 @@ updateMini=function(){
   m.dataset.miniArtwork=cover||'';
  }
  const play=m.querySelector('[data-mini-toggle]');
- if(play&&m.dataset.miniPlaying!==String(!!p.playing)){
-  play.innerHTML=ic(p.playing?'pause':'play',26);
-  play.setAttribute('aria-label',p.playing?'Pause':'Play');
-  m.dataset.miniPlaying=String(!!p.playing);
+ const miniMode=aurelPlaybackMode(p);
+ if(play&&m.dataset.miniPlaying!==miniMode){
+  play.innerHTML=aurelPlaybackIcon(p,26);
+  play.setAttribute('aria-label',aurelPlaybackLabel(p));
+  play.setAttribute('aria-busy',String(miniMode==='loading'));
+  play.classList.toggle('is-loading',miniMode==='loading');
+  m.dataset.miniPlaying=miniMode;
  }
+ if(miniMode==='loading')aurelEnsureLoadingAnimation(m);
  const position=window.AurelProgressClock?.accept(p)??(Number(p.position)||0);
  const bar=m.querySelector('.mini-progress');
  const percent=p.duration?Math.min(100,Math.max(0,100*position/Number(p.duration))):0;
@@ -315,7 +350,7 @@ drawOverlay=function(){
    </section>
    <section class="aurel-main-actions" aria-label="Playback controls">
     <button data-prev aria-label="Previous track" class="aurel-transport side">${ic('prev',33)}</button>
-    <button id="full-toggle" data-full-toggle aria-label="${p.playing?'Pause':'Play'}" class="aurel-transport middle">${ic(p.playing?'pause':'play',40)}</button>
+    <button id="full-toggle" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${loading}" class="aurel-transport middle ${loading?'is-loading':''}">${aurelPlaybackIcon(p,40)}</button>
     <button data-next aria-label="Next track" class="aurel-transport side">${ic('next',33)}</button>
    </section>
    <section class="aurel-extra-actions" aria-label="Playback options">

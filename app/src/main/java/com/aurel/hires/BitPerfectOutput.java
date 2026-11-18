@@ -12,138 +12,225 @@ import org.json.JSONObject;
 import java.util.List;
 
 /**
- * Android output diagnostics and compatibility shim. It does NOT request
- * bit-perfect Android mixer attributes. Normal playback uses AudioFlinger,
- * while direct PCM output is owned exclusively by libusbdac.
+ * Android platform USB mixer selection, API 34+. No private USB driver,
+ * USB permission, interface claim or exclusive JNI streaming.
+ *
+ * BIT_PERFECT is optional in the device Audio HAL. A preferred mixer setting
+ * only applies when the actual AudioTrack's encoding/mask/rate match.
+ * MediaPlayer does not disclose its decoded AudioTrack PCM format, therefore
+ * we report system-accepted requests, not unmeasured end-to-end identity.
  */
 final class BitPerfectOutput {
     private final AudioManager manager;
-    private final AudioAttributes attributes =
-        new AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .build();
+    private final AudioAttributes attributes=new AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_MEDIA)
+        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build();
 
     private volatile boolean enabled;
     private volatile AudioDeviceInfo configuredDevice;
-    private volatile int configuredRate;
-    private volatile int configuredBits;
-    private volatile String phase = "off";
-    private volatile String detail = "Standard Android playback";
-    private boolean changing = false;
+    private volatile int configuredRate,configuredBits,configuredChannels,configuredEncoding;
+    private volatile String phase="off",detail="Standard Android MediaPlayer / AudioFlinger";
+    private String lastAttempt="";
 
-    BitPerfectOutput(Context context, boolean wanted) {
-        manager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
-        enabled = wanted;
-        if (wanted) {
-            phase = "waiting_track";
-            detail = "Direct USB engine selected. Awaiting a compatible DAC and track.";
+    BitPerfectOutput(Context context,boolean wanted){
+        manager=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+        enabled=wanted;
+        if(wanted){
+            phase="waiting_track";
+            detail="Android 14+ USB mixer capability is checked per audio track.";
         }
     }
 
-    boolean isEnabled() { return enabled; }
-    AudioAttributes audioAttributes() { return attributes; }
+    boolean isEnabled(){return enabled;}
+    AudioAttributes audioAttributes(){return attributes;}
 
-    static boolean usb(AudioDeviceInfo device) {
-        if (device == null) return false;
-        int type = device.getType();
-        return type == AudioDeviceInfo.TYPE_USB_DEVICE
-            || type == AudioDeviceInfo.TYPE_USB_HEADSET
-            || type == AudioDeviceInfo.TYPE_USB_ACCESSORY;
+    static boolean usb(AudioDeviceInfo device){
+        if(device==null)return false;
+        int type=device.getType();
+        return type==AudioDeviceInfo.TYPE_USB_DEVICE ||
+            type==AudioDeviceInfo.TYPE_USB_HEADSET ||
+            type==AudioDeviceInfo.TYPE_USB_ACCESSORY;
     }
 
-    private AudioDeviceInfo connectedUsb(MediaPlayer mediaPlayer) {
-        if (manager == null) return null;
-        AudioDeviceInfo routed = null;
-        try { if (mediaPlayer != null) routed = mediaPlayer.getRoutedDevice(); }
-        catch (RuntimeException ignored) {}
-        AudioDeviceInfo first = null;
-        for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
-            if (!usb(device)) continue;
-            if (first == null) first = device;
-            if (routed != null && routed.getId() == device.getId()) return device;
+    private AudioDeviceInfo connectedUsb(MediaPlayer mp){
+        if(manager==null)return null;
+        AudioDeviceInfo active=null;
+        try{if(mp!=null)active=mp.getRoutedDevice();}catch(RuntimeException ignored){}
+        AudioDeviceInfo first=null;
+        for(AudioDeviceInfo d:manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)){
+            if(!usb(d))continue;
+            if(first==null)first=d;
+            if(active!=null&&active.getId()==d.getId())return d;
         }
         return first;
     }
 
-    /**
-     * Standard Android USB routing works independently of the optional
-     * Android 14 bit-perfect mixer preference. Selecting the connected
-     * USB sink must never silently depend on the bit-perfect toggle.
-     * This does not claim end-to-end PCM identity.
-     */
-    boolean routeUsb(MediaPlayer mediaPlayer) {
-        if (manager == null || mediaPlayer == null) return false;
-        try {
-            AudioDeviceInfo candidate = connectedUsb(mediaPlayer);
-            AudioDeviceInfo preferred = mediaPlayer.getPreferredDevice();
-            if (candidate == null) {
-                // Do not pin a detached USB device. Let Android pick the
-                // speaker, analog headphones, or Bluetooth as appropriate.
-                if (preferred != null && usb(preferred))
-                    mediaPlayer.setPreferredDevice(null);
+    private boolean stillConnected(AudioDeviceInfo old){
+        if(old==null||manager==null)return false;
+        for(AudioDeviceInfo d:manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
+            if(usb(d)&&d.getId()==old.getId())return true;
+        return false;
+    }
+
+    /** AudioPolicy receives this preference only when explicitly enabled. */
+    boolean routeUsb(MediaPlayer mp){
+        if(mp==null||manager==null)return false;
+        try{
+            AudioDeviceInfo usb=connectedUsb(mp);
+            AudioDeviceInfo preferred=mp.getPreferredDevice();
+            if(usb==null){
+                if(BitPerfectOutput.usb(preferred))mp.setPreferredDevice(null);
                 return false;
             }
-            if (preferred != null && preferred.getId() == candidate.getId())
-                return true;
-            return mediaPlayer.setPreferredDevice(candidate);
-        } catch (RuntimeException error) {
-            android.util.Log.w("AUREL_AUDIO", "USB audio route request failed", error);
+            if(preferred!=null&&preferred.getId()==usb.getId())return true;
+            return mp.setPreferredDevice(usb);
+        }catch(RuntimeException failure){
+            android.util.Log.w("AUREL_AUDIO","Android USB routing request failed",failure);
             return false;
         }
     }
 
-    private boolean stillConnected(AudioDeviceInfo device) {
-        if (device == null || manager == null) return false;
-        for (AudioDeviceInfo active : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
-            if (active.getId() == device.getId() && usb(active)) return true;
-        return false;
-    }
-
-    private void clearPreference() {
-        AudioDeviceInfo old = configuredDevice;
-        configuredDevice = null;
-        configuredRate = 0;
-        configuredBits = 0;
-        if (old != null && manager != null && Build.VERSION.SDK_INT >= 34) {
-            try { manager.clearPreferredMixerAttributes(attributes, old); }
-            catch (RuntimeException ignored) {}
-        }
-    }
-
-    void release() {
-        clearPreference();
-        phase = enabled ? "waiting_track" : "off";
-        detail = enabled ? "Waiting for an audio stream." : "Standard Android playback";
-    }
-
-    /** The USB mode switch chooses the libusbdac engine in MainActivity.
-     * NEVER negotiate the optional Android mixer bit-perfect path here. */
-    void setEnabled(boolean wanted, MediaPlayer mediaPlayer, JSONObject stream) {
-        enabled = wanted;
-        clearPreference();
-        if (Build.VERSION.SDK_INT >= 34 && manager != null) {
-            for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
-                if (!usb(device)) continue;
-                try { manager.clearPreferredMixerAttributes(attributes, device); }
-                catch (RuntimeException ignored) {}
+    private void clearPreference(){
+        AudioDeviceInfo old=configuredDevice;
+        configuredDevice=null;
+        configuredRate=0;configuredBits=0;configuredChannels=0;configuredEncoding=0;
+        lastAttempt="";
+        if(old!=null&&manager!=null&&Build.VERSION.SDK_INT>=34)
+            try{manager.clearPreferredMixerAttributes(attributes,old);}
+            catch(RuntimeException failure){
+                android.util.Log.w("AUREL_AUDIO","Platform mixer cleanup failed",failure);
             }
-        }
-        if (mediaPlayer != null) {
-            try { mediaPlayer.setPreferredDevice(null); }
-            catch (RuntimeException ignored) {}
-        }
-        phase = wanted ? "waiting_track" : "off";
-        detail = wanted ? "libusbdac native USB audio selected; no Android mixer request." :
+    }
+
+    void release(){
+        clearPreference();
+        phase=enabled?"waiting_track":"off";
+        detail=enabled?"Waiting for an audio track and USB DAC.":
             "Standard Android MediaPlayer / AudioFlinger";
     }
 
+    void setEnabled(boolean wanted,MediaPlayer mp,JSONObject stream){
+        clearPreference();
+        enabled=wanted;
+        if(!wanted&&Build.VERSION.SDK_INT>=34&&manager!=null)
+            try{
+                for(AudioDeviceInfo d:manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
+                    if(usb(d))manager.clearPreferredMixerAttributes(attributes,d);
+            }catch(RuntimeException ignored){}
+        if(!wanted&&mp!=null)
+            try{if(usb(mp.getPreferredDevice()))mp.setPreferredDevice(null);}
+            catch(RuntimeException ignored){}
+        phase=wanted?"waiting_track":"off";
+        detail=wanted?"Checking Android USB bit-perfect policy for the selected track.":
+            "Standard Android MediaPlayer / AudioFlinger";
+    }
+
+    private static int sourceRate(JSONObject src){
+        if(src==null)return 0;
+        int r=src.optInt("sample_rate_hz",0);
+        if(r==0)r=src.optInt("sample_rate",0);
+        return r>=8000&&r<=768000?r:0;
+    }
+    private static int sourceBits(JSONObject src){
+        if(src==null)return 0;
+        int b=src.optInt("bits_depth",0);
+        return b==16||b==24||b==32?b:0;
+    }
+    private static int sourceChannels(JSONObject src){
+        if(src==null)return 0;
+        int n=src.optInt("n_channels",0);
+        return n>=1&&n<=8?n:0;
+    }
+    private static int encodingBits(int encoding){
+        if(encoding==AudioFormat.ENCODING_PCM_16BIT)return 16;
+        if(encoding==AudioFormat.ENCODING_PCM_24BIT_PACKED)return 24;
+        if(encoding==AudioFormat.ENCODING_PCM_32BIT)return 32;
+        return 0;
+    }
+    private static boolean matches(AudioFormat f,int rate,int bits,int channels){
+        return f!=null&&f.getSampleRate()==rate&&f.getChannelCount()==channels
+            &&encodingBits(f.getEncoding())==bits;
+    }
+
     /**
-     * Deliberate no-op compatibility stub: direct USB bit-perfect routing
-     * is implemented ONLY by AurelUsbDacHost/libusbdac, never AudioManager.
+     * No forced USB claiming, custom driver or stream restart. Unavailable
+     * BIT_PERFECT is a normal capability outcome, not a playback error.
      */
-    void apply(MediaPlayer mediaPlayer, JSONObject stream) {
-        // Standard AudioFlinger output and native USB are separate engines.
+    void apply(MediaPlayer mp,JSONObject stream){
+        if(!enabled)return;
+        if(manager==null||Build.VERSION.SDK_INT<34){
+            if(configuredDevice!=null)clearPreference();
+            phase="android_version";
+            detail="Requires Android 14+ (API 34). Playback uses Android audio normally.";
+            return;
+        }
+        AudioDeviceInfo device=connectedUsb(mp);
+        if(device==null){
+            if(configuredDevice!=null)clearPreference();
+            phase="no_usb";
+            detail="USB DAC not connected. Android will select its standard output.";
+            return;
+        }
+        // Android media routing, NOT direct or exclusive USB ownership.
+        if(mp!=null)routeUsb(mp);
+        final int rate=sourceRate(stream),bits=sourceBits(stream),channels=sourceChannels(stream);
+        if(rate==0||bits==0||channels==0){
+            if(configuredDevice!=null)clearPreference();
+            phase="unknown_format";
+            detail="Cannot match source PCM rate/depth/channels; Android playback remains active.";
+            return;
+        }
+        String key=device.getId()+"/"+rate+"/"+bits+"/"+channels;
+        if(key.equals(lastAttempt))return;
+        if(configuredDevice!=null)clearPreference();
+        lastAttempt=key;
+        try{
+            List<AudioMixerAttributes> supported=manager.getSupportedMixerAttributes(device);
+            if(supported==null||supported.isEmpty()){
+                phase="policy_unavailable";
+                detail="Android reports no supported USB mixer attributes for this DAC.";
+                return;
+            }
+            boolean hasBitPerfect=false;
+            AudioMixerAttributes chosen=null;
+            for(AudioMixerAttributes entry:supported){
+                if(entry==null||entry.getMixerBehavior()!=AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT)
+                    continue;
+                hasBitPerfect=true;
+                if(matches(entry.getFormat(),rate,bits,channels)){chosen=entry;break;}
+            }
+            if(chosen==null){
+                phase=hasBitPerfect?"unsupported_format":"policy_unavailable";
+                detail=hasBitPerfect?
+                    "Android offers bit-perfect, but not in this track's exact PCM format.":
+                    "USB Audio HAL does not advertise optional BIT_PERFECT. Android playback continues.";
+                return;
+            }
+            if(!manager.setPreferredMixerAttributes(attributes,device,chosen)){
+                phase="rejected";
+                detail="Android rejected BIT_PERFECT for this format; normal audio continues.";
+                return;
+            }
+            AudioMixerAttributes accepted=manager.getPreferredMixerAttributes(attributes,device);
+            if(accepted==null||accepted.getMixerBehavior()!=AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT||
+                !matches(accepted.getFormat(),rate,bits,channels)){
+                manager.clearPreferredMixerAttributes(attributes,device);
+                phase="rejected";
+                detail="Android did not retain the requested bit-perfect mixer policy.";
+                return;
+            }
+            configuredDevice=device;
+            configuredRate=rate;configuredBits=bits;configuredChannels=channels;
+            configuredEncoding=accepted.getFormat().getEncoding();
+            phase="requested";
+            detail="Android accepted a BIT_PERFECT mixer preference for "+bits+"-bit / "+
+                rate+" Hz / "+channels+" ch. MediaPlayer's actual PCM output is not directly verified.";
+        }catch(RuntimeException failure){
+            phase="policy_error";
+            detail="USB mixer API error; Android playback remains available ("+
+                failure.getClass().getSimpleName()+").";
+            android.util.Log.w("AUREL_AUDIO","Platform mixer selection failed",failure);
+        }
     }
 
     /** Physical and policy capabilities only. A listed sample rate is not
@@ -230,57 +317,49 @@ final class BitPerfectOutput {
         return out;
     }
 
-    /** Reporting a request is not proof of end-to-end bit-identical audio. */
-    JSONObject status(MediaPlayer mediaPlayer) {
-        JSONObject result = new JSONObject();
-        try {
-            String currentPhase = phase;
-            String currentDetail = detail;
-            AudioDeviceInfo requested = configuredDevice;
-            boolean routedToUsb = false;
-            boolean standardUsb = false;
-            if (!enabled && mediaPlayer != null) {
-                try {
-                    if (mediaPlayer.isPlaying()) {
-                        AudioDeviceInfo actual = mediaPlayer.getRoutedDevice();
-                        standardUsb = actual != null && usb(actual);
-                        if (standardUsb) {
-                            currentPhase = "standard_usb_playback";
-                            currentDetail = "USB DAC playing through Android audio (not bit-perfect).";
-                        } else if (connectedUsb(mediaPlayer) != null) {
-                            currentPhase = "standard_usb_not_routed";
-                            currentDetail = "USB DAC detected, but Android has not routed this player to USB. Check the system's USB audio routing setting.";
-                        }
-                    }
-                } catch (RuntimeException ignored) {}
+
+    /** A request is not a measurement of bit identity at the USB DAC. */
+    JSONObject status(MediaPlayer mp){
+        JSONObject result=new JSONObject();
+        try{
+            String p=phase,d=detail;
+            boolean actualUsb=false,selected=false;
+            AudioDeviceInfo actual=null;
+            try{if(mp!=null&&mp.isPlaying())actual=mp.getRoutedDevice();}
+            catch(RuntimeException ignored){}
+            actualUsb=usb(actual);
+            if(!enabled&&mp!=null&&mp.isPlaying()){
+                p=actualUsb?"standard_usb_playback":
+                    connectedUsb(mp)!=null?"standard_usb_not_routed":"off";
+                d=actualUsb?"Android USB DAC output (not independently bit-perfect).":
+                    "Standard Android playback and routing.";
             }
-            if (enabled && requested != null && stillConnected(requested)
-                && mediaPlayer != null) {
-                try {
-                    AudioDeviceInfo actual = mediaPlayer.getRoutedDevice();
-                    routedToUsb = actual != null && usb(actual)
-                        && actual.getId() == requested.getId() && mediaPlayer.isPlaying();
-                } catch (RuntimeException ignored) {}
-                if (routedToUsb) {
-                    currentPhase = "usb_mixer_routed";
-                    currentDetail = "USB routing and Android bit-perfect mixer preference "
-                        + "are active. End-to-end decoded PCM identity is not measured.";
+            if(enabled&&configuredDevice!=null){
+                selected=stillConnected(configuredDevice);
+                if(!selected){
+                    p="no_usb";d="USB device disconnected; Android audio remains enabled.";
+                }else if(actualUsb&&actual.getId()==configuredDevice.getId()){
+                    p="usb_mixer_routed";
+                    d="USB route and Android BIT_PERFECT preference are selected. "+
+                      "MediaPlayer PCM format and end-to-end bit identity are not independently measured.";
+                }else{
+                    p="requested";
                 }
-            } else if (enabled && requested != null && !stillConnected(requested)) {
-                currentPhase = "no_usb";
-                currentDetail = "USB DAC disconnected. Normal Android routing may continue.";
             }
-            result.put("enabled", enabled);
-            result.put("status", currentPhase);
-            result.put("detail", currentDetail);
-            result.put("usbRouted", routedToUsb || standardUsb);
-            result.put("mixerPreferenceAccepted", enabled && requested != null
-                && stillConnected(requested));
-            result.put("sampleRateHz", configuredRate);
-            result.put("bits", configuredBits);
-            result.put("apiSupported", Build.VERSION.SDK_INT >= 34);
-            result.put("endToEndVerified", false);
-        } catch (Exception ignored) {}
+            result.put("enabled",enabled);
+            result.put("status",p);
+            result.put("detail",d);
+            result.put("usbRouted",actualUsb);
+            result.put("mixerPreferenceAccepted",enabled&&selected);
+            result.put("sampleRateHz",configuredRate);
+            result.put("bits",configuredBits);
+            result.put("channels",configuredChannels);
+            result.put("pcmEncoding",configuredEncoding);
+            result.put("apiSupported",Build.VERSION.SDK_INT>=34);
+            result.put("directUsbActive",false);
+            result.put("usbVolumeMode","android");
+            result.put("endToEndVerified",false);
+        }catch(Exception ignored){}
         return result;
     }
 }
