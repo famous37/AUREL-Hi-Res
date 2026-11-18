@@ -1,6 +1,6 @@
 name: Publish permanently signed AUREL release
-# v1.1.63: private app-wide support log and smooth compositor-only navigation.
-# Do not change the music-synced FFT, mixer, USB, account or saved state.
+# v1.1.64: actionable WebView JavaScript diagnostics and source-attribution.
+# Keep the existing FFT, USB bit-perfect, smoothing, account and local state.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -173,17 +173,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — fluid interface and private app error journal**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — actionable WebView error reports**" \
             '' \
-            '- Removed the dedicated Copy FFT diagnostics button from Rhythmic album artwork; music-reactive artwork and bit-perfect audio settings are unchanged.' \
-            '- Added one unified, private, bounded application error journal in Settings > Appearance & app with Copy error log and Clear log controls.' \
-            '- Captures sanitized app JavaScript failures, rejected requests, playback and native-bridge errors. Does not capture audio, account credentials, Qobuz URLs or Android system logcat.' \
-            '- Error log is stored locally, capped at 70 entries and 14 days; copying is explicit, with no background uploads.' \
-            '- Improved page navigation fades, Now Playing entrance, information sheet reveals, and Android Back to reuse existing smooth swipe-to-minimize.' \
-            '- Compositor-only transitions leave icons, cover sizing, timeline, portrait/landscape layout and navigation history stable; accessibility reduced-motion settings are respected.' \
-            '- New automated runtime checks cover log redaction/deduplication/copying and transition stability, in addition to USB, bit-perfect and playback regression tests.' \
+            '- Script error. in previous versions meant WebView did not reveal its source; it was not evidence of an app crash.' \
+            '- JavaScript exceptions now include the local script filename, line, and column when Android supplies them.' \
+            '- WebView console errors from packaged AUREL scripts can supply additional source information without capturing third-party website content.' \
+            '- Opaque or cross-origin errors are clearly identified as unattributable, not falsely diagnosed as AUREL crashes.' \
+            '- Rejected promises can include an accessible local script frame; script/style resource load failures are recorded.' \
+            '- Only sanitized local error summaries are stored: 70 entries maximum for 14 days, no uploads, streaming URLs or account secrets.' \
+            '- Existing AUREL navigation, smooth transitions, music-reactive cover, Android mixer and USB bit-perfect output remain unchanged.' \
+            '- Automated tests cover local filenames/lines, opaque errors, redaction, error deduplication, Android compilation and audio regressions.' \
             '' \
-            "Install v${AUREL_VERSION} over signed AUREL 1.1.62 without clearing data." \
+            "Install v${AUREL_VERSION} over permanently signed AUREL 1.1.63 without clearing data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
