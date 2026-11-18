@@ -406,7 +406,7 @@ assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility 
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
 assert(releaseGradle.includes("'1.1.66'"));
-assert(media.includes('new float[]{hue,.24f,.085f}'), 'native palette should use dark backgrounds');
+assert(media.includes('new float[]{hue,.37f,.075f}')&&media.includes('new float[]{hue,.43f,.16f}'), 'native palette should use dark artwork-harmonized backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
 const discoCss=fs.readFileSync(base+'aurel-discography.css','utf8');
