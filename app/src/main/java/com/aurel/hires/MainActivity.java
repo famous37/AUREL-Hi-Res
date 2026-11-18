@@ -58,130 +58,24 @@ public final class MainActivity extends Activity {
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
     private MediaPlayer player;
-    private UsbDirectPlayback directPlayer;
-    private AurelUsbDacHost usbHost;
-    private String directFallbackTrackId="";
-    private int usbOutputVolumePercent=35; // Conservative headphone-safe first use.
-    private void updateUsbAttachHandler() {
-        // An enabled activity-alias causes Android's native "Open AUREL to
-        // handle this USB device?" chooser. It cannot be conditional inside
-        // the manifest, so disable the alias via the package manager.
-        try {
-            ComponentName alias = new ComponentName(this,
-                getPackageName()+".UsbBitPerfectHandler");
-            int state = bitPerfect!=null && bitPerfect.isEnabled()
-                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
-            getPackageManager().setComponentEnabledSetting(alias,state,
-                PackageManager.DONT_KILL_APP);
-        } catch(RuntimeException ex) {
-            Log.w(MEDIA_TAG,"USB handler state update failed",ex);
-        }
-    }
-    private void setUsbVolumePercent(int value) {
-        usbOutputVolumePercent=Math.max(0,Math.min(100,value));
-        try{secure.put("usbOutputVolumePercent",Integer.toString(usbOutputVolumePercent));}
-        catch(Exception error){Log.w(MEDIA_TAG,"Unable to persist USB volume",error);}
-        if(directPlayer!=null)directPlayer.setOutputLevel(usbOutputVolumePercent);
-        emit("player",playerState());
-    }
-    void setUsbVolumeFromMediaSession(int percent) {
-        ui.post(()->{
-            if(bitPerfect!=null&&bitPerfect.isEnabled()&&directPlayer!=null &&
-                directPlayer.usbStreamActive())setUsbVolumePercent(percent);
-        });
-    }
-    void adjustUsbVolumeFromMediaSession(int direction) {
-        ui.post(()->{
-            if(bitPerfect!=null&&bitPerfect.isEnabled()&&directPlayer!=null &&
-                directPlayer.usbStreamActive())setUsbVolumePercent(
-                    usbOutputVolumePercent+Math.max(-1,Math.min(1,direction))*2);
-        });
-    }
-    @Override public boolean dispatchKeyEvent(KeyEvent event) {
-        int code=event.getKeyCode();
-        if((code==KeyEvent.KEYCODE_VOLUME_UP ||
-            code==KeyEvent.KEYCODE_VOLUME_DOWN) &&
-            bitPerfect!=null && bitPerfect.isEnabled() &&
-            directPlayer!=null && directPlayer.usbStreamActive()) {
-            if(event.getAction()==KeyEvent.ACTION_DOWN)
-                setUsbVolumePercent(usbOutputVolumePercent+
-                    (code==KeyEvent.KEYCODE_VOLUME_UP?2:-2));
-            return true; // Do not also change Android's unrelated mixer volume.
-        }
-        return super.dispatchKeyEvent(event);
-    }
-    // Circuit breaker: do not repeatedly restart a corrupt native USB route.
-    private boolean directUsbUnsafe=false;
-    private String directUsbFailure="";
-    private boolean hasEngine(){return player!=null||directPlayer!=null;}
-    private boolean isAudioPlaying(){
-        if(directPlayer!=null)return directPlayer.isPlaying();
-        return player!=null&&prepared&&player.isPlaying();
-    }
+    private boolean hasEngine(){return player!=null;}
+    private boolean isAudioPlaying(){return player!=null&&prepared&&player.isPlaying();}
     private int audioPosition(){
-        if(directPlayer!=null)return directPlayer.position();
-        if(player!=null&&prepared)try{return player.getCurrentPosition();}catch(RuntimeException ignored){}
+        if(player!=null&&prepared)try{return player.getCurrentPosition();}
+        catch(RuntimeException ignored){}
         return restoredPositionMs;
     }
     private int audioDuration(){
-        if(directPlayer!=null)return directPlayer.duration();
-        if(player!=null&&prepared)try{return player.getDuration();}catch(RuntimeException ignored){}
+        if(player!=null&&prepared)try{return player.getDuration();}
+        catch(RuntimeException ignored){}
         return current.optInt("duration",0)*1000;
     }
     private void seekAudio(int ms){
-        if(!prepared)return;
-        if(directPlayer!=null){directPlayer.seekTo(ms);return;}
-        if(player!=null)player.seekTo(ms);
+        if(prepared&&player!=null)player.seekTo(ms);
     }
-    private JSONObject bitPerfectStatus(){
-        if(directPlayer!=null)return directPlayer.status();
-        JSONObject status=bitPerfect.status(player);
-        if(directUsbUnsafe && bitPerfect.isEnabled())try{
-            boolean androidUsb=false;
-            try {
-                AudioDeviceInfo routed=player!=null&&prepared&&player.isPlaying()
-                    ?player.getRoutedDevice():null;
-                androidUsb=BitPerfectOutput.usb(routed);
-            }catch(RuntimeException ignored){}
-            status.put("status","direct_usb_error");
-            status.put("detail","Direct USB failed: "+directUsbFailure+
-                ". Android fallback "+(androidUsb?"is routed to USB.":"USB route is not yet confirmed.")+
-                " Toggle Bit-perfect off/on to retry direct output.");
-            status.put("usbRouted",androidUsb);
-            status.put("androidFallbackUsbRouted",androidUsb);
-            status.put("directUsbSelected",false);
-            status.put("directUsbActive",false);
-        }catch(Exception ignored){}
-        return status;
-    }
+    private JSONObject bitPerfectStatus(){return bitPerfect.status(player);}
     private void startSelectedWithAudioFocus(){
-        if(directPlayer!=null)startDirectWithAudioFocus();
-        else if(player!=null)startWithAudioFocus(player);
-    }
-    private void startDirectWithAudioFocus(){
-        if(directPlayer==null||!prepared||!focusPolicy.shouldStartPrepared())return;
-        if(!audioFocusGranted){
-            int granted=AudioManager.AUDIOFOCUS_REQUEST_FAILED;
-            if(systemAudio!=null&&audioFocusRequest!=null)
-                try{granted=systemAudio.requestAudioFocus(audioFocusRequest);}
-                catch(RuntimeException ignored){}
-            if(granted==AudioManager.AUDIOFOCUS_REQUEST_DELAYED){
-                focusPolicy.focusDelayed();emit("player",playerState());return;
-            }
-            if(granted!=AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
-                focusPolicy.focusDenied();
-                playerError="Audio focus unavailable for USB playback.";
-                emit("player",playerState());return;
-            }
-            audioFocusGranted=true;
-        }
-        try{directPlayer.start();playerError="";}
-        catch(RuntimeException error){
-            focusPolicy.focusDenied();abandonPlaybackFocus();
-            playerError="USB audio playback could not start.";
-            emit("player",playerState());
-        }
+        if(player!=null)startWithAudioFocus(player);
     }
     private BitPerfectOutput bitPerfect;
     private AudioManager systemAudio;
@@ -247,7 +141,7 @@ public final class MainActivity extends Activity {
         if(player!=null&&prepared){
             try{if(player.isPlaying())player.pause();}catch(RuntimeException ignored){}
         }
-        if(directPlayer!=null)try{directPlayer.pause();}catch(RuntimeException ignored){}
+
         abandonPlaybackFocus();
     }
 
@@ -274,63 +168,44 @@ public final class MainActivity extends Activity {
             if(player!=null&&prepared){
                 try{if(player.isPlaying())player.pause();}catch(RuntimeException ignored){}
             }
-            if(directPlayer!=null)try{directPlayer.pause();}catch(RuntimeException ignored){}
-            // Audio-focus interruption must yield USB to the new audio owner.
-            if(usbHost!=null && directPlayer!=null)try{usbHost.releaseClaim();}
-            catch(RuntimeException | LinkageError e){
-                Log.w(MEDIA_TAG,"USB focus handoff failed",e);
-            }
             emit("player",playerState());
         }
     }
-    private final AudioDeviceCallback usbCallback = new AudioDeviceCallback() {
-        @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
-        @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices) { refreshBitPerfectOutput(); }
+    private final AudioDeviceCallback usbCallback=new AudioDeviceCallback(){
+        @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices){
+            refreshBitPerfectOutput();
+        }
+        @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices){
+            refreshBitPerfectOutput();
+        }
     };
-    /** NORMAL OUTPUT: pure Android routing, MediaPlayer -> AudioFlinger.
-     * Do not claim the USB interface, pin a preferred USB device, or request
-     * Android's optional BIT_PERFECT mixer profile on the standard path.
-     * This method is intentionally independent of the direct USB engine. */
-    private void configureAndroidUsb(MediaPlayer mp, boolean active) {
-        // Deliberately no-op: default MediaPlayer routing is Android AudioFlinger.
-        // Do not reset the preferred device repeatedly on route callbacks.
-    }
-    private int usbGrantPollToken=0;
-    private void pollForUsbPermission(int token,int remaining){
-        if(token!=usbGrantPollToken||bitPerfect==null||!bitPerfect.isEnabled()
-            ||usbHost==null)return;
-        if(usbHost.permitted()){
-            if(directUsbUnsafe||current.optString("id","").equals(directFallbackTrackId)){
-                emit("player",playerState());
-                return;
-            }
-            // Existing Android fallback must acquire a NEW signed stream URL
-            // after USB permission becomes available; never reuse the old URL.
-            if(directPlayer==null&&player!=null
-                &&focusPolicy.shouldStartPrepared()&&queueIndex>=0){
-                if(prepared){
-                    restoredPositionMs=audioPosition();
-                    restoredTrackId=current.optString("id","");
-                }
-                directFallbackTrackId="";
-                startAtCurrentInternal();
-            }
-            emit("player",playerState());
+
+    /** Android-only PCM route. Off uses the ordinary mixer. On (API 34+)
+     * requests the platform BIT_PERFECT mixer only if the USB policy and
+     * this stream's real sample rate/depth/channels are compatible.
+     * No custom USB transport, permission dialog, or native driver. */
+    private void configureAndroidUsb(MediaPlayer mp,boolean active){
+        if(bitPerfect==null||!bitPerfect.isEnabled())return;
+        if(mp==null||mp!=player||!prepared){
+            if(mp==null)bitPerfect.apply(null,fileInfo);
             return;
         }
-        if(remaining>0)ui.postDelayed(()->pollForUsbPermission(token,remaining-1),600L);
-    }
-    private void refreshBitPerfectOutput() {
-        if(bitPerfect==null)return;
-        if(directPlayer==null)configureAndroidUsb(player,true);
-        if(bitPerfect.isEnabled()&&usbHost!=null&&!usbHost.permitted()
-            &&usbHost.connected()){
-            int token=++usbGrantPollToken;
-            usbHost.requestPermission();
-            pollForUsbPermission(token,20);
+        try{
+            JSONObject format=new JSONObject(fileInfo.toString());
+            // Prefer the actual decoder-reported sample rate/channels
+            // to upstream catalogue metadata when both are available.
+            if(decoderSampleRateHz>0)format.put("sample_rate_hz",decoderSampleRateHz);
+            if(decoderChannels>0)format.put("n_channels",decoderChannels);
+            bitPerfect.apply(mp,format);
+        }catch(Exception failure){
+            Log.w(MEDIA_TAG,"Android mixer metadata unavailable",failure);
         }
+    }
+    private void refreshBitPerfectOutput(){
+        if(bitPerfect==null)return;
+        configureAndroidUsb(player,true);
         emit("player",playerState());
-        try {emit("session",session());}catch(Exception ignored){}
+        try{emit("session",session());}catch(Exception ignored){}
     }
     private JSONObject current=new JSONObject();
     private JSONObject fileInfo=new JSONObject();
@@ -483,18 +358,10 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
-        // Do not auto-reopen an unstable native USB engine after a process restart.
-        if("1".equals(secure.get("bitPerfectEnabled"))) {
-            try { secure.put("bitPerfectEnabled","0"); }
-            catch(Exception error) { Log.w(MEDIA_TAG,"Cannot persist safe USB OFF preference",error); }
-        }
-        bitPerfect=new BitPerfectOutput(this,false);
-        try{usbOutputVolumePercent=Integer.parseInt(secure.get("usbOutputVolumePercent"));}
-        catch(NumberFormatException ignored){usbOutputVolumePercent=35;}
-        usbOutputVolumePercent=Math.max(0,Math.min(100,usbOutputVolumePercent));
-        // OFF: zero libusbdac initialization or USB interface claims.
-        usbHost=null;
-        updateUsbAttachHandler();
+        // The platform route is safe to restore across process restarts:
+        // it does not claim USB interfaces or load a native driver.
+        bitPerfect=new BitPerfectOutput(this,
+            "1".equals(secure.get("bitPerfectEnabled")));
         try {digitalHeadroomDb=Integer.parseInt(secure.get("digitalHeadroomDb"));}
         catch(NumberFormatException ignored){digitalHeadroomDb=0;}
         if(digitalHeadroomDb>0||digitalHeadroomDb< -12||digitalHeadroomDb%3!=0)digitalHeadroomDb=0;
@@ -692,10 +559,6 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);
         setIntent(intent);
-        if(bitPerfect!=null&&bitPerfect.isEnabled()&&usbHost!=null){
-            usbHost.requestPermission();
-            pollForUsbPermission(++usbGrantPollToken,20);
-        }
         refreshBitPerfectOutput();
         if(intent==null||!MornyeGrantCallbackActivity.ACTION_RESULT.equals(intent.getAction()))
             return;
@@ -745,7 +608,7 @@ public final class MainActivity extends Activity {
         abandonPlaybackFocus();
         if(systemAudio!=null)systemAudio.unregisterAudioDeviceCallback(usbCallback);
         cleanupPlayer();
-        if(usbHost!=null)usbHost.setEnabled(false);
+
         AurelPlaybackService.stop(this);
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
         if(updateManager!=null)updateManager.stop();
@@ -925,7 +788,6 @@ public final class MainActivity extends Activity {
         j.put("quality",quality());
         j.put("bitPerfect",bitPerfectStatus());
         j.put("digitalHeadroomDb",digitalHeadroomDb);
-        j.put("usbOutputVolumePercent",usbOutputVolumePercent);
         j.put("preloadNextMetadata",prefetchNextMetadata);
         // Do not suggest an obsolete legacy App ID to new accounts.
         String storedId=secure.get("streamAppId");
@@ -1224,103 +1086,23 @@ public final class MainActivity extends Activity {
                             clearPlaybackContinuity();
                             digitalHeadroomDb=0;
                             prefetchNextMetadata=true;
-                            ui.post(()->{pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);if(usbHost!=null)usbHost.setEnabled(false);updateUsbAttachHandler();cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
+                            ui.post(()->{pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
                             data=session();break;
                         }
                         case "setBitPerfect": {
                             final boolean wanted=p.getBoolean("enabled");
                             if(wanted&&digitalHeadroomDb!=0)
-                                throw new Exception("Set Digital headroom to 0 dB before enabling USB bit-perfect.");
+                                throw new Exception("Set Digital headroom to 0 dB before enabling Android bit-perfect.");
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
                             ui.post(()->{
-                                final boolean hadEngine=hasEngine();
-                                final boolean resumeRequested=focusPolicy.shouldStartPrepared() &&
-                                     (isAudioPlaying() || buffering);
-                                if(prepared&&hadEngine){
-                                    restoredPositionMs=audioPosition();
-                                    restoredTrackId=current.optString("id","");
-                                }
-                                // Release the old native USB driver/decoder FIRST,
-                                // then change mode. Never claim/release the same
-                                // endpoint while an old engine still owns it.
-                                if(hadEngine)cleanupPlayer();
-                                // Construct native USB only on an explicit ON action.
-                                if(wanted && usbHost==null) {
-                                    try {
-                                        usbHost=AurelUsbDacHost.get(
-                                            MainActivity.this,true,usbOutputVolumePercent);
-                                    }catch(RuntimeException | LinkageError failure){
-                                        Log.e(MEDIA_TAG,"Native USB initialization failed",failure);
-                                        bitPerfect.setEnabled(false,null,fileInfo);
-                                        try{secure.put("bitPerfectEnabled","0");}
-                                        catch(Exception ignored){}
-                                        updateUsbAttachHandler();
-                                        ++usbGrantPollToken;
-                                        final int safeGeneration=++playGeneration;
-                                        playerError="Direct USB driver failed to initialize; Android audio restored.";
-                                        if(resumeRequested&&queueIndex>=0)ui.postDelayed(()->{
-                                            if(safeGeneration==playGeneration && !bitPerfect.isEnabled())
-                                                startAtCurrentInternal();
-                                        },350L);
-                                        try{emit("session",session());}catch(Exception ignored){}
-                                        emit("player",playerState());
-                                        return;
-                                    }
-                                }
-                                bitPerfect.setEnabled(wanted,null,fileInfo);
-                                directUsbUnsafe=false;
-                                directUsbFailure="";
-                                if(usbHost!=null) {
-                                    try{
-                                        usbHost.setEnabled(wanted);
-                                        if(wanted){
-                                            usbHost.requestPermission();
-                                            pollForUsbPermission(++usbGrantPollToken,20);
-                                        }else{
-                                            ++usbGrantPollToken;
-                                        }
-                                    }catch(RuntimeException | LinkageError failure){
-                                        Log.e(MEDIA_TAG,"USB mode switch failed",failure);
-                                        directUsbUnsafe=true;
-                                        directUsbFailure="USB activation failed: "+
-                                            failure.getClass().getSimpleName();
-                                        bitPerfect.setEnabled(false,null,fileInfo);
-                                        try{secure.put("bitPerfectEnabled","0");}
-                                        catch(Exception ignored){}
-                                        try{usbHost.setEnabled(false);}
-                                        catch(RuntimeException | LinkageError ignored){}
-                                        ++usbGrantPollToken;
-                                    }
-                                }
-                                updateUsbAttachHandler();
-                                // Invalidate any outstanding old engine stream callback.
-                                 final int switchGeneration=++playGeneration;
-                                 if(resumeRequested&&queueIndex>=0){
-                                     directFallbackTrackId="";
-                                     if(bitPerfect.isEnabled()){
-                                         startAtCurrentInternal();
-                                     }else{
-                                         final String trackId=current.optString("id","");
-                                         // Give the native USB interface time to return
-                                         // to the Android USB audio kernel driver.
-                                         ui.postDelayed(()->{
-                                             if(switchGeneration!=playGeneration ||
-                                                bitPerfect.isEnabled() ||
-                                                !trackId.equals(current.optString("id","")))return;
-                                             startAtCurrentInternal();
-                                         },650L);
-                                     }
-                                 }
-                                try {emit("session",session());}catch(Exception ignored){}
+                                bitPerfect.setEnabled(wanted,player,fileInfo);
+                                // Do not discard the current Qobuz stream URL,
+                                // restart the decoder, or steal a USB interface.
+                                configureAndroidUsb(player,true);
                                 emit("player",playerState());
+                                try{emit("session",session());}catch(Exception ignored){}
                             });
                             data=new JSONObject().put("enabled",wanted);
-                            break;
-                        }
-                        case "setUsbVolume": {
-                            final int level=Math.max(0,Math.min(100,p.getInt("percent")));
-                            ui.post(()->setUsbVolumePercent(level));
-                            data=new JSONObject().put("percent",level);
                             break;
                         }
                         case "audioDiagnostics": {
@@ -1328,10 +1110,8 @@ public final class MainActivity extends Activity {
                             java.util.concurrent.FutureTask<JSONObject> task=
                                 new java.util.concurrent.FutureTask<>(()->{
                                 JSONObject result=bitPerfect.diagnostics(player);
-                                result.put("directUsbSelected",directPlayer!=null);
-                                result.put("directUsbAvailable",usbHost!=null&&usbHost.connected());
-                                result.put("directUsbPermission",usbHost!=null&&usbHost.permitted());
-                                if(usbHost!=null)result.put("nativeUsbDriver",usbHost.status());
+                                result.put("nativeUsbDriver",JSONObject.NULL);
+                                result.put("outputEngine","Android AudioFlinger / AudioManager");
                                 return result;
                             });
                             ui.post(task);
@@ -1819,12 +1599,6 @@ public final class MainActivity extends Activity {
     private void cleanupPlayer() {
         if(bitPerfect!=null)bitPerfect.release();
         prepared=false;buffering=false;
-        final UsbDirectPlayback usb=directPlayer;
-        directPlayer=null;
-        if(usb!=null)try{usb.release();}
-        catch(RuntimeException | LinkageError failure){
-            Log.w(MEDIA_TAG,"Native USB cleanup failed",failure);
-        }
         final MediaPlayer obsolete=player;
         player=null;
         if(obsolete!=null){
@@ -1838,7 +1612,6 @@ public final class MainActivity extends Activity {
      * must not reset its own retry budget or create infinite reconnects. */
     private void startAtCurrent() {
         mediaRecovery.newSelection();
-        directFallbackTrackId="";
         startAtCurrentInternal();
     }
 
@@ -1941,98 +1714,14 @@ public final class MainActivity extends Activity {
                         // Report supplier metadata before MediaPlayer.prepareAsync
                         // starts waiting for an HTTP stream/decoder.
                         emit("player",playerState());
-                        // Prefer an actual userspace UAC2 driver (not an Android
-                        // mixer preference). The library is optional and fail-closed.
-                        boolean lossless = metadata.optInt("format_id",0)!=5 &&
-                            !"MP3".equalsIgnoreCase(codec);
-                        boolean attemptDirect=lossless&&bitPerfect.isEnabled()
-                            &&usbHost!=null&&usbHost.permitted()
-                            &&!directUsbUnsafe
-                            && !id.equals(directFallbackTrackId);
-                        if(attemptDirect){
-                            try{
-                                usbHost.setEnabled(true); // activate once for direct output
-                                bitPerfect.release();
-                                qualityProbePending=false;
-                                directPlayer=new UsbDirectPlayback(this,usbHost,usbOutputVolumePercent,
-                                    new UsbDirectPlayback.Listener(){
-                                    @Override public void onReady(UsbDirectPlayback playback){
-                                        if(generation!=playGeneration||directPlayer!=playback)return;
-                                        // Media3 READY confirms only that the track is
-                                        // decoded and prepared. The USB endpoint may not
-                                        // become active until play() actually sends PCM.
-                                        // UsbDirectPlayback's bounded watchdog checks the
-                                        // transport after startup, then falls back safely.
-                                        prepared=true;buffering=false;
-                                        try{emit("session",session());}catch(Exception ignored){}
-                                        decoderSampleRateHz=playback.sourceRate();
-                                        decoderChannels=playback.sourceChannels();
-                                        decoderMime=playback.sourceMime();
-                                        if(mornyeMode()&&gatewayPlaybackRejected){
-                                            gatewayPlaybackRejected=false;
-                                            try{emit("session",session());}catch(Exception ignored){}
-                                        }
-                                        int resumed=mediaRecovery.consumePosition(playback.duration());
-                                        if(resumed<=0&&restoredPositionMs>0&&restoredTrackId.equals(id))
-                                            resumed=restoredPositionMs;
-                                        restoredPositionMs=0;restoredTrackId="";
-                                        if(resumed>0)playback.seekTo(resumed);
-                                        if(focusPolicy.shouldStartPrepared())startDirectWithAudioFocus();
-                                        emit("player",playerState());
-                                    }
-                                    @Override public void onEnded(UsbDirectPlayback playback){
-                                        if(generation==playGeneration&&playback==directPlayer)advance(1,true);
-                                    }
-                                    @Override public void onError(UsbDirectPlayback playback,String error){
-                                        // Defer release: Media3 may deliver this callback while
-                                        // notifying its listeners on the playback Looper.
-                                        ui.post(()->{
-                                            if(generation!=playGeneration||directPlayer!=playback)return;
-                                            Log.w(MEDIA_TAG,"Direct USB error: "+error);
-                                            directFallbackTrackId=id;
-                                            directUsbUnsafe=true;
-                                            directUsbFailure=error;
-                                            int position=prepared?playback.position():0;
-                                            mediaRecovery.rememberPosition(position);
-                                             cleanupPlayer();
-                                             if(usbHost!=null)usbHost.suspendForAndroidAudio();
-                                             // Give the native USB interface a short window
-                                            // to release before Android AudioFlinger opens
-                                            // the same DAC. Never reuse a signed URL.
-                                            if(focusPolicy.shouldStartPrepared()){
-                                                buffering=true;
-                                                ui.postDelayed(()->{
-                                                    if(generation!=playGeneration)return;
-                                                    startAtCurrentInternal();
-                                                },650L);
-                                            }else{
-                                                buffering=false;
-                                                playerError="USB direct failed: "+error;
-                                                emit("player",playerState());
-                                            }
-                                        });
-                                    }
-                                });
-                                directPlayer.prepare(streamUrl);
-                                emit("player",playerState());
-                                return;
-                            }catch(RuntimeException | LinkageError error){
-                                Log.w(MEDIA_TAG,"USB direct unavailable, use Android audio",error);
-                                if(directPlayer!=null)try{directPlayer.release();}catch(RuntimeException ignored){}
-                                directPlayer=null;
-                                directFallbackTrackId=id;
-                                directUsbUnsafe=true;
-                                directUsbFailure=error.toString();
-                            }
-                        }
-                        // Never let a claimed native interface compete with
-                        // Android MediaPlayer / AudioFlinger, even in ON fallback.
-                        if(usbHost!=null)usbHost.suspendForAndroidAudio();
+                        // Single playback engine for speaker, Bluetooth and
+                        // USB DAC: Android MediaPlayer + AudioFlinger.
+                        // Android 14+ optional BIT_PERFECT is negotiated
+                        // through AudioManager, not by claiming USB directly.
                         player=new MediaPlayer();
                         player.setAudioAttributes(bitPerfect.audioAttributes());
-                        // Route USB for standard playback too. A failed direct
-                        // USB session must not re-enter the Android bit-perfect
-                        // mixer, which can silence an otherwise valid fallback.
+                        // The platform prefers USB when selected by the user,
+                        // and ordinary Android routing remains a working fallback.
                         configureAndroidUsb(player,false);
                         if(Build.VERSION.SDK_INT>=28){
                             player.addOnRoutingChangedListener(router->{
@@ -2240,7 +1929,6 @@ public final class MainActivity extends Activity {
             state.put("quality",quality());
             state.put("bitPerfect",bitPerfectStatus());
             state.put("digitalHeadroomDb",digitalHeadroomDb);
-            state.put("usbOutputVolumePercent",usbOutputVolumePercent);
             state.put("preloadNextMetadata",prefetchNextMetadata);
             state.put("position",prepared?audioPosition():restoredPositionMs);
             state.put("duration",prepared?audioDuration():current.optInt("duration",0)*1000);
