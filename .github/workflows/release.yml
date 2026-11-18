@@ -138,6 +138,7 @@ jobs:
           node tests/output-loss-glass-immersive.test.cjs
           node tests/immersive-theme-log.test.cjs
           node tests/floating-header-fft-recovery.test.cjs
+          node tests/player-gestures-polish-uk.test.cjs
           mkdir -p build/media-recovery-test
           javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
           java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
