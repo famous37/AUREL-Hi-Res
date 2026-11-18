@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation]
+    branches: [main, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation, feature/usb-bitperfect-recovery-1-1-51]
   pull_request:
     branches: [main]
 jobs:
@@ -51,6 +51,8 @@ jobs:
         run: node tests/bit-perfect.test.cjs
       - name: Verify USB hardware volume, opt-in chooser and stable progress
         run: node tests/usb-volume-recovery.test.cjs
+      - name: Verify experimental USB bit-perfect recovery and Android route isolation
+        run: node tests/usb-bitperfect-recovery.test.cjs
       - name: Verify playback, history, USB diagnosis and update continuity
         run: node tests/playback-continuity.test.cjs
       - name: Verify swipe-down minimization and high-contrast SVG controls

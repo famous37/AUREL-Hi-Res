@@ -45,6 +45,7 @@ final class UsbDirectPlayback {
     private int outputLevel;
     private long lastDirectActiveAt,firstPlayAt,lastUrbsSeen=-1L,lastUrbsAdvanceAt;
     private int lastPosition=-1,stagnantSeconds;
+    private boolean hardwareLevelApplied;
 
     private final Runnable healthCheck=new Runnable() {
         @Override public void run(){
@@ -59,15 +60,23 @@ final class UsbDirectPlayback {
                         lastUrbsSeen=submitted;
                         lastUrbsAdvanceAt=nowMs;
                         lastDirectActiveAt=nowMs;
+                        // Activation is asynchronous: writing the saved hardware gain
+                        // in the constructor silently did nothing before controlState
+                        // was populated. Set it once when real USB packets flow.
+                        if(!hardwareLevelApplied){
+                            host.setVolumePercent(outputLevel);
+                            hardwareLevelApplied=true;
+                        }
                     }else if(nowMs-firstPlayAt>7000L &&
                              nowMs-Math.max(lastUrbsAdvanceAt,firstPlayAt)>5000L){
                         reportUnhealthy("Native USB packets stopped advancing");
                         return;
                     }
-                }else if(nowMs-firstPlayAt>9000L){
-                    reportUnhealthy(host.androidFallback()
-                        ?"Direct USB unavailable; switching to Android playback"
-                        :"Direct USB route did not become active");
+                }else if(!host.androidFallback() && nowMs-firstPlayAt>12000L){
+                    // A route that stays Switching is a failure. In contrast,
+                    // Fallback is a legitimate route decision for unsupported
+                    // tracks/DACs. Never tear down healthy Android playback.
+                    reportUnhealthy("USB route did not finish switching");
                     return;
                 }
                 if(player.isPlaying()){
@@ -169,12 +178,19 @@ final class UsbDirectPlayback {
         lastUrbsSeen=-1L;
         stagnantSeconds=0;
         lastPosition=-1;
+        hardwareLevelApplied=false;
         player.play();
     }
     void pause(){player.pause();}
     boolean isPlaying(){return player.isPlaying();}
     boolean isReady(){return ready;}
-    boolean usbStreamActive(){return host.directTransportActive();}
+    boolean usbStreamActive(){
+        // A cached URB count / route from a paused track does not prove that
+        // decoded PCM is currently being sent to the DAC.
+        return !released && player.isPlaying() && host.directTransportActive()
+            && lastUrbsSeen>0 && lastUrbsAdvanceAt>0
+            && SystemClock.elapsedRealtime()-lastUrbsAdvanceAt<3500L;
+    }
     int position(){return (int)Math.min(Integer.MAX_VALUE,Math.max(0L,player.getCurrentPosition()));}
     int duration(){
         long duration=player.getDuration();
@@ -198,23 +214,34 @@ final class UsbDirectPlayback {
         JSONObject out=host.status();
         try{
             boolean active=usbStreamActive();
+            int usbRate=host.sampleRate();
+            boolean rateMatches=sourceRate>0 && usbRate==sourceRate;
             out.put("enabled",true);
             out.put("status",failure.isEmpty()?
-                (active?"direct_usb_playback":
-                 host.androidFallback()?"direct_usb_not_active":
-                 ready?"direct_usb_preparing":"direct_usb_preparing"):
+                (active?(rateMatches?"direct_usb_playback":"direct_usb_rate_mismatch"):
+                 host.androidFallback()?"direct_usb_not_active":"direct_usb_preparing"):
                  "direct_usb_error");
             out.put("detail",!failure.isEmpty()?failure:
-                active?"libusbdac is sending USB isochronous PCM; end-to-end samples unmeasured.":
-                host.androidFallback()?"This track uses Android mixer; direct USB route inactive.":
-                "Preparing libusbdac hardware session; not yet bit-perfect.");
+                active?(rateMatches?
+                    "USB packets are advancing at the source sample rate; PCM identity not externally measured.":
+                    "Live USB clock differs from source metadata or source rate is unavailable. Do not claim bit-perfect."):
+                host.androidFallback()?
+                    (host.bitPerfectCapable()?
+                        "Track is routed through Android because direct USB rejected this format.":
+                        "libusbdac cannot verify DAC hardware unity gain; Android fallback remains active."):
+                "Opening USB interface. Bit-perfect has not been confirmed.");
             out.put("usbRouted",false);
             out.put("mixerPreferenceAccepted",false);
-            out.put("bitPerfectPcm",active);
+            // Direct USB transport alone is not proof of source/decoder
+            // fidelity. Report only when the declared source sample rate
+            // matches the live USB clock; keep end-to-end unverified.
+            out.put("bitPerfectPcm",active && rateMatches);
+            out.put("sourceRateMatchesUsb",rateMatches);
             out.put("nativeFlacEngine",sourceMime.contains("flac"));
             out.put("endToEndVerified",false);
             out.put("sourceRateHz",sourceRate);
-            out.put("sampleRateHz",active?host.sampleRate():sourceRate);
+            out.put("sampleRateHz",active?usbRate:host.androidFallback()?
+                host.androidMixerRate():sourceRate);
             out.put("usbOutputVolumePercent",outputLevel);
         }catch(Exception ignored){}
         return out;

@@ -275,6 +275,11 @@ public final class MainActivity extends Activity {
                 try{if(player.isPlaying())player.pause();}catch(RuntimeException ignored){}
             }
             if(directPlayer!=null)try{directPlayer.pause();}catch(RuntimeException ignored){}
+            // Audio-focus interruption must yield USB to the new audio owner.
+            if(usbHost!=null && directPlayer!=null)try{usbHost.releaseClaim();}
+            catch(RuntimeException | LinkageError e){
+                Log.w(MEDIA_TAG,"USB focus handoff failed",e);
+            }
             emit("player",playerState());
         }
     }
@@ -1224,9 +1229,6 @@ public final class MainActivity extends Activity {
                         }
                         case "setBitPerfect": {
                             final boolean wanted=p.getBoolean("enabled");
-                            if(wanted)throw new Exception(
-                                "Native USB bit-perfect is temporarily disabled because it crashed. "+
-                                "The safe Android USB audio path remains available.");
                             if(wanted&&digitalHeadroomDb!=0)
                                 throw new Exception("Set Digital headroom to 0 dB before enabling USB bit-perfect.");
                             secure.put("bitPerfectEnabled",wanted?"1":"0");
@@ -1266,23 +1268,36 @@ public final class MainActivity extends Activity {
                                     }
                                 }
                                 bitPerfect.setEnabled(wanted,null,fileInfo);
+                                directUsbUnsafe=false;
+                                directUsbFailure="";
                                 if(usbHost!=null) {
-                                    usbHost.setEnabled(wanted);
-                                    if(wanted){
-                                        usbHost.requestPermission();
-                                        pollForUsbPermission(++usbGrantPollToken,20);
-                                    }else{
+                                    try{
+                                        usbHost.setEnabled(wanted);
+                                        if(wanted){
+                                            usbHost.requestPermission();
+                                            pollForUsbPermission(++usbGrantPollToken,20);
+                                        }else{
+                                            ++usbGrantPollToken;
+                                        }
+                                    }catch(RuntimeException | LinkageError failure){
+                                        Log.e(MEDIA_TAG,"USB mode switch failed",failure);
+                                        directUsbUnsafe=true;
+                                        directUsbFailure="USB activation failed: "+
+                                            failure.getClass().getSimpleName();
+                                        bitPerfect.setEnabled(false,null,fileInfo);
+                                        try{secure.put("bitPerfectEnabled","0");}
+                                        catch(Exception ignored){}
+                                        try{usbHost.setEnabled(false);}
+                                        catch(RuntimeException | LinkageError ignored){}
                                         ++usbGrantPollToken;
                                     }
                                 }
                                 updateUsbAttachHandler();
-                                directUsbUnsafe=false;
-                                directUsbFailure="";
                                 // Invalidate any outstanding old engine stream callback.
                                  final int switchGeneration=++playGeneration;
                                  if(resumeRequested&&queueIndex>=0){
                                      directFallbackTrackId="";
-                                     if(wanted){
+                                     if(bitPerfect.isEnabled()){
                                          startAtCurrentInternal();
                                      }else{
                                          final String trackId=current.optString("id","");
@@ -1806,7 +1821,10 @@ public final class MainActivity extends Activity {
         prepared=false;buffering=false;
         final UsbDirectPlayback usb=directPlayer;
         directPlayer=null;
-        if(usb!=null)try{usb.release();}catch(RuntimeException ignored){}
+        if(usb!=null)try{usb.release();}
+        catch(RuntimeException | LinkageError failure){
+            Log.w(MEDIA_TAG,"Native USB cleanup failed",failure);
+        }
         final MediaPlayer obsolete=player;
         player=null;
         if(obsolete!=null){
