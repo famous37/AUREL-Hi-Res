@@ -82,7 +82,7 @@
    if(visible)addHalo();
    if(!active){
      resetBeat();
-     intensity(visible?.26:0);
+     intensity(visible ? .26 : 0);
    }else if(!real){
      // Static, dim album tint when Android denies FFT or bit-perfect is on.
      // No unsolicited fabricated beat. Actual FFT will light it up.
