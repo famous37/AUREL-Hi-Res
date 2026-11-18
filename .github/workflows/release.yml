@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.56: verified equal-size surfaces, optical Share SVG balance, responsive ultra-narrow controls.
+# v1.1.57: isolated responsive landscape with portrait and audio engine preserved.
 # Revalidate all UI and USB regressions against version 1.1.47.
 # Versioned snapshot checks repaired after the initial CI run.
 
@@ -108,6 +108,7 @@ jobs:
           node tests/swipe-icons.test.cjs
           node tests/player-icon-seek.test.cjs
           node tests/ui-bold-loading.test.cjs
+          node tests/landscape-layout.test.cjs
           node tests/global-polish.test.cjs
           node tests/precise-ui.test.cjs
           node tests/pro-audio-page-cache.test.cjs
@@ -165,14 +166,14 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — precise icon calibration across Now Playing**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — responsive landscape player with portrait preserved**" \
             '' \
-            '- All five quick-action buttons and four smaller transport buttons use identical responsive square dimensions, padding, corner radius and surface contrast.' \
-            '- Removed legacy Share-specific CSS overrides that previously shrank the button and changed its background.' \
-            '- Optically balanced the Share vector to the same visual scale as Queue, Info, Audio and Favourite.' \
-            '- Verified CSS geometry and non-overlap at 280, 300, 320, 360, 390 and 430 CSS pixels.' \
-            '- Retains the compact top capsule, smoothly animated loading indicator, stable mini-player and album artwork.' \
-            '- Preserves the Android platform audio engine, Qobuz sessions and library; no playback-driver changes.' \
+            '- Native two-column landscape: artwork left; title, actions, timeline, transport and quality on separate aligned rows right.' \
+            '- Portrait layout and its artwork-fit algorithm remain unchanged.' \
+            '- Scrollable player content rather than overlapping text or covering the bottom navigation.' \
+            '- Equal small buttons, larger centered Play/Pause and stable shared navigation in landscape.' \
+            '- Handles short landscape viewports, split-screen and long track titles without absolute positioning.' \
+            '- Keeps Android audio, Qobuz account, library, bit-perfect settings and app data unchanged.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
