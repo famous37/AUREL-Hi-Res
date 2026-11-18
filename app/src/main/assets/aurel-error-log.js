@@ -56,7 +56,7 @@
  function safeSource(raw){
    const source=String(raw||'');
    if(!source)return '';
-   const matched=source.match(/(?:^|\\/)([A-Za-z0-9_.-]{1,95}\\.(?:js|html|css))(?::[0-9]+)?(?:[?#]|$)/i);
+   const matched=source.match(/(?:^|\/)([A-Za-z0-9_.-]{1,95}\.(?:js|html|css))(?::[0-9]+)?(?:[?#]|$)/i);
    if(source.indexOf('file:///android_asset/')===0)
      return matched?matched[1]:'packaged asset';
    return '[external script]';
@@ -78,7 +78,7 @@
    }
    const message=String(e?.message||e?.error?.message||'Script error.');
    const location=diagnosticLocation(e?.filename,e?.lineno,e?.colno);
-   if(/^Script error\\.?$/i.test(message)&&!location&&!e?.error){
+   if(/^Script error\.?$/i.test(message)&&!location&&!e?.error){
      capture('opaque-script','Script error. WebView withheld script name and line; source cannot be identified. This alone does not indicate an AUREL crash.');
      return;
    }
@@ -88,9 +88,9 @@
    const reason=e?.reason;
    const message=reason?.message||reason?.name||'Unhandled rejected promise';
    const stack=String(reason?.stack||'');
-   const frame=stack.split('\\n').find(x=>x.includes('file:///android_asset/'))||'';
-   const loc=frame.match(/file:\\/\\/\\/android_asset\\/[^\\s():]+\\.(?:js|html):([0-9]+):([0-9]+)/);
-   const source=frame.match(/file:\\/\\/\\/android_asset\\/[^\\s():]+\\.(?:js|html)/);
+   const frame=stack.split('\n').find(x=>x.includes('file:///android_asset/'))||'';
+   const loc=frame.match(/file:\/\/\/android_asset\/[^\s():]+\.(?:js|html):([0-9]+):([0-9]+)/);
+   const source=frame.match(/file:\/\/\/android_asset\/[^\s():]+\.(?:js|html)/);
    const site=source?diagnosticLocation(source[0],loc?.[1],loc?.[2]):'';
    capture('promise',message+(site?' @ '+site:''));
  });
