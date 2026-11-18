@@ -212,6 +212,7 @@ public final class MainActivity extends Activity {
             // MediaPlayer has no active audio output.
             ui.postDelayed(()->{
                 if(player==mp&&prepared){
+                    rememberAudioRoute(mp);
                     configureAndroidUsb(mp,true);
                     emit("player",playerState());
                 }
@@ -538,6 +539,15 @@ public final class MainActivity extends Activity {
         prefetchNextMetadata=!"0".equals(secure.get("preloadNextMetadata"));
         restorePlaybackContinuity();
         systemAudio=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        try{
+            IntentFilter filter=new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+            if(Build.VERSION.SDK_INT>=33)
+                registerReceiver(noisyReceiver,filter,Context.RECEIVER_NOT_EXPORTED);
+            else registerReceiver(noisyReceiver,filter);
+            noisyReceiverRegistered=true;
+        }catch(RuntimeException error){
+            Log.w(MEDIA_TAG,"Could not register output-loss listener",error);
+        }
         if(systemAudio!=null){
             audioFocusRequest=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(bitPerfect.audioAttributes())
@@ -808,6 +818,10 @@ public final class MainActivity extends Activity {
         focusPolicy.userPause();
         abandonPlaybackFocus();
         if(systemAudio!=null)systemAudio.unregisterAudioDeviceCallback(usbCallback);
+        if(noisyReceiverRegistered){
+            try{unregisterReceiver(noisyReceiver);}catch(RuntimeException ignored){}
+            noisyReceiverRegistered=false;
+        }
         cleanupPlayer();
 
         AurelPlaybackService.stop(this);
@@ -1330,7 +1344,8 @@ public final class MainActivity extends Activity {
                                 bitPerfect.setEnabled(wanted,player,fileInfo);
                                 // Do not discard the current Qobuz stream URL,
                                 // restart the decoder, or steal a USB interface.
-                                configureAndroidUsb(player,true);
+                                onActualRouteChanged(player);
+                                if(isAudioPlaying())configureAndroidUsb(player,true);
                                 emit("player",playerState());
                                 try{emit("session",session());}catch(Exception ignored){}
                             });
@@ -1423,8 +1438,12 @@ public final class MainActivity extends Activity {
                             final int db=p.getInt("db");
                             if(db!=0&&db!=-3&&db!=-6&&db!=-9&&db!=-12)
                                 throw new Exception("Unsupported digital headroom level.");
-                            if(db!=0&&bitPerfect.isEnabled())
-                                throw new Exception("Digital attenuation is unavailable in USB bit-perfect mode.");
+                            if(db!=0&&bitPerfect.isEnabled()){
+                                // Expected unsupported operation, not an application failure.
+                                data=new JSONObject().put("db",0).put("unavailable",true)
+                                    .put("reason","Digital headroom is inactive in bit-perfect.");
+                                break;
+                            }
                             digitalHeadroomDb=db;
                             secure.put("digitalHeadroomDb",Integer.toString(db));
                             ui.post(()->{
@@ -1900,6 +1919,7 @@ public final class MainActivity extends Activity {
     private void cleanupPlayer() {
         if(beatMonitor!=null)beatMonitor.stop();
         if(bitPerfect!=null)bitPerfect.release();
+        lastRoutedOutputId=-1;lastRoutedOutputExternal=false;
         prepared=false;buffering=false;
         final MediaPlayer obsolete=player;
         player=null;
