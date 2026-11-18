@@ -26,7 +26,8 @@ assert(html.indexOf('aurel-graphite.css')<html.indexOf('aurel-share.css'),'Share
 assert(html.includes('<script src="aurel-favourites.js"></script>'),'Favourites must remain enabled');
 assert(html.indexOf('aurel-favourites.js')<html.indexOf('aurel-share.js'),'Sharing loads after favourites');
 assert(themeCode.includes("artworkPalette=localStorage.getItem(PALETTE_KEY)==='on'"));
-assert(themeCode.includes("const baseTheme={bg:'#111214',surface:'#202124',accent:'#D5D7DB'}"));
+assert(themeCode.includes("const baseTheme={bg:'#111214',surface:'#202124',accent:'#D5D7DB',"));
+assert(themeCode.includes("one:'#82878D'"),'Monochrome theme has neutral ambient color defaults');
 assert(themeCode.includes("setTheme(artworkPalette?(themeByCover.get(next)||baseTheme):baseTheme)"));
 assert(themeCode.includes("if(artworkPalette&&coverNow()===url)"));
 assert(css.includes('prefers-reduced-motion:reduce')&&css.includes('aurel-soft-enter'));
