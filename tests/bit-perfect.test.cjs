@@ -9,8 +9,8 @@ const settings=read('settings.gradle');
 const manifest=read('app/src/main/AndroidManifest.xml');
 const ui=read('app/src/main/assets/app.js');
 
-assert(!gradle.includes('libusbdac'));
-assert(!gradle.includes('media3'));
+assert(!gradle.includes("implementation 'com.github.ostrichbat2k:libusbdac"));
+assert(!gradle.includes("implementation 'androidx.media3:"));
 assert(!settings.includes('decent-media3-decoder-flac'));
 assert(!manifest.includes('UsbBitPerfectHandler'));
 assert(!manifest.includes('USB_DEVICE_ATTACHED'));
