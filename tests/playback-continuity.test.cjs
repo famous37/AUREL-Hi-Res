@@ -45,7 +45,7 @@ assert(native.includes('configureAndroidUsb(player,false)'));
 assert(native.includes('bitPerfect.setEnabled(wanted,player,fileInfo)'));
 assert(native.includes('bitPerfect.apply(mp,format)'));
 assert(!native.includes('usbHost'));
-assert(!native.includes('bitPerfect.apply('));
+assert(native.includes('bitPerfect.apply(mp,format)'));
 assert(mixer.includes('Standard Android MediaPlayer / AudioFlinger'));
 assert(!mixer.includes('setPreferredMixerAttributes('));
 assert(fs.readFileSync(path.join(root,'app/src/main/java/com/aurel/hires/AurelUsbDacHost.java'),'utf8')
