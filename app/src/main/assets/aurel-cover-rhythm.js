@@ -65,13 +65,15 @@
    const box=document.querySelector('[data-aurel-rhythm-status]');
    if(box)box.textContent=diagnostic();
  }
- function queueNative(wanted,ask){
+ function queueNative(wanted,ask,restart=false){
    writeQueue=writeQueue.catch(()=>{}).then(()=>
-     nativeCall('setBeatVisualization',{enabled:!!wanted,requestPermission:!!ask}));
+     nativeCall('setBeatVisualization',{
+       enabled:!!wanted,requestPermission:!!ask,restartAnalyzer:!!restart
+     }));
    writeQueue.catch(()=>{nativeWanted=null;});
    return writeQueue;
  }
- function sync(askPermission=false){
+ function sync(askPermission=false,forceRestart=false){
    const active=playing();
    const live=active&&requestCapture()&&lastFrame>0&&Date.now()-lastFrame<1300;
    overlay.classList.toggle('aurel-cover-rhythm',active);
@@ -93,10 +95,10 @@
      ((askPermission&&(enabled||auraRequested))||
        (auraRequested&&!auraPermissionAttempted)));
    if(ask&&auraRequested)auraPermissionAttempted=true;
-   if(wanted!==nativeWanted||ask){
+   if(wanted!==nativeWanted||ask||(wanted&&forceRestart)){
      nativeWanted=wanted;
-     if(!wanted)lastFrame=0;
-     queueNative(wanted,ask).then(result=>{
+     if(!wanted||forceRestart)lastFrame=0;
+     queueNative(wanted,ask,wanted&&forceRestart).then(result=>{
        if(result?.permissionGranted===true)permissionGranted=true;
        updateSettingStatus();
      }).catch(()=>{});
@@ -136,6 +138,19 @@
      (ukrainian?'Пульсація обкладинки':'Beat-reactive album artwork')+
      '" '+(enabled?'checked':'')+'>';
    host.appendChild(label);
+   // A deliberate recovery control is necessary on Android devices where
+   // Visualizer reports success but stops producing audio frames.
+   const retry=document.createElement('button');
+   retry.type='button';
+   retry.className='aurel-pro-button aurel-rhythm-retry';
+   retry.setAttribute('data-aurel-retry-fft','');
+   retry.textContent=ukrainian?'Перевірити / відновити FFT':'Check / restart FFT';
+   host.appendChild(retry);
+   const report=document.createElement('small');
+   report.className='aurel-rhythm-diagnostics';
+   report.setAttribute('data-aurel-rhythm-diagnostics','');
+   report.setAttribute('role','status');
+   host.appendChild(report);
    updateSettingStatus();
  }
  const originalSettings=renderSettings;
@@ -179,6 +194,44 @@
    // The old code queued (false, requestPermission) and (true, false),
    // which could race across worker threads and leave capture disabled.
    sync(enabled);
+ });
+ document.addEventListener('click',async event=>{
+   const button=event.target?.closest?.('[data-aurel-retry-fft]');
+   if(!button||button.disabled)return;
+   event.preventDefault();event.stopPropagation();
+   const output=document.querySelector('[data-aurel-rhythm-diagnostics]');
+   button.disabled=true;
+   try{
+     if(bitPerfect()){
+       if(output)output.textContent=uk()?
+         'Bit-perfect: Android не надає FFT для цього аудіовиходу.':
+         'Bit-perfect route: Android FFT capture is unavailable.';
+       return;
+     }
+     if(!app.player?.playing){
+       if(output)output.textContent=uk()?
+         'Увімкни відтворення, щоб перевірити аудіоаналіз.':
+         'Start playback before checking native audio capture.';
+       return;
+     }
+     // This is user-triggered and may ask for RECORD_AUDIO at most once.
+     sync(true,true);
+     await writeQueue;
+     const data=await nativeCall('beatDiagnostics',{});
+     const viz=data?.visualizer||{};
+     const frames=Number(viz.fftFrames)||0;
+     const signal=Number(viz.nonSilentFrames)||0;
+     const engine=String(viz.engine||'unavailable');
+     const state=String(data?.state||'unknown');
+     if(output)output.textContent=(uk()?'Аудіоаналіз: ':'Audio analysis: ')+
+       state+' · FFT '+frames+' · signal '+signal+
+       ' · '+engine+(viz.lastError&&viz.lastError!=='none'?' · '+String(viz.lastError):'');
+     window.AurelAurora?.refresh?.();
+   }catch(error){
+     if(output)output.textContent=(uk()?'Помилка перевірки FFT: ':'FFT check failed: ')+
+       String(error?.message||'unknown').slice(0,120);
+     window.AurelErrorLog?.record?.('visualizer',error?.message||'FFT retry failed');
+   }finally{if(button.isConnected)button.disabled=false;}
  });
  document.addEventListener('visibilitychange',()=>sync());
  window.addEventListener?.('pageshow',()=>sync());
