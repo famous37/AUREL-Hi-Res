@@ -349,6 +349,20 @@ html[data-aurel-motion="off"] #overlay .murglar-header * {
 }
 
 
+/* Dark native album accents must never yield dark glyphs on dark buttons.
+ * This contrasts the real RGB accent, without forcing unrelated neon text. */
+html[data-aurel-palette="artwork"] .app #screen :is(
+  .pill:not(.secondary),.action-pill,.search-submit,.aurel-signin-submit,
+  .aurel-artist-play){
+  color:var(--aurel-contrast-ink,#151517)!important;
+}
+html[data-aurel-palette="artwork"] .app .mini .mini-buttons button.mini-play,
+html[data-aurel-palette="artwork"] .app .mini .mini-buttons button.mini-play svg,
+html[data-aurel-palette="artwork"] #overlay .murglar-view #full-toggle,
+html[data-aurel-palette="artwork"] #overlay .murglar-view #full-toggle svg.ui-icon {
+  color:var(--aurel-contrast-ink,#151517)!important;
+}
+
 /* 1.1.69 — the open player has ONE uninterrupted ambient background.
  * The old isolated header was a dark band above the cover's FFT halo.
  * Paint a single noninteractive album light behind BOTH header and artwork.
