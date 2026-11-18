@@ -41,7 +41,10 @@
       if(livePanel){
         const contents=active==='upnext'?queuePanel(p):
           active==='credits'?creditsPanel(p):audioPanel(p);
-        if(livePanel.innerHTML!==contents)livePanel.innerHTML=contents;
+        if(livePanel.__aurelPanelHTML!==contents){
+          livePanel.innerHTML=contents;
+          livePanel.__aurelPanelHTML=contents;
+        }
         const sourceLabel=overlay.querySelector('.murglar-source-line span');
         if(sourceLabel&&sourceLabel.textContent!==source)sourceLabel.textContent=source;
         updateOverlayState();
@@ -104,6 +107,9 @@
       </section>`:''}
     </div>`;
     aurelEnsureLoadingAnimation(overlay);
+    const createdPanel=overlay.querySelector('.aurel-detail-sheet');
+    if(createdPanel&&active)createdPanel.__aurelPanelHTML=
+      active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p);
     const scroller=overlay.querySelector('.murglar-player-content');
     const detail=overlay.querySelector('.aurel-detail-scroll');
     const sameTrack=priorTrack===String(t.id||'');
