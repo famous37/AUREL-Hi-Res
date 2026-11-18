@@ -25,6 +25,7 @@
    one:'#D0C8C2',two:'#B6A99F',three:'#E3D3C5'
  };
  let currentCover='',current=neutral,captureWanted=null,lastFrame=0;
+ let lastPaletteMode=null;
  let lastPulse=0,lastPeak=0,rotation=0;
  const palettes=new Map();
 
@@ -75,10 +76,12 @@
  }
  function sync(askPermission=false){
    const next=coverUrl();
-   if(next!==currentCover){
-     currentCover=next;
+   const artworkMode=window.AurelTheme?.isArtworkPalette?.()===true;
+   if(next!==currentCover||artworkMode!==lastPaletteMode){
+     const changed=next!==currentCover;
+     currentCover=next;lastPaletteMode=artworkMode;
      setStyle(palettes.get(next)||window.AurelTheme?.cachedPalette?.(next)||neutral);
-     resetBeat();
+     if(changed)resetBeat();
    }
    const visible=enabled&&!!app.overlay;
    const active=visible&&isPlaying()&&motionAllowed();
