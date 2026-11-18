@@ -34,16 +34,33 @@
     // Replacing the entire WebView sheet restarts its fade and looks like a
     // bright flash on every native track update.
     const stableId=String(t.id||'');
-    const stableSheet=active&&active===priorSheet &&
-      stableId===priorTrack&&!overlay.classList.contains('hidden');
-    if(stableSheet){
-      const livePanel=overlay.querySelector('.aurel-detail-sheet');
-      if(livePanel){
-        const contents=active==='upnext'?queuePanel(p):
-          active==='credits'?creditsPanel(p):audioPanel(p);
-        if(livePanel.__aurelPanelHTML!==contents){
-          livePanel.innerHTML=contents;
-          livePanel.__aurelPanelHTML=contents;
+    // Track progress and native beat events must NEVER replace the complete
+    // album cover, play controls or sheet: that destroys compositor layers
+    // and causes the visible flashes reported on Pixel Android 17.
+    // A changed title, cover, artist, availability or opened sheet does
+    // invalidate the subtree, and updates it once on the next draw.
+    const visualSignature=JSON.stringify([
+      stableId,String(t.title||''),String(t.album?.title||''),
+      String(t.album?.id||''),String(t.artist?.id||''),
+      String(artistLabel(t)||''),String(src||''),String(active),
+      String(t.available??''),String(p.error||'')
+    ]);
+    const stableDOM=active===priorSheet&&stableId===priorTrack&&
+      overlay.dataset.openSignature===visualSignature&&
+      !overlay.classList.contains('hidden')&&
+      !!overlay.querySelector('.murglar-view');
+    if(stableDOM){
+      const livePanel=active?overlay.querySelector('.aurel-detail-sheet'):null;
+      if(active&&!livePanel){
+        // A drawer was removed elsewhere: rebuild once, not on every tick.
+      }else{
+        if(livePanel){
+          const contents=active==='upnext'?queuePanel(p):
+            active==='credits'?creditsPanel(p):audioPanel(p);
+          if(livePanel.__aurelPanelHTML!==contents){
+            livePanel.innerHTML=contents;
+            livePanel.__aurelPanelHTML=contents;
+          }
         }
         const sourceLabel=overlay.querySelector('.murglar-source-line span');
         if(sourceLabel&&sourceLabel.textContent!==source)sourceLabel.textContent=source;
@@ -118,6 +135,7 @@
     if(detail)detail.scrollTop=(sameTrack&&active===priorSheet)?priorDetailScroll:0;
     overlay.dataset.openSheet=active;
     overlay.dataset.openTrack=String(t.id||'');
+    overlay.dataset.openSignature=visualSignature;
   };
   updateOverlayState=function(){
     const p=app.player;
