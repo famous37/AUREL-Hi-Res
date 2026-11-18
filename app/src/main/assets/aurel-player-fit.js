@@ -61,8 +61,14 @@
   }
   const previousDraw=drawOverlay;
   drawOverlay=function(){
+    const before=document.querySelector('#overlay:not(.hidden) .murglar-view');
     const result=previousDraw.apply(this,arguments);
-    schedule();
+    const after=document.querySelector('#overlay:not(.hidden) .murglar-view');
+    // Position/FFT ticks keep the same DOM. Re-measuring every child on
+    // every audio event created unnecessary synchronous layout work.
+    // Text/artwork changes replace the view, and ResizeObserver still
+    // handles genuine viewport changes and font scaling.
+    if(after&&(after!==before||after!==observed))schedule();
     return result;
   };
   window.addEventListener('resize',schedule,{passive:true});
