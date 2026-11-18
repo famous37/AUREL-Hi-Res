@@ -176,7 +176,7 @@ jobs:
             '- A DAC without verifiable hardware unity gain may still be unsupported by libusbdac v0.2.0.' \
             '- Hardware volume applies only when the USB DAC exposes a compatible control.' \
             '- USB access is released promptly on audio-focus loss; Android fallback is preserved.' \
-            '- Hardware validation on the user\x27s own DAC is required before considering the native path fully qualified.' \
+            '- Real DAC hardware testing is required before treating direct USB output as fully qualified.' \
             '' \
             "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
