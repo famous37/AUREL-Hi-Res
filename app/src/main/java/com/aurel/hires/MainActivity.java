@@ -45,6 +45,9 @@ import java.util.ArrayList;
 /** Offline UI + native HTTPS API bridge and native Android playback. */
 public final class MainActivity extends Activity {
     private WebView web;
+    private FrameLayout systemInsetFrame;
+    private volatile String lastArtworkPaletteJs="";
+    private static final int GRAPHITE_CHROME=Color.rgb(17,18,20);
     private SecureStore secure;
     private QobuzApi api;
     private MornyeGateway mornye;
@@ -389,6 +392,7 @@ public final class MainActivity extends Activity {
         beatForeground=true;
         refreshBeatMonitor();
         startBeatTicker();
+        if(web!=null){try{emit("appResume",new JSONObject());}catch(Exception ignored){}}
     }
 
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results) {
@@ -434,8 +438,8 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(Color.rgb(12,12,16));
-        getWindow().setNavigationBarColor(Color.rgb(12,12,16));
+        getWindow().setStatusBarColor(GRAPHITE_CHROME);
+        getWindow().setNavigationBarColor(GRAPHITE_CHROME);
         getWindow().getDecorView().setSystemUiVisibility(0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
@@ -507,6 +511,13 @@ public final class MainActivity extends Activity {
             }
         });
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view,String url) {
+                // Artwork extraction can finish before the page's JS handlers.
+                if(url!=null&&url.startsWith("file:///android_asset/index.html")){
+                    String palette=lastArtworkPaletteJs;
+                    if(!palette.isEmpty())view.evaluateJavascript(palette,null);
+                }
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view,android.webkit.WebResourceRequest request) {
                 // Keep all navigation inside our packaged UI; no remote web content gets the JS bridge.
                 return !"file".equalsIgnoreCase(request.getUrl().getScheme());
@@ -515,7 +526,8 @@ public final class MainActivity extends Activity {
         // Android 15+ enforces edge-to-edge for target 35. Put the WebView inside a
         // window-inset-aware container instead of letting HTML sit under the status bar.
         FrameLayout content=new FrameLayout(this);
-        content.setBackgroundColor(Color.rgb(12,12,16));
+        systemInsetFrame=content;
+        content.setBackgroundColor(GRAPHITE_CHROME);
         content.addView(web,new FrameLayout.LayoutParams(-1,-1));
         if(Build.VERSION.SDK_INT>=30){
             content.setOnApplyWindowInsetsListener((v,insets)->{
@@ -733,7 +745,9 @@ public final class MainActivity extends Activity {
         script("window.AurelReceive("+JSONObject.quote(id)+","+result.toString()+")");
     }
     private void emit(String event,JSONObject data) {
-        script("window.AurelEvent("+JSONObject.quote(event)+","+data.toString()+")");
+        // Native callbacks may arrive before app.js is initialized.
+        script("if(typeof window.AurelEvent==='function')window.AurelEvent("+
+            JSONObject.quote(event)+","+data.toString()+")");
         if("player".equals(event)) {
             if(beatUiWanted)ui.post(this::refreshBeatMonitor);
             if(Looper.myLooper()==Looper.getMainLooper() &&
@@ -744,12 +758,30 @@ public final class MainActivity extends Activity {
         }
     }
     /** Receives verified artwork-derived colours from the native playback service. */
+    /** Match Android's status/gesture-bar backing without hiding OS controls. */
+    private void setSystemChrome(String hex) {
+        if(hex==null||!hex.matches("#[0-9A-Fa-f]{6}"))return;
+        final int color=Color.parseColor(hex);
+        // Native artwork backgrounds are dark; reject a bright, unreadable bar.
+        double luminance=(0.2126*Color.red(color)+0.7152*Color.green(color)+
+            0.0722*Color.blue(color))/255.0;
+        if(luminance>0.28)return;
+        getWindow().setStatusBarColor(color);
+        getWindow().setNavigationBarColor(color);
+        if(Build.VERSION.SDK_INT>=29){
+            getWindow().setStatusBarContrastEnforced(false);
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
+        if(systemInsetFrame!=null)systemInsetFrame.setBackgroundColor(color);
+    }
+
     void onAlbumArtworkPalette(String url,String bg,String surface,String accent,
-                               String glow1,String glow2,String glow3) {
-        script("window.AurelCoverPalette && window.AurelCoverPalette("+
+                                String glow1,String glow2,String glow3) {
+        lastArtworkPaletteJs="window.AurelCoverPalette && window.AurelCoverPalette("+
             JSONObject.quote(url)+","+JSONObject.quote(bg)+","+JSONObject.quote(surface)+
             ","+JSONObject.quote(accent)+","+JSONObject.quote(glow1)+
-            ","+JSONObject.quote(glow2)+","+JSONObject.quote(glow3)+")");
+            ","+JSONObject.quote(glow2)+","+JSONObject.quote(glow3)+")";
+        script(lastArtworkPaletteJs);
     }
     /** Called by Android MediaSession notification and hardware transport controls. */
     void mediaControl(String action,boolean play) {
@@ -970,6 +1002,9 @@ public final class MainActivity extends Activity {
     }
 
     private final class Bridge {
+        @JavascriptInterface public void setWindowPalette(String color) {
+            ui.post(()->setSystemChrome(color));
+        }
         @JavascriptInterface public void call(String requestId,String action,String payload) {
             if(requestId==null||requestId.length()>72)return;
             jobs.execute(()->{
