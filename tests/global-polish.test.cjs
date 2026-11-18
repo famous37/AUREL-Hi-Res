@@ -36,7 +36,7 @@ assert(css.includes('prefers-reduced-motion:reduce'));
 assert(css.includes('.aurel-token-input button:active'));
 assert(css.includes('#overlay.aurel-swipe-dismissing .murglar-view'));
 assert(css.includes('pointer-events:none!important'));
-assert(motion.includes('duration:265')&&motion.includes('opacity:.82'));
+assert(motion.includes('duration:215')&&motion.includes('opacity:.965'));
 assert(motion.includes('previous===next'));
 assert(motion.includes('document.hidden||app.overlay'));
 assert(swipe.includes("if(accepted)dismiss()"));

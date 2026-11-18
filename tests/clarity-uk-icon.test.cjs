@@ -32,7 +32,7 @@ assert(settings.includes('data-aurel-scan-dac') && settings.includes('audioDiagn
 assert(settings.includes('data-aurel-headroom') && settings.includes('data-aurel-preload'));
 assert(settings.includes('aurel-pro-disclosure'), 'Keep optional source inspector');
 assert(motion.includes("previous===next"),'No animation on same route');
-assert(motion.includes('duration:265'), 'Ease real navigation');
+assert(motion.includes('duration:215'), 'Ease real navigation');
 assert(swipe.includes('move=Math.min(320'), 'Swipe must follow pointer');
 assert(swipe.includes("closest?.('[data-close-overlay]')"), 'Collapse button must animate');
 assert(swipe.includes('window.AurelMinimizePlayer()'), 'Must preserve original navigation and scroll');
