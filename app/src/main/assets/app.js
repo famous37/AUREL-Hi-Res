@@ -361,6 +361,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
    </div>
    <div class="aurel-bp-status" role="status"><span class="aurel-bp-dot ${['usb_mixer_routed'].includes(bp.status)?'is-routed':bp.status==='requested'?'is-requested':''}" aria-hidden="true"></span><strong>${html(bpStatus)}</strong></div>
    ${bpDescription?`<p class="aurel-bp-detail">${html(bpDescription)}</p>`:''}
+   ${bp.enabled?`<p class="aurel-bp-detail">When Android bit-perfect is active, software volume and effects are bypassed. Reduce volume at the DAC or amplifier before playback.</p>`:''}
    </section>
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
