@@ -32,7 +32,7 @@ function setup(saved='off'){
   const ctx={
     document:doc,app,renderSettings:()=>{},drawOverlay:()=>{},
     window:{matchMedia:()=>({matches:false,addEventListener:()=>{}}),AurelEvent:()=>{}},
-    nativeCall:(name,data)=>{calls.push({name,data});return Promise.resolve({permissionGranted:true});},
+    nativeCall:(name,data)=>{calls.push({name,data});return Promise.resolve({permissionGranted:!!data.requestPermission});},
     localStorage:{getItem:()=>saved,setItem:()=>{}},showToast:(s)=>messages.push(s),
     Date,Math,Number,Promise
   };
