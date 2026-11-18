@@ -25,7 +25,7 @@
   const themeByCover=new Map();
   // Neutral graphite is the default. Album-derived colours are opt-in.
   const PALETTE_KEY='aurel_palette_artwork_v1';
-  const baseTheme={bg:'#111214',surface:'#202124',accent:'#D5D7DB'};
+  const baseTheme={bg:'#111214',surface:'#202124',accent:'#D5D7DB',one:'#82878D',two:'#666970',three:'#B0B3B7'};
   let artworkPalette=false;
   try{
     // One-time visual migration: prevent a previously enabled album-derived
@@ -55,6 +55,12 @@
     root.style.setProperty('--aurel-palette-bg',colors.bg);
     root.style.setProperty('--aurel-palette-surface',colors.surface);
     root.style.setProperty('--aurel-palette-accent',colors.accent);
+    // All screens, cards, drawer surfaces and the mini-player share the same
+    // verified current-track palette, but only while the user opts in.
+    root.style.setProperty('--aurel-global-glow-one',colors.one||colors.accent);
+    root.style.setProperty('--aurel-global-glow-two',colors.two||colors.one||colors.accent);
+    root.style.setProperty('--aurel-global-glow-three',colors.three||colors.accent);
+    root.style.setProperty('--aurel-shell-accent',colors.accent);
     const overlay=document.querySelector('#overlay');
     if(overlay&&overlay.style){
       overlay.style.setProperty('--aurel-palette-bg',colors.bg);
@@ -84,7 +90,7 @@
       const panel=document.createElement('section');
       panel.className='panel aurel-appearance-panel';
       panel.innerHTML='<h3>Appearance</h3><label class="aurel-appearance-toggle">'+
-        '<span><strong>Use album artwork colours</strong><small>Off by default · neutral dark theme</small></span>'+
+        '<span><strong>Use album artwork colours</strong><small>On: the entire app follows the playing album. Off: neutral graphite throughout.</small></span>'+
         '<input type="checkbox" data-aurel-artwork-colours '+(artworkPalette?'checked':'')+'></label>';
       const first=screen.querySelector('.panel');
       if(first)first.before(panel);else screen.appendChild(panel);
@@ -138,7 +144,10 @@
   };
   window.AurelCoverPalette=function(url,bg,surface,accent,glow1,glow2,glow3){
     if(!url||!validHex(bg)||!validHex(surface)||!validHex(accent))return;
-    const colors={bg,surface,accent};
+    const colors={bg,surface,accent,
+      one:validHex(glow1)?glow1:accent,
+      two:validHex(glow2)?glow2:accent,
+      three:validHex(glow3)?glow3:accent};
     themeByCover.set(url,colors);
     if(themeByCover.size>36)themeByCover.delete(themeByCover.keys().next().value);
     if(artworkPalette&&coverNow()===url){
