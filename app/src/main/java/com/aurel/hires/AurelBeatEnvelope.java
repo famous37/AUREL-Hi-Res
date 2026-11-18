@@ -32,7 +32,7 @@ final class AurelBeatEnvelope {
         float above=Math.max(0f,energy-movingEnergy);
         float divisor=Math.max(4f,movingEnergy*.65f);
         // Attack follows genuine changes in audio energy, NOT the clock.
-        float onset=Math.min(1f,(rise*1.8f+above*.65f)/divisor);
+        float onset=Math.min(1f,(rise*1.8f+above*.12f)/divisor);
         float target=energy<1.5f?0f:onset;
         float factor=target>envelope?.82f:.30f;
         envelope+=factor*(target-envelope);
