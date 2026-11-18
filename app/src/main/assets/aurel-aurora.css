@@ -1,0 +1,134 @@
+/* AUREL v1.1.65 — iridescent halo approved in UI concept.
+ * This is a decorative ambient shadow, NOT a simulated audio waveform.
+ * Animations affect only composited opacity/transform, never layout or cover
+ * scale; the existing FFT rhythm controls the cover independently. */
+#overlay.aurel-aurora-enabled .murglar-view .murglar-art-wrap{
+ position:relative!important;
+ isolation:isolate;
+ overflow:visible!important;
+}
+#overlay.aurel-aurora-enabled .murglar-view .murglar-cover{
+ position:relative!important;
+ z-index:2;
+}
+#overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo{
+ position:absolute;
+ pointer-events:none;
+ left:50%;top:50%;
+ width:min(100%,var(--aurel-fit-art,min(84vw,34dvh,370px)));
+ aspect-ratio:1;
+ transform:translate3d(-50%,-50%,0);
+ z-index:0;
+ border-radius:19px;
+ opacity:var(--aurel-aurora-opacity,.78);
+ transition:opacity 380ms cubic-bezier(.2,.75,.3,1)!important;
+}
+#overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before,
+#overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{
+ content:"";
+ position:absolute;
+ pointer-events:none;
+ border-radius:26%;
+ transform-origin:50% 50%;
+ backface-visibility:hidden;
+}
+/* Broad silky gradient ribbons glint from behind the cover's crisp edge. */
+#overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before{
+ inset:-18%;
+ opacity:.86;
+ background:conic-gradient(
+  from 32deg,
+  #14e4e9 0deg,#2671fd 42deg,#7142fd 92deg,#f12cce 143deg,
+  #ff539f 176deg,#842dfa 227deg,#10d9b1 273deg,#0bbcf1 320deg,
+  #14e4e9 360deg
+ );
+ filter:blur(19px);
+ transform:translate3d(0,0,0) rotate(0deg) scale(1.04);
+}
+/* Subtle, more diffuse aurora haze continues into the black background. */
+#overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{
+ inset:-33%;
+ opacity:.52;
+ background:
+   radial-gradient(ellipse at 23% 23%,#0a88ff 0%,transparent 46%),
+   radial-gradient(ellipse at 83% 18%,#f21bc5 0%,transparent 45%),
+   radial-gradient(ellipse at 83% 84%,#00d2a1 0%,transparent 48%),
+   radial-gradient(ellipse at 24% 84%,#8238fd 0%,transparent 48%);
+ filter:blur(25px);
+ transform:translate3d(0,0,0) scale(1.02);
+}
+@keyframes aurelAuroraOrbit {
+ from{transform:translate3d(0,0,0) rotate(0deg) scale(1.04)}
+ to{transform:translate3d(0,0,0) rotate(360deg) scale(1.04)}
+}
+@keyframes aurelAuroraDrift {
+ 0%{transform:translate3d(-2%,2%,0) scale(1.00);opacity:.43}
+ 50%{transform:translate3d(2%,-1%,0) scale(1.09);opacity:.58}
+ 100%{transform:translate3d(-1%,-2%,0) scale(1.04);opacity:.49}
+}
+#overlay.aurel-aurora-playing .murglar-view .aurel-aurora-halo::before{
+ animation:aurelAuroraOrbit 26s linear infinite!important;
+}
+#overlay.aurel-aurora-playing .murglar-view .aurel-aurora-halo::after{
+ animation:aurelAuroraDrift 11s ease-in-out infinite alternate!important;
+}
+/* A restrained jewel-like rim on the central play/pause button. Keep the
+ * existing size, hit target and transport icon untouched. */
+#overlay.aurel-aurora-enabled .murglar-view #full-toggle{
+ isolation:isolate;
+ box-shadow:
+  0 0 0 1px color-mix(in srgb,var(--aurel-theme-accent,#aeb5bf) 48%,transparent),
+  0 0 14px rgba(36,189,255,.30),
+  0 0 23px rgba(177,44,239,.17)!important;
+}
+#overlay.aurel-aurora-enabled .murglar-view #full-toggle::before{
+ content:"";
+ position:absolute;
+ z-index:-1;
+ pointer-events:none;
+ inset:-6px;
+ border-radius:50%;
+ background:conic-gradient(
+   #15e7ef,#3c7bff,#b03afd,#f13cd3,#19d9b5,#15e7ef
+ );
+ filter:blur(9px);
+ opacity:.52;
+ transform:rotate(0deg);
+}
+#overlay.aurel-aurora-playing .murglar-view #full-toggle::before{
+ animation:aurelAuroraOrbit 26s linear infinite!important;
+ opacity:.78;
+}
+/* No animated layout measurements or timer-driven slider changes. */
+@media (orientation:landscape) and (min-width:420px){
+ #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo{
+  top:0;
+  width:min(100%,52dvh,220px);
+  transform:translate3d(-50%,0,0);
+ }
+ #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before{
+  inset:-11%;filter:blur(11px);opacity:.65;
+ }
+ #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{
+  inset:-18%;filter:blur(16px);opacity:.40;
+ }
+}
+@media (orientation:landscape) and (max-height:350px){
+ #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+ #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before,
+ #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after,
+ #overlay.aurel-aurora-enabled .murglar-view #full-toggle::before{
+  animation:none!important;
+  transition:none!important;
+ }
+}
+html[data-aurel-motion="off"] #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::before,
+html[data-aurel-motion="off"] #overlay.aurel-aurora-enabled .murglar-view .aurel-aurora-halo::after,
+html[data-aurel-motion="off"] #overlay.aurel-aurora-enabled .murglar-view #full-toggle::before{
+ animation:none!important;
+ transition:none!important;
+}
+.aurel-aurora-setting small{display:block;line-height:1.45;max-width:42rem}
+.aurel-aurora-setting input{flex-shrink:0}
