@@ -366,20 +366,27 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.52</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.53</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
  let p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}
  m.classList.remove('hidden');let t=p.track;
- m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">⏭</button><button class="mini-play" data-mini-toggle>${p.playing?'Ⅱ':'▶'}</button>`;
+ m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">${ic('next',24)}</button><button class="mini-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-mini-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p,26)}</button>`;
 }
 function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
  const smoothPosition=window.AurelProgressClock?.read(p)??(Number(p.position)||0);
  const progress=$('#progress');if(progress&&!app.dragging){progress.max=p.duration||100;progress.value=smoothPosition}
  if($('#elapsed')&&!app.dragging)$('#elapsed').textContent=duration(smoothPosition/1000);
  if($('#remaining')&&!app.dragging)$('#remaining').textContent='-'+duration(Math.max(0,(p.duration||0)-smoothPosition)/1000);
- if($('#full-toggle'))$('#full-toggle').innerHTML=ic(p.playing?'pause':'play',33);
+ const primary=$('#full-toggle');
+ if(primary){
+  const mode=aurelPlaybackMode(p);
+  if(primary.dataset.icon!==mode){primary.innerHTML=aurelPlaybackIcon(p,33);primary.dataset.icon=mode;}
+  primary.classList.toggle('is-loading',mode==='loading');
+  primary.setAttribute('aria-busy',String(mode==='loading'));
+  primary.setAttribute('aria-label',aurelPlaybackLabel(p));
+ }
  if($('#full-shuffle'))$('#full-shuffle').classList.toggle('active',!!p.shuffle);
  if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').innerHTML=ic('repeat',23)+(p.repeat===2?'<span class="repeat-one">1</span>':'');}
  if($('#playingStatus'))$('#playingStatus').textContent=p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED';
@@ -387,12 +394,12 @@ function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
 function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return;}
  let p=app.player||{},t=p.track||{},src=image(t);overlay.classList.remove('hidden');
  overlay.style.setProperty('--cover-image',src?`url("${src}")`:'none');
- overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>⌄ <span>Now playing</span></button>
+ overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>${ic('down',25)} <span>Now playing</span></button>
  <div class="art-stage">${src?`<img class="now-cover" src="${html(src)}" alt="Album cover">`:'<div class="now-cover empty-art">♫</div>'}</div>
  <div class="now-info"><span>${p.bits?(p.bits+'-bit / '+(p.sampleRate>1000?(p.sampleRate/1000):p.sampleRate)+' kHz'):'AUDIO QUALITY PENDING'}</span><span>${p.formatId===5?'MP3':p.formatId?'FLAC':''}</span></div>
  <div class="now-track-row"><div class="now-title">${html(t.title||'Choose a track')}</div><div class="now-artist">${html(artistLabel(t))}</div></div>
  <input id="progress" class="progress" type="range" min="0" max="${p.duration||100}" value="${p.position||0}" step="any"><div class="timebar"><span id="elapsed">${duration((p.position||0)/1000)}</span><span id="remaining">-${duration(Math.max(0,(p.duration||0)-(p.position||0))/1000)}</span></div>
- <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle>⤨</button><button class="ctrl" data-prev>❚◀</button><button id="full-toggle" class="main-play" data-full-toggle>${p.playing?'Ⅱ':'▶'}</button><button class="ctrl" data-next>▶❚</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat>${p.repeat===2?'↺¹':'↺'}</button></div>
+ <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle aria-label="Shuffle">${ic('shuffle',24)}</button><button class="ctrl" data-prev aria-label="Previous track">${ic('prev',28)}</button><button id="full-toggle" class="main-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p,34)}</button><button class="ctrl" data-next aria-label="Next track">${ic('next',28)}</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat aria-label="Repeat">${ic('repeat',24)}${p.repeat===2?'<span class="repeat-one">1</span>':''}</button></div>
  <div class="playing-foot"><span id="playingStatus">${p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED'}</span><span>QUEUE ${p.count?`${p.index+1} / ${p.count}`:'—'}</span></div>
  ${p.error?`<div class="playback-error">${html(p.error)}</div>`:''}</div>`;
 }
