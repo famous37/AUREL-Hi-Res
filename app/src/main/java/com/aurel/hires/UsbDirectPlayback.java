@@ -218,14 +218,18 @@ final class UsbDirectPlayback {
             boolean rateMatches=sourceRate>0 && usbRate==sourceRate;
             out.put("enabled",true);
             out.put("status",failure.isEmpty()?
-                (active?"direct_usb_playback":
-                 host.androidFallback()?"direct_usb_not_active":
-                 ready?"direct_usb_preparing":"direct_usb_preparing"):
+                (active?(rateMatches?"direct_usb_playback":"direct_usb_rate_mismatch"):
+                 host.androidFallback()?"direct_usb_not_active":"direct_usb_preparing"):
                  "direct_usb_error");
             out.put("detail",!failure.isEmpty()?failure:
-                active?"libusbdac is sending USB isochronous PCM; end-to-end samples unmeasured.":
-                host.androidFallback()?"This track uses Android mixer; direct USB route inactive.":
-                "Preparing libusbdac hardware session; not yet bit-perfect.");
+                active?(rateMatches?
+                    "USB packets are advancing at the source sample rate; PCM identity not externally measured.":
+                    "Live USB clock differs from source metadata or source rate is unavailable. Do not claim bit-perfect."):
+                host.androidFallback()?
+                    (host.bitPerfectCapable()?
+                        "Track is routed through Android because direct USB rejected this format.":
+                        "libusbdac cannot verify DAC hardware unity gain; Android fallback remains active."):
+                "Opening USB interface. Bit-perfect has not been confirmed.");
             out.put("usbRouted",false);
             out.put("mixerPreferenceAccepted",false);
             // Direct USB transport alone is not proof of source/decoder
