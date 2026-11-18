@@ -12,6 +12,18 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Preflight artwork rhythm and existing UI without Gradle downloads
+        run: |
+          set -euo pipefail
+          for file in app/src/main/assets/*.js; do node --check "$file"; done
+          node tests/aurora-glow.test.cjs
+          node tests/aurora-glow-runtime.test.cjs
+          node tests/cover-rhythm.test.cjs
+          node tests/cover-rhythm-runtime.test.cjs
+          node tests/error-log.test.cjs
+          node tests/release-availability.test.cjs
+          node tests/updates.test.cjs
+          node test_ui.cjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
