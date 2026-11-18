@@ -64,6 +64,7 @@ public final class MainActivity extends Activity {
     private static final int BEAT_CAPTURE_PERMISSION_REQUEST=4107;
     private boolean beatUiWanted=false;
     private boolean beatForeground=true;
+    private String lastBeatStatus="";
     private boolean hasEngine(){return player!=null;}
     private boolean isAudioPlaying(){return player!=null&&prepared&&player.isPlaying();}
     private int audioPosition(){
@@ -374,15 +375,35 @@ public final class MainActivity extends Activity {
         catch(Exception ignored){}
     }
 
-    /** Optional capture is only for visualization of OUR audio session. */
+    /** Native capture status is real, never a fabricated tempo or fake beat. */
+    private void updateBeatStatus(String state) {
+        if(state.equals(lastBeatStatus))return;
+        lastBeatStatus=state;
+        try{emit("beatStatus",new JSONObject().put("state",state));}
+        catch(Exception ignored){}
+    }
+
+    /** Optional FFT only reads our current MediaPlayer audio session. */
     private void refreshBeatMonitor() {
         if(beatMonitor==null)return;
-        boolean allowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
+        boolean allowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==
+            PackageManager.PERMISSION_GRANTED;
         boolean playing=false;
-        if(player!=null&&prepared){try{playing=player.isPlaying();}catch(RuntimeException ignored){}}
-        boolean safe=beatUiWanted&&beatForeground&&allowed&&playing&&
-            bitPerfect!=null&&!bitPerfect.isEnabled();
+        if(player!=null&&prepared)try{playing=player.isPlaying();}
+        catch(RuntimeException ignored){}
+        boolean pureOutput=bitPerfect!=null&&bitPerfect.isEnabled();
+        boolean safe=beatUiWanted&&beatForeground&&allowed&&playing&&!pureOutput;
         beatMonitor.update(player,safe);
+        final String status;
+        if(!beatUiWanted)status="off";
+        else if(!beatForeground)status="background";
+        else if(pureOutput)status="bitperfect";
+        else if(!allowed)status="permission";
+        else if(!playing)status="paused";
+        else if(beatMonitor.hasFrames())status="live";
+        else if(beatMonitor.waitingForFrames())status="waiting";
+        else status="unavailable";
+        updateBeatStatus(status);
     }
 
     @Override public void onCreate(Bundle state) {
@@ -1154,7 +1175,7 @@ public final class MainActivity extends Activity {
                             break;
                         }
                         case "setBeatVisualization": {
-                            // A user gesture is required to request this runtime permission.
+                            // No synthetic pulse: request native FFT capture only with consent.
                             boolean wanted=p.optBoolean("enabled",false);
                             boolean ask=p.optBoolean("requestPermission",false);
                             boolean allowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==
