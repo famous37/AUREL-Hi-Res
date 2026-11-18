@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.65: optional iridescent glow surrounding album art and play control.
+# v1.1.66: optional iridescent glow surrounding album art and play control.
 # Preserve existing music FFT, USB bit-perfect, landscape and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -175,18 +175,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — iridescent aurora artwork shadows**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — artwork-colored, bass-synchronized lighting**" \
             '' \
-            '- Added layered cyan, blue, violet, magenta and emerald ambient lighting behind album artwork, matching the approved AUREL aurora UI concept.' \
-            '- Colored shadows shimmer smoothly during actual playback and become calm when paused; a restrained multicolor glow also surrounds the main Play/Pause control.' \
-            '- The effect is ON by default and can be disabled in Settings > Appearance with Iridescent album glow.' \
-            '- When genuine Android FFT beat frames are available, they modulate shadow brightness. The decorative color cycle does not masquerade as bass or require audio capture.' \
-            '- Ambient aurora remains available during USB bit-perfect playback; no audio path, decoder, sample rate, volume or DAC routing changes.' \
-            '- Android system reduced-motion and AUREL motion-off preferences prevent constant decorative movement.' \
+            '- Glow color families now follow the native palette extracted from the current album artwork; no hard-coded neon rainbow.' \
+            '- Actual native FFT bass transients brighten and gently expand glow around album art and Play/Pause, while silence and pause calm it immediately.' \
+            '- The artwork glow is ON by default, remains separately switchable in Settings > Appearance, and shares one capture monitor with the cover-pulse preference.' \
+            '- Removed fixed color rotations and synthetic beat-like cycles. Android requests audio analysis permission only when active playback needs FFT; no audio is recorded.' \
+            '- USB bit-perfect shows a static artwork-derived palette without claiming FFT access; playback engine, DAC routing, level, and account data remain untouched.' \
+            '- Android reduced-motion and AUREL motion-off prevent beat motion.' \
             '- Layout-safe implementation does not resize the artwork, icons, timeline, controls or bottom bar; compact portrait and landscape presentation are preserved.' \
-            '- Added tests covering real FFT delegation, bit-perfect, pause, preferences, layout safeguards and Android release signing.' \
+            '- Added tests for native image palette selection, actual FFT beats versus silence, pause, bit-perfect, portrait/landscape, and stable signing.' \
             '' \
-            "Install v${AUREL_VERSION} over the existing signed AUREL 1.1.64 without clearing data or account settings." \
+            "Install v${AUREL_VERSION} over the existing signed AUREL 1.1.65 without clearing data or account settings." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
