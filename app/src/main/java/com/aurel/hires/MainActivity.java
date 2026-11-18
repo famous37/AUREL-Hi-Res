@@ -187,6 +187,12 @@ public final class MainActivity extends Activity {
         try{emit("audioRouteLost",new JSONObject().put("reason",reason));}
         catch(Exception ignored){}
     }
+    private boolean oldRouteStillPresent(){
+        if(systemAudio==null||lastRoutedOutputId<0)return false;
+        for(AudioDeviceInfo output:systemAudio.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
+            if(output.getId()==lastRoutedOutputId)return true;
+        return false;
+    }
     private void onActualRouteChanged(MediaPlayer mp){
         if(mp==null||mp!=player)return;
         int route=-1;
@@ -194,8 +200,9 @@ public final class MainActivity extends Activity {
             AudioDeviceInfo output=mp.getRoutedDevice();
             if(output!=null)route=output.getId();
         }catch(RuntimeException ignored){}
-        if(AurelUnplugPolicy.pauseForRoutingChange(playbackRequestedOrRunning(),
-            lastRoutedOutputId,lastRoutedOutputExternal,route)){
+        if(!oldRouteStillPresent() &&
+            AurelUnplugPolicy.pauseForRoutingChange(playbackRequestedOrRunning(),
+                lastRoutedOutputId,lastRoutedOutputExternal,route)){
             pauseForOutputLoss("route_changed");
             return;
         }
@@ -566,7 +573,7 @@ public final class MainActivity extends Activity {
         try{
             IntentFilter filter=new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
             if(Build.VERSION.SDK_INT>=33)
-                registerReceiver(noisyReceiver,filter,Context.RECEIVER_NOT_EXPORTED);
+                registerReceiver(noisyReceiver,filter,Context.RECEIVER_EXPORTED);
             else registerReceiver(noisyReceiver,filter);
             noisyReceiverRegistered=true;
         }catch(RuntimeException error){
