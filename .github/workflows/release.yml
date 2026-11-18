@@ -1,7 +1,6 @@
 name: Publish permanently signed AUREL release
-# v1.1.58: fix cropped landscape navbar labels and soften paint-only UI transitions.
-# Revalidate all UI and USB regressions against version 1.1.47.
-# Versioned snapshot checks repaired after the initial CI run.
+# v1.1.59: stronger opt-in rhythmic album cover with read-only audio monitoring.
+# Preserve existing Android mixer, Qobuz state and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
 # Push triggers here only when the release workflow itself changes; other
@@ -9,7 +8,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation]
+    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation, feature/cover-rhythm-v1.1.58]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -17,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation' || github.ref == 'refs/heads/feature/cover-rhythm-v1.1.58'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -161,31 +160,31 @@ jobs:
           )
           echo "Signature and package verified."
 
-      - name: Publish immutable signed GitHub prerelease
+      - name: Publish permanently signed stable AUREL update
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — properly centred landscape navigation**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — rhythmic album artwork (stable update)**" \
             '' \
-            '- Fixes cropped bottom navigation icons and text in landscape. The old 27px minimum height on every span made icon and label exceed the button height.' \
-            '- Separate, correctly sized SVG and label grid rows keep both fully within the navigation panel across landscape screen sizes.' \
-            '- On short landscapes the navigation displays centred icon-only buttons with accessible names rather than clipping labels.' \
-            '- Gentle 180–220 ms colour and background transitions, without moving, scaling or rebuilding player controls.' \
-            '- Portrait layout, Android system audio, USB DAC routing, Qobuz session and saved app data are unchanged.' \
-            '- Tested icon and label bounds with Chromium at 844x390, 915x412, 736x320, 600x300, 480x270 and compact split screen.' \
+            '- New opt-in bass-reactive album cover using read-only FFT from the current MediaPlayer audio session.' \
+            '- Stronger smooth scale-up and scale-down: 96.3–109% with live rhythm, 96.5–108% for ambient animation.' \
+            '- Settings > Appearance & app > Rhythmic album artwork. The selection persists across restarts and updates.' \
+            '- Android audio analysis permission requested only after opting in; no recording, files or uploads.' \
+            '- On USB bit-perfect, the analyzer stays off and the cover uses smooth ambient breathing.' \
+            '- Animation stops when paused, buffering, in background, hidden or when reduced motion is selected.' \
+            '- Retains the v1.1.58 portrait/landscape navigation fixes, Qobuz login, saved data, Android playback and USB routing.' \
             '' \
-            "Install v${AUREL_VERSION} over your existing permanently signed AUREL app without clearing app data." \
+            "Install v${AUREL_VERSION} over the existing permanently signed AUREL app without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \
             --target "$GITHUB_SHA" \
             --title "AUREL Hi-Res v${AUREL_VERSION}" \
-            --notes-file build/signed-artifacts/release-notes.md \
-            --prerelease
+            --notes-file build/signed-artifacts/release-notes.md 
           gh release view "$AUREL_TAG" --json tagName,url,assets --jq '.tagName + " " + .url + " " + ([.assets[].name] | join(", "))'
 
       - name: Keep the verified signed APK as a CI artifact
