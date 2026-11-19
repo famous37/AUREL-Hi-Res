@@ -11,7 +11,7 @@ permissions:
 jobs:
   inspect-original:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Obtain publicly available matching Qobuz APK
@@ -58,7 +58,8 @@ jobs:
           curl -fLsS --retry 3 \
             'https://github.com/iBotPeaches/Apktool/releases/download/v2.12.1/apktool_2.12.1.jar' \
             -o apktool.jar
-          java -jar apktool.jar d -f -r -s original.apk -o decoded >/dev/null
+          java -jar apktool.jar d -f -r original.apk -o decoded >/dev/null
+          python3 qobuz-mod/tools/inspect_entrypoint.py decoded
           java -jar apktool.jar b decoded -o repack-unsigned.apk >/dev/null
           SDK_BUILD_TOOLS="$(find "${ANDROID_HOME}/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
           test -x "${SDK_BUILD_TOOLS}/zipalign"
