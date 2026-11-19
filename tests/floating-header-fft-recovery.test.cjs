@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 const load=p=>fs.readFileSync('app/src/main/assets/'+p,'utf8');
-const css=load('aurel-seamless-theme.css'),aurora=load('aurel-aurora.js'),
+const css=load('aurel-seamless-theme.css'),glass=load('aurel-glass-polish.css'),aurora=load('aurel-aurora.js'),
  rhythm=load('aurel-cover-rhythm.js'),java=fs.readFileSync(
   'app/src/main/java/com/aurel/hires/AurelBeatMonitor.java','utf8'),
  activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8'),
@@ -14,7 +14,9 @@ assert.match(css,/pointer-events:none!important;[\s\S]*?\.murglar-header-button/
 assert.match(css,/pointer-events:auto!important/);
 assert.match(css,/\.murglar-player-content\{[\s\S]*?padding-top:clamp\(18px,3\.2dvh,40px\)!important/);
 assert.match(css,/background-image:none!important/);
-assert.match(css,/\.murglar-view::before\{[\s\S]*?height:min\(75dvh,670px\)!important/);
+assert.doesNotMatch(css,/inset:0 0 auto 0!important/,'A higher-specificity zero-inset header must never overlap Android icons');
+assert.match(glass,/\.murglar-view::before[\s\S]*?content:none!important/,'Previous 75dvh canvas must be disabled');
+assert.match(glass,/#overlay:not\(\.hidden\)::before[\s\S]*?radial-gradient/,'Full-screen FFT canvas must paint across the navbar seam');
 assert.match(css,/transform:scale\(var\(--aurel-reactive-scale,1\)\)/);
 assert.doesNotMatch(css,/@keyframes\s+(?:beat|bass)/);
 assert.match(aurora,/--aurel-reactive-scale','1'/);
