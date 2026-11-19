@@ -261,8 +261,8 @@ document.addEventListener('click',async event=>{
   if(!item)return;
   if(state.active==='playlists')await playlist(open);
   else if(isLocalId(open)){
-   showToast(tr('This name is stored locally. Sync an authorized Qobuz library to obtain real IDs.',
-     'Назву збережено локально. Синхронізуйте авторизовану бібліотеку Qobuz, щоб отримати справжні ID.'));
+   showToast(tr('Stored locally without a Qobuz ID. Find the artist or album using Qobuz search to open it.',
+     'Збережено без Qobuz ID. Щоб відкрити, знайдіть виконавця чи альбом через пошук Qobuz.'));
   }else if(state.active==='artists')await openArtist(open);
   else if(state.active==='albums')await openAlbum(open);
   else if(state.active==='tracks')await playLocal([item],0);

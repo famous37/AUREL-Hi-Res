@@ -33,7 +33,7 @@ The Android app includes a private, metadata-only **Library Import / Export Mana
 - Import preserves all names even without provider-supplied Qobuz identifiers. Offline records are clearly marked as *not linked to Qobuz* and **cannot** be opened/played as if they had authentic provider IDs.
 - No server-side favorites are modified. The original signed app, playback engine, account settings, transactional import, backups and in-app updates are retained.
 
-**[Download the screenshot-library JSON](https://github.com/famous37/AUREL-Hi-Res/releases/latest)** is **not** a GitHub release asset. Generate it from your own screenshots (do not publish your personal music library), then import using *Library → Library Import / Export → Import JSON · merge* in v1.1.87.
+Screenshot-derived libraries are **personal files**, not bundled in public GitHub releases. In AUREL v1.1.87, use *Library → Library Import / Export → Import JSON · merge* to import a correctly formatted name-only JSON file.
 
 
 
