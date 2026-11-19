@@ -1,0 +1,26 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const root=__dirname+'/../';
+const main=fs.readFileSync(root+'app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
+const qobuz=fs.readFileSync(root+'app/src/main/java/com/aurel/hires/QobuzApi.java','utf8');
+const start=main.indexOf('case "discover": {');
+const end=main.indexOf('case "search": {',start);
+assert(start>=0&&end>start);
+const discover=main.slice(start,end);
+assert.match(discover,/if\(mornyeActive\(\)\)/);
+assert.match(discover,/catalog\("discover\/newReleases"/);
+assert.match(discover,/MornyeGateway\.requiresVerification\(gatewayError\)/);
+assert(discover.indexOf('catalog("discover/newReleases"') <
+       discover.indexOf('api.publicFeaturedReleases(24)'));
+assert.match(discover,/data=api\.discoverReleases\(24\)/);
+const fbStart=qobuz.indexOf('JSONObject publicFeaturedReleases(int limit)');
+const fbEnd=qobuz.indexOf('/** Public track credits',fbStart);
+const fb=qobuz.slice(fbStart,fbEnd);
+assert(fbStart>=0&&fbEnd>fbStart);
+assert(fb.indexOf('libraryAppId') < fb.indexOf('resolveAppId("")'));
+assert(fb.indexOf('streamingAppId') < fb.indexOf('resolveAppId("")'));
+assert.match(fb,/streamingToken=streamToken\(\)/);
+assert.match(fb,/false,\s*resolveAppId\("?"\),""/);
+assert.match(fb,/Fresh releases unavailable:/);
+assert.doesNotMatch(fb,/735532640|312369995/);
+console.log('AUREL 1.1.82 discovery source priority and auth boundaries PASS');
