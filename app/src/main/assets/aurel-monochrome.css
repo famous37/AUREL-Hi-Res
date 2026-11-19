@@ -185,3 +185,28 @@
   background:#35373d!important;
   color:#fff!important;
 }
+
+
+/* Persistent, album-palette-aware seek progress in the bottom mini-player.
+   Draw the fill separately so inherited gradients cannot mask it. */
+.app .mini:not(.hidden) .mini-progress{
+  display:block!important;
+  position:absolute!important;
+  left:10px!important;right:10px!important;bottom:0!important;
+  height:3px!important;
+  border-radius:3px!important;
+  overflow:hidden!important;
+  background:color-mix(in srgb,var(--aurel-theme-on,#ffffff) 23%,transparent)!important;
+  pointer-events:none!important;
+}
+.app .mini:not(.hidden) .mini-progress .mini-progress-fill{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  background:var(--aurel-theme-accent,#efa0ad)!important;
+  border-radius:inherit!important;
+  transform:scaleX(0);
+  transform-origin:left center;
+  transition:transform 750ms linear!important;
+  will-change:transform;
+}
