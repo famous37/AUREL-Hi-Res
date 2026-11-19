@@ -73,11 +73,13 @@ assert.ok(Number(x.styles.get('--aurel-aurora-opacity'))>.9,
 assert.equal(x.classList.contains('aurel-aurora-beat-live'),true);
 assert.equal(x.styles.get('--aurel-aurora-rotation'),'12deg',
   'Genuine bass transient, not clock, shifts album-color gradient');
+assert.ok(x.styles.has('--aurel-aurora-glide-x')&&x.styles.has('--aurel-aurora-glide-y'),
+  'Real FFT moves both shared gradient fields without fake keyframes');
 x.window.AurelBeatFrame(.93);
 assert.equal(x.styles.get('--aurel-aurora-rotation'),'12deg',
   'Constant bass envelope should not simulate new onsets');
 x.window.AurelBeatFrame(0);
-assert.equal(x.styles.get('--aurel-aurora-opacity'),'0.300',
+assert.equal(x.styles.get('--aurel-aurora-opacity'),'0.340',
   'Low-energy frames dim the halo');
 x.app.player.playing=false;x.window.AurelEvent('player',{});
 assert.equal(x.classList.contains('aurel-aurora-playing'),false);
