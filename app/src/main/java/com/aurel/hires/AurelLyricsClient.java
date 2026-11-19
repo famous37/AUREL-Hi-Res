@@ -30,8 +30,9 @@ final class AurelLyricsClient {
         String safe=value.trim().replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]","");
         return safe.substring(0,Math.min(safe.length(),limit));
     }
-    private static String enc(String s){
-        return URLEncoder.encode(s,StandardCharsets.UTF_8);
+    private static String enc(String s)throws java.io.UnsupportedEncodingException{
+        // Charset-name overload also works on older Android runtimes.
+        return URLEncoder.encode(s,"UTF-8");
     }
     private static String normalized(String s){
         return s==null?"":s.toLowerCase(Locale.ROOT).trim()
