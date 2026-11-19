@@ -59,9 +59,14 @@ public final class MainActivity extends Activity {
         systemInsetFrame.setPadding(systemInsetLeft,
             fullPlayerImmersive?0:systemInsetTop,
             systemInsetRight,Math.max(systemInsetBottom,imeInsetBottom));
+        // WindowInsets are physical device pixels; WebView CSS 'px' are
+        // density-independent layout pixels. Mixing them moves touch targets
+        // unpredictably on high-density Pixel displays.
+        float density=Math.max(1f,getResources().getDisplayMetrics().density);
+        String cssInset=String.format(Locale.US,"%.1fpx",systemInsetTop/density);
         if(web!=null)script("document.documentElement.style.setProperty("+
             JSONObject.quote("--aurel-native-status-inset")+","+
-            JSONObject.quote(systemInsetTop+"px")+")");
+            JSONObject.quote(cssInset)+")");
     }
     private void setPlayerImmersive(boolean open){
         if(fullPlayerImmersive==open)return;

@@ -4,13 +4,13 @@ const load=n=>fs.readFileSync('app/src/main/assets/'+n,'utf8');
 const c=load('aurel-glass-polish.css'),js=load('aurel-track-swipe.js'),
 aurora=load('aurel-aurora.js'),lang=load('aurel-language.js'),
 html=load('index.html'),gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+93/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.74'/);
+assert.match(gradle,/versionCode\s+94/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.75'/);
 assert(html.indexOf('aurel-track-swipe.js')>html.indexOf('aurel-aurora.js'));
-assert.match(c,/top:max\(42px, calc\(var\(--aurel-native-status-inset/);
+assert.match(c,/top:max\(56px,calc\(var\(--aurel-native-status-inset/);
 assert.match(c,/padding-top:clamp\(10px,1\.8dvh,24px\)/);
-assert.match(c,/\.murglar-view::before\{[\s\S]*?height:100%!important/);
-assert.match(c,/radial-gradient\(ellipse 94% 66% at 18% 19%/);
+assert.match(c,/#overlay:not\(\.hidden\)::before\{[\s\S]*?background:/);
+assert.match(c,/radial-gradient\(ellipse 77% 61% at 19% 17%/);
 assert.match(c,/--aurel-aurora-drift/);
 assert.match(c,/background:color-mix\(in srgb,var\(--aurel-seam-bg/);
 assert.match(c,/\.app:has\(#overlay\.aurel-swipe-tracking\)/);
@@ -20,7 +20,7 @@ assert.match(c,/#overlay\.aurel-track-scrubbing \.murglar-art-wrap/);
 assert.match(c,/@media\(prefers-reduced-motion:reduce\)/);
 assert(!/@keyframes\s+(?:fakeBass|timedBass|musicBeat)/i.test(c));
 assert.match(aurora,/--aurel-aurora-drift','0px'/);
-assert.match(aurora,/--aurel-aurora-drift',Math\.round\(\(strong-\.45\)\*9\)\+'px'/);
+assert.match(aurora,/--aurel-aurora-drift',Math\.round\(\(strong-\.45\)\*13\)\+'px'/);
 assert.match(js,/const action=dx>0\?'next':'previous'/);
 assert.match(js,/Math\.abs\(dx\)>=78/);
 assert.match(js,/\.murglar-progress-row/);
@@ -83,5 +83,5 @@ function harness(){
  h=harness();h.start(145,220);h.move(290,225);
  h.end(301,228);await h.flush();
  assert.equal(h.commands.length,1,'One gesture = one native track command');
- console.log('AUREL 1.1.74: safe horizontal and vertical gestures, position, soft glow and translations PASS');
+ console.log('AUREL 1.1.75: safe horizontal and vertical gestures, position, soft glow and translations PASS');
 })().catch(err=>{console.error(err);process.exitCode=1});

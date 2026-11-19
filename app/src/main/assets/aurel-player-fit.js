@@ -7,10 +7,28 @@
   let frame=0;
   let observer=null;
   let observed=null;
+  let navObserver=null,navObserved=null,lastNavHeight=0;
+  function synchronizeNavHeight(){
+    const nav=document.querySelector('.app .bottom-nav');
+    const overlay=document.getElementById('overlay');
+    if(!nav||!overlay)return;
+    if(nav!==navObserved&&typeof ResizeObserver==='function'){
+      navObserver?.disconnect();
+      navObserved=nav;
+      navObserver=new ResizeObserver(schedule);
+      navObserver.observe(nav);
+    }
+    const pixels=Math.round(nav.getBoundingClientRect().height);
+    if(pixels>0&&Math.abs(lastNavHeight-pixels)>1){
+      lastNavHeight=pixels;
+      overlay.style.setProperty('--aurel-nav-height',pixels+'px');
+    }
+  }
   const number=(value)=>Number.parseFloat(value)||0;
   function fit(){
     frame=0;
     const view=document.querySelector('#overlay:not(.hidden) .murglar-view');
+    if(view)synchronizeNavHeight();
     const content=view?.querySelector('.murglar-player-content');
     if(!content)return;
     // Do not observe the content whose cover dimensions this function changes.

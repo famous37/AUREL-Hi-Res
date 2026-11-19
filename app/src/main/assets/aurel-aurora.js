@@ -67,6 +67,9 @@
    overlay.style.setProperty('--aurel-aurora-rotation','0deg');
    overlay.style.setProperty('--aurel-reactive-scale','1');
    overlay.style.setProperty('--aurel-aurora-drift','0px');
+   overlay.style.setProperty('--aurel-aurora-glide-x','0px');
+   overlay.style.setProperty('--aurel-aurora-glide-y','0px');
+   overlay.style.setProperty('--aurel-aurora-beat','0');
  }
  function wantCapture(ask=false){
    // Capture only AUREL's currently-playing MediaPlayer session, not global
@@ -96,8 +99,9 @@
      resetBeat();
      intensity(visible ? .26 : 0);
    }else if(!real){
-     // Static, dim album tint when Android denies FFT or bit-perfect is on.
-     // No unsolicited fabricated beat. Actual FFT will light it up.
+     // If a routed device stops providing FFT, return the compositor to its
+     // stable rest position. No artificial oscillation while capture is lost.
+     if(lastFrame&&Date.now()-lastFrame>1500)resetBeat();
      intensity(.34);
    }
    wantCapture(askPermission);
@@ -116,8 +120,12 @@
    // the halo behind the cover (which may be clipped by the WebView scroller).
    overlay.style.setProperty('--aurel-reactive-scale',(0.99+strong*.055).toFixed(4));
    // Drift follows genuine FFT energy only; never uses a timed animation.
-   overlay.style.setProperty('--aurel-aurora-drift',Math.round((strong-.45)*9)+'px');
-   intensity(.30+strong*.66);
+   overlay.style.setProperty('--aurel-aurora-drift',Math.round((strong-.45)*13)+'px');
+   // Two independently tinted full-screen radial fields, shifted gently
+   // only by actual Android FFT frames. No timers or simulated bass.
+   overlay.style.setProperty('--aurel-aurora-glide-x',Math.round((.48-strong)*20)+'px');
+   overlay.style.setProperty('--aurel-aurora-glide-y',Math.round((strong-.44)*15)+'px');
+   intensity(.34+strong*.61);
    if(level>.10&&level>lastPeak+.045&&now-lastPulse>170){
      lastPulse=now;
      rotation=(rotation+12)%360;

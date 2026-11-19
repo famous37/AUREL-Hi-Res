@@ -10,7 +10,8 @@
   --aurel-glass-stroke:color-mix(in srgb,var(--aurel-seam-accent,#d5d7db) 13%,transparent);
 }
 :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view{
-  padding-top:var(--aurel-native-status-inset,0px)!important;
+  /* The safe header is absolute; padding the whole player wasted vertical space. */
+  padding-top:0!important;
   background-clip:border-box!important;
   border-top:0!important;
   box-shadow:none!important;
@@ -172,79 +173,149 @@ html[data-aurel-motion="off"] .app #screen *{
 }
 
 
-/* 1.1.74 — canonical portrait geometry and edge-free, genuine-FFT ambience.
- * Correct prior hard cut at the pseudo-layer's 75dvh boundary. Keep all
- * responsive landscape geometry and screen-reader touch targets intact. */
-@media (orientation:portrait){
- :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- .murglar-header.aurel-listening-nav{
-   top:max(42px, calc(var(--aurel-native-status-inset, 0px) + 12px))!important;
-   height:50px!important;
-   min-height:50px!important;
-   z-index:30!important;
-   isolation:isolate;
- }
- :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- .murglar-player-content{
-   padding-top:clamp(10px,1.8dvh,24px)!important;
- }
- :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- .murglar-header.aurel-listening-nav .murglar-header-button{
-   pointer-events:auto!important;
-   touch-action:manipulation;
- }
-}
-/* Unlike the old <75dvh> paint box, each field fades to alpha zero inside
-   the full viewport; no artificial horizontal boundary crosses progress. */
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view::before{
+/* v1.1.75: one uninterrupted backdrop behind Now Playing AND the
+   persistent navbar. Previously the overlay ended at navbar.top, so no
+   gradient — however soft — could bridge that hard clipping boundary.
+   All FFT-driven transforms act on fixed full-screen compositor layers. */
+:root[data-aurel-palette] #overlay:not(.hidden){
   inset:0!important;
+  top:0!important;right:0!important;bottom:0!important;left:0!important;
+  height:100%!important;max-height:100%!important;
   width:100%!important;
-  height:100%!important;
-  min-height:100%!important;
-  pointer-events:none!important;
-  border:0!important;
-  box-shadow:none!important;
-  background-image:
-    radial-gradient(ellipse 94% 66% at 18% 19%,
-      color-mix(in srgb,var(--aurel-album-one,#999) 46%,transparent) 0%,
-      transparent 95%),
-    radial-gradient(ellipse 103% 72% at 87% 37%,
-      color-mix(in srgb,var(--aurel-album-two,#888) 38%,transparent) 0%,
-      transparent 97%),
-    radial-gradient(ellipse 105% 78% at 47% 55%,
-      color-mix(in srgb,var(--aurel-album-three,#aaa) 24%,transparent) 0%,
-      transparent 98%)!important;
-  transform:translate3d(var(--aurel-aurora-drift,0px),0,0)
-    scale(var(--aurel-reactive-scale,1))!important;
-  transform-origin:50% 40%;
-  transition:transform 240ms cubic-bezier(.22,.68,.25,1),
-    opacity 210ms cubic-bezier(.2,.7,.3,1)!important;
-}
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view{
+  overflow:hidden!important;
+  isolation:isolate!important;
   background:var(--aurel-album-bg,var(--aurel-seam-bg,#111214))!important;
-  background-image:radial-gradient(ellipse 128% 91% at 51% 16%,
-    color-mix(in srgb,var(--aurel-album-one,#777) 11%,transparent),
-    transparent 92%)!important;
+  z-index:50!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view,
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled:not(.hidden) .murglar-view{
+  /* Reserve the measured navbar height for controls, but do not clip the
+     shared full-screen backdrop at this reservation boundary. */
+  height:calc(100% - var(--aurel-nav-height,64px))!important;
+  max-height:calc(100% - var(--aurel-nav-height,64px))!important;
+  min-height:0!important;
+  background:none!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  position:relative!important;
+  z-index:1!important;
+  isolation:isolate;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view::before,
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled:not(.hidden) .murglar-view::before{
+  /* Remove the inherited 75dvh pseudo-art layer entirely. */
+  display:none!important;
+  content:none!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden)::before,
+:root[data-aurel-palette] #overlay:not(.hidden)::after{
+  content:""!important;
+  display:block!important; /* style.css used display:none for these */
+  position:absolute!important;
+  inset:-3% -5%!important;
+  height:auto!important;width:auto!important;
+  z-index:0!important;
+  border:0!important;
+  pointer-events:none!important;
+  border-radius:0!important;
+  will-change:transform,opacity;
+  backface-visibility:hidden;
+  transform-origin:50% 50%;
+  transition:transform 260ms cubic-bezier(.2,.68,.3,1),
+             opacity 230ms cubic-bezier(.2,.65,.3,1)!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden)::before{
+  background:
+    radial-gradient(ellipse 77% 61% at 19% 17%,
+      color-mix(in srgb,var(--aurel-album-one,#888) 77%,transparent) 0%,
+      transparent 89%),
+    radial-gradient(ellipse 83% 65% at 86% 35%,
+      color-mix(in srgb,var(--aurel-album-two,#888) 68%,transparent) 0%,
+      transparent 91%),
+    radial-gradient(ellipse 88% 65% at 47% 75%,
+      color-mix(in srgb,var(--aurel-album-three,#999) 53%,transparent) 0%,
+      transparent 95%)!important;
+  opacity:clamp(.34,var(--aurel-aurora-opacity,.38),.92)!important;
+  transform:translate3d(var(--aurel-aurora-drift,0px),
+               var(--aurel-aurora-glide-y,0px),0)
+               scale(var(--aurel-reactive-scale,1))!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden)::after{
+  background:
+    radial-gradient(ellipse 70% 58% at 26% 65%,
+      color-mix(in srgb,var(--aurel-album-two,#aaa) 30%,transparent) 0%,
+      transparent 94%),
+    radial-gradient(ellipse 78% 59% at 82% 79%,
+      color-mix(in srgb,var(--aurel-album-one,#aaa) 30%,transparent) 0%,
+      transparent 95%),
+    radial-gradient(ellipse 66% 48% at 51% 35%,
+      color-mix(in srgb,var(--aurel-album-three,#aaa) 31%,transparent) 0%,
+      transparent 96%)!important;
+  opacity:clamp(.26,var(--aurel-aurora-opacity,.34),.90)!important;
+  transform:translate3d(var(--aurel-aurora-glide-x,0px),0,0)
+      scale(var(--aurel-reactive-scale,1))!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-art-wrap{
+  isolation:isolate;
 }
 :root[data-aurel-palette] #overlay.aurel-cover-rhythm:not(.hidden)
  .murglar-art-wrap::before{
   -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 87%);
   mask-image:radial-gradient(ellipse at center,#000 30%,transparent 87%);
 }
-/* Lightly translucent navbar, with an opaque fallback for older WebViews.
-   Do not reveal underlying Settings while the fullscreen player is visible. */
+/* The Android status inset already belongs to the full-screen WebView;
+   native conversion is from physical px to CSS dp. Use the identical high-
+   specificity selectors for both aura on/off to avoid a top:0 override. */
+@media (orientation:portrait){
+  :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+    .murglar-header.aurel-listening-nav,
+  :root[data-aurel-palette] #overlay.aurel-aurora-enabled:not(.hidden) .murglar-view
+    .murglar-header.aurel-listening-nav{
+    position:absolute!important;
+    top:max(56px,calc(var(--aurel-native-status-inset,24px) + 18px))!important;
+    left:0!important;right:0!important;bottom:auto!important;
+    height:50px!important;min-height:50px!important;
+    background:transparent!important;box-shadow:none!important;
+    border:0!important;
+    z-index:30!important;
+  }
+  :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+    .murglar-header.aurel-listening-nav .murglar-header-button{
+    pointer-events:auto!important;
+    touch-action:manipulation;
+  }
+  :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+    .murglar-player-content{
+    padding-top:clamp(10px,1.8dvh,24px)!important;
+    background:transparent!important;
+  }
+}
 :root[data-aurel-palette] .app .bottom-nav{
-  background:var(--aurel-seam-bg,#111214)!important;
   background:color-mix(in srgb,var(--aurel-seam-bg,#111214) 88%,transparent)!important;
-  -webkit-backdrop-filter:blur(4px) saturate(1.05);
-  backdrop-filter:blur(4px) saturate(1.05);
-  border-top:1px solid color-mix(in srgb,
-    var(--aurel-seam-accent,#ddd) 10%,transparent)!important;
+  -webkit-backdrop-filter:blur(5px) saturate(1.03)!important;
+  backdrop-filter:blur(5px) saturate(1.03)!important;
+  border:0!important;
+  box-shadow:none!important;
 }
-:root[data-aurel-palette] .app.aurel-player-open .bottom-nav{
+:root[data-aurel-palette] .app.aurel-player-open .bottom-nav,
+:root[data-aurel-palette] .app:has(#overlay:not(.hidden)) .bottom-nav{
+  z-index:90!important;
+  /* This is translucent over the very same #overlay canvas rather than
+     painting an unrelated solid rectangle with a straight upper edge. */
   background:color-mix(in srgb,
-    var(--aurel-album-bg,var(--aurel-seam-bg,#111214)) 91%,transparent)!important;
+    var(--aurel-album-bg,var(--aurel-seam-bg,#111214)) 25%,transparent)!important;
+  border-top:0!important;
+  outline:0!important;
+  box-shadow:none!important;
 }
+@media(prefers-reduced-motion:reduce){
+  :root[data-aurel-palette] #overlay::before,
+  :root[data-aurel-palette] #overlay::after{transition:none!important}
+}
+html[data-aurel-motion="off"] #overlay::before,
+html[data-aurel-motion="off"] #overlay::after{transition:none!important}
+
 /* Touch gestures only animate cover/text while swiping horizontally.
    The previous page must not repaint during an active vertical dismissal. */
 #overlay.aurel-track-scrubbing .murglar-art-wrap,

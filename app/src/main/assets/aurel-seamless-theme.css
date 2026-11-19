@@ -359,7 +359,10 @@
  :root[data-aurel-palette] #overlay.aurel-aurora-enabled:not(.hidden) .murglar-view
    .murglar-header.aurel-listening-nav{
    position:absolute!important;
-   inset:0 0 auto 0!important;
+
+   /* Native insets are passed as CSS-density pixels, not device pixels. */
+   top:max(56px,calc(var(--aurel-native-status-inset,24px) + 18px))!important;
+   left:0!important;right:0!important;bottom:auto!important;
    z-index:20!important;
    display:grid!important;
    grid-template-columns:48px minmax(0,1fr) 48px!important;
