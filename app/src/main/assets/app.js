@@ -461,8 +461,21 @@ async function navigate(page){
  else if(page==='playlists')await loadPlaylists();
  }catch(e){showToast(e.message)}
 }
-async function loadHome(){try{let d=await api('discover',{},true);app.albums=sliceItems(d,'albums').length?sliceItems(d,'albums'):sliceItems(d);if(app.nav==='home')render();}
- catch(e){if(app.nav==='home')render();showToast('Qobuz discovery unavailable: '+e.message,5000)}}
+async function loadHome(){
+ try{
+  const d=await api('discover',{},true);
+  app.albums=sliceItems(d,'albums').length?sliceItems(d,'albums'):sliceItems(d);
+  app.discoverStatus=app.albums.length?'':'empty';
+  if(app.nav==='home')render();
+ }catch(e){
+  // Discovery has separate authorization from search, library and playback.
+  // Display a concise inline state instead of obscuring the page.
+  const message=String(e?.message||'');
+  app.discoverStatus=/authorization|authoriz|403|401|permitted featured|Fresh releases unavailable/i.test(message)
+   ?'authorization':'network';
+  if(app.nav==='home')render();
+ }
+}
 async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()||app.searchQuery;if(!app.searchQuery)return;
  if(window.AurelSearchHistory)window.AurelSearchHistory(app.searchQuery);
  const buffered=window.AurelPageCache?.peek('search',{query:app.searchQuery,type:app.searchType});
@@ -592,7 +605,7 @@ async function login(form){
  try{
   app.session=await nativeCall(passwordMode?'loginPassword':'loginToken',data);
   // Account-specific collections cannot survive authentication changes.
-  app.results=[];app.albums=[];app.libraryItems=[];app.playlists=[];
+  app.results=[];app.albums=[];app.discoverStatus='';app.libraryItems=[];app.playlists=[];
   app.libraryCache=Object.create(null);app.playlistsCache=null;
   window.AurelPageCache?.clear();
   app.loginTarget='stream';app.libType='albums';

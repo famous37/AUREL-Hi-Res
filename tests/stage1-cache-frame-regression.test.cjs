@@ -93,3 +93,24 @@ assert(source('aurel-player-fit.js').includes("observer.observe(view)"));
  assert.equal(delivered.length,2);
  console.log('Stage 1: in-flight catalogue isolation, artwork LRU, FFT frame pacing and continuity PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Screenshot regression: an unverified paused stream must never be reported as
+// a playback failure or a confirmed CD/Hi-Res format.
+{
+ const modern=source('modern.js');
+ const section=modern.slice(modern.indexOf('function actualSource(p){'),modern.indexOf('const bytesText='));
+ const ctx={kHzLabel:h=>h>0?Number(h/1000).toFixed(1)+' kHz':'',console};
+ vm.runInNewContext(section+';this.actualSource=actualSource;',ctx);
+ assert.equal(ctx.actualSource({playing:false,formatId:6,bits:0,sampleRateHz:0,decoderSampleRateHz:0}),
+   'CD requested · format unverified');
+ assert.equal(ctx.actualSource({playing:false,formatId:27,bits:0,sampleRateHz:0,decoderSampleRateHz:0}),
+   'Hi-Res Max requested · format unverified');
+ assert.equal(ctx.actualSource({playing:false,formatId:0,bits:0,sampleRateHz:0,decoderSampleRateHz:0}),
+   'Format unverified · tap Audio');
+ assert(ctx.actualSource({sourceVerified:true,bits:16,sampleRateHz:44100,codec:'FLAC'})
+   .includes('16-bit / 44.1 kHz'));
+ assert(modern.includes("document.querySelector('#overlay .aurel-source-pill span, #overlay .murglar-source-line span')"));
+ assert(modern.includes('data-aurel-discovery-state'));
+ assert(!source('app.js').includes("showToast('Qobuz discovery unavailable: '+e.message,5000)"));
+ assert(source('app.js').includes("app.discoverStatus=/authorization"));
+}
