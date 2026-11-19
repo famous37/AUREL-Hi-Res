@@ -145,6 +145,7 @@ jobs:
           node tests/player-reopen-stability.test.cjs
           node tests/artist-catalog-progress.test.cjs
           node tests/qobuz-appid-media-diagnostics.test.cjs
+          node tests/discover-source-priority.test.cjs
           mkdir -p build/media-recovery-test
           javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
           java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
@@ -197,19 +198,15 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — Qobuz App ID recovery and Android playback diagnostics" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — source-aware discovery for Fresh releases" \
             '' \
-            '- Removed outdated default streaming and public widget App IDs that could cause Qobuz HTTP 405.' \
-            '- Public artist/featured/track metadata now uses current Qobuz web-client App ID discovery, without forwarding the user token.' \
-            '- Prefer connected authorized catalogue metadata before any public fallback; preserve separate Qobuz and Mornye account boundaries.' \
-            '- Show an explicit authorization failure when a token is paired with a rejected App ID; reconnect with a valid matching pair.' \
-            '- On MediaPlayer failure, record Android what/extra, output category, bit-perfect setting, and selected format locally without logging stream URLs.' \
-            '- Use the active MediaPlayer instance for route callbacks and preserve existing pause-on-unplug policy.' \
-            '- An invalid account token or hardware/decoder issue still requires resolution; see the local error log.' \
-            '- Preserves 1.1.80 catalogue recovery, seekbar, FFT artwork, favourites, settings and USB output policy.' \
-            '- Android versionCode 100, signed by the same permanent AUREL certificate as 1.1.80.' \
+            '- Fix: Home now attempts discover/newReleases through an already-authorized Mornye metadata session before any external public Qobuz App ID.' \
+            '- If the gateway rejects featured discovery, AUREL tries a separately authorized Qobuz library/streaming account before the public metadata endpoint.' \
+            '- Existing restrictions remain enforced: expired gateway sessions require verification; unavailable provider discovery is reported, not fabricated.' \
+            '- Search, artist and album catalogue flows remain independent; preserving streaming, FFT, Android output and Bit Perfect.' \
+            '- Android versionCode 101 with same permanent AUREL release signing certificate as v1.1.81.' \
             '' \
-            "Install v${AUREL_VERSION} directly over permanently signed AUREL 1.1.80 without uninstalling or losing data." \
+            "Install v${AUREL_VERSION} directly over permanently signed AUREL 1.1.81 without uninstalling or losing data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

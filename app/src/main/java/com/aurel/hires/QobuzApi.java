@@ -301,29 +301,42 @@ final class QobuzApi {
      */
     JSONObject publicFeaturedReleases(int limit)throws Exception{
         int safeLimit=Math.max(1,Math.min(48,limit));
+        JSONObject query=new JSONObject().put("type","new-releases").put("limit",safeLimit);
+        // A connected account explicitly authorizes its own catalogue use.
+        // Prefer that to the unrelated public Web App ID, which Qobuz can
+        // reject with HTTP 405 even when the signed Mornye gateway is valid.
+        Exception authorizedFailure=null;
+        String libraryAppId=store.get("libraryAppId");
+        String libraryAuthToken=store.get("libraryToken");
+        if(libraryAppId.matches("[0-9]{6,15}")&&!libraryAuthToken.isEmpty()){
+            try{
+                JSONObject page=request("album/getFeatured",query,false,
+                    libraryAppId,libraryAuthToken);
+                JSONObject albums=page.optJSONObject("albums");
+                if(albums!=null&&albums.optJSONArray("items")!=null)return page;
+                throw new Exception("Unexpected library featured-album response");
+            }catch(Exception denied){authorizedFailure=denied;}
+        }
+        String streamingAppId=streamId(),streamingToken=streamToken();
+        if(streamingAppId.matches("[0-9]{6,15}")&&!streamingToken.isEmpty()){
+            try{return discoverReleases(safeLimit);}
+            catch(Exception denied){authorizedFailure=denied;}
+        }
+        // Public metadata never carries account cookies or user tokens. Its
+        // Web App ID is not interchangeable with a user-provided streaming ID.
         try{
-            JSONObject page=request("album/getFeatured",
-                new JSONObject().put("type","new-releases").put("limit",safeLimit),
-                false,resolveAppId(""),"");
+            JSONObject page=request("album/getFeatured",query,false,
+                resolveAppId(""),"");
             JSONObject albums=page.optJSONObject("albums");
             if(albums==null||albums.optJSONArray("items")==null)
                 throw new Exception("Qobuz public featured-albums endpoint returned no album list");
             return page;
-        }catch(Exception error){
-            // If an actual authenticated Qobuz account was independently
-            // connected, its licensed catalogue may support discovery.
-            if(!store.get("streamToken").isEmpty())return discoverReleases(safeLimit);
-            if(!store.get("libraryToken").isEmpty()){
-                String id=store.get("libraryAppId"),token=store.get("libraryToken");
-                if(!id.isEmpty()){
-                    try{
-                        return request("album/getFeatured",new JSONObject()
-                            .put("type","new-releases").put("limit",safeLimit),
-                            false,id,token);
-                    }catch(Exception ignored){}
-                }
-            }
-            throw new Exception("Qobuz public new releases unavailable: "+error.getMessage());
+        }catch(Exception publicError){
+            String hint=authorizedFailure==null?
+                "No connected Qobuz account provided a permitted featured catalogue.":
+                "The connected account and public featured catalogue both failed.";
+            throw new Exception("Fresh releases unavailable: "+hint+
+                " Qobuz authorization is required for this source; the regular search and playback can remain functional.");
         }
     }
 
