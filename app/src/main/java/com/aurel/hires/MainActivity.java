@@ -1165,6 +1165,7 @@ public final class MainActivity extends Activity {
                             if(topBlock==null)topBlock=extras.optJSONObject("topTracks");
                             JSONArray topItems=topBlock==null?extras.optJSONArray("top_tracks"):
                                 topBlock.optJSONArray("items");
+                            if(topItems==null)topItems=extras.optJSONArray("topTracks");
                             if(topItems==null||topItems.length()==0) {
                                 try {
                                     JSONObject fallback=artistTrackFallback(artistId);
@@ -1383,8 +1384,13 @@ public final class MainActivity extends Activity {
      * otherwise search Qobuz and strictly filter by the requested artist ID.
      * A search result is explicitly marked as non-ranked by the UI. */
     private JSONObject artistTrackFallback(String artistId)throws Exception {
-        JSONObject info=artistInformation("artist/get",
-            new JSONObject().put("artist_id",artistId).put("extra","tracks"));
+        JSONObject info;
+        try {info=artistInformation("artist/get",
+            new JSONObject().put("artist_id",artistId).put("extra","tracks"));}
+        catch(Exception unsupportedExtra){
+            info=artistInformation("artist/get",
+                new JSONObject().put("artist_id",artistId));
+        }
         JSONArray official=artistItems(info,"top_tracks");
         if(official==null)official=artistItems(info,"topTracks");
         if(official!=null&&official.length()>0)
@@ -1481,22 +1487,39 @@ public final class MainActivity extends Activity {
         JSONObject page=artistInformation("artist/page",
             new JSONObject().put("artist_id",artistId));
         JSONArray sections=page.optJSONArray("releases");
-        if(sections==null)throw new Exception("Artist page has no release sections");
+        JSONObject grouped=page.optJSONObject("releases");
         JSONArray matches=new JSONArray();
-        for(int i=0;i<sections.length();i++) {
+        if(sections!=null)for(int i=0;i<sections.length();i++) {
             JSONObject section=sections.optJSONObject(i);
             if(section==null)continue;
             String type=section.optString("type",section.optString("release_type",""));
-            boolean matchesType=type.equals(releaseType)
-                ||(releaseType.equals("epSingle")&&(type.equals("single")||type.equals("ep")));
+            boolean matchesType=type.equalsIgnoreCase(releaseType)
+                ||(releaseType.equals("epSingle")
+                    &&(type.equalsIgnoreCase("single")||type.equalsIgnoreCase("ep")));
             if(!matchesType)continue;
             JSONArray items=section.optJSONArray("items");
+            if(items==null)items=section.optJSONArray("albums");
             if(items==null)continue;
             for(int n=0;n<items.length();n++) {
                 JSONObject item=items.optJSONObject(n);
                 if(item!=null)matches.put(item);
             }
         }
+        // Alternate artist/page format: {releases:{epSingle:{items:[...]}}}.
+        if(grouped!=null) {
+            String[] keys=releaseType.equals("epSingle")
+                ?new String[]{"epSingle","single","ep"}
+                :new String[]{releaseType};
+            for(String key:keys) {
+                JSONArray items=artistItems(grouped,key);
+                if(items==null)continue;
+                for(int n=0;n<items.length();n++) {
+                    JSONObject item=items.optJSONObject(n);
+                    if(item!=null)matches.put(item);
+                }
+            }
+        }
+        if(matches.length()==0)throw new Exception("No typed release previews");
         return new JSONObject().put("items",matches).put("_partial",true);
     }
 
