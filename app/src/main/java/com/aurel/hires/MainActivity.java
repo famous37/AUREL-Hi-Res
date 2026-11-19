@@ -1633,8 +1633,16 @@ public final class MainActivity extends Activity {
                             }else{
                                 String endpoint=type.equals("albums")?"album/search":
                                     type.equals("artists")?"artist/search":"track/search";
-                                data=catalog(endpoint,new JSONObject()
-                                    .put("query",q).put("limit",35));
+                                JSONObject query=new JSONObject()
+                                    .put("query",q).put("limit",35);
+                                try{data=catalog(endpoint,query);}
+                                catch(Exception sourceFailure){
+                                    // The separately authorized personal library may
+                                    // permit metadata search even when the streaming
+                                    // gateway rejects that catalogue endpoint.
+                                    needLibrary();
+                                    data=api.library(endpoint,query);
+                                }
                             }
                             break;
                         }
