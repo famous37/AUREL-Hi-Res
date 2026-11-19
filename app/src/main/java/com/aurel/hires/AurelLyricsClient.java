@@ -20,7 +20,7 @@ final class AurelLyricsClient {
         final JSONObject value;final long expires;
         LyricsCacheEntry(JSONObject value,long expires){this.value=value;this.expires=expires;}
     }
-    private final LinkedHashMap<String,LyricsCacheEntry> cache=new LinkedHashMap<String,Entry>(48,.75f,true){
+    private final LinkedHashMap<String,LyricsCacheEntry> cache=new LinkedHashMap<String,LyricsCacheEntry>(48,.75f,true){
         @Override protected boolean removeEldestEntry(java.util.Map.Entry<String,LyricsCacheEntry> e){
             return size()>48;
         }
