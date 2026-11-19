@@ -31,7 +31,7 @@ function panelMarkup(){
  if(notes)result+='<details class="aurel-update-notes"><summary>What’s new</summary><p>'+
    escapeText(notes)+'</p></details>';
  if(s.error)result+='<p class="aurel-update-error" role="alert">'+escapeText(s.error)+'</p>';
- if(!supported)result+='<p class="aurel-update-error">Preview has a separate Android package; its updates must be installed separately.</p>';
+ if(!supported)result+='<p class="aurel-update-error">Clone and Preview use separate Android packages; install their own APK updates, not standard AUREL releases.</p>';
  result+='<div class="aurel-update-controls"><button type="button" class="pill secondary" data-aurel-check-update'+disabled+'>Check now</button>';
  if(supported&&s.available&&status!=='downloaded'&&status!=='downloading')
    result+='<button type="button" class="pill" data-aurel-download-update>Download update</button>';
