@@ -1646,11 +1646,22 @@ public final class MainActivity extends Activity {
                             }
                             break;
                         }
-                        case "album":data=catalog("album/get",new JSONObject().put("album_id",p.getString("id")).put("limit",100));break;
+                        case "album": {
+                            String id=p.getString("id");
+                            JSONObject params=new JSONObject().put("album_id",id).put("limit",100);
+                            try{data=catalog("album/get",params);}
+                            catch(Exception sourceFailure){
+                                needLibrary();
+                                data=api.library("album/get",params);
+                            }
+                            break;
+                        }
                         case "artist": {
-                            data=catalog("artist/get",new JSONObject().put("artist_id",p.getString("id"))
-                                .put("extra","albums").put("limit",100).put("offset",0));
-                            data=withArtistReleases(data,p.getString("id"),0,100);
+                            String id=p.getString("id");
+                            JSONObject params=new JSONObject().put("artist_id",id)
+                                .put("extra","albums").put("limit",100).put("offset",0);
+                            data=artistInformation("artist/get",params);
+                            data=withArtistReleases(data,id,0,100);
                             break;
                         }
                         case "artistAlbums": {
