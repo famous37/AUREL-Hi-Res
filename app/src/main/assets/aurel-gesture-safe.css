@@ -1,4 +1,4 @@
-/* AUREL 1.1.77 — final, safe layout layer.
+/* AUREL 1.1.78 — final, safe layout layer.
  * One artwork canvas behind status, shared tabs and Android gesture handle.
  * Keep player geometry separate from FFT/compositor-only visual motion. */
 :root{
@@ -362,7 +362,7 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
   color:var(--aurel-theme-ink,#161719)!important;
 }
 
-/* Full player: preserve the header/cover safety lane of 1.1.77, then give
+/* Full player: preserve the header/cover safety lane of 1.1.78, then give
  * title/artist/album their own breathing room. Artwork shrinks before text
  * or transport controls are clipped by a short portrait viewport. */
 @media(orientation:portrait){
@@ -435,11 +435,11 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
 :root[data-aurel-palette] .app #screen .track :is(
   .icon-btn,.aurel-share-control,.aurel-share-icon){
   box-sizing:border-box!important;
-  flex:0 0 42px!important;
+  flex:0 0 44px!important;
   display:grid!important;place-items:center!important;
-  width:42px!important;height:42px!important;
-  min-width:42px!important;min-height:42px!important;
-  max-width:42px!important;
+  width:44px!important;height:44px!important;
+  min-width:44px!important;min-height:44px!important;
+  max-width:44px!important;
   margin:0!important;padding:0!important;
   color:var(--aurel-theme-on,#f7f7f7)!important;
   background:color-mix(in srgb,
@@ -487,8 +487,8 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
 :root[data-aurel-palette] .app #screen .cover
   :is(.aurel-favourite-control,.aurel-share-control){
   display:grid!important;place-items:center!important;
-  width:42px!important;height:42px!important;
-  min-width:42px!important;min-height:42px!important;
+  width:44px!important;height:44px!important;
+  min-width:44px!important;min-height:44px!important;
   padding:0!important;border:0!important;border-radius:12px!important;
   background:color-mix(in srgb,
     var(--aurel-seam-card,#242529) 66%,transparent)!important;

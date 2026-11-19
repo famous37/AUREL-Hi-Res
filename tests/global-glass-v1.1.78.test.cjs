@@ -33,7 +33,7 @@ for(const rule of [
  'svg.ui-icon',
  'stroke-width:2.3!important',
  '.app #screen .track :is(',
- 'width:42px!important;height:42px!important',
+ 'width:44px!important;height:44px!important',
  '.app #screen .cover',
  '.tab.active,.chip.selected,.view-switch button.active',
  'prefers-reduced-motion:reduce',
