@@ -86,7 +86,13 @@ final class AurelLibraryTransfer {
         while(it.hasNext())if(!allowed.contains(it.next()))
             throw new Exception("The library file contains unsupported fields");
     }
+    private static boolean isLocalId(String id){
+        // Name-only screenshots cannot provide real Qobuz IDs. Accept only
+        // namespaced, deterministic offline IDs; never send them to the API.
+        return id!=null && id.matches("local_[0-9a-f]{32}");
+    }
     private static boolean validId(String id,String type){
+        if(isLocalId(id))return true;
         if(type.equals("artists")||type.equals("tracks"))
             return id.matches("[0-9]{1,24}");
         return id.matches("[a-zA-Z0-9_-]{1,96}");
@@ -126,6 +132,9 @@ final class AurelLibraryTransfer {
         String id=string(src,"id",96);
         if(!validId(id,type))throw new Exception("Invalid "+type+" identifier");
         JSONObject out=new JSONObject().put("id",id);
+        // These local records deliberately have no Qobuz entitlement or URL.
+        // Their public metadata can be viewed/exported until they are matched
+        // using actual provider identifiers from an authorized account.
         if(type.equals("artists")){
             out.put("name",string(src,"name",180));
         }else if(type.equals("albums")){
