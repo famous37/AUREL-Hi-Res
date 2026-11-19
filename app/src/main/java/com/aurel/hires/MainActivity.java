@@ -56,24 +56,36 @@ public final class MainActivity extends Activity {
         systemInsetBottom=0,imeInsetBottom=0;
     private void applyPlayerWindowInsets(){
         if(systemInsetFrame==null)return;
+        // Android draws the artwork all the way behind the gesture handle.
+        // Only an on-screen keyboard requires bottom padding in the native view.
+        final boolean edgeToEdgeNavigation=Build.VERSION.SDK_INT>=30;
+        final boolean keyboardVisible=imeInsetBottom>systemInsetBottom;
         systemInsetFrame.setPadding(systemInsetLeft,
-            fullPlayerImmersive?0:systemInsetTop,
-            systemInsetRight,Math.max(systemInsetBottom,imeInsetBottom));
+            fullPlayerImmersive?0:systemInsetTop,systemInsetRight,
+            edgeToEdgeNavigation?(keyboardVisible?imeInsetBottom:0):
+                Math.max(systemInsetBottom,imeInsetBottom));
         // WindowInsets are physical device pixels; WebView CSS 'px' are
         // density-independent layout pixels. Mixing them moves touch targets
         // unpredictably on high-density Pixel displays.
         float density=Math.max(1f,getResources().getDisplayMetrics().density);
         String cssInset=String.format(Locale.US,"%.1fpx",systemInsetTop/density);
+        String cssNavigationInset=String.format(Locale.US,"%.1fpx",
+            edgeToEdgeNavigation&&!keyboardVisible?systemInsetBottom/density:0f);
         if(web!=null)script("document.documentElement.style.setProperty("+
             JSONObject.quote("--aurel-native-status-inset")+","+
-            JSONObject.quote(cssInset)+")");
+            JSONObject.quote(cssInset)+");document.documentElement.style.setProperty("+
+            JSONObject.quote("--aurel-native-navigation-inset")+","+
+            JSONObject.quote(cssNavigationInset)+")");
     }
     private void setPlayerImmersive(boolean open){
         if(fullPlayerImmersive==open)return;
         fullPlayerImmersive=open;
         final View decor=getWindow().getDecorView();
+        final int navigationLayout=Build.VERSION.SDK_INT>=30?
+            (View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|
+             View.SYSTEM_UI_FLAG_LAYOUT_STABLE):0;
         decor.setSystemUiVisibility(open?
-            (View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_STABLE):0);
+            (navigationLayout|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN):navigationLayout);
         getWindow().setStatusBarColor(open?Color.TRANSPARENT:currentChromeColor);
         if(Build.VERSION.SDK_INT>=29)getWindow().setStatusBarContrastEnforced(false);
         applyPlayerWindowInsets();
@@ -550,9 +562,22 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().setStatusBarColor(GRAPHITE_CHROME);
-        getWindow().setNavigationBarColor(GRAPHITE_CHROME);
+        if(Build.VERSION.SDK_INT>=30){
+            // Edge-to-edge gestures: WebView paints the album colours underneath.
+            getWindow().setDecorFitsSystemWindows(false);
+            getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        }else{
+            getWindow().setNavigationBarColor(GRAPHITE_CHROME);
+        }
+        if(Build.VERSION.SDK_INT>=29)
+            getWindow().setNavigationBarContrastEnforced(false);
+        if(Build.VERSION.SDK_INT>=28)
+            getWindow().setNavigationBarDividerColor(Color.TRANSPARENT);
         getWindow().getDecorView().setBackgroundColor(GRAPHITE_CHROME);
-        getWindow().getDecorView().setSystemUiVisibility(0);
+        getWindow().getDecorView().setSystemUiVisibility(
+            Build.VERSION.SDK_INT>=30?
+                (View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|
+                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE):0);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         secure=new SecureStore(this);
         beatMonitor=new AurelBeatMonitor(level->{
@@ -637,6 +662,9 @@ public final class MainActivity extends Activity {
                 if(url!=null&&url.startsWith("file:///android_asset/index.html")){
                     String palette=lastArtworkPaletteJs;
                     if(!palette.isEmpty())view.evaluateJavascript(palette,null);
+                    // Insets may arrive before index.html has loaded; reapply
+                    // the CSS-density values after its document is available.
+                    applyPlayerWindowInsets();
                 }
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view,android.webkit.WebResourceRequest request) {
@@ -896,7 +924,9 @@ public final class MainActivity extends Activity {
         if(luminance>0.28)return;
         currentChromeColor=color;
         getWindow().setStatusBarColor(fullPlayerImmersive?Color.TRANSPARENT:color);
-        getWindow().setNavigationBarColor(color);
+        if(Build.VERSION.SDK_INT>=30)
+            getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        else getWindow().setNavigationBarColor(color);
         if(Build.VERSION.SDK_INT>=29){
             getWindow().setStatusBarContrastEnforced(false);
             getWindow().setNavigationBarContrastEnforced(false);
