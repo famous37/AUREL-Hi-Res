@@ -51,6 +51,32 @@ jobs:
           print('Qobuz auth models:',', '.join(v['found_models']))
           print('AUTH INTEGRATION NOT YET IMPLEMENTED — NO APK RELEASE')
           PY
+      - name: Rebuild and sign original package for toolchain smoke test (not a token MOD)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 \
+            'https://github.com/iBotPeaches/Apktool/releases/download/v2.12.1/apktool_2.12.1.jar' \
+            -o apktool.jar
+          java -jar apktool.jar d -f -s original.apk -o decoded >/dev/null
+          java -jar apktool.jar b decoded -o repack-unsigned.apk >/dev/null
+          SDK_BUILD_TOOLS="$(find "${ANDROID_HOME}/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
+          test -x "${SDK_BUILD_TOOLS}/zipalign"
+          test -x "${SDK_BUILD_TOOLS}/apksigner"
+          "${SDK_BUILD_TOOLS}/zipalign" -f -p 4 repack-unsigned.apk repack-aligned.apk
+          keytool -genkeypair -alias modsmoke -keyalg RSA -keysize 2048 \
+            -keystore /tmp/modsmoke.jks -storepass android -keypass android -dname "CN=Smoke Test" -validity 1 -noprompt >/dev/null 2>&1
+          "${SDK_BUILD_TOOLS}/apksigner" sign --ks /tmp/modsmoke.jks \
+            --ks-key-alias modsmoke --ks-pass pass:android --key-pass pass:android \
+            --out repack-smoke.apk repack-aligned.apk
+          "${SDK_BUILD_TOOLS}/apksigner" verify --verbose repack-smoke.apk > repack-smoke-report.txt
+          echo 'Only a rebuild/signer smoke test. No token login has been integrated.' >> repack-smoke-report.txt
+          rm -f repack-smoke.apk repack-unsigned.apk repack-aligned.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qobuz-repack-smoke-report-no-apk
+          path: repack-smoke-report.txt
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: qobuz-mod-readonly-analysis
