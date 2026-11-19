@@ -72,6 +72,9 @@ final class AurelLibraryTransfer {
     }
     private static String text(Object value,int max){
         if(value==null||value==JSONObject.NULL)return "";
+        // Never stringify nested objects into metadata fields; that could
+        // accidentally preserve secrets in a hostile or malformed JSON file.
+        if(!(value instanceof String)&&!(value instanceof Number))return "";
         String s=String.valueOf(value).replaceAll("[\\p{Cntrl}]"," ").trim();
         return s.substring(0,Math.min(max,s.length()));
     }
@@ -102,9 +105,23 @@ final class AurelLibraryTransfer {
     private static JSONObject normalize(JSONObject item,String type,boolean strict)
         throws Exception{
         if(item==null)throw new Exception("Invalid entry in imported library");
-        if(strict)keys(item,type.equals("artists")?ARTIST_KEYS:
-            type.equals("albums")?ALBUM_KEYS:
-            type.equals("tracks")?TRACK_KEYS:PLAYLIST_KEYS);
+        if(strict){
+            keys(item,type.equals("artists")?ARTIST_KEYS:
+                type.equals("albums")?ALBUM_KEYS:
+                type.equals("tracks")?TRACK_KEYS:PLAYLIST_KEYS);
+            for(String name:(type.equals("artists")?new String[]{"id","name"}:
+                type.equals("albums")?new String[]{"id","title","artist"}:
+                type.equals("tracks")?new String[]{
+                    "id","title","artist","albumId","albumTitle"}:
+                    new String[]{"id","name"})){
+                Object value=item.opt(name);
+                if(value!=null&&value!=JSONObject.NULL&&!(value instanceof String))
+                    throw new Exception("Invalid text field in "+type+" JSON");
+            }
+            if(type.equals("tracks")&&item.has("duration")&&
+                !(item.opt("duration") instanceof Number))
+                throw new Exception("Invalid track duration");
+        }
         JSONObject src=strict?item:unwrap(item,type);
         String id=string(src,"id",96);
         if(!validId(id,type))throw new Exception("Invalid "+type+" identifier");
@@ -418,8 +435,8 @@ final class AurelLibraryTransfer {
     synchronized JSONObject importPicker(String mode)throws Exception{
         if(!"merge".equals(mode)&&!"replace".equals(mode))
             throw new Exception("Invalid restore mode");
-        importMode=mode;
         begin("import","Choose a saved AUREL library JSON");
+        importMode=mode;
         Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("application/json");
@@ -437,6 +454,7 @@ final class AurelLibraryTransfer {
         io.execute(()->{
             try{
                 if(request==REQUEST_EXPORT){
+                    if(cancel.get())throw new Exception("Export cancelled");
                     JSONObject snapshot=readData();
                     byte[] bytes=snapshot.toString().getBytes(StandardCharsets.UTF_8);
                     if(bytes.length>MAX_BYTES)throw new Exception("Export exceeds 12 MB");
@@ -462,6 +480,7 @@ final class AurelLibraryTransfer {
                     JSONObject incoming=validate(new JSONObject(
                         new String(bytes,StandardCharsets.UTF_8)));
                     JSONObject old=readData();
+                    if(cancel.get())throw new Exception("Restore cancelled; local library unchanged");
                     commit(merge(old,incoming,TYPE_SET,"replace".equals(mode)));
                     progress("saving","Local library safely restored",1,1);
                     finished("complete","Library imported; existing settings and login untouched");
@@ -501,7 +520,11 @@ final class AurelLibraryTransfer {
     synchronized JSONObject clear()throws Exception{
         begin("clearing","Clearing only the local library");
         io.execute(()->{
-            try{commit(empty());finished("complete","Local library cleared; Qobuz unchanged");}
+            try{
+                if(cancel.get())throw new Exception("Clear cancelled");
+                commit(empty());
+                finished("complete","Local library cleared; Qobuz unchanged");
+            }
             catch(Exception error){finished("error",text(error.getMessage(),180));}
         });
         return snapshot();
