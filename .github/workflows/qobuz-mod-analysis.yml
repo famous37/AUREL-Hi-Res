@@ -73,6 +73,7 @@ jobs:
           assert b"TokenGate" in data, "TokenGate class missing"
           assert "УВІЙТИ".encode("utf-8") in data, "Token login button label missing"
           assert b"fetchFavoriteList" in data, "Authenticated library code missing"
+          assert "Поміняти USER ID".encode("utf-8") in data, "Swap IDs button missing"
           print("Verified token login UI + Qobuz API library in compiled DEX")
           PY
           java -jar apktool.jar b decoded -o repack-unsigned.apk >/dev/null
@@ -89,8 +90,8 @@ jobs:
             --out repack-smoke.apk repack-aligned.apk
           "${SDK_BUILD_TOOLS}/apksigner" verify --verbose repack-smoke.apk > repack-smoke-report.txt
           echo 'Token panel attached to original activities. Legacy API validation is separate from OAuth/QWS native login.' >> repack-smoke-report.txt
-          echo 'Token login v3 includes УВІЙТИ action and legacy API favorite library; original OAuth/QWS is unchanged.' >> repack-smoke-report.txt
-          cp repack-smoke.apk Qobuz-10.2.0.0-TokenLogin-v3-EXPERIMENTAL.apk
+          echo 'Token login v4 adds USER ID / APP ID swap and HTTP 400 guidance; original OAuth/QWS is unchanged.' >> repack-smoke-report.txt
+          cp repack-smoke.apk Qobuz-10.2.0.0-TokenLogin-v4-EXPERIMENTAL.apk
           rm -f repack-smoke.apk repack-unsigned.apk repack-aligned.apk
       - uses: actions/upload-artifact@v4
         with:
@@ -99,8 +100,8 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: Qobuz-10.2.0.0-token-login-v3-EXPERIMENTAL
-          path: Qobuz-10.2.0.0-TokenLogin-v3-EXPERIMENTAL.apk
+          name: Qobuz-10.2.0.0-token-login-v4-EXPERIMENTAL
+          path: Qobuz-10.2.0.0-TokenLogin-v4-EXPERIMENTAL.apk
           retention-days: 2
       - uses: actions/upload-artifact@v4
         with:
