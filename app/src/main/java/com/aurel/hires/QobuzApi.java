@@ -127,7 +127,7 @@ final class QobuzApi {
     }
     private JSONObject request(String endpoint, JSONObject data, boolean post, String appId, String token) throws Exception {
         if(!endpoint.matches("[a-zA-Z]+/[a-zA-Z]+"))throw new IllegalArgumentException("Invalid API endpoint");
-        if(appId.isEmpty())throw new IllegalArgumentException("App ID is required for the selected account");
+        if(appId==null||appId.isEmpty())throw new IllegalArgumentException("Qobuz App ID is not configured. Reconnect with the App ID from the same authorized Qobuz session as the token.");
         // Some Qobuz API variants require app_id in the request parameters as
         // well as the X-App-Id header; do not rely on the header alone.
         JSONObject params=new JSONObject(data.toString());
@@ -168,6 +168,12 @@ final class QobuzApi {
                 // Root identifiers are Qobuz server trace IDs, not evidence of a valid session.
                 String detail=body.optString("message",body.optString("error","Request rejected"))
                     .replaceAll("\\s*\\(Root=[^)]*\\)","").trim();
+                if(status==405&&detail.toLowerCase(Locale.ROOT).contains("app_id")){
+                    throw new ApiException(status,endpoint,
+                        "Qobuz HTTP 405: App ID rejected by Qobuz. "
+                        +"Use an authorized App ID from the same Qobuz session as your token; "
+                        +"do not retry with the former default App ID.");
+                }
                 if(status==401||status==403){
                     String authHint=endpoint.equals("user/login")&&token.isEmpty()?
                         "Qobuz refused the client password-authentication request.":
@@ -182,7 +188,7 @@ final class QobuzApi {
     private String streamId(){
         String id=store.get("streamAppId");
         if(id.isEmpty())id=store.get("appId");
-        return id.isEmpty()?"312369995":id;
+        return id; // No undocumented legacy App ID fallback. Require a validated pair.
     }
     private String streamToken(){
         String t=store.get("streamToken");
@@ -210,7 +216,9 @@ final class QobuzApi {
         if(!endpoint.equals("artist/page")&&!endpoint.equals("artist/getSimilarArtists")
             &&!endpoint.equals("artist/get"))
             throw new IllegalArgumentException("Unsupported public artist endpoint");
-        return request(endpoint,args,false,"735532640","");
+        // Public metadata must use the current published Qobuz web-client ID,
+        // not a stale hard-coded widget ID (which now returns HTTP 405).
+        return request(endpoint,args,false,resolveAppId(""),"");
     }
     JSONObject libraryPost(String endpoint,JSONObject args)throws Exception{return request(endpoint,args,true,libraryId(),libraryToken());}
     JSONObject get(String endpoint, JSONObject params)throws Exception{return catalog(endpoint,params);}
@@ -296,7 +304,7 @@ final class QobuzApi {
         try{
             JSONObject page=request("album/getFeatured",
                 new JSONObject().put("type","new-releases").put("limit",safeLimit),
-                false,"735532640","");
+                false,resolveAppId(""),"");
             JSONObject albums=page.optJSONObject("albums");
             if(albums==null||albums.optJSONArray("items")==null)
                 throw new Exception("Qobuz public featured-albums endpoint returned no album list");
