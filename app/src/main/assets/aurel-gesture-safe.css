@@ -1,0 +1,61 @@
+/* AUREL: Android gesture edge-to-edge + balanced portrait Now Playing.
+ * The native Activity publishes physical WindowInsets converted to CSS dp.
+ * A single full-screen overlay paints under the system gesture handle;
+ * the actual navbar and player controls remain inside the safe area. */
+:root{--aurel-native-navigation-inset:0px}
+
+/* Place the shared navigation ABOVE the Android gesture handle rather than
+ * using a black native bottom-padding strip. No change to its dimensions. */
+@media(max-width:820px){
+  body .app .bottom-nav,
+  body .app:has(#overlay:not(.hidden)) .bottom-nav{
+    bottom:var(--aurel-native-navigation-inset,0px)!important;
+  }
+  body .app .mini:not(.hidden){
+    bottom:calc(64px + var(--aurel-native-navigation-inset,0px) + 5px)!important;
+  }
+}
+@media(orientation:landscape){
+  body .app .bottom-nav,
+  body .app:has(#overlay:not(.hidden)) .bottom-nav{
+    bottom:var(--aurel-native-navigation-inset,0px)!important;
+  }
+  body .app .mini:not(.hidden){
+    bottom:calc(var(--aurel-land-nav,64px) +
+      var(--aurel-native-navigation-inset,0px) + 5px)!important;
+  }
+}
+/* Keep the same FFT canvas all the way to the physical bottom edge.
+ * Reserve BOTH navigation regions only for the foreground player layout.
+ * Nav height is measured by aurel-player-fit.js rather than guessed. */
+:root[data-aurel-palette] #overlay:not(.hidden),
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled:not(.hidden){
+  top:0!important;bottom:0!important;
+  height:100%!important;max-height:100%!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view,
+:root[data-aurel-palette] #overlay.aurel-aurora-enabled:not(.hidden) .murglar-view{
+  height:calc(100% - var(--aurel-nav-height,64px) -
+    var(--aurel-native-navigation-inset,0px))!important;
+  max-height:calc(100% - var(--aurel-nav-height,64px) -
+    var(--aurel-native-navigation-inset,0px))!important;
+}
+/* Long portrait screens: spend spare height equally above and below the
+ * listening cluster, instead of leaving all of it under the quality badge.
+ * Flex auto margins resolve to zero when controls overflow; no clipped
+ * buttons, forced transform or invalidated cover-fit measurements. */
+@media(orientation:portrait) and (min-height:650px){
+  :root[data-aurel-palette] #overlay:not(.hidden)
+    .murglar-view:not(.murglar-sheet-open):not(.aurel-fit-scroll)
+    .murglar-art-wrap{
+    margin-top:auto!important;
+    margin-bottom:0!important;
+  }
+  :root[data-aurel-palette] #overlay:not(.hidden)
+    .murglar-view:not(.murglar-sheet-open):not(.aurel-fit-scroll)
+    .murglar-source-line{
+    margin-bottom:auto!important;
+  }
+}
+/* Landscape and compact portrait intentionally keep their established
+ * scrollable layout and playback controls. No changes to audio/FFT state. */
