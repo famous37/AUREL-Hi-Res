@@ -49,7 +49,7 @@ jobs:
           print('Original APK hash:',v['sha256'])
           print('DEX count:',len(v['dex']))
           print('Qobuz auth models:',', '.join(v['found_models']))
-          print('AUTH INTEGRATION NOT YET IMPLEMENTED — NO APK RELEASE')
+          print('LEGACY TOKEN FORM VALIDATION ONLY; NATIVE OAUTH/QWS LOGIN NOT IMPLEMENTED')
           PY
       - name: Patch token panel, rebuild and sign experimental Qobuz package
         shell: bash
@@ -62,7 +62,7 @@ jobs:
           python3 qobuz-mod/tools/inspect_entrypoint.py decoded
           python3 qobuz-mod/tools/patch_smali.py decoded
           mkdir -p qobuz-mod/generated/com/qobuz/mod build/modclasses build/moddex
-          base64 -d qobuz-mod/src/TokenGate.java.gz.b64 | gzip -d > qobuz-mod/generated/com/qobuz/mod/TokenGate.java
+          cp qobuz-mod/src/TokenGate.java qobuz-mod/generated/com/qobuz/mod/TokenGate.java
           ANDROID_JAR="$(find "${ANDROID_HOME}/platforms" -maxdepth 2 -name android.jar | sort -V | tail -1)"
           javac -source 8 -target 8 -cp "${ANDROID_JAR}" -d build/modclasses qobuz-mod/generated/com/qobuz/mod/TokenGate.java
           SDK_BUILD_TOOLS="$(find "${ANDROID_HOME}/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
@@ -82,8 +82,8 @@ jobs:
             --out repack-smoke.apk repack-aligned.apk
           "${SDK_BUILD_TOOLS}/apksigner" verify --verbose repack-smoke.apk > repack-smoke-report.txt
           echo 'Token panel attached to original activities. Legacy API validation is separate from OAuth/QWS native login.' >> repack-smoke-report.txt
-          echo 'Experimental token API 0.2 panel injected; not a replacement for OAuth/QWS.' >> repack-smoke-report.txt
-          cp repack-smoke.apk Qobuz-10.2.0.0-TokenPanel-EXPERIMENTAL.apk
+          echo 'Token panel v2 uses ActivityLifecycleCallbacks and safe system-bar positioning; not an OAuth/QWS replacement.' >> repack-smoke-report.txt
+          cp repack-smoke.apk Qobuz-10.2.0.0-TokenPanel-v2-EXPERIMENTAL.apk
           rm -f repack-smoke.apk repack-unsigned.apk repack-aligned.apk
       - uses: actions/upload-artifact@v4
         with:
@@ -92,8 +92,8 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: Qobuz-10.2.0.0-token-panel-EXPERIMENTAL
-          path: Qobuz-10.2.0.0-TokenPanel-EXPERIMENTAL.apk
+          name: Qobuz-10.2.0.0-token-panel-v2-EXPERIMENTAL
+          path: Qobuz-10.2.0.0-TokenPanel-v2-EXPERIMENTAL.apk
           retention-days: 2
       - uses: actions/upload-artifact@v4
         with:
