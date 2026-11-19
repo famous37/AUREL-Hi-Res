@@ -1,4 +1,4 @@
-/* AUREL 1.1.77 — final, safe layout layer.
+/* AUREL 1.1.78 — final, safe layout layer.
  * One artwork canvas behind status, shared tabs and Android gesture handle.
  * Keep player geometry separate from FFT/compositor-only visual motion. */
 :root{
@@ -50,8 +50,7 @@
 /* One and the same translucent surface under app navigation AND Android's
  * gesture stripe. This scrim is click-through, square-edged and behind
  * the five navbar buttons; no detached floating pill or second divider. */
-:root[data-aurel-palette] .app.aurel-player-open::after,
-:root[data-aurel-palette] .app:has(#overlay:not(.hidden))::after{
+:root[data-aurel-palette] .app::after{
   content:"";
   position:fixed;
   inset:auto 0 0;
@@ -63,10 +62,11 @@
   border-radius:0;
   box-shadow:none;
   background:color-mix(in srgb,
-    var(--aurel-album-bg,var(--aurel-seam-bg,#111214)) 38%,transparent);
-  -webkit-backdrop-filter:blur(7px);
-  backdrop-filter:blur(7px);
+    var(--aurel-seam-bg,#111214) 65%,transparent);
+  -webkit-backdrop-filter:blur(11px) saturate(1.08);
+  backdrop-filter:blur(11px) saturate(1.08);
 }
+:root[data-aurel-palette] .app .bottom-nav,
 :root[data-aurel-palette] .app.aurel-player-open .bottom-nav,
 :root[data-aurel-palette] .app:has(#overlay:not(.hidden)) .bottom-nav{
   z-index:90!important;
@@ -272,4 +272,265 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)::after,
 html[data-aurel-motion="off"] #overlay:not(.hidden)
  .murglar-art-wrap::before{
   transition:none!important;animation:none!important;
+}
+
+/* v1.1.78: cross-screen design system. ALL fixed chrome shares one native
+ * gesture-safe glass, with artwork colours only when the user enables them.
+ * The single click-through ::after is behind the existing five real buttons. */
+:root[data-aurel-palette] body,
+:root[data-aurel-palette] .app,
+:root[data-aurel-palette] .app :is(button,input,textarea,select),
+:root[data-aurel-palette] #overlay{
+  font-family:Roboto,"Noto Sans",system-ui,sans-serif!important;
+}
+:root[data-aurel-palette="artwork"] .app{
+  background-color:var(--aurel-seam-bg,#111214)!important;
+  background-image:
+    radial-gradient(ellipse 92% 51% at 51% 2%,
+      color-mix(in srgb,var(--aurel-global-glow-one,#888) 16%,transparent),
+      transparent 88%),
+    radial-gradient(ellipse 83% 65% at 81% 78%,
+      color-mix(in srgb,var(--aurel-global-glow-two,#777) 11%,transparent),
+      transparent 93%),
+    linear-gradient(180deg,var(--aurel-seam-bg,#111214),
+      color-mix(in srgb,var(--aurel-seam-bg,#111214) 90%,#0a0a0c))!important;
+}
+:root[data-aurel-palette] .app .bottom-nav{
+  border:0!important;outline:0!important;
+  border-radius:0!important;box-shadow:none!important;
+  background:transparent!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  z-index:90!important;
+}
+:root[data-aurel-palette] .app .bottom-nav button{
+  background:transparent!important;
+  border:0!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+  color:var(--aurel-theme-on,#f5f6f7)!important;
+  transition:background-color 240ms var(--aurel-ui-ease),
+             color 240ms var(--aurel-ui-ease),
+             opacity 240ms var(--aurel-ui-ease)!important;
+}
+:root[data-aurel-palette] .app .bottom-nav button.active,
+:root[data-aurel-palette] .app .bottom-nav button[aria-current="page"]{
+  background:color-mix(in srgb,
+    var(--aurel-seam-accent,#d5d7db) 15%,transparent)!important;
+  color:var(--aurel-seam-accent,#d5d7db)!important;
+}
+:root[data-aurel-palette] .app .bottom-nav button:active{opacity:.78!important}
+:root[data-aurel-palette] .app .bottom-nav .aurel-tab-icon{
+  display:grid!important;place-items:center!important;
+  width:29px!important;height:29px!important;
+  min-width:29px!important;min-height:29px!important;
+}
+/* Native mini-player is fixed; reserve scrollable space so library/home last
+ * entries remain reachable above both the mini and Android gesture bar. */
+@media(orientation:portrait) and (max-width:820px){
+  :root[data-aurel-palette] .app .main{
+    padding-bottom:calc(var(--aurel-unified-nav-height,64px) +
+      var(--aurel-native-navigation-inset,0px) + 24px)!important;
+    scroll-padding-bottom:calc(var(--aurel-unified-nav-height,64px) +
+      var(--aurel-native-navigation-inset,0px) + 24px)!important;
+  }
+  :root[data-aurel-palette] .app:has(.mini:not(.hidden)) .main{
+    padding-bottom:calc(var(--aurel-unified-nav-height,64px) +
+      var(--aurel-native-navigation-inset,0px) +
+      var(--aurel-mini-height,72px) + 38px)!important;
+    scroll-padding-bottom:calc(var(--aurel-unified-nav-height,64px) +
+      var(--aurel-native-navigation-inset,0px) +
+      var(--aurel-mini-height,72px) + 38px)!important;
+  }
+}
+/* Same subtle glass material for the mini player on Home, Library, Search
+ * and other screens, independent of overlay visibility. */
+:root[data-aurel-palette] .app .mini:not(.hidden){
+  background:color-mix(in srgb,
+    var(--aurel-seam-surface,#232427) 87%,transparent)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(1.05)!important;
+  backdrop-filter:blur(12px) saturate(1.05)!important;
+  border:1px solid color-mix(in srgb,
+    var(--aurel-seam-accent,#d5d7db) 13%,transparent)!important;
+  box-shadow:0 8px 25px #0005!important;
+}
+:root[data-aurel-palette] .app .mini .mini-play{
+  background:var(--aurel-seam-accent,#d5d7db)!important;
+  color:var(--aurel-theme-ink,#161719)!important;
+}
+:root[data-aurel-palette] .app .mini .mini-play svg.ui-icon{
+  color:var(--aurel-theme-ink,#161719)!important;
+}
+
+/* Full player: preserve the header/cover safety lane of 1.1.78, then give
+ * title/artist/album their own breathing room. Artwork shrinks before text
+ * or transport controls are clipped by a short portrait viewport. */
+@media(orientation:portrait){
+  :root[data-aurel-palette] #overlay:not(.hidden)
+    .murglar-view .murglar-track-data{
+    margin-top:clamp(18px,2.15dvh,26px)!important;
+    gap:clamp(3px,.55dvh,7px)!important;
+    align-items:flex-start!important;
+  }
+  :root[data-aurel-palette] #overlay:not(.hidden)
+    .murglar-view .murglar-track-data h1{
+    margin:0!important;
+    line-height:1.20!important;
+  }
+  :root[data-aurel-palette] #overlay:not(.hidden)
+    .murglar-view .murglar-quick-actions{
+    margin-top:clamp(10px,1.45dvh,18px)!important;
+  }
+}
+@media(orientation:portrait) and (max-height:690px){
+  :root[data-aurel-palette] #overlay:not(.hidden)
+    .murglar-view .murglar-track-data{
+    margin-top:12px!important;
+    gap:2px!important;
+  }
+  :root[data-aurel-palette] #overlay:not(.hidden)
+    .murglar-view .murglar-quick-actions{margin-top:5px!important}
+}
+
+/* One line-icon family everywhere (labels remain accessible). SVG geometry
+ * and icons' tap-target dimensions stay independent of dynamic metadata. */
+:root[data-aurel-palette] .app :is(.screen,.sidebar,.mini,.bottom-nav) svg.ui-icon,
+:root[data-aurel-palette] #overlay .murglar-view svg.ui-icon{
+  stroke:currentColor!important;
+  stroke-width:2.3!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  flex-shrink:0!important;
+  shape-rendering:geometricPrecision!important;
+}
+:root[data-aurel-palette] .app .bottom-nav svg.ui-icon{
+  width:26px!important;height:26px!important;
+}
+
+/* Library and discovery: same semantic surface/accent tokens as the player,
+ * no hard-coded graphite blocks surviving artwork mode. */
+:root[data-aurel-palette] .app #screen :is(
+  .tracklist,.track,.artistrow,.library-album-row,.playlist-entry,
+  .aurel-release-card,.shelf-card,.searchbox,.panel,.quality,
+  .aurel-settings-group,.magazine-tile,.view-switch){
+  border-color:color-mix(in srgb,
+    var(--aurel-seam-accent,#d5d7db) 11%,transparent)!important;
+}
+:root[data-aurel-palette="artwork"] .app #screen :is(
+  .tracklist,.artistrow,.library-album-row,.playlist-entry,
+  .aurel-release-card,.shelf-card,.searchbox,.panel,.quality,
+  .aurel-settings-group,.magazine-tile,.view-switch){
+  background-color:var(--aurel-seam-card,#242529)!important;
+}
+:root[data-aurel-palette] .app #screen .track{
+  min-width:0!important;
+  background:color-mix(in srgb,
+    var(--aurel-seam-card,#242529) 76%,transparent)!important;
+  border-bottom:1px solid color-mix(in srgb,
+    var(--aurel-seam-accent,#d5d7db) 10%,transparent)!important;
+}
+:root[data-aurel-palette] .app #screen .track .track-details{
+  min-width:0!important;flex:1 1 0%!important;
+}
+:root[data-aurel-palette] .app #screen .track :is(
+  .icon-btn,.aurel-share-control,.aurel-share-icon){
+  box-sizing:border-box!important;
+  flex:0 0 44px!important;
+  display:grid!important;place-items:center!important;
+  width:44px!important;height:44px!important;
+  min-width:44px!important;min-height:44px!important;
+  max-width:44px!important;
+  margin:0!important;padding:0!important;
+  color:var(--aurel-theme-on,#f7f7f7)!important;
+  background:color-mix(in srgb,
+    var(--aurel-seam-raised,#303136) 78%,transparent)!important;
+  border:0!important;border-radius:12px!important;
+  box-shadow:none!important;
+}
+:root[data-aurel-palette] .app #screen .track :is(
+  .icon-btn,.aurel-share-control,.aurel-share-icon) svg.ui-icon{
+  width:23px!important;height:23px!important;
+}
+:root[data-aurel-palette] .app #screen .track
+  :is(.aurel-is-favourite,[aria-pressed="true"]){
+  color:var(--aurel-seam-accent,#d5d7db)!important;
+  background:color-mix(in srgb,
+    var(--aurel-seam-accent,#d5d7db) 19%,transparent)!important;
+}
+:root[data-aurel-palette] .app #screen :is(.tab,.chip,.view-switch button){
+  background:color-mix(in srgb,
+    var(--aurel-seam-card,#242529) 83%,transparent)!important;
+  color:var(--aurel-theme-on,#f7f7f7)!important;
+  border-radius:14px!important;
+}
+:root[data-aurel-palette] .app #screen :is(
+  .tab.active,.chip.selected,.view-switch button.active){
+  background:color-mix(in srgb,
+    var(--aurel-seam-accent,#d5d7db) 17%,
+    var(--aurel-seam-card,#242529))!important;
+  color:var(--aurel-theme-on,#f7f7f7)!important;
+  box-shadow:inset 0 -2px var(--aurel-seam-accent,#d5d7db)!important;
+}
+:root[data-aurel-palette] .app #screen
+  :is(.album-title,.track-title,.library-album-row strong){
+  font-weight:750!important;
+  line-height:1.34!important;
+}
+:root[data-aurel-palette] .app #screen
+  :is(.album-artist,.track-meta,.library-album-row small){
+  color:var(--aurel-seam-secondary,#cbd0d4)!important;
+  line-height:1.42!important;
+}
+
+/* Cover overlay favourite/share buttons also share one soft glass surface:
+ * consistent 42px tap area, not giant differently sized coloured squares. */
+:root[data-aurel-palette] .app #screen .cover
+  :is(.aurel-favourite-control,.aurel-share-control){
+  display:grid!important;place-items:center!important;
+  width:44px!important;height:44px!important;
+  min-width:44px!important;min-height:44px!important;
+  padding:0!important;border:0!important;border-radius:12px!important;
+  background:color-mix(in srgb,
+    var(--aurel-seam-card,#242529) 66%,transparent)!important;
+  -webkit-backdrop-filter:blur(6px)!important;
+  backdrop-filter:blur(6px)!important;
+  box-shadow:none!important;
+}
+:root[data-aurel-palette] .app #screen .cover
+  :is(.aurel-favourite-control,.aurel-share-control) svg.ui-icon{
+  width:25px!important;height:25px!important;
+}
+
+/* Fewer unnecessary animations: no geometry tween on progress ticks, only
+ * restrained paint responses on interactive surfaces and genuine FFT input. */
+:root[data-aurel-palette] .app #screen :is(
+  .tab,.chip,.quality,.icon-btn,.aurel-share-control,
+  .aurel-favourite-control,.pill),
+:root[data-aurel-palette] .app .mini .mini-buttons button{
+  transition:background-color 230ms var(--aurel-ui-ease),
+             color 230ms var(--aurel-ui-ease),
+             opacity 230ms var(--aurel-ui-ease)!important;
+}
+:root[data-aurel-palette] .app #screen :is(
+  .tab,.chip,.quality,.icon-btn,.aurel-share-control,
+  .aurel-favourite-control,.pill):active{
+  opacity:.79!important;
+  transform:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+  :root[data-aurel-palette] .app .bottom-nav button,
+  :root[data-aurel-palette] .app #screen :is(
+    .tab,.chip,.quality,.icon-btn,.aurel-share-control,
+    .aurel-favourite-control,.pill),
+  :root[data-aurel-palette] .app .mini .mini-buttons button{
+    animation:none!important;
+    transition:none!important;
+  }
+}
+html[data-aurel-motion="off"] .app .bottom-nav button,
+html[data-aurel-motion="off"] .app #screen :is(
+  .tab,.chip,.quality,.icon-btn,.aurel-share-control,
+  .aurel-favourite-control,.pill),
+html[data-aurel-motion="off"] .app .mini .mini-buttons button{
+  animation:none!important;transition:none!important;
 }

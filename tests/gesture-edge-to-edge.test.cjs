@@ -44,7 +44,7 @@ for(const status of [0,24,30,40,62]){
   assert(headerTop>=status,'header cannot overlap Android status icons');
   assert(coverTop-headerTop-headerHeight >=22,'cover cannot overlap header controls');
 }
-for(const marker of ['.app.aurel-player-open::after',
+for(const marker of ['.app::after',
   'height:calc(var(--aurel-unified-nav-height,64px) +',
   'background:transparent!important',
   'pointer-events:none',

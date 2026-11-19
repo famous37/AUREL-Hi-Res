@@ -141,6 +141,7 @@ jobs:
           node tests/player-gestures-polish-uk.test.cjs
           node tests/player-dom-stability.test.cjs
           node tests/fullscreen-continuous-canvas.test.cjs
+          node tests/global-glass-v1.1.78.test.cjs
           mkdir -p build/media-recovery-test
           javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
           java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
@@ -193,18 +194,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — balanced player and seamless Android gesture navigation**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — unified album colours, player spacing and gesture-safe glass**" \
             '' \
-            '- Moved minimize and audio-info buttons up into a dedicated safe header lane, entirely above the cover.' \
-            '- Lowered and balanced the portrait cover, title and playback controls while preserving compact layout and landscape.' \
-            '- Unified the five-icon navigation and Android gesture area with one soft, continuous album-coloured translucent background.' \
-            '- Refined icon stroke weights, touch targets, track title, artist and album typography for consistent readability.' \
-            '- Smoothed real FFT-driven cover glow and paint-only feedback without animated layout or artificial audio beats.' \
-            '- Maintained the opt-in album palette and monochrome mode, local page state and accessibility reduced-motion settings.' \
-            '- Audio playback, Android mixer, bit-perfect, existing credentials and Qobuz authentication are unchanged.' \
-            '- Android 10+ compatibility, all offline app data and permanent signed APK upgrade path preserved.' \
+            '- Increased spacing between the full-player album cover and the title, artist and album while preserving safe top controls and compact-screen fitting.' \
+            '- Made the app bottom tabs and Android gesture stripe share one subtle, continuous translucent surface across Now Playing, Discover, Library, Search and Settings.' \
+            '- Applied the verified playing-album palette to every shared surface, cards, tabs and mini player when the user enables album colours; retained monochrome when disabled.' \
+            '- Harmonized outline icon thickness, active-state colours, typography and at least 44dp library action touch targets.' \
+            '- Reserved enough page scrolling space below the fixed mini player and navigation so final items remain reachable.' \
+            '- Preserved FFT-driven album effects and paint-only, reduced-motion-aware button feedback without layout animations.' \
+            '- Kept Qobuz/Mornye accounts, listening position, album data, audio focus, Android USB mixer and bit-perfect logic unchanged.' \
+            '- Tested UI, portrait/landscape, gesture insets, global palette opt-in, library controls, Android Java build and permanent release signing.' \
             '' \
-            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.76 without clearing app data." \
+            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.77 without clearing any app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
