@@ -47,6 +47,8 @@ import java.util.ArrayList;
 /** Offline UI + native HTTPS API bridge and native Android playback. */
 public final class MainActivity extends Activity {
     private WebView web;
+    private final AurelLyricsClient stage2Lyrics=new AurelLyricsClient();
+    private final AurelSafeBackup stage2Backup=new AurelSafeBackup();
     private FrameLayout systemInsetFrame;
     private volatile String lastArtworkPaletteJs="";
     private static final int GRAPHITE_CHROME=Color.rgb(17,18,20);
@@ -846,6 +848,16 @@ public final class MainActivity extends Activity {
         super.onActivityResult(requestCode,resultCode,data);
         if(requestCode==AurelUpdateManager.UNKNOWN_SOURCES_REQUEST){
             if(updateManager!=null)updateManager.onPermissionResult();
+            return;
+        }
+        if(requestCode==AurelSafeBackup.REQUEST_EXPORT||
+           requestCode==AurelSafeBackup.REQUEST_IMPORT){
+            final int which=requestCode,result=resultCode;
+            final Intent chosen=data;
+            jobs.execute(()->{
+                JSONObject outcome=stage2Backup.finish(MainActivity.this,which,result,chosen);
+                script("if(window.AurelStage2BackupResult)window.AurelStage2BackupResult("+outcome.toString()+")");
+            });
             return;
         }
         if(requestCode!=MORNYE_VERIFICATION_REQUEST)return;
@@ -1800,6 +1812,41 @@ public final class MainActivity extends Activity {
                             final int mode=Math.max(0,Math.min(2,p.optInt("repeat",0)));
                             final boolean rand=p.optBoolean("shuffle",false);
                             ui.post(()->{repeatMode=mode;shuffle=rand;emit("player",playerState());});data=new JSONObject();break;
+                        }
+                        case "lyrics": {
+                            // User-opened sheet only: never send credentials, stream
+                            // URLs, playback tickets or account identifiers to LRCLIB.
+                            data=stage2Lyrics.find(p.optString("title",""),
+                                p.optString("artist",""),p.optString("album",""),
+                                p.optInt("duration",0));
+                            break;
+                        }
+                        case "stage2BackupExport": {
+                            String content=p.optString("content","");
+                            if(content.getBytes(StandardCharsets.UTF_8).length>360*1024)
+                                throw new Exception("Backup too large");
+                            ui.post(()->{
+                                try{stage2Backup.exportPicker(MainActivity.this,content);}
+                                catch(Exception error){
+                                    JSONObject reply=new JSONObject();
+                                    try{reply.put("kind","export").put("ok",false)
+                                        .put("message",error.getMessage());}catch(Exception ignored){}
+                                    script("if(window.AurelStage2BackupResult)window.AurelStage2BackupResult("+reply.toString()+")");
+                                }
+                            });
+                            data=new JSONObject().put("pickerOpened",true);break;
+                        }
+                        case "stage2BackupImport": {
+                            ui.post(()->{
+                                try{stage2Backup.importPicker(MainActivity.this);}
+                                catch(Exception error){
+                                    JSONObject reply=new JSONObject();
+                                    try{reply.put("kind","import").put("ok",false)
+                                        .put("message",error.getMessage());}catch(Exception ignored){}
+                                    script("if(window.AurelStage2BackupResult)window.AurelStage2BackupResult("+reply.toString()+")");
+                                }
+                            });
+                            data=new JSONObject().put("pickerOpened",true);break;
                         }
                         case "playerState": {
                             // UI state must be read on main thread; send by native event instead.

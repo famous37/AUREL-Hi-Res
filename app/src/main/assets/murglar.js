@@ -56,7 +56,7 @@
       }else{
         if(livePanel){
           const contents=active==='upnext'?queuePanel(p):
-            active==='credits'?creditsPanel(p):audioPanel(p);
+            active==='credits'?creditsPanel(p):active==='lyrics'?lyricsPanel(p):audioPanel(p);
           if(livePanel.__aurelPanelHTML!==contents){
             livePanel.innerHTML=contents;
             livePanel.__aurelPanelHTML=contents;
@@ -89,7 +89,7 @@
         <div class="murglar-quick-actions" aria-label="Track actions">
           <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-expanded="${active==='upnext'}" aria-label="Play queue" title="Queue">${ic('queue',28)}<span>Queue</span></button>
           <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',28)}<span>Info</span></button>
-          <button data-player-sheet="audio" class="${active==='audio'?'active':''}" aria-expanded="${active==='audio'}" aria-label="Source quality details" title="Audio">${ic('audio',28)}<span>Audio</span></button>
+          <button data-player-sheet="lyrics" class="${active==='lyrics'?'active':''}" aria-expanded="${active==='lyrics'}" aria-label="Lyrics" title="Lyrics">${ic('lyrics',28)}<span>Lyrics</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',28)}<span>Favourite</span></button>
           <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',32)}<span>Share</span></button>
         </div>
@@ -112,21 +112,21 @@
         <span class="murglar-state" id="playingStatus" aria-live="polite">${stateCaption(p)}</span>
       </div>
       ${active?`<button type="button" class="aurel-detail-dimmer" data-close-detail aria-label="Close details"></button>
-      <section class="aurel-detail-drawer" role="dialog" aria-modal="true" aria-label="${active==='upnext'?'Queue':active==='credits'?'Track information':'Audio information'}">
+      <section class="aurel-detail-drawer" role="dialog" aria-modal="true" aria-label="${active==='upnext'?'Queue':active==='credits'?'Track information':active==='lyrics'?'Lyrics':'Audio information'}">
         <header class="aurel-drawer-header">
           <span class="aurel-drawer-handle" aria-hidden="true"></span>
-          <h2>${active==='upnext'?'Queue':active==='credits'?'Track information':'Audio information'}</h2>
+          <h2>${active==='upnext'?'Queue':active==='credits'?'Track information':active==='lyrics'?'Lyrics':'Audio information'}</h2>
           <button type="button" data-close-detail aria-label="Close information panel">&times;</button>
         </header>
         <div class="aurel-detail-scroll">
-          <div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>
+          <div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?lyricsPanel(p):audioPanel(p)}</div>
         </div>
       </section>`:''}
     </div>`;
     aurelEnsureLoadingAnimation(overlay);
     const createdPanel=overlay.querySelector('.aurel-detail-sheet');
     if(createdPanel&&active)createdPanel.__aurelPanelHTML=
-      active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p);
+      active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?lyricsPanel(p):audioPanel(p);
     const scroller=overlay.querySelector('.murglar-player-content');
     const detail=overlay.querySelector('.aurel-detail-scroll');
     const sameTrack=priorTrack===String(t.id||'');

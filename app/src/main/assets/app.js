@@ -10,6 +10,7 @@ const ic=(key,size=24)=>{
   play:'<path d="m8 5 12 7-12 7V5Z"/>',pause:'<path d="M8 5v14M16 5v14"/>',
   queue:'<path d="M4 6h16M4 12h16M4 18h9"/><path d="m17 16 4 2-4 2z"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
+  lyrics:'<path d="M5 5h14M5 10h14M5 15h9M5 20h11"/><path d="m19 15 3 3-3 3"/>',
   audio:'<path d="M5 9v6M9 6v12M13 3v18M17 7v10M21 10v4"/>',
   chevron:'<path d="m9 18 6-6-6-6"/>',
   eye:'<path d="M2 12s3.6-6.7 10-6.7S22 12 22 12s-3.6 6.7-10 6.7S2 12 2 12z"/><circle cx="12" cy="12" r="3.4"/>',
