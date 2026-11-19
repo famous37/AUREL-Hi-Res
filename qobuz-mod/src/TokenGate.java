@@ -189,8 +189,12 @@ public final class TokenGate {
                 false));
 
         EditText token = input(activity, fields, "USER AUTH TOKEN", load(activity, "token"), true, false);
-        EditText userId = input(activity, fields, "USER ID", load(activity, "userId"), false, true);
-        EditText appId = input(activity, fields, "APP ID", load(activity, "appId"), false, true);
+        EditText userId = input(activity, fields, "USER ID · користувач", load(activity, "userId"), false, true);
+        EditText appId = input(activity, fields, "APP ID · застосунок", load(activity, "appId"), false, true);
+        Button swapIds = new Button(activity);
+        swapIds.setAllCaps(false);
+        swapIds.setText("Поміняти USER ID ↔ APP ID");
+        fields.addView(swapIds);
         EditText appSecret = input(activity, fields, "APP SECRET (необов’язково)",
                                   load(activity, "appSecret"), true, false);
         Button test = new Button(activity);
@@ -212,6 +216,12 @@ public final class TokenGate {
                 .create();
         dialog.setOnShowListener(d -> {
             final Button signIn = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            swapIds.setOnClickListener(v -> {
+                String oldUser = userId.getText().toString();
+                userId.setText(appId.getText().toString());
+                appId.setText(oldUser);
+                state.setText("USER ID та APP ID поміняно місцями. Натисніть УВІЙТИ.");
+            });
             signIn.setAllCaps(false);
             signIn.setTextColor(Color.rgb(193, 151, 255));
             signIn.setOnClickListener(v -> verifyAndEnter(activity, dialog,
@@ -408,6 +418,9 @@ public final class TokenGate {
             c.setReadTimeout(12000);
             int status = c.getResponseCode();
             if (status == 401 || status == 403) return "Qobuz відхилив токен (HTTP " + status + ").";
+            if (status == 400)
+                return "HTTP 400: перевірте USER ID та APP ID — можливо, їх введено навпаки. "
+                     + "USER ID належить профілю, APP ID — API-застосунку.";
             if (status < 200 || status >= 300)
                 return "Qobuz API повернув HTTP " + status + ".";
             InputStream stream = c.getInputStream();
