@@ -130,8 +130,20 @@ async function onlineTrack(item,providerIdValue,preferred){
  await playFromTracks([row],0);
 }
 async function openOnline(item,type,providerIdValue,candidate){
- if(type==='artists')return openArtist(String(providerIdValue));
- if(type==='albums')return openAlbum(String(providerIdValue));
+ if(type==='artists'){
+  await openArtist(String(providerIdValue));
+  if(!app.selected||String(app.selected.id)!==String(providerIdValue))
+   showToast(tr('Qobuz did not return this artist page.',
+     'Qobuz не повернув сторінку цього виконавця.'),6500);
+  return;
+ }
+ if(type==='albums'){
+  await openAlbum(String(providerIdValue));
+  if(!app.selected||String(app.selected.id)!==String(providerIdValue))
+   showToast(tr('Qobuz did not return this album page.',
+     'Qobuz не повернув сторінку цього альбому.'),6500);
+  return;
+ }
  if(type==='playlists'){
   await openPlaylist(String(providerIdValue));
   if(!app.selected||String(app.selected.id)!==String(providerIdValue))
@@ -158,7 +170,12 @@ async function pick(row){
   const type=entry.type;
   close();
   void window.AurelLibraryTransfer?.onLinked?.();
-  await openOnline(item,type,String(row.id),row);
+  try{await openOnline(item,type,String(row.id),row);}
+  catch(error){
+   showToast(tr('Qobuz did not open this catalogue entry: ',
+     'Не вдалося відкрити запис Qobuz: ')+
+     String(error?.message||'Unavailable').slice(0,150),7000);
+  }
  }catch(error){
   if(ticket!==requestId)return;
   entry.saving=false;entry.busy=false;
