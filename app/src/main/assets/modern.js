@@ -210,7 +210,7 @@ updateMini=function(){
    <div class="meta mini-track-open"><strong class="title"></strong><small class="artist"></small></div>
    <div class="mini-buttons"><button class="mini-love" data-mini-fav="${html(id)}" aria-label="Add to favourites">${ic('heart',24)}</button>
    <button class="mini-play" data-mini-toggle aria-label="Play">${ic('play',26)}</button></div>
-   <div class="mini-progress" aria-hidden="true"></div>`;
+   <div class="mini-progress" aria-hidden="true"><span class="mini-progress-fill"></span></div>`;
   m.dataset.miniTrack=id;
   m.dataset.miniPlaying='';
   m.dataset.miniArtwork=cover||'';
@@ -237,8 +237,14 @@ updateMini=function(){
   m.dataset.miniPlaying=String(!!p.playing);
  }
  const bar=m.querySelector('.mini-progress');
- const percent=p.duration?Math.min(100,Math.max(0,100*(Number(p.position)||0)/Number(p.duration))):0;
- if(bar)bar.style.setProperty('--played',percent.toFixed(1)+'%');
+ const catalogDuration=Math.max(0,Number(t.duration)||0)*1000;
+ const total=Math.max(0,Number(p.duration)||catalogDuration);
+ const percent=total?Math.min(100,Math.max(0,100*(Number(p.position)||0)/total)):0;
+ if(bar){
+  bar.style.setProperty('--played',percent.toFixed(2)+'%');
+  const fill=bar.querySelector('.mini-progress-fill');
+  if(fill)fill.style.transform='scaleX('+(percent/100).toFixed(5)+')';
+ }
 };
 drawOverlay=function(){
  const overlay=$('#overlay');
