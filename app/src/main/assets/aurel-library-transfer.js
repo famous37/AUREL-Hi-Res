@@ -85,6 +85,9 @@ function contentRows(){
       tr('Linked · opens in Qobuz catalogue','Пов’язано · відкривається у каталозі Qobuz'):
       tr('Tap to find and open online','Натисніть для пошуку та відкриття онлайн'))+'</small>':'')+
    '</span><span class="aurel-ltm-actions-row">'+
+   (state.active==='playlists'?'<span role="button" tabindex="-1" data-ltm-local-playlist="'+esc(item.id)+
+      '" class="aurel-ltm-relink" aria-label="'+esc(tr('View saved track list','Переглянути збережені треки'))+
+      '" title="'+esc(tr('Local track list','Локальний список треків'))+'">☷</span>':'')+
    (local&&linked?'<span role="button" tabindex="-1" data-ltm-relink="'+esc(item.id)+
        '" class="aurel-ltm-relink" aria-label="'+esc(tr('Change Qobuz match','Змінити збіг Qobuz'))+
        '" title="'+esc(tr('Change match','Змінити збіг'))+'">⋯</span>':'')+
