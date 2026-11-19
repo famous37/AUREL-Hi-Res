@@ -1,0 +1,42 @@
+name: Qobuz MOD source analysis (not an APK release)
+on:
+  push:
+    branches: [qobuz-mod-10-2-token-auth]
+    paths: ['qobuz-mod/**', '.github/workflows/qobuz-mod-analysis.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-original:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain exact public Qobuz 10.2.0.0 release
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --connect-timeout 15 --max-time 240 \
+            -A 'Mozilla/5.0' \
+            'https://d.apkpure.com/b/APK/com.qobuz.music?versionCode=26110610' \
+            -o original.apk
+          echo '1edc1577006a7fe07f17ee4fdeac2a6bc2109688cae61aa0448813a0b57c0529  original.apk' | sha256sum -c -
+      - name: Inspect source DEX and authentication data models
+        run: python3 qobuz-mod/tools/verify_qobuz_apk.py original.apk > qobuz-auth-analysis.json
+      - name: Print safe analysis summary
+        run: |
+          python3 - <<'PY'
+          import json
+          v=json.load(open('qobuz-auth-analysis.json'))
+          print('Original APK hash:',v['sha256'])
+          print('DEX count:',len(v['dex']))
+          print('Qobuz auth models:',', '.join(v['found_models']))
+          print('AUTH INTEGRATION NOT YET IMPLEMENTED — NO APK RELEASE')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qobuz-mod-readonly-analysis
+          path: qobuz-auth-analysis.json
+          retention-days: 7
