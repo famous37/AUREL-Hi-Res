@@ -471,6 +471,33 @@ final class AurelLibraryTransfer {
                     text(error.getMessage(),135));}
         });
     }
+    synchronized JSONObject browse(String type,int offset,int limit)throws Exception{
+        if(!TYPE_SET.contains(type))throw new Exception("Unknown library category");
+        int start=Math.max(0,offset),size=Math.max(1,Math.min(40,limit));
+        JSONObject saved=readData();
+        JSONArray rows=saved.getJSONObject("data").getJSONArray(type);
+        JSONArray items=new JSONArray();
+        for(int i=start;i<Math.min(rows.length(),start+size);i++){
+            JSONObject row=rows.getJSONObject(i);
+            if(type.equals("playlists")){
+                items.put(new JSONObject().put("id",row.getString("id"))
+                    .put("name",row.optString("name"))
+                    .put("tracksCount",row.optJSONArray("tracks")==null?0:
+                        row.getJSONArray("tracks").length()));
+            }else items.put(row);
+        }
+        return new JSONObject().put("type",type).put("items",items)
+            .put("offset",start).put("total",rows.length());
+    }
+    synchronized JSONObject playlist(String id)throws Exception{
+        if(!validId(id,"playlists"))throw new Exception("Invalid local playlist ID");
+        JSONArray rows=readData().getJSONObject("data").getJSONArray("playlists");
+        for(int i=0;i<rows.length();i++){
+            JSONObject item=rows.getJSONObject(i);
+            if(id.equals(item.optString("id")))return item;
+        }
+        throw new Exception("Playlist not present in the local library");
+    }
     synchronized JSONObject clear()throws Exception{
         begin("clearing","Clearing only the local library");
         io.execute(()->{
