@@ -300,12 +300,13 @@ function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
 }
 function renderLogin(){
   const secondary=app.loginTarget==='library';
+  const clone=!!app.session?.cloneBuild;
   const savedAppId=secondary?app.session?.libraryAppId:app.session?.appId;
   const savedUserId=secondary?app.session?.libraryUserId:app.session?.streamUserId;
   const rejected=secondary?app.session?.libraryValidation==='rejected':app.session?.streamValidation==='rejected';
   const appId=rejected?'':(savedAppId||'');
   const passwordMode=app.loginMode==='password';
-  const webMode=app.loginMode==='mornye'&&!secondary;
+  const webMode=app.loginMode==='mornye'&&!secondary&&!clone;
   if(webMode){
     $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
       <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
@@ -328,15 +329,15 @@ function renderLogin(){
   }
   $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
     <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
-    <div class="eyebrow">AUREL / QOBUZ</div>
-    <h1>${secondary?'Connect your Qobuz library.':'Welcome back to music.'}</h1>
+    <div class="eyebrow">${clone?'AUREL / TOKEN CLONE':'AUREL / QOBUZ'}</div>
+    <h1>${secondary?'Connect your Qobuz library.':clone?'Вхід за токеном та ID.':'Welcome back to music.'}</h1>
     <p class="aurel-signin-subtitle">${secondary?'Sign in to your personal Qobuz library using your password or a matching token and App ID. A successful Qobuz sign-in replaces Mornye; the library remains available even when playback is not confirmed.':'Sign in with your email or username and password, or with a matching account token and App ID. Your personal library loads automatically.'}</p>
     ${rejected?'<div class="aurel-auth-warning" role="alert"><strong>Previous Qobuz authorization was rejected.</strong><span>Try the current web App ID automatically, a fresh token, or email/password sign-in. Your previous account data has not been erased.</span></div>':''}
-    ${app.session?.previewBuild?'<p class="auth-preview-note">This Preview is installed separately and cannot read credentials stored by other AUREL installations.</p>':''}
+    ${clone?'<p class="auth-preview-note">Окрема копія AUREL. Токен, App ID та User ID цієї копії не змішуються з основним застосунком. Використовуйте лише власні чинні дані Qobuz.</p>':app.session?.previewBuild?'<p class="auth-preview-note">This Preview is installed separately and cannot read credentials stored by other AUREL installations.</p>':''}
     <div class="aurel-login-methods" role="tablist" aria-label="Sign-in method">
       <button type="button" role="tab" aria-selected="${!passwordMode}" class="${passwordMode?'':'active'}" data-login-mode="token">${ic('key',19)} Session token</button>
       <button type="button" role="tab" aria-selected="${passwordMode}" class="${passwordMode?'active':''}" data-login-mode="password">${ic('user',19)} Password</button>
-      ${secondary?'':`<button type="button" role="tab" aria-selected="false" data-login-mode="mornye">${ic('globe',19)} Mornye</button>`}
+      ${secondary||clone?'':`<button type="button" role="tab" aria-selected="false" data-login-mode="mornye">${ic('globe',19)} Mornye</button>`}
     </div>
     <form id="loginForm" class="aurel-signin-form">
       ${passwordMode?`
@@ -353,7 +354,7 @@ function renderLogin(){
           <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste X-User-Auth-Token" required>
           <button type="button" data-toggle-token aria-label="Show token">${ic('eye',22)}</button>
         </div>
-        <p class="aurel-method-help">A token is accepted only with its compatible App ID. Leave App ID empty to detect the Qobuz web ID, or enter the App ID used to obtain your token.</p>`}
+        <p class="aurel-method-help">${clone?'Вставте свій X-User-Auth-Token. Нижче введіть відповідний App ID, а за потреби — User ID та App Secret. App ID можна залишити порожнім для автоматичного пошуку.':'A token is accepted only with its compatible App ID. Leave App ID empty to detect the Qobuz web ID, or enter the App ID used to obtain your token.'}</p>`}
             <details class="aurel-signin-advanced" open>
         <summary>${ic('settings',19)} Advanced · App ID, App Secret &amp; User ID ${ic('chevron',17)}</summary>
         <div class="aurel-advanced-fields">

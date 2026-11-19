@@ -1113,7 +1113,8 @@ public final class MainActivity extends Activity {
         j.put("hasSecret",!streamSecret().isEmpty());
         // The preview package has isolated encrypted storage; it cannot reuse
         // credentials saved under another installed application ID.
-        j.put("previewBuild",getPackageName().contains(".preview"));
+        j.put("previewBuild",getPackageName().endsWith(".preview"));
+        j.put("cloneBuild",getPackageName().endsWith(".clone"));
         String streamValidation=secure.get("streamValidation");
         String libraryValidation=secure.get("libraryValidation");
         j.put("streamValidation",gateway?"catalogue":streamValidation.isEmpty()?"unknown":streamValidation);
