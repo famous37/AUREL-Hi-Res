@@ -11,6 +11,7 @@ import android.media.MediaMetadata;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.util.LruCache;
 import android.os.Handler;
 import android.os.Looper;
 import java.net.URL;
@@ -49,7 +50,15 @@ public final class AurelPlaybackService extends Service {
     private final Handler mainThread=new Handler(Looper.getMainLooper());
     private String albumTitle="",coverUrl="";
     private Bitmap coverBitmap;
-    private int coverGeneration=0;
+    private volatile int coverGeneration=0;
+    // Keep decoded artwork and sampled palettes bounded in native memory.
+    // A user reopening the same album should not redownload its Qobuz cover.
+    private final LruCache<String,Bitmap> artworkCache=new LruCache<String,Bitmap>(6*1024*1024){
+        @Override protected int sizeOf(String key,Bitmap value){
+            return Math.max(1,value.getByteCount());
+        }
+    };
+    private final LruCache<String,String[]> artworkPaletteCache=new LruCache<>(48);
 
 
     /** Normalize Qobuz/Mornye names before Android MediaMetadata and notifications.
@@ -200,14 +209,32 @@ public final class AurelPlaybackService extends Service {
     }
     private void refreshCover(String url,int generation) {
         coverJobs.execute(()->{
-            Bitmap bitmap=loadCover(url);
+            // Rapid track changes can enqueue obsolete downloads. Do not fetch
+            // artwork that is no longer needed by the visible MediaSession.
+            if(generation!=coverGeneration)return;
+            Bitmap bitmap=artworkCache.get(url);
+            if(bitmap==null){
+                bitmap=loadCover(url);
+                if(bitmap!=null&&bitmap.getByteCount()<=6*1024*1024)
+                    artworkCache.put(url,bitmap);
+            }
+            String[] colors=null;
+            if(bitmap!=null){
+                colors=artworkPaletteCache.get(url);
+                if(colors==null){
+                    colors=palette(bitmap);
+                    artworkPaletteCache.put(url,colors);
+                }
+            }
+            final Bitmap artwork=bitmap;
+            final String[] paletteColors=colors;
             mainThread.post(()->{
                 if(session==null||generation!=coverGeneration||!url.equals(coverUrl))return;
-                coverBitmap=bitmap;
-                if(bitmap!=null) {
-                    String[] colors=palette(bitmap);
+                coverBitmap=artwork;
+                if(paletteColors!=null){
                     MainActivity a=controller.get();
-                    if(a!=null)a.onAlbumArtworkPalette(url,colors[0],colors[1],colors[2],colors[3],colors[4],colors[5]);
+                    if(a!=null)a.onAlbumArtworkPalette(url,paletteColors[0],paletteColors[1],
+                        paletteColors[2],paletteColors[3],paletteColors[4],paletteColors[5]);
                 }
                 update(title,artist,albumTitle,coverUrl,duration,position,playing,buffering);
             });
@@ -423,6 +450,8 @@ public final class AurelPlaybackService extends Service {
     @Override public void onDestroy(){
         coverGeneration++;
         coverJobs.shutdownNow();
+        artworkCache.evictAll();
+        artworkPaletteCache.evictAll();
         if(session!=null){session.setActive(false);session.release();session=null;}
         if(notifications!=null)notifications.cancel(NOTIFICATION_ID);
         instance=null;isForeground=false;hasTrack=false;lastSignature="";
