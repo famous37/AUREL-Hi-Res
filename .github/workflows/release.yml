@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.69: repaired native FFT consent, seamless player header ambient and global album controls.
+# v1.1.86: transactional library transfer, safe JSON import/export and existing audio preserved.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -8,7 +8,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation, feature/cover-rhythm-v1.1.58, fix/artist-catalog-media-progress-v1.1.79, release/stable-content-auto-updates-v1.1.85]
+    branches: [feature/library-transfer-manager-v1.1.86]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation' || github.ref == 'refs/heads/feature/cover-rhythm-v1.1.58' || github.ref == 'refs/heads/fix/artist-catalog-media-progress-v1.1.79' || github.ref == 'refs/heads/release/stable-content-auto-updates-v1.1.85'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/library-transfer-manager-v1.1.86'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -200,18 +200,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — stable artist catalogue, listening history and signed updates" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — Library Import / Export Manager" \
             '' \
-            '- Artist EPs and singles: retry the category independently; inspect up to four genuine Qobuz metadata pages when typed endpoints fail. Never invent unavailable releases.' \
-            '- Similar-artist portraits update without rerendering an entire artist page or resetting horizontal shelves.' \
-            '- Recently played is visible above the mini-player; scroll spacing is safe in portrait and landscape.' \
-            '- Fresh releases explain Qobuz authorization restrictions and offer Search/Library instead of a dead end.' \
-            '- Synchronized optional LRCLIB lyrics, local listening history, credential-free backups and artwork palette cache are included from Stage 2.' \
-            '- In-app update checks run at startup and foreground resume; downloading and installation still require explicit user action.' \
-            '- Native playback, existing audio controls, USB DAC preferences, account permissions and permanent signing remain unchanged.' \
-            '- Android versionCode 102, versionName 1.1.85, signed with the original AUREL release certificate.' \
+            '- Transfer authorised Qobuz artists, albums, tracks and playlists into an independent local metadata library.' \
+            '- Explicit source account and collection selection, bounded pages, progress and cancellation. On failure the previous local library remains intact.' \
+            '- Import/export local JSON using Android document picker, strict field/version validation, deduplication, transactional storage and safe merge/replace.' \
+            '- Read-only local playlist and favourites browser; no changes to Qobuz-managed favourites or playlists.' \
+            '- No passwords, account tokens, App Secrets, streaming URLs or audio content are exported.' \
+            '- All Stage 1/2 performance, synced LRCLIB lyrics, Qobuz browsing and existing UI preferences remain available.' \
+            '- Native audio player, USB output and existing account authentication are unchanged.' \
+            '- In-app auto-update check remains enabled with user-approved APK installation.' \
+            '- Android versionCode 103, versionName 1.1.86, signed by the original AUREL release certificate.' \
             '' \
-            "Install v${AUREL_VERSION} over the original permanently signed AUREL 1.1.82 (not the separate Preview app), without uninstalling or clearing data." \
+            "Install v${AUREL_VERSION} over the existing permanently signed AUREL 1.1.85 without uninstalling or clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

@@ -49,6 +49,8 @@ public final class MainActivity extends Activity {
     private WebView web;
     private final AurelLyricsClient stage2Lyrics=new AurelLyricsClient();
     private final AurelSafeBackup stage2Backup=new AurelSafeBackup();
+    // Separate, credential-free local library. Never alters playback or Qobuz favourites.
+    private AurelLibraryTransfer libraryTransfer;
     private FrameLayout systemInsetFrame;
     private volatile String lastArtworkPaletteJs="";
     private static final int GRAPHITE_CHROME=Color.rgb(17,18,20);
@@ -621,6 +623,8 @@ public final class MainActivity extends Activity {
             systemAudio.registerAudioDeviceCallback(usbCallback,ui);
         }
         api=new QobuzApi(secure);
+        libraryTransfer=new AurelLibraryTransfer(this,api,secure,
+            result->emit("libraryTransfer",result));
         mornye=new MornyeGateway(secure);
         updateManager=new AurelUpdateManager(this,update->emit("update",update));
         web=new WebView(this); web.setBackgroundColor(GRAPHITE_CHROME);
@@ -850,6 +854,12 @@ public final class MainActivity extends Activity {
             if(updateManager!=null)updateManager.onPermissionResult();
             return;
         }
+        if(requestCode==AurelLibraryTransfer.REQUEST_EXPORT||
+           requestCode==AurelLibraryTransfer.REQUEST_IMPORT){
+            if(libraryTransfer!=null)
+                libraryTransfer.onActivityResult(requestCode,resultCode,data);
+            return;
+        }
         if(requestCode==AurelSafeBackup.REQUEST_EXPORT||
            requestCode==AurelSafeBackup.REQUEST_IMPORT){
             final int which=requestCode,result=resultCode;
@@ -906,6 +916,7 @@ public final class MainActivity extends Activity {
         AurelPlaybackService.stop(this);
         if(web!=null){web.removeJavascriptInterface("AurelNative");web.destroy();web=null;}
         if(updateManager!=null)updateManager.stop();
+        if(libraryTransfer!=null)libraryTransfer.close();
         jobs.shutdownNow();super.onDestroy();
     }
     private void script(String js) { ui.post(()->{ if(web!=null)web.evaluateJavascript(js,null); }); }
@@ -1820,6 +1831,55 @@ public final class MainActivity extends Activity {
                                 p.optString("artist",""),p.optString("album",""),
                                 p.optInt("duration",0));
                             break;
+                        }
+                        case "libraryTransferStatus": {
+                            data=libraryTransfer.status();break;
+                        }
+                        case "libraryTransferSync": {
+                            data=libraryTransfer.sync(p);break;
+                        }
+                        case "libraryTransferBrowse": {
+                            data=libraryTransfer.browse(p.optString("type","albums"),
+                                p.optInt("offset",0),p.optInt("limit",30));break;
+                        }
+                        case "libraryTransferPlaylist": {
+                            data=libraryTransfer.playlist(p.optString("id",""));break;
+                        }
+                        case "libraryTransferCancel": {
+                            data=libraryTransfer.cancel();break;
+                        }
+                        case "libraryTransferExport": {
+                            // SAF pickers must be opened from the Android UI thread.
+                            ui.post(()->{
+                                try{libraryTransfer.exportPicker();}
+                                catch(Exception error){
+                                    try{emit("libraryTransfer",new JSONObject()
+                                        .put("stage","error")
+                                        .put("message",error.getMessage()));}
+                                    catch(Exception ignored){}
+                                }
+                            });
+                            data=new JSONObject().put("requested",true);break;
+                        }
+                        case "libraryTransferImport": {
+                            final String mode=p.optString("mode","merge");
+                            if(!mode.equals("merge")&&!mode.equals("replace"))
+                                throw new Exception("Invalid library restore mode");
+                            ui.post(()->{
+                                try{libraryTransfer.importPicker(mode);}
+                                catch(Exception error){
+                                    try{emit("libraryTransfer",new JSONObject()
+                                        .put("stage","error")
+                                        .put("message",error.getMessage()));}
+                                    catch(Exception ignored){}
+                                }
+                            });
+                            data=new JSONObject().put("requested",true);break;
+                        }
+                        case "libraryTransferClear": {
+                            if(!"CLEAR LOCAL LIBRARY".equals(p.optString("confirm","")))
+                                throw new Exception("Local library clear requires explicit confirmation");
+                            data=libraryTransfer.clear();break;
                         }
                         case "stage2BackupExport": {
                             String content=p.optString("content","");
