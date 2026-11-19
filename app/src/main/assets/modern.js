@@ -21,7 +21,12 @@ function albumShelf(items){if(!items.length){
   :status==='network'
   ?'Fresh releases could not be loaded. Check your connection and retry.'
   :'No releases have been returned by the connected account.';
- return '<div class="empty" role="status" data-aurel-discovery-state="'+html(status)+'">'+html(message)+'</div>';
+ const fallback=status==='authorization'
+   ?'<div class="aurel-discovery-links"><button type="button" data-nav="search">Search music</button>'+
+     '<button type="button" data-nav="library">Your library</button></div>'
+   :'<button type="button" data-refresh class="aurel-discovery-retry">Retry</button>';
+ return '<div class="empty aurel-discovery-fallback" role="status" data-aurel-discovery-state="'+html(status)+'">'+
+   '<p>'+html(message)+'</p>'+fallback+'</div>';
 }return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">♪</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
 renderHome=function(){
  const name=app.session?.profile?.displayName||'Listener';

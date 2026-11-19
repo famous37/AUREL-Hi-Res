@@ -1957,32 +1957,45 @@ public final class MainActivity extends Activity {
     /** Last-resort type-filtered releases from the artist's own Qobuz albums.
      * An unknown release type is never classified just by track count. */
     private JSONObject artistTypedAlbumsFallback(String artistId,String releaseType)throws Exception {
-        JSONObject record=catalog("artist/get",new JSONObject()
-            .put("artist_id",artistId).put("extra","albums")
-            .put("offset",0).put("limit",100));
-        JSONArray albums=artistItems(record,"albums");
-        if(albums==null)throw new Exception("Artist albums unavailable");
         JSONArray typed=new JSONArray();
+        java.util.HashSet<String> seen=new java.util.HashSet<>();
         boolean typeFound=false;
-        for(int n=0;n<albums.length();n++){
-            JSONObject wrapper=albums.optJSONObject(n);
-            if(wrapper==null)continue;
-            JSONObject album=wrapper.optJSONObject("album");
-            if(album==null)album=wrapper;
-            String classification=wrapper.optString("release_type",
-                album.optString("release_type",album.optString("product_type",
-                album.optString("album_type","")))).toLowerCase(java.util.Locale.ROOT);
-            if(classification.isEmpty())continue;
-            typeFound=true;
-            boolean match=releaseType.equals("epSingle")
-                ?classification.contains("single")||classification.equals("ep")
-                    ||classification.contains("epsingle")
-                :releaseType.equals("compilation")
-                    ?classification.contains("compilation"):classification.equals("album");
-            if(match)typed.put(wrapper);
+        int pages=0;
+        // Artist catalogue may be paged. A single first-page fetch gives false
+        // negatives for older EPs. Preserve only provider-supplied types.
+        for(int offset=0;offset<400;offset+=100){
+            JSONObject record=artistInformation("artist/get",new JSONObject()
+                .put("artist_id",artistId).put("extra","albums")
+                .put("offset",offset).put("limit",100));
+            JSONArray albums=artistItems(record,"albums");
+            if(albums==null) {
+                if(pages==0)throw new Exception("Artist albums unavailable");
+                break;
+            }
+            pages++;
+            for(int n=0;n<albums.length();n++){
+                JSONObject wrapper=albums.optJSONObject(n);
+                if(wrapper==null)continue;
+                JSONObject album=wrapper.optJSONObject("album");
+                if(album==null)album=wrapper;
+                String classification=wrapper.optString("release_type",
+                    album.optString("release_type",album.optString("product_type",
+                    album.optString("album_type",album.optString("type","")))))
+                    .toLowerCase(java.util.Locale.ROOT).replaceAll("[ _-]","");
+                if(classification.isEmpty())continue;
+                typeFound=true;
+                boolean match=releaseType.equals("epSingle")
+                    ?classification.contains("single")||classification.equals("ep")
+                        ||classification.contains("epsingle")
+                    :releaseType.equals("compilation")
+                        ?classification.contains("compilation"):classification.equals("album");
+                String id=album.optString("id","");
+                if(match&&!id.isEmpty()&&seen.add(id))typed.put(wrapper);
+            }
+            if(albums.length()<100)break;
         }
         if(!typeFound)throw new Exception("Qobuz returned albums without release types");
-        return new JSONObject().put("items",typed).put("_partial",true);
+        return new JSONObject().put("items",typed).put("_partial",pages>=4);
     }
 
     /** Read artist metadata through an authorized Qobuz library account where available.

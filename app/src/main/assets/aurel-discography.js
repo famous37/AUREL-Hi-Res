@@ -70,7 +70,20 @@
           if(current){
             current.similar=current.similar.map(a=>
               safeId(a)===id?{...a,picture:src}:a);
-            rerender(ownerId);
+            // Updating a portrait must not tear down the full artist page
+            // or reset horizontal shelves and their scroll positions.
+            const buttons=document.querySelectorAll('.aurel-similar-artist');
+            for(const button of buttons){
+              if(button.dataset.openArtist!==id)continue;
+              const frame=button.querySelector('.aurel-similar-portrait');
+              if(frame&&!frame.querySelector('img')){
+                const img=document.createElement('img');
+                img.className='aurel-artist-portrait';
+                img.loading='lazy';img.src=src;
+                img.alt=button.querySelector('strong')?.textContent||'Artist';
+                frame.appendChild(img);
+              }
+            }
           }
         }
       }
@@ -151,6 +164,21 @@
       rerender(id);
     }
   }
+  function loadTypedEps(id,token){
+    const state=byArtist.get(id);
+    if(!state)return Promise.resolve();
+    state.epDone=false;
+    return extend(id,token,'artistReleaseType',{releaseType:'epSingle'},function(s,data){
+      const releases=asList(data?.albums||data?.releases||data)
+        .map(x=>normalizedRelease(x,'epSingle')).filter(Boolean);
+      s.ep=unique([...s.ep,...releases]);s.epDone=true;s.epError='';
+    },(s,error)=>{
+      s.epDone=true;
+      const message=String(error?.message||'');
+      s.epError=/401|403|unauthori[sz]|forbidden|access denied|not permitted|appid/i.test(message)
+        ?'authorization':'unavailable';
+    });
+  }
   function loadExtras(id){
     const cached=byArtist.get(id);
     if(cached&&cached.loaded&&!cached.loading)return;
@@ -195,11 +223,7 @@
       s.similarError=String(data?._similarError||'');
       s.pageDone=true;
     },(s)=>{s.pageDone=true;s.pageError='Request failed';s.topError='Request failed';s.similarError='Request failed';});
-    const ep=extend(id,token,'artistReleaseType',{releaseType:'epSingle'},function(s,data){
-      s.ep=unique([...s.ep,...asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'epSingle')).filter(Boolean)]);
-      s.epDone=true;
-      s.epError='';
-    },(s)=>{s.epDone=true;s.epError='Request failed';});
+    const ep=loadTypedEps(id,token);
     const compilations=extend(id,token,'artistReleaseType',{releaseType:'compilation'},function(s,data){
       s.compilation=unique([...s.compilation,...asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'compilation')).filter(Boolean)]);
       s.compDone=true;
@@ -227,7 +251,14 @@
   }
   function section(title,items,key,empty,loading,error){
     const count=items.length;
-    const errorMessage=error?'<span>Release information could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'';
+    const category=(key==='eps'||key==='compilations');
+    const message=category
+      ?(error==='authorization'
+        ?'Qobuz has not authorized this release category.'
+        :'Some release categories could not be loaded.')
+      :'Release information could not be loaded.';
+    const errorMessage=error?'<span>'+message+
+      '</span> <button type="button" data-artist-retry="'+html(key)+'">Retry</button>':'';
     return '<section class="aurel-artist-section" data-artist-section="'+key+'">'
       +'<header class="aurel-artist-section-heading"><h2>'+title+'</h2>'
       +(count>8?'<button type="button" data-artist-more="'+key+'" aria-expanded="false">See all ›</button>':'')
@@ -358,8 +389,18 @@
     if(b.hasAttribute('data-artist-retry')){
       ev.preventDefault();ev.stopImmediatePropagation();
       const id=safeId(app.selected);
-      byArtist.delete(id);
-      loadExtras(id);
+      const section=b.dataset.artistRetry||'';
+      if(section==='eps'){
+        const state=byArtist.get(id);
+        if(state){
+          state.epDone=false;state.epError='';
+          rerender(id);
+          void loadTypedEps(id,requestToken);
+        }else loadExtras(id);
+      }else{
+        byArtist.delete(id);
+        loadExtras(id);
+      }
       return;
     }
     if(b.dataset.artistMore){

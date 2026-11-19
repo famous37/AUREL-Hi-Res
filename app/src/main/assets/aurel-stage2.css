@@ -57,3 +57,29 @@
 @media(max-width:380px){#overlay .aurel-lyrics-line{font-size:18px}
  .aurel-stage2-history-entry{padding:8px;gap:8px}}
 @media(prefers-reduced-motion:reduce){#overlay .aurel-lyrics-line{transition:none!important}}
+
+/* Stable release: keep history above sticky mini transport and 5-tab nav. */
+:root body .app #screen:has(.aurel-stage2-recent){
+ padding-bottom:calc(184px + var(--aurel-native-navigation-inset,0px))!important;
+}
+.aurel-stage2-recent{margin-top:22px;margin-bottom:26px;scroll-margin-bottom:160px}
+.aurel-stage2-recent .aurel-stage2-history-list{padding-bottom:12px}
+.aurel-discovery-fallback{display:flex;flex-direction:column;align-items:center;gap:12px}
+.aurel-discovery-fallback p{margin:0}
+.aurel-discovery-links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.aurel-discovery-links button,.aurel-discovery-retry{
+ color:var(--aurel-theme-on,#f4f4f4);background:var(--aurel-theme-card,#262629);
+ border:1px solid var(--aurel-theme-border,rgba(255,255,255,.18));
+ min-height:42px;padding:9px 15px;border-radius:24px;font:inherit;font-weight:690
+}
+/* Shelf content scrolls horizontally without clipping a label mid-letter. */
+.aurel-artist-page .aurel-release-strip,
+.aurel-artist-page .aurel-similar-strip{
+ scroll-padding-inline:0 18px;padding-inline-end:22px;
+ max-width:100%;overscroll-behavior-x:contain;
+}
+.aurel-artist-page .aurel-similar-artist{min-width:0;flex:0 0 116px}
+.aurel-artist-page .aurel-similar-artist strong{
+ display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+ white-space:nowrap
+}

@@ -98,7 +98,10 @@ function appendHome(){
  section.className='aurel-stage2-recent';
  section.setAttribute('data-aurel-history-home','');
  section.innerHTML='<h2>'+html(text('Recently played','Нещодавно прослухані'))+'</h2>'+rows(6);
- root.appendChild(section);
+ // Keep the first rows above the sticky mini-player/nav while preserving
+ // the scrollable full list and the route state.
+ const anchor=root.querySelector('.new-section');
+ if(anchor)anchor.before(section);else root.appendChild(section);
 }
 const oldSettings=renderSettings;
 renderSettings=function(){const out=oldSettings.apply(this,arguments);appendSettings();return out;};
@@ -113,7 +116,8 @@ function refreshHistoryUi(){
   if(panel)panel.open=expanded;
  }
  const home=document.querySelector('[data-aurel-history-home]');
- if(home){home.remove();appendHome();}
+ if(home)home.remove();
+ if(app.nav==='home')appendHome();
 }
 const originalEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
