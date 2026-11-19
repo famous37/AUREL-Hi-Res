@@ -172,6 +172,11 @@ public final class TokenGate {
         return t;
     }
 
+
+    /**
+     * "УВІЙТИ" creates a real, verified legacy API 0.2 library session.
+     * The original app's separate OAuth/QWS sign-in is NOT bypassed.
+     */
     private static void showTokenDialog(Activity activity) {
         if (activity.isFinishing() || activity.isDestroyed()) return;
         LinearLayout fields = new LinearLayout(activity);
@@ -179,7 +184,8 @@ public final class TokenGate {
         fields.setPadding(dp(activity, 20), dp(activity, 6),
                           dp(activity, 20), dp(activity, 18));
         fields.addView(help(activity,
-                "Це перевірка токена через Qobuz API 0.2. Вона не входить до штатної OAuth/QWS-сесії плеєра.",
+                "Вхід через Qobuz API 0.2 відкриває бібліотеку токенного облікового запису. "
+                + "Для штатного інтерфейсу та відтворення Qobuz потрібна окрема OAuth/QWS-авторизація.",
                 false));
 
         EditText token = input(activity, fields, "USER AUTH TOKEN", load(activity, "token"), true, false);
@@ -187,6 +193,10 @@ public final class TokenGate {
         EditText appId = input(activity, fields, "APP ID", load(activity, "appId"), false, true);
         EditText appSecret = input(activity, fields, "APP SECRET (необов’язково)",
                                   load(activity, "appSecret"), true, false);
+        Button test = new Button(activity);
+        test.setAllCaps(false);
+        test.setText("Перевірити токен");
+        fields.addView(test);
         TextView state = help(activity, "", false);
         fields.addView(state);
         ScrollView scroll = new ScrollView(activity);
@@ -194,48 +204,20 @@ public final class TokenGate {
         scroll.addView(fields);
 
         AlertDialog dialog = new AlertDialog.Builder(activity)
-                .setTitle("Qobuz · токенний доступ")
+                .setTitle("Qobuz · токенний вхід")
                 .setView(scroll)
-                .setPositiveButton("Перевірити", null)
+                .setPositiveButton("УВІЙТИ", null)
                 .setNegativeButton("Закрити", (d, which) -> { })
                 .setNeutralButton("Очистити", null)
                 .create();
         dialog.setOnShowListener(d -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                final String t = token.getText().toString().trim();
-                final String u = userId.getText().toString().trim();
-                final String id = appId.getText().toString().trim();
-                final String sec = appSecret.getText().toString().trim();
-                if (t.length() < 12 || !u.matches("[0-9]{1,20}")
-                        || !id.matches("[0-9]{6,15}")) {
-                    state.setText("Введіть повний токен, числовий User ID і App ID.");
-                    return;
-                }
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-                state.setText("Перевіряю токен у Qobuz…");
-                new Thread(() -> {
-                    final String error = validate(id, u, t);
-                    MAIN.post(() -> {
-                        if (activity.isFinishing() || activity.isDestroyed()) return;
-                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
-                        if (error == null) {
-                            try {
-                                save(activity, "token", t);
-                                save(activity, "userId", u);
-                                save(activity, "appId", id);
-                                save(activity, "appSecret", sec);
-                                state.setText("API-токен підтверджено й захищено збережено. "
-                                        + "Це НЕ вхід у штатний плеєр Qobuz.");
-                                Toast.makeText(activity, "API-токен збережено", Toast.LENGTH_LONG).show();
-                            } catch (Exception e) {
-                                state.setText("Помилка захищеного збереження.");
-                            }
-                        } else {
-                            state.setText(error);
-                        }
-                    });
-                }, "QobuzModTokenVerify").start();
-            });
+            final Button signIn = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            signIn.setAllCaps(false);
+            signIn.setTextColor(Color.rgb(193, 151, 255));
+            signIn.setOnClickListener(v -> verifyAndEnter(activity, dialog,
+                    token, userId, appId, appSecret, state, test, signIn, true));
+            test.setOnClickListener(v -> verifyAndEnter(activity, dialog,
+                    token, userId, appId, appSecret, state, test, signIn, false));
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
                 activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply();
                 token.setText(""); userId.setText(""); appId.setText(""); appSecret.setText("");
@@ -243,6 +225,171 @@ public final class TokenGate {
             });
         });
         dialog.show();
+    }
+
+    private static void verifyAndEnter(Activity activity, AlertDialog dialog,
+                                       EditText token, EditText userId, EditText appId,
+                                       EditText appSecret, TextView state,
+                                       Button test, Button signIn, boolean openLibrary) {
+        final String t = token.getText().toString().trim();
+        final String u = userId.getText().toString().trim();
+        final String id = appId.getText().toString().trim();
+        final String sec = appSecret.getText().toString().trim();
+        if (t.length() < 12 || !u.matches("[0-9]{1,20}") || !id.matches("[0-9]{6,15}")) {
+            state.setText("Введіть повний токен, числовий User ID та App ID.");
+            return;
+        }
+        test.setEnabled(false);
+        signIn.setEnabled(false);
+        state.setText(openLibrary ? "Виконую вхід через Qobuz API…" : "Перевіряю токен…");
+        new Thread(() -> {
+            String error = validate(id, u, t);
+            MAIN.post(() -> {
+                if (activity.isFinishing() || activity.isDestroyed() || !dialog.isShowing()) return;
+                test.setEnabled(true);
+                signIn.setEnabled(true);
+                if (error != null) {
+                    state.setText(error);
+                    return;
+                }
+                try {
+                    save(activity, "token", t);
+                    save(activity, "userId", u);
+                    save(activity, "appId", id);
+                    save(activity, "appSecret", sec);
+                    if (openLibrary) {
+                        dialog.dismiss();
+                        showTokenLibrary(activity, id, u, t);
+                    } else {
+                        state.setText("API-токен підтверджено й захищено збережено. "
+                                + "Натисніть УВІЙТИ, щоб відкрити бібліотеку через токен.");
+                    }
+                } catch (Exception e) {
+                    state.setText("Помилка захищеного збереження. Вхід не виконано.");
+                }
+            });
+        }, "QobuzModTokenLogin").start();
+    }
+
+    /** Separate, authenticated library view; never claims the original app is signed in. */
+    private static void showTokenLibrary(Activity activity, String appId,
+                                         String uid, String token) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+        LinearLayout list = new LinearLayout(activity);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(activity, 22), dp(activity, 12),
+                        dp(activity, 22), dp(activity, 18));
+        list.addView(help(activity,
+            "API-сеанс активний. Тут відображається особиста бібліотека Qobuz. "
+            + "Штатний плеєр і OAuth/QWS залишаються окремими.",
+            false));
+        TextView heading = help(activity, "Завантажую бібліотеку…", true);
+        list.addView(heading);
+        ScrollView scroll = new ScrollView(activity);
+        scroll.addView(list);
+        AlertDialog library = new AlertDialog.Builder(activity)
+                .setTitle("Qobuz · Моя бібліотека (токен)")
+                .setView(scroll)
+                .setPositiveButton("Оновити", null)
+                .setNegativeButton("Закрити", (d,which) -> { })
+                .setNeutralButton("Вийти", null)
+                .create();
+        library.setOnShowListener(d -> {
+            library.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v ->
+                refreshTokenLibrary(activity, library, list, heading, appId, uid, token));
+            library.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply();
+                library.dismiss();
+                Toast.makeText(activity, "Токенний сеанс завершено", Toast.LENGTH_SHORT).show();
+            });
+            refreshTokenLibrary(activity, library, list, heading, appId, uid, token);
+        });
+        library.show();
+    }
+
+    private static JSONObject fetchFavoriteList(String appId, String uid,
+                                                String token, String type) throws Exception {
+        HttpURLConnection conn = null;
+        try {
+            String url = "https://www.qobuz.com/api.json/0.2/favorite/getUserFavorites"
+                    + "?type=" + type + "&limit=25&user_id=" + uid + "&app_id=" + appId;
+            conn = (HttpURLConnection)new URL(url).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("X-App-Id", appId);
+            conn.setRequestProperty("X-User-Auth-Token", token);
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setInstanceFollowRedirects(false);
+            conn.setConnectTimeout(12000);
+            conn.setReadTimeout(12000);
+            int status = conn.getResponseCode();
+            if (status == 401 || status == 403)
+                throw new SecurityException("Токен відхилено Qobuz (HTTP " + status + ").");
+            if (status < 200 || status >= 300)
+                throw new java.io.IOException("Qobuz API HTTP " + status);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (InputStream stream = conn.getInputStream()) {
+                byte[] bytes = new byte[4096];
+                int size;
+                while ((size = stream.read(bytes)) != -1 && out.size() < 262144) {
+                    out.write(bytes, 0, Math.min(size, 262144 - out.size()));
+                }
+            }
+            JSONObject json = new JSONObject(out.toString("UTF-8"));
+            if (json.has("error"))
+                throw new java.io.IOException("Qobuz API повернув помилку.");
+            return json;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private static void refreshTokenLibrary(Activity activity, AlertDialog dialog,
+                                            LinearLayout list, TextView heading,
+                                            String appId, String uid, String token) {
+        heading.setText("Завантажую бібліотеку…");
+        while (list.getChildCount() > 2) list.removeViewAt(2);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+        new Thread(() -> {
+            final java.util.ArrayList<String[]> sections = new java.util.ArrayList<>();
+            String failure = null;
+            String[] types = {"albums", "tracks", "artists"};
+            String[] labels = {"Альбоми", "Треки", "Виконавці"};
+            for (int i=0; i<types.length; i++) {
+                try {
+                    JSONObject response = fetchFavoriteList(appId, uid, token, types[i]);
+                    JSONObject section = response.optJSONObject(types[i]);
+                    org.json.JSONArray items = section == null ? null : section.optJSONArray("items");
+                    sections.add(new String[] {labels[i], "HEADER"});
+                    if (items == null || items.length() == 0) {
+                        sections.add(new String[] {"Нічого не додано до обраного", "ITEM"});
+                    } else {
+                        for (int k=0; k<items.length() && k<25; k++) {
+                            JSONObject item = items.optJSONObject(k);
+                            if (item == null) continue;
+                            String name = item.optString("title", item.optString("name", "Без назви"));
+                            JSONObject artist = item.optJSONObject("artist");
+                            String author = artist == null ? "" : artist.optString("name", "");
+                            sections.add(new String[] {name + (author.isEmpty() ? "" : " · " + author), "ITEM"});
+                        }
+                    }
+                } catch (Exception e) {
+                    failure = e instanceof SecurityException
+                            ? "Сеанс недійсний: перевірте токен."
+                            : "Не вдалося завантажити всі розділи. Перевірте з’єднання.";
+                    break;
+                }
+            }
+            final String message = failure;
+            MAIN.post(() -> {
+                if (activity.isFinishing() || activity.isDestroyed() || !dialog.isShowing()) return;
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                heading.setText(message == null ? "Моя бібліотека · Qobuz API 0.2" : message);
+                for (String[] entry : sections) {
+                    TextView row = help(activity, entry[0], "HEADER".equals(entry[1]));
+                    list.addView(row);
+                }
+            });
+        }, "QobuzModLibrary").start();
     }
 
     /** Null means a successful authenticated favorites request, not OAuth session conversion. */
