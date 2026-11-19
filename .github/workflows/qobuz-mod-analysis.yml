@@ -1,4 +1,4 @@
-name: Qobuz MOD source analysis (not an APK release)
+name: Qobuz MOD token panel experimental build
 on:
   push:
     branches: [qobuz-mod-10-2-token-auth]
@@ -51,7 +51,7 @@ jobs:
           print('Qobuz auth models:',', '.join(v['found_models']))
           print('AUTH INTEGRATION NOT YET IMPLEMENTED — NO APK RELEASE')
           PY
-      - name: Rebuild and sign original package for toolchain smoke test (not a token MOD)
+      - name: Patch token panel, rebuild and sign experimental Qobuz package
         shell: bash
         run: |
           set -euo pipefail
@@ -60,7 +60,17 @@ jobs:
             -o apktool.jar
           java -jar apktool.jar d -f -r original.apk -o decoded >/dev/null
           python3 qobuz-mod/tools/inspect_entrypoint.py decoded
+          python3 qobuz-mod/tools/patch_smali.py decoded
+          mkdir -p qobuz-mod/generated/com/qobuz/mod build/modclasses build/moddex
+          base64 -d qobuz-mod/src/TokenGate.java.gz.b64 | gzip -d > qobuz-mod/generated/com/qobuz/mod/TokenGate.java
+          ANDROID_JAR="$(find "${ANDROID_HOME}/platforms" -maxdepth 2 -name android.jar | sort -V | tail -1)"
+          javac -source 8 -target 8 -cp "${ANDROID_JAR}" -d build/modclasses qobuz-mod/generated/com/qobuz/mod/TokenGate.java
+          SDK_BUILD_TOOLS="$(find "${ANDROID_HOME}/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
+          "${SDK_BUILD_TOOLS}/d8" --min-api 23 --lib "${ANDROID_JAR}" --output build/moddex $(find build/modclasses -name '*.class')
+          test -f build/moddex/classes.dex
           java -jar apktool.jar b decoded -o repack-unsigned.apk >/dev/null
+          cp build/moddex/classes.dex classes5.dex
+          zip -q repack-unsigned.apk classes5.dex
           SDK_BUILD_TOOLS="$(find "${ANDROID_HOME}/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
           test -x "${SDK_BUILD_TOOLS}/zipalign"
           test -x "${SDK_BUILD_TOOLS}/apksigner"
@@ -71,13 +81,20 @@ jobs:
             --ks-key-alias modsmoke --ks-pass pass:android --key-pass pass:android \
             --out repack-smoke.apk repack-aligned.apk
           "${SDK_BUILD_TOOLS}/apksigner" verify --verbose repack-smoke.apk > repack-smoke-report.txt
-          echo 'Only a rebuild/signer smoke test. No token login has been integrated.' >> repack-smoke-report.txt
+          echo 'Token panel attached to original activities. Legacy API validation is separate from OAuth/QWS native login.' >> repack-smoke-report.txt
+          echo 'Experimental token API 0.2 panel injected; not a replacement for OAuth/QWS.' >> repack-smoke-report.txt
+          cp repack-smoke.apk Qobuz-10.2.0.0-TokenPanel-EXPERIMENTAL.apk
           rm -f repack-smoke.apk repack-unsigned.apk repack-aligned.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: qobuz-repack-smoke-report-no-apk
+          name: qobuz-mod-experimental-build-report
           path: repack-smoke-report.txt
           retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Qobuz-10.2.0.0-token-panel-EXPERIMENTAL
+          path: Qobuz-10.2.0.0-TokenPanel-EXPERIMENTAL.apk
+          retention-days: 2
       - uses: actions/upload-artifact@v4
         with:
           name: qobuz-mod-readonly-analysis
