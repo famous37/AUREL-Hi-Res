@@ -75,13 +75,23 @@ function contentRows(){
  return '<div class="aurel-ltm-entries">'+state.items.map(item=>{
   const name=state.active==='artists'?item.name:state.active==='playlists'?item.name:item.title;
   const local=isLocalId(item.id);
+  const linked=local&&item.linkedId&&!(isLocalId(item.linkedId));
   const sub=state.active==='playlists'
     ?(Number(item.tracksCount)||0)+' '+tr('tracks','треків'):
     item.artist||'';
   return '<button type="button" data-ltm-open="'+esc(item.id)+'" aria-label="'+esc(name)+
    '"><span><strong>'+esc(name||'Untitled')+'</strong><small>'+esc(sub)+'</small>'+
-   (local?'<small class="aurel-ltm-unlinked">'+esc(localNotice())+'</small>':'')+
-   '</span><span class="aurel-ltm-chevron">'+(local?'·':'›')+'</span></button>';
+   (local?'<small class="aurel-ltm-unlinked">'+esc(linked?
+      tr('Linked · opens in Qobuz catalogue','Пов’язано · відкривається у каталозі Qobuz'):
+      tr('Tap to find and open online','Натисніть для пошуку та відкриття онлайн'))+'</small>':'')+
+   '</span><span class="aurel-ltm-actions-row">'+
+   (state.active==='playlists'?'<span role="button" tabindex="-1" data-ltm-local-playlist="'+esc(item.id)+
+      '" class="aurel-ltm-relink" aria-label="'+esc(tr('View saved track list','Переглянути збережені треки'))+
+      '" title="'+esc(tr('Local track list','Локальний список треків'))+'">☷</span>':'')+
+   (local&&linked?'<span role="button" tabindex="-1" data-ltm-relink="'+esc(item.id)+
+       '" class="aurel-ltm-relink" aria-label="'+esc(tr('Change Qobuz match','Змінити збіг Qobuz'))+
+       '" title="'+esc(tr('Change match','Змінити збіг'))+'">⋯</span>':'')+
+   '<span class="aurel-ltm-chevron">›</span></span></button>';
  }).join('')+'</div>';
 }
 function draw(){
@@ -224,7 +234,9 @@ async function playLocal(rows,index){
  }
  const selected=rows[index];if(!selected)return;
  if(isLocalId(selected.id)){
-  showToast(tr('This entry has no verified Qobuz ID.', 'Цей запис не має підтвердженого Qobuz ID.'));
+  if(window.AurelOnlineLibraryResolver)
+   await window.AurelOnlineLibraryResolver.open(selected,'tracks');
+  else showToast(tr('Online library resolver unavailable','Онлайн-пошук недоступний'));
   return;
  }
  const items=rows.slice(0,Math.min(rows.length,400)).map(trackObj);
@@ -241,7 +253,8 @@ async function playLocal(rows,index){
 document.addEventListener('click',async event=>{
  const target=event.target?.closest?.(
   '#aurel-library-transfer [data-ltm-action], #aurel-library-transfer [data-ltm-tab],'+
-  '#aurel-library-transfer [data-ltm-open], #aurel-library-transfer [data-ltm-play-index]');
+  '#aurel-library-transfer [data-ltm-open], #aurel-library-transfer [data-ltm-play-index],'+
+  '#aurel-library-transfer [data-ltm-relink], #aurel-library-transfer [data-ltm-local-playlist]');
  if(!target)return;
  event.preventDefault();event.stopImmediatePropagation();
  if(target.hasAttribute('data-ltm-play-index')){
@@ -255,15 +268,25 @@ document.addEventListener('click',async event=>{
   state.active=kind;state.offset=0;state.playlist=null;
   await browse();return;
  }
+ const relink=target.getAttribute('data-ltm-relink');
+ if(relink){
+  const row=state.items.find(x=>String(x.id)===relink);
+  if(row&&window.AurelOnlineLibraryResolver)
+   await window.AurelOnlineLibraryResolver.open(row,state.active,true);
+  return;
+ }
+ const offlinePlaylist=target.getAttribute('data-ltm-local-playlist');
+ if(offlinePlaylist){await playlist(offlinePlaylist);return;}
  const open=target.getAttribute('data-ltm-open');
  if(open){
   const item=state.items.find(x=>String(x.id)===open);
   if(!item)return;
-  if(state.active==='playlists')await playlist(open);
-  else if(isLocalId(open)){
-   showToast(tr('Stored locally without a Qobuz ID. Find the artist or album using Qobuz search to open it.',
-     'Збережено без Qobuz ID. Щоб відкрити, знайдіть виконавця чи альбом через пошук Qobuz.'));
-  }else if(state.active==='artists')await openArtist(open);
+  if(isLocalId(open)){
+   if(window.AurelOnlineLibraryResolver)
+    await window.AurelOnlineLibraryResolver.open(item,state.active);
+   else showToast(tr('Online library resolver unavailable','Онлайн-пошук недоступний'));
+  }else if(state.active==='playlists')await openPlaylist(open);
+  else if(state.active==='artists')await openArtist(open);
   else if(state.active==='albums')await openAlbum(open);
   else if(state.active==='tracks')await playLocal([item],0);
   return;
@@ -297,5 +320,9 @@ document.addEventListener('click',async event=>{
  }
 },true);
 setTimeout(()=>{if(window.AurelNative)void refresh();},1800);
-window.AurelLibraryTransfer={refresh,browse,status:()=>state.status};
+window.AurelLibraryTransfer={refresh,browse,status:()=>state.status,
+  onLinked:async()=>{
+   // Keep the local library page visible after a successful match.
+   if(state.opened&&!app.selected)await browse();
+  }};
 })();

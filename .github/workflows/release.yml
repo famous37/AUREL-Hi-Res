@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.87: support name-only screenshot-library JSON with offline local IDs; existing audio preserved.
+# v1.1.88: match imported screenshot metadata to authorized Qobuz catalogue entries and preserve player audio.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -8,7 +8,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [fix/library-name-only-import-v1.1.87]
+    branches: [feature/online-library-resolver-v1.1.88]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/library-name-only-import-v1.1.87'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/online-library-resolver-v1.1.88'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -200,19 +200,19 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — Screenshot library JSON import / local-only IDs" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — One-tap online library opening with verified Qobuz matches" \
             '' \
-            '- Import user-created screenshot JSON with deterministic namespaced offline IDs; no fabricated Qobuz IDs.' \
-            '- Unlinked screenshot artists and albums remain readable but never trigger a Qobuz API call or unverified playback.' \
+            '- Tap screenshot-imported artists, albums, tracks or playlists to search authorized Qobuz live metadata.' \
+            '- Unique exact matches open automatically; ambiguous names require a manual selection. Confirmed provider IDs persist in safe local JSON.' \
             '- Import/export local JSON using Android document picker, strict field/version validation, deduplication, transactional storage and safe merge/replace.' \
             '- Read-only local playlist and favourites browser; no changes to Qobuz-managed favourites or playlists.' \
             '- No passwords, account tokens, App Secrets, streaming URLs or audio content are exported.' \
             '- All Stage 1/2 performance, synced LRCLIB lyrics, Qobuz browsing and existing UI preferences remain available.' \
             '- Native audio player, USB output and existing account authentication are unchanged.' \
             '- In-app auto-update check remains enabled with user-approved APK installation.' \
-            '- Android versionCode 104, versionName 1.1.87, signed by the original AUREL release certificate.' \
+            '- Android versionCode 105, versionName 1.1.88, signed by the original AUREL release certificate.' \
             '' \
-            "Install v${AUREL_VERSION} over the existing permanently signed AUREL 1.1.86 without uninstalling or clearing app data." \
+            "Install v${AUREL_VERSION} over the existing permanently signed AUREL 1.1.87 without uninstalling or clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

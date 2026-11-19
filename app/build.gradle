@@ -16,9 +16,9 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 29
         targetSdk 35
-        // AUREL 1.1.87: verified screenshot library JSON import with safe offline local IDs.
-        versionCode 104
-        versionName (project.hasProperty('aurelPreview') ? '1.1.87-preview' : '1.1.87')
+        // AUREL 1.1.88: verified online Qobuz library matching with persistent real IDs.
+        versionCode 105
+        versionName (project.hasProperty('aurelPreview') ? '1.1.88-preview' : '1.1.88')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     signingConfigs {

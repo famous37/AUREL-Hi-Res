@@ -1605,14 +1605,63 @@ public final class MainActivity extends Activity {
                             String q=p.optString("query").trim();
                             if(q.isEmpty())throw new Exception("Enter a search term");
                             String type=p.optString("type","tracks");
-                            String endpoint=type.equals("albums")?"album/search":type.equals("artists")?"artist/search":"track/search";
-                            data=catalog(endpoint,new JSONObject().put("query",q).put("limit",35));break;
+                            if("playlists".equals(type)){
+                                // Public playlist search is provider-dependent. When
+                                // restricted, an authorized personal Qobuz library
+                                // can still resolve its saved playlist by name.
+                                try{
+                                    data=catalog("playlist/search",new JSONObject()
+                                        .put("query",q).put("limit",35));
+                                }catch(Exception publicFailure){
+                                    needLibrary();
+                                    JSONObject saved=api.library("playlist/getUserPlaylists",
+                                        new JSONObject().put("limit",100));
+                                    JSONObject lists=saved.optJSONObject("playlists");
+                                    JSONArray items=lists==null?saved.optJSONArray("items"):
+                                        lists.optJSONArray("items");
+                                    JSONArray found=new JSONArray();
+                                    if(items!=null)for(int i=0;i<items.length();i++){
+                                        JSONObject item=items.optJSONObject(i);
+                                        if(item!=null&&item.optString("name","")
+                                            .toLowerCase(java.util.Locale.ROOT)
+                                            .contains(q.toLowerCase(java.util.Locale.ROOT)))
+                                            found.put(item);
+                                    }
+                                    data=new JSONObject().put("playlists",
+                                        new JSONObject().put("items",found));
+                                }
+                            }else{
+                                String endpoint=type.equals("albums")?"album/search":
+                                    type.equals("artists")?"artist/search":"track/search";
+                                JSONObject query=new JSONObject()
+                                    .put("query",q).put("limit",35);
+                                try{data=catalog(endpoint,query);}
+                                catch(Exception sourceFailure){
+                                    // The separately authorized personal library may
+                                    // permit metadata search even when the streaming
+                                    // gateway rejects that catalogue endpoint.
+                                    needLibrary();
+                                    data=api.library(endpoint,query);
+                                }
+                            }
+                            break;
                         }
-                        case "album":data=catalog("album/get",new JSONObject().put("album_id",p.getString("id")).put("limit",100));break;
+                        case "album": {
+                            String id=p.getString("id");
+                            JSONObject params=new JSONObject().put("album_id",id).put("limit",100);
+                            try{data=catalog("album/get",params);}
+                            catch(Exception sourceFailure){
+                                needLibrary();
+                                data=api.library("album/get",params);
+                            }
+                            break;
+                        }
                         case "artist": {
-                            data=catalog("artist/get",new JSONObject().put("artist_id",p.getString("id"))
-                                .put("extra","albums").put("limit",100).put("offset",0));
-                            data=withArtistReleases(data,p.getString("id"),0,100);
+                            String id=p.getString("id");
+                            JSONObject params=new JSONObject().put("artist_id",id)
+                                .put("extra","albums").put("limit",100).put("offset",0);
+                            data=artistInformation("artist/get",params);
+                            data=withArtistReleases(data,id,0,100);
                             break;
                         }
                         case "artistAlbums": {
@@ -1720,7 +1769,21 @@ public final class MainActivity extends Activity {
                         case "favoriteAdd": {data=changeFavorite(p,false);break;}
                         case "favoriteRemove": {data=changeFavorite(p,true);break;}
                         case "playlists":needLibrary();data=api.library("playlist/getUserPlaylists",new JSONObject().put("limit",100));break;
-                        case "playlist":needLibrary();data=api.library("playlist/get",new JSONObject().put("playlist_id",p.getString("id")).put("extra","tracks").put("limit",100));break;
+                        case "playlist": {
+                            String id=p.getString("id");
+                            if(!id.matches("[0-9]{1,24}"))
+                                throw new Exception("Invalid Qobuz playlist ID");
+                            JSONObject args=new JSONObject().put("playlist_id",id)
+                                .put("extra","tracks").put("limit",100);
+                            // Keep the separately authorized personal-library path
+                            // first; public playlists may not be in that library.
+                            try{
+                                needLibrary();data=api.library("playlist/get",args);
+                            }catch(Exception libraryFailure){
+                                data=catalog("playlist/get",args);
+                            }
+                            break;
+                        }
                         case "play":{
                             final JSONArray list=p.getJSONArray("tracks");final int index=p.optInt("index",0);
                             if(list.length()==0||list.length()>400||index<0||index>=list.length())
@@ -1837,6 +1900,11 @@ public final class MainActivity extends Activity {
                         }
                         case "libraryTransferSync": {
                             data=libraryTransfer.sync(p);break;
+                        }
+                        case "libraryTransferLink": {
+                            // Only maps offline metadata to an online catalogue ID.
+                            // No favourites, subscription, auth or audio state writes.
+                            data=libraryTransfer.link(p);break;
                         }
                         case "libraryTransferBrowse": {
                             data=libraryTransfer.browse(p.optString("type","albums"),
