@@ -142,6 +142,7 @@ jobs:
           node tests/player-dom-stability.test.cjs
           node tests/fullscreen-continuous-canvas.test.cjs
           node tests/global-glass-v1.1.78.test.cjs
+          node tests/player-reopen-stability.test.cjs
           mkdir -p build/media-recovery-test
           javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
           java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
@@ -194,18 +195,17 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — unified album colours, player spacing and gesture-safe glass**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — stable Now Playing after minimize/reopen**" \
             '' \
-            '- Increased spacing between the full-player album cover and the title, artist and album while preserving safe top controls and compact-screen fitting.' \
-            '- Made the app bottom tabs and Android gesture stripe share one subtle, continuous translucent surface across Now Playing, Discover, Library, Search and Settings.' \
-            '- Applied the verified playing-album palette to every shared surface, cards, tabs and mini player when the user enables album colours; retained monochrome when disabled.' \
-            '- Harmonized outline icon thickness, active-state colours, typography and at least 44dp library action touch targets.' \
-            '- Reserved enough page scrolling space below the fixed mini player and navigation so final items remain reachable.' \
-            '- Preserved FFT-driven album effects and paint-only, reduced-motion-aware button feedback without layout animations.' \
-            '- Kept Qobuz/Mornye accounts, listening position, album data, audio focus, Android USB mixer and bit-perfect logic unchanged.' \
-            '- Tested UI, portrait/landscape, gesture insets, global palette opt-in, library controls, Android Java build and permanent release signing.' \
+            '- Fixed progressive shrinking of the album artwork and player cluster when reopening Now Playing repeatedly.' \
+            '- Artwork fitting no longer counts the flexbox auto margin under the audio-quality badge as fixed occupied space.' \
+            '- Android status/gesture WindowInsets changes now trigger one safe resynchronization of portrait layout after immersive transitions.' \
+            '- Added deterministic regression coverage for twelve consecutive minimize/reopen cycles and delayed native insets.' \
+            '- Preserved adaptive compact-screen scrolling and landscape layout rather than cropping controls or adding arbitrary scaling.' \
+            '- Retained the v1.1.78 unified translucent navigation, artwork palette, typography, library controls, and native audio playback.' \
+            '- Qobuz/Mornye credentials, playback progress, FFT, Android media mixer, bit-perfect, favourites, and all user data are unchanged.' \
             '' \
-            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.77 without clearing any app data." \
+            "Install v${AUREL_VERSION} directly over existing signed AUREL 1.1.78 without removing the app." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
