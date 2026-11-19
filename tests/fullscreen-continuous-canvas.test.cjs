@@ -54,9 +54,12 @@ assert.match(aurora,/!app\.player\?\.buffering/);
 assert.match(aurora,/!bitPerfect\(\)/);
 assert.doesNotMatch(aurora,/setInterval\(|requestAnimationFrame\(/,
  'Album light must follow native FFT frames, not simulated periodic motion');
+assert(html.indexOf('<link rel="stylesheet" href="aurel-glass-polish.css">')<
+ html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">'),
+ 'Gesture-safe CSS must preserve the pre-existing authoritative album glass');
 assert(html.lastIndexOf('<link rel="stylesheet"')===
- html.indexOf('<link rel="stylesheet" href="aurel-glass-polish.css">'),
- 'One final, authoritative chrome layer must win legacy CSS');
+ html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">'),
+ 'Measured navigation insets must be applied after all legacy CSS');
 for(const script of ['aurel-player-fit.js','aurel-aurora.js','aurel-track-swipe.js']){
  assert.doesNotThrow(()=>new Function(read(script)),script+' syntax');
 }
