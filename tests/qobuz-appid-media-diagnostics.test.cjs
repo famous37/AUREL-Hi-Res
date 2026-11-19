@@ -8,7 +8,7 @@ const main=fs.readFileSync(root+'app/src/main/java/com/aurel/hires/MainActivity.
 // The old hard-coded widget and stream fallback IDs must never be sent.
 assert.doesNotMatch(api,/"735532640"|"312369995"/);
 assert.doesNotMatch(main,/DEFAULT_APP_ID="312369995"/);
-assert.match(api,/resolveAppId\("")/);
+assert(api.includes('resolveAppId("")'));
 assert.match(api,/Qobuz HTTP 405: App ID rejected by Qobuz/);
 assert.match(api,/App ID is not configured/);
 assert.match(main,/private static final String DEFAULT_APP_ID=""/);
