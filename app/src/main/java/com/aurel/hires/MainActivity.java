@@ -1074,9 +1074,9 @@ public final class MainActivity extends Activity {
             secure.put(key,"");
     }
     private String streamToken(){String t=secure.get("streamToken");return t.isEmpty()?secure.get("token"):t;}
-    // Default App ID shown in the user's original AUREL configuration.
-    // Not a secret; callers can override it in Advanced account settings.
-    private static final String DEFAULT_APP_ID="312369995";
+    // Never silently substitute an outdated App ID for a streaming token.
+    // An authorized Qobuz App ID must be explicitly stored with its session.
+    private static final String DEFAULT_APP_ID="";
     private String streamAppId(){
         String t=secure.get("streamAppId");
         if(t.isEmpty())t=secure.get("appId");
@@ -1927,13 +1927,12 @@ public final class MainActivity extends Activity {
             try{return api.library(endpoint,parameters);}
             catch(Exception failure){latest=failure;}
         }
-        if(mornyeActive()&&publicMetadata) {
-            try{return api.publicArtist(endpoint,parameters);}
-            catch(Exception failure){latest=failure;}
-        }
+        // Prefer the selected authenticated catalogue (including Mornye) over
+        // anonymous metadata. A stale public widget App ID must not eclipse a
+        // working gateway response.
         try{return catalog(endpoint,parameters);}
         catch(Exception failure){latest=failure;}
-        if(!mornyeActive()&&publicMetadata) {
+        if(publicMetadata) {
             try{return api.publicArtist(endpoint,parameters);}
             catch(Exception failure){latest=failure;}
         }
@@ -2280,9 +2279,12 @@ public final class MainActivity extends Activity {
                         // and ordinary Android routing remains a working fallback.
                         configureAndroidUsb(player,false);
                         if(Build.VERSION.SDK_INT>=28){
-                            player.addOnRoutingChangedListener(router->{
-                                if(generation!=playGeneration)return;
-                                configureAndroidUsb(player,true);
+                            final MediaPlayer routedPlayer=player;
+                            routedPlayer.addOnRoutingChangedListener(router->{
+                                if(generation!=playGeneration||player!=routedPlayer)return;
+                                onActualRouteChanged(routedPlayer);
+                                if(player==routedPlayer&&prepared)
+                                    configureAndroidUsb(routedPlayer,true);
                                 emit("player",playerState());
                             },ui);
                         }
@@ -2407,9 +2409,31 @@ public final class MainActivity extends Activity {
                             }
                             buffering=false;
                             focusPolicy.userPause();abandonPlaybackFocus();
+                            // Preserve bounded, non-sensitive error facts in the
+                            // local journal. Android's system error alone does not
+                            // prove a DAC or network fault; expose the native codes
+                            // and route rather than guessing its underlying cause.
+                            String output="unknown";
+                            try{
+                                AudioDeviceInfo routed=mp.getRoutedDevice();
+                                if(routed!=null){
+                                    int type=routed.getType();
+                                    output=(type==AudioDeviceInfo.TYPE_USB_DEVICE||
+                                        type==AudioDeviceInfo.TYPE_USB_HEADSET||
+                                        type==AudioDeviceInfo.TYPE_USB_ACCESSORY)
+                                        ?"USB":(type==AudioDeviceInfo.TYPE_BLUETOOTH_A2DP||
+                                            type==AudioDeviceInfo.TYPE_BLE_HEADSET||
+                                            type==AudioDeviceInfo.TYPE_BLE_SPEAKER)
+                                        ?"Bluetooth":Integer.toString(type);
+                                }
+                            }catch(RuntimeException ignored){}
+                            String facts="what="+what+", extra="+extra+
+                                ", output="+output+", bitPerfect="+
+                                (bitPerfect!=null&&bitPerfect.isEnabled()?"on":"off")+
+                                ", format="+fileInfo.optInt("format_id",0);
                             playerError=extra==Integer.MIN_VALUE?
-                                "Android audio system error. Tap Play to try again.":
-                                "Audio playback error ("+what+" / "+extra+"). Tap Play to retry.";
+                                "Android MediaPlayer system error ("+facts+"). Tap Play to retry.":
+                                "Audio playback error ("+facts+"). Tap Play to retry.";
                             // The MediaPlayer instance entered Error state. It cannot be
                             // resumed directly; release it so Play opens a fresh stream.
                             ui.post(()->{

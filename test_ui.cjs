@@ -150,7 +150,7 @@ assert(css.includes('aurel-token-input'));
 const java=fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const api=fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8');
 const media=fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/AurelPlaybackService.java','utf8');
-assert(java.includes('DEFAULT_APP_ID="312369995"'));
+assert(java.includes('DEFAULT_APP_ID=""'), 'Do not use an outdated default streaming App ID');
 assert(java.includes('raw=api.validateLiveToken(appId,token,p.optString("userId",""),secondary)'));
 assert(java.includes('api.automaticLibraryAppId()'));
 assert(java.includes('?api.resolveAppId(suppliedAppId)'));
@@ -168,7 +168,7 @@ assert(java.includes('case "discover":'));
 assert(!java.includes('mornye.metadata("album/getFeatured"'));
 assert(java.includes('api.publicFeaturedReleases(24)'));
 assert(api.includes('JSONObject publicFeaturedReleases(int limit)'));
-assert(api.includes('false,"735532640",""'));
+assert(api.includes('false,resolveAppId(""),""'), 'Public metadata must resolve the current Qobuz Web App ID');
 assert(java.includes('terminalStreamFailure(e)'));
 assert(java.includes('if(viaMornye&&MornyeGateway.terminalStreamFailure(e))break;'));
 assert(java.includes('mornye.streamInfo(id,fmt)'));
@@ -407,7 +407,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(releaseGradle.includes("'1.1.80'"));
+assert(releaseGradle.includes("'1.1.81'"));
 assert(media.includes('new float[]{hue,.37f,.075f}')&&media.includes('new float[]{hue,.43f,.16f}'), 'native palette should use dark artwork-harmonized backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -439,7 +439,7 @@ assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artis
 assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
   'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(releaseGradle.includes("'1.1.80'"));
+assert(releaseGradle.includes("'1.1.81'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -464,7 +464,7 @@ assert(gateway.includes('"VERIFICATION_REQUIRED".equalsIgnoreCase(code)')&&
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('reverifyMornye')"), 'settings/player must invoke re-verification');
 assert(fs.readFileSync(base+'app.js','utf8').includes('aurel-gateway-warning'), 'failed grants need a persistent warning');
 assert(murglarJs.includes('data-reverify-mornye'), 'Now Playing must expose verification instead of an inert error');
-assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.80</strong>'), 'Settings must show the installed version');
+assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.1.81</strong>'), 'Settings must show the installed version');
 
 const playerFitCss=fs.readFileSync(base+'aurel-player-fit.css','utf8');
 const playerFitJs=fs.readFileSync(base+'aurel-player-fit.js','utf8');
