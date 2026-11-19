@@ -294,9 +294,9 @@ final class QobuzApi {
         }
     }
 
-    /** Public Qobuz editorial catalogue used when the Zarz gateway does not
-     * expose featured albums. Uses the published widget App ID used by the
-     * upstream Mornye Qobuz extension; does not send account credentials.
+    /** Public Qobuz editorial catalogue when the gateway does not expose
+     * featured albums. Uses the current public web-client App ID and does
+     * not send account credentials.
      * This is not an attempt to access a forbidden Zarz route.
      */
     JSONObject publicFeaturedReleases(int limit)throws Exception{
@@ -335,7 +335,7 @@ final class QobuzApi {
         if(trackId==null||!trackId.matches("[0-9]{1,20}"))
             throw new Exception("Invalid Qobuz track identifier");
         JSONObject response=request("widget/getTrackById",
-            new JSONObject().put("track_id",trackId),false,"735532640","");
+            new JSONObject().put("track_id",trackId),false,resolveAppId(""),"");
         JSONObject track=response.optJSONObject("track");
         if(track==null)track=response;
         if(!track.has("id")&&!track.has("album")&&!track.has("title"))
