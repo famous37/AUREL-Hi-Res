@@ -25,6 +25,9 @@
      staleFallbacks=0,reads=0;
  const entries=new Map();
  const pending=new Set();
+ // Coalesce concurrent reads for the same account/key; never share playback URLs.
+ const inflight=new Map();
+ let cacheGeneration=0;
  try{
    const stored=JSON.parse(localStorage.getItem(PREF)||'null');
    if(stored&&typeof stored==='object'){
@@ -48,7 +51,10 @@
    try{localStorage.setItem(PREF,JSON.stringify(settings));}catch(_){}
  }
  function reset(){
-   entries.clear();pending.clear();bytes=0;
+   // In-flight responses from previous sessions or a cleared cache may still
+   // finish, but they must not repopulate the new account's metadata.
+   cacheGeneration++;
+   entries.clear();pending.clear();inflight.clear();bytes=0;
  }
  function ensureAccount(){
    const current=account();
@@ -125,15 +131,16 @@
  function info(){
    ensureAccount();
    return {installed:true,enabled:settings.enabled,limit:settings.limit,
-     pages:entries.size,bytes,hits,misses,staleFallbacks,
+     pages:entries.size,bytes,hits,misses,staleFallbacks,inFlight:inflight.size,
      persistedPages:false,ttlMinutes:20};
  }
  function refresh(action,params,key,fetcher){
    if(pending.has(key)||document.hidden)return;
    pending.add(key);
+   const generation=cacheGeneration;
    // No UI reload, route mutation or scroll restoration on background updates.
    Promise.resolve().then(()=>fetcher(action,params,true))
-     .then(data=>{if(owner===account()&&settings.enabled)save(key,action,data);})
+     .then(data=>{if(owner===account()&&generation===cacheGeneration&&settings.enabled)save(key,action,data);})
      .catch(()=>{}).finally(()=>pending.delete(key));
  }
  const originalApi=api;
@@ -149,25 +156,46 @@
      if(item.age>item.ttl*.65)refresh(action,params,k,originalApi);
      return item.value;
    }
+   // A renderer, background preload and route restoration may request the
+   // same metadata simultaneously. Only one native/network query is needed.
+   const shared=inflight.get(k);
+   if(shared){
+     const data=await shared;
+     return data==null?data:cloned(data);
+   }
    misses++;reads++;
    const stale=find(action,params,true);
-   const expectedOwner=owner;
-   try{
-     const data=await originalApi.apply(this,arguments);
-     if(account()===expectedOwner)save(k,action,data);
-     return data;
-   }catch(error){
-     if(stale && account()===expectedOwner){
-       staleFallbacks++;
-       return stale.value;
+   const expectedOwner=owner,expectedGeneration=cacheGeneration;
+   const request=(async()=>{
+     try{
+       const data=await originalApi.call(this,action,params,quiet);
+       if(owner===expectedOwner&&account()===expectedOwner&&
+          expectedGeneration===cacheGeneration&&settings.enabled)save(k,action,data);
+       return data;
+     }catch(error){
+       if(stale&&owner===expectedOwner&&account()===expectedOwner&&
+          expectedGeneration===cacheGeneration&&settings.enabled){
+         staleFallbacks++;
+         return stale.value;
+       }
+       throw error;
      }
-     throw error;
+   })();
+   inflight.set(k,request);
+   try{
+     const data=await request;
+     return data==null?data:cloned(data);
+   }finally{
+     if(inflight.get(k)===request)inflight.delete(k);
    }
  };
  window.AurelPageCache={
    installed:true,peek:preview,info,configure:config,clear(){reset();return info();},
    invalidate(action,id){
      ensureAccount();
+     // Previously queued requests must not revive invalidated catalogue data.
+     cacheGeneration++;
+     inflight.clear();pending.clear();
      for(const k of [...entries.keys()]){
        if(!action||k.startsWith(action+':')&&(!id||k.includes('"id":"'+String(id)+'"'))){
          bytes-=entries.get(k).size;entries.delete(k);

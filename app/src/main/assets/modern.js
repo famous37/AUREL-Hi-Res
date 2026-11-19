@@ -2,6 +2,7 @@
 /* Original AUREL interface. Inspired by familiar contemporary music-app patterns;
    no proprietary application code, logos or bundled artwork. */
 app.discoverTab='new';
+app.discoverStatus='';
 app.libSort='recent';
 app.libLayout='grid';
 app.playerSheet='';
@@ -13,7 +14,15 @@ const fmtTrack=(t,i)=>{
  const state=window.AurelTrackAccess?.status(t)||{playable:true};
  return `<button class="queue-item ${i===app.player?.index?'current':''}" data-queue-play="${i}" ${state.playable?'':'disabled'}><span class="queue-cover">${art(t,'queue-image')||'<span>♪</span>'}</span><span class="queue-text"><strong>${html(t.title||'Untitled')}</strong><small>${html(state.playable?artistLabel(t):'Unavailable for streaming')}</small></span>${i===app.player?.index?'<span class="playing-indicator">♫</span>':''}</button>`;
 };
-function albumShelf(items){if(!items.length)return '<div class="empty">No releases have been returned by the connected account.</div>';return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">♪</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
+function albumShelf(items){if(!items.length){
+ const status=app.discoverStatus||'empty';
+ const message=status==='authorization'
+  ?'Fresh releases require Qobuz catalogue authorization. Search and your library may still work.'
+  :status==='network'
+  ?'Fresh releases could not be loaded. Check your connection and retry.'
+  :'No releases have been returned by the connected account.';
+ return '<div class="empty" role="status" data-aurel-discovery-state="'+html(status)+'">'+html(message)+'</div>';
+}return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">♪</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
 renderHome=function(){
  const name=app.session?.profile?.displayName||'Listener';
  $('#screen').innerHTML=`<div class="page-heading"><h1>Discover</h1><button class="subtle-icon" data-nav="settings" aria-label="Settings">${ic('settings',26)}</button></div>
@@ -123,8 +132,11 @@ function actualSource(p){
  if(androidRate)return `${codec?codec+' · ':''}${androidRate} · Android${suffix}`;
  if(p.qualityProbePending)return 'Checking actual stream quality…';
  if(p.buffering)return 'Connecting to audio…';
- if(p.playing)return bitrate||'Playing · exact stream format not reported';
- return 'Stream quality unavailable · tap Audio';
+ if(p.playing&&bitrate)return bitrate+' · source format unverified';
+ // The selected provider tier is a request, not a measurement of delivered PCM.
+ const tier={5:'MP3',6:'CD',7:'Hi-Res',27:'Hi-Res Max'}[Number(p.formatId)||0];
+ if(tier)return tier+' requested · format unverified';
+ return p.playing?'Playing · exact stream format not reported':'Format unverified · tap Audio';
 }
 const bytesText=n=>Number(n)>0?`${(Number(n)/1048576).toFixed(1)} MB`:'Not reported';
 function audioPanel(p){
@@ -135,6 +147,7 @@ function audioPanel(p){
   'Stream metadata not reported';
  const decoderHz=kHzLabel(p?.decoderSampleRateHz);
  const fields=[
+  ['Requested stream tier',({5:'MP3',6:'CD',7:'Hi-Res',27:'Hi-Res Max'}[Number(p?.formatId)||0]||'Not reported')+' (not verified)'],
   ['Current stream',p?.sourceVerified?`${p.bits}-bit / ${kHzLabel(p.sampleRateHz)}`:
       p?.streamHeaderVerified&&kHzLabel(p.sampleRateHz)?`${p.codec||'Audio'} · ${kHzLabel(p.sampleRateHz)} (bit depth unknown / not applicable)`:'Exact bit depth / rate not verified'],
   ['Quality verified by',source],
@@ -159,7 +172,7 @@ function audioPanel(p){
  ];
  return `<div class="sheet-title">Audio details · source vs catalogue</div>
  <div class="credits">${fields.map(([key,val])=>`<div class="credit"><span>${html(key)}</span><strong>${html(val)}</strong></div>`).join('')}
- <p>FLAC bit depth and sample rate can be verified from STREAMINFO using a short ranged read of the existing media URL. MP3 frame bitrate may vary. Qobuz catalogue maximum and Android mixer / DAC output are different measurements.</p></div>`;
+ <p>The requested tier is not proof of delivered bit depth or sample rate. A short STREAMINFO read can verify FLAC only when the URL supports safe range access; AUREL does not retry single-use signed URLs. MP3 bitrate may vary. Android mixer / DAC output is a different measurement.</p></div>`;
 }
 
 /* Early icon and playback helpers now live in app.js, before native events. */
@@ -359,9 +372,17 @@ window.AurelEvent=function(kind,data){
    if(viewChanged)drawOverlay();
    else if(audioChanged){
      // Avoid destroying artwork, focus and scroll for every late decoder fact.
-     const badge=document.querySelector('#overlay .murglar-source-line span');
+     const badge=document.querySelector('#overlay .aurel-source-pill span, #overlay .murglar-source-line span');
      const text=actualSource(data);
      if(badge&&badge.textContent!==text)badge.textContent=text;
+     // Late metadata should update the current screen without rebuilding art.
+     const caption=document.querySelector('#overlay .aurel-source-caption');
+     const description=data?.error?'Playback unavailable':
+       data?.buffering?'Connecting to audio…':
+       data?.sourceVerified?'Source format · Qobuz metadata':
+       data?.decoderSampleRateHz?'Media track format · Android':
+       'Source format not confirmed';
+     if(caption&&caption.textContent!==description)caption.textContent=description;
      if(app.playerSheet==='audio'){
        const details=document.querySelector('#overlay .aurel-detail-sheet');
        if(details)details.innerHTML=audioPanel(data);
