@@ -1,0 +1,85 @@
+name: Build signed AUREL Clone
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/cover-rhythm-v1.1.58]
+    paths:
+      - '.github/workflows/clone.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  signed-clone:
+    runs-on: ubuntu-latest
+    env:
+      AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check clone sources and JS regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'aurelClone' app/build.gradle
+          for script in app/src/main/assets/*.js; do node --check "$script"; done
+          node tests/clone-token-login.test.cjs
+          for test in tests/*.test.cjs; do node "$test"; done
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+      - name: Install Android 37 and build tools
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Restore permanent signing key and verify identity
+        shell: bash
+        env:
+          AUREL_RELEASE_KEYSTORE_BASE64: ${{ secrets.AUREL_RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$AUREL_RELEASE_KEYSTORE_BASE64" || -z "$AUREL_RELEASE_PASSWORD" ]]; then
+            echo "::error::Missing permanent AUREL signing secrets"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/aurel-clone-signing"
+          echo "AUREL_RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/aurel-clone-signing/release.p12" >> "$GITHUB_ENV"
+          umask 077
+          printf '%s' "$AUREL_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/aurel-clone-signing/release.p12"
+          chmod 600 "$RUNNER_TEMP/aurel-clone-signing/release.p12"
+          ACTUAL_CERT="$(keytool -exportcert -rfc -keystore "$RUNNER_TEMP/aurel-clone-signing/release.p12" -storepass "$AUREL_RELEASE_PASSWORD" -alias aurel-release | openssl x509 -noout -fingerprint -sha256 | sed 's/.*=//' | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          EXPECTED_CERT="C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA"
+          if [[ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
+            echo "::error::Signing key mismatch"
+            exit 1
+          fi
+      - name: Build standalone production-signed AUREL Clone
+        shell: bash
+        run: gradle --no-daemon :app:assembleRelease -PaurelClone
+      - name: Verify clone signature and distinct package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          CERT="$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          test "$CERT" = "C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | grep -q "package: name='com.aurel.hires.clone'"
+          mkdir -p app/build/clone-output
+          cp "$APK" app/build/clone-output/AUREL-Clone-v1.1.79.apk
+          sha256sum app/build/clone-output/AUREL-Clone-v1.1.79.apk > app/build/clone-output/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AUREL-Clone-signed-APK
+          path: app/build/clone-output/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Destroy local signing key
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/aurel-clone-signing"
