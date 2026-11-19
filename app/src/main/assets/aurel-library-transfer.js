@@ -20,6 +20,11 @@ const state={
 const uk=()=>window.AurelLanguage?.get?.()==='uk';
 const tr=(en,ua)=>uk()?ua:en;
 const label=type=>LABELS[type]?.[uk()?1:0]||type;
+const isLocalId=id=>/^local_[0-9a-f]{32}$/.test(String(id||''));
+const localNotice=()=>tr(
+ 'Imported from a screenshot · not linked to Qobuz',
+ 'Імпортовано зі скриншота · не прив’язано до Qobuz'
+);
 const esc=value=>html(String(value==null?'':value));
 function counts(){return state.status.counts||{};}
 function root(){return document.getElementById('screen');}
@@ -69,12 +74,14 @@ function contentRows(){
    esc(tr('No local entries in this category.','У цій категорії немає локальних записів.'))+'</p>';
  return '<div class="aurel-ltm-entries">'+state.items.map(item=>{
   const name=state.active==='artists'?item.name:state.active==='playlists'?item.name:item.title;
+  const local=isLocalId(item.id);
   const sub=state.active==='playlists'
     ?(Number(item.tracksCount)||0)+' '+tr('tracks','треків'):
     item.artist||'';
   return '<button type="button" data-ltm-open="'+esc(item.id)+'" aria-label="'+esc(name)+
-   '"><span><strong>'+esc(name||'Untitled')+'</strong><small>'+esc(sub)+'</small></span>'+
-   '<span class="aurel-ltm-chevron">›</span></button>';
+   '"><span><strong>'+esc(name||'Untitled')+'</strong><small>'+esc(sub)+'</small>'+
+   (local?'<small class="aurel-ltm-unlinked">'+esc(localNotice())+'</small>':'')+
+   '</span><span class="aurel-ltm-chevron">'+(local?'·':'›')+'</span></button>';
  }).join('')+'</div>';
 }
 function draw(){
@@ -216,6 +223,10 @@ async function playLocal(rows,index){
   return;
  }
  const selected=rows[index];if(!selected)return;
+ if(isLocalId(selected.id)){
+  showToast(tr('This entry has no verified Qobuz ID.', 'Цей запис не має підтвердженого Qobuz ID.'));
+  return;
+ }
  const items=rows.slice(0,Math.min(rows.length,400)).map(trackObj);
  const target=Math.min(index,items.length-1);
  if(index>=items.length){
@@ -249,7 +260,10 @@ document.addEventListener('click',async event=>{
   const item=state.items.find(x=>String(x.id)===open);
   if(!item)return;
   if(state.active==='playlists')await playlist(open);
-  else if(state.active==='artists')await openArtist(open);
+  else if(isLocalId(open)){
+   showToast(tr('This name is stored locally. Sync an authorized Qobuz library to obtain real IDs.',
+     'Назву збережено локально. Синхронізуйте авторизовану бібліотеку Qobuz, щоб отримати справжні ID.'));
+  }else if(state.active==='artists')await openArtist(open);
   else if(state.active==='albums')await openAlbum(open);
   else if(state.active==='tracks')await playLocal([item],0);
   return;

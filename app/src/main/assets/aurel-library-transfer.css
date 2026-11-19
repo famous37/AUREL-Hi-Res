@@ -85,3 +85,7 @@
  .aurel-ltm-actions{grid-template-columns:1fr 1fr}
  .aurel-ltm-total{font-size:11px;gap:5px}}
 @media(prefers-reduced-motion:reduce){.aurel-ltm *{scroll-behavior:auto!important}}
+
+/* Explicit status for screenshot-only names without authentic provider IDs. */
+.aurel-ltm-entries .aurel-ltm-unlinked{font-size:11px;line-height:1.45;
+ color:var(--muted,#a8a8a8);opacity:.85;white-space:normal;margin-top:3px}
