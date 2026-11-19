@@ -8,6 +8,10 @@
   let observer=null;
   let observed=null;
   let navObserver=null,navObserved=null,lastNavHeight=0;
+  // Native edge-to-edge inset values are written asynchronously after
+  // setPlayerImmersive(). A view may keep its width/height while the status
+  // inset changes, so observing only the view misses the final geometry.
+  let insetStamp='';
   function synchronizeNavHeight(){
     const nav=document.querySelector('.app .bottom-nav');
     const overlay=document.getElementById('overlay');
@@ -56,7 +60,15 @@
       if(element===wrap)continue;
       const s=getComputedStyle(element);
       if(s.display==='none'||s.position==='absolute'||s.position==='fixed')continue;
-      reserved+=element.getBoundingClientRect().height+number(s.marginTop)+number(s.marginBottom);
+      // The quality badge uses margin-bottom:auto to distribute unused
+      // portrait height. getComputedStyle() can expose the RESOLVED pixel
+      // size of that flexible margin, which depends on the current cover.
+      // Counting it as fixed content causes a positive-feedback shrink:
+      // close/reopen -> measure a larger spacer -> make the cover smaller.
+      // Its space is optional, never a minimum required by the layout.
+      const elasticEnd=element.classList?.contains('murglar-source-line');
+      reserved+=element.getBoundingClientRect().height+number(s.marginTop)+
+        (elasticEnd?0:number(s.marginBottom));
       visible++;
     }
     const gap=number(cs.rowGap||cs.gap);
@@ -93,6 +105,19 @@
   window.addEventListener('orientationchange',schedule,{passive:true});
   window.visualViewport?.addEventListener('resize',schedule,{passive:true});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
+  window.addEventListener('pageshow',schedule,{passive:true});
+  if(typeof MutationObserver==='function'&&document.documentElement){
+    const root=document.documentElement;
+    const stamp=()=>root.style.getPropertyValue('--aurel-native-status-inset')+'|'+
+      root.style.getPropertyValue('--aurel-native-navigation-inset');
+    insetStamp=stamp();
+    new MutationObserver(()=>{
+      const next=stamp();
+      if(next===insetStamp)return;
+      insetStamp=next;
+      schedule();
+    }).observe(root,{attributes:true,attributeFilter:['style']});
+  }
   if(document.fonts?.ready)document.fonts.ready.then(schedule).catch(()=>{});
   schedule();
 })();

@@ -116,6 +116,8 @@ jobs:
         run: node tests/settings-state-motion.test.cjs
       - name: Verify audio focus and player scroll boundaries
         run: node tests/player-scroll-focus.test.cjs
+      - name: Verify artwork size remains stable after repeated player reopen
+        run: node tests/player-reopen-stability.test.cjs
       - name: Verify focus interruption and resume policy
         run: |
           mkdir -p build/audio-focus-test

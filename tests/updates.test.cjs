@@ -36,7 +36,7 @@ for(const k of ['data-aurel-check-update','data-aurel-download-update',
  'data-aurel-install-update','86400000','data-aurel-auto-updates','progress','What’s new']){
  assert(ui.includes(k),'Missing update UI function: '+k);
 }
-assert(/versionCode\s+97/.test(gradle) && gradle.includes("'1.1.78'"),
+assert(/versionCode\s+98/.test(gradle) && gradle.includes("'1.1.79'"),
  'New release must advance versionCode and versionName');
 assert(release.includes('AUREL_RELEASE_KEYSTORE_BASE64')&&release.includes('apksigner'));
 console.log('AUREL updater signing, checksum, permission, and UI regression checks passed.');
