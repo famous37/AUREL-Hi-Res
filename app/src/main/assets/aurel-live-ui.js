@@ -23,6 +23,27 @@
   });
   // All navigation icons remain consistent vectors; track artwork belongs to mini player.
   const themeByCover=new Map();
+  // Bounded cache of public artwork colours; never store account credentials.
+  const ARTWORK_CACHE_KEY='aurel_palette_colors_v1';
+  const validCachedUrl=value=>typeof value==='string'&&
+    /^https:\/\/([a-z0-9-]+\.)*qobuz\.com\//i.test(value)&&value.length<900;
+  function persistPalettes(){
+    try{localStorage.setItem(ARTWORK_CACHE_KEY,
+      JSON.stringify([...themeByCover.entries()].filter(([url])=>validCachedUrl(url)).slice(-24)));}
+    catch(_){}
+  }
+  try{
+    const previous=JSON.parse(localStorage.getItem(ARTWORK_CACHE_KEY)||'[]');
+    if(Array.isArray(previous)){
+      for(const pair of previous.slice(-24)){
+        if(!Array.isArray(pair)||pair.length!==2||!validCachedUrl(pair[0]))continue;
+        const c=pair[1];
+        if(!c||!['bg','surface','accent','one','two','three'].every(
+          k=>typeof c[k]==='string'&&/^#[0-9a-f]{6}$/i.test(c[k])))continue;
+        themeByCover.set(pair[0],c);
+      }
+    }
+  }catch(_){}
   // Neutral graphite is the default. Album-derived colours are opt-in.
   const PALETTE_KEY='aurel_palette_artwork_v1';
   const baseTheme={bg:'#111214',surface:'#202124',accent:'#D5D7DB',one:'#82878D',two:'#666970',three:'#B0B3B7'};
@@ -199,8 +220,9 @@
       one:validHex(glow1)?glow1:accent,
       two:validHex(glow2)?glow2:accent,
       three:validHex(glow3)?glow3:accent};
-    themeByCover.set(url,colors);
+    themeByCover.delete(url);themeByCover.set(url,colors);
     if(themeByCover.size>36)themeByCover.delete(themeByCover.keys().next().value);
+    if(validCachedUrl(url))persistPalettes();
     if(artworkPalette&&coverNow()===url){
       activeCover=url;
       setTheme(colors);

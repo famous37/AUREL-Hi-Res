@@ -67,7 +67,7 @@ var dictionary={
  'Retry':'Повторити',
  'Now Playing':'Зараз відтворюється','Now playing':'Зараз відтворюється',
  'Queue':'Черга','Play queue':'Черга відтворення','Info':'Відомості',
- 'Credits':'Учасники запису','Audio':'Аудіо','Favourite':'Вибране','Favorites':'Вибране',
+ 'Credits':'Учасники запису','Audio':'Аудіо','Lyrics':'Текст пісні','Favourite':'Вибране','Favorites':'Вибране',
  'Track information':'Відомості про трек','Audio information':'Відомості про аудіо',
  'Audio details · source vs catalogue':'Аудіодані · потік і каталог',
  'Qobuz recording information':'Відомості Qobuz про запис',

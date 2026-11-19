@@ -331,7 +331,7 @@ window.AurelEvent=function(kind,data){
   if(!underlayView&&saved.current)underlayView={...saved.current};
   openPlayerAfterBoot=false;
   app.overlay=true;
-  app.playerSheet=['audio','credits','upnext'].includes(saved.current?.playerSheet)?saved.current.playerSheet:'';
+  app.playerSheet=['audio','credits','upnext','lyrics'].includes(saved.current?.playerSheet)?saved.current.playerSheet:'';
   drawOverlay();
  }
  return result;
