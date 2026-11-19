@@ -9,6 +9,7 @@ const LABELS={
  artists:['Artists','Виконавці'],albums:['Albums','Альбоми'],
  tracks:['Tracks','Треки'],playlists:['Playlists','Плейлисти']
 };
+let lastLibraryConnection=null;
 const state={
  status:{busy:false,stage:'idle',message:'',done:0,total:0,
   counts:{artists:0,albums:0,tracks:0,playlists:0}},
@@ -186,7 +187,13 @@ window.AurelEvent=function(kind,data){
    if(state.opened){state.offset=0;state.playlist=null;void browse();}
   }
  }
- if(kind==='session'&&document.getElementById('aurel-library-transfer'))draw();
+ if(kind==='session'){
+  const connected=!!app.session?.libraryConnected;
+  if(lastLibraryConnection!==connected){
+   lastLibraryConnection=connected;
+   if(document.getElementById('aurel-library-transfer'))draw();
+  }
+ }
  return result;
 };
 document.addEventListener('change',event=>{
