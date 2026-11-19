@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Patch original Activity lifecycle methods with a non-invasive optional token panel.
-The built-in Qobuz OAuth/QWS implementation remains unmodified.
+"""Add an optional legacy Qobuz API token panel to original Activity onCreate.
+Does not modify native OAuth/QWS session credentials or sign-in restrictions.
 """
 import pathlib,re,sys
 root=pathlib.Path(sys.argv[1]);names=[
@@ -15,11 +15,9 @@ for name in names:
   print('SKIPPED NO onCreate',name)
   continue
  block=match.group()
- candidates=list(re.finditer(r'^\s*invoke-(?:super|virtual)(?:/range)?\s+\{p0(?:, p1)?\},[^\n]*\->(?:onCreate|R)\(Landroid/os/Bundle;\)V[^\n]*$',block,re.M))
- if not candidates: raise RuntimeError('Cannot find safe onCreate hook: '+name)
- line=candidates[0]
- injection='\n    invoke-static {p0}, Lcom/qobuz/mod/TokenGate;->attach(Landroid/app/Activity;)V\n'
- block=block[:line.end()]+injection+block[line.end():]
- s=s[:match.start()]+block+s[match.end():]
- path.write_text(s)
+ decl=re.search(r'(?m)^\s*\.(?:locals|registers)\s+[0-9]+\s*$',block)
+ if not decl: raise RuntimeError('Cannot locate onCreate registers: '+name)
+ injection='\n    invoke-static/range {p0 .. p0}, Lcom/qobuz/mod/TokenGate;->attach(Landroid/app/Activity;)V\n'
+ block=block[:decl.end()]+injection+block[decl.end():]
+ path.write_text(s[:match.start()]+block+s[match.end():])
  print('PATCHED',name)
