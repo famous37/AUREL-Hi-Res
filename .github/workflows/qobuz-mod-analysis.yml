@@ -49,12 +49,18 @@ jobs:
             -o apktool.jar
           java -jar apktool.jar d -f -r original.apk -o decoded >/dev/null
           python3 qobuz-mod/tools/audit_native_auth.py decoded > qobuz-native-auth-audit.txt
+          python3 qobuz-mod/tools/audit_session_bridge.py decoded > qobuz-native-session-bridge.txt
           echo 'Native auth audit complete; no tokens read'
           sed -n '1,90p' qobuz-native-auth-audit.txt
       - uses: actions/upload-artifact@v4
         with:
           name: qobuz-native-auth-audit
           path: qobuz-native-auth-audit.txt
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qobuz-native-session-bridge-readonly
+          path: qobuz-native-session-bridge.txt
           retention-days: 7
       - name: Patch token panel, rebuild and sign experimental Qobuz package
         shell: bash
