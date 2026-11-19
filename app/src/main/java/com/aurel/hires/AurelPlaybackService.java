@@ -44,6 +44,7 @@ public final class AurelPlaybackService extends Service {
     private String title="AUREL",artist="Music",lastTitle="";
     private long duration=0,position=0;
     private boolean playing=false,buffering=false;
+    private String lastMetadataSignature="",lastNotificationSignature="";
     private final ExecutorService coverJobs=Executors.newSingleThreadExecutor();
     private final Handler mainThread=new Handler(Looper.getMainLooper());
     private String albumTitle="",coverUrl="";
@@ -232,6 +233,13 @@ public final class AurelPlaybackService extends Service {
         boolean playing=state.optBoolean("playing",false);
         boolean buffering=state.optBoolean("buffering",false);
         long length=Math.max(0,state.optLong("duration",0));
+        // Some stream decoders report duration=0 during prepare/buffering.
+        // Qobuz track duration is in seconds; MediaSession requires millis.
+        if(length<=0&&track!=null){
+            double seconds=track.optDouble("duration",0);
+            if(Double.isFinite(seconds)&&seconds>0&&seconds<86400)
+                length=Math.round(seconds*1000d);
+        }
         long offset=Math.max(0,state.optLong("position",0));
         String signature=trackId+"|"+name+"|"+performer+"|"+playing+"|"+buffering+"|"+length;
         if(instance!=null){
@@ -336,6 +344,11 @@ public final class AurelPlaybackService extends Service {
             int generation=++coverGeneration;
             if(!safeUrl.isEmpty())refreshCover(safeUrl,generation);
         }
+        // Avoid re-publishing metadata every second: Android SystemUI can reset
+        // its media seek bar when metadata changes on every position tick.
+        String metadataSignature=title+"|"+artist+"|"+albumTitle+"|"+duration+"|"+coverUrl
+            +"|"+(coverBitmap==null?0:System.identityHashCode(coverBitmap));
+        if(!metadataSignature.equals(lastMetadataSignature)){
         MediaMetadata.Builder metadataBuilder=new MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE,title)
             .putString(MediaMetadata.METADATA_KEY_ARTIST,artist)
@@ -352,6 +365,8 @@ public final class AurelPlaybackService extends Service {
             metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON,coverBitmap);
         }
         session.setMetadata(metadataBuilder.build());
+        lastMetadataSignature=metadataSignature;
+        }
         int status=buffering?PlaybackState.STATE_BUFFERING:playing?PlaybackState.STATE_PLAYING:PlaybackState.STATE_PAUSED;
         PlaybackState state=new PlaybackState.Builder()
             .setActions(PlaybackState.ACTION_PLAY|PlaybackState.ACTION_PAUSE|
@@ -360,6 +375,12 @@ public final class AurelPlaybackService extends Service {
             .setState(status,position,playing?1f:0f,SystemClock.elapsedRealtime())
             .build();
         session.setPlaybackState(state);
+        // PlaybackState carries the current position and live playback speed.
+        // Only rebuild the foreground notification if visible controls, cover
+        // or metadata changed; SystemUI advances the seekbar on its own.
+        String notificationSignature=metadataSignature+"|"+status;
+        if(isForeground&&notificationSignature.equals(lastNotificationSignature))return;
+        lastNotificationSignature=notificationSignature;
         Notification.Builder notification=Build.VERSION.SDK_INT>=26?
             new Notification.Builder(this,CHANNEL):new Notification.Builder(this);
         notification.setSmallIcon(R.drawable.ic_stat_aurel)
@@ -405,6 +426,7 @@ public final class AurelPlaybackService extends Service {
         if(session!=null){session.setActive(false);session.release();session=null;}
         if(notifications!=null)notifications.cancel(NOTIFICATION_ID);
         instance=null;isForeground=false;hasTrack=false;lastSignature="";
+        lastMetadataSignature="";lastNotificationSignature="";
         super.onDestroy();
     }
     @Override public IBinder onBind(Intent intent){return null;}
