@@ -98,7 +98,7 @@
   :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view{
     --aurel-listen-header-top:max(39px,
       calc(var(--aurel-native-status-inset,24px) + 8px));
-    --aurel-listen-cover-top:calc(var(--aurel-listen-header-top) + 56px);
+    --aurel-listen-cover-top:calc(var(--aurel-listen-header-top) + 68px);
   }
   :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
     .murglar-header.aurel-listening-nav,
