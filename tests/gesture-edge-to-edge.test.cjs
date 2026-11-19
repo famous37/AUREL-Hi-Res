@@ -32,8 +32,29 @@ assert(css.includes('var(--aurel-nav-height,64px) -'),
   'the foreground player must reserve measured nav height');
 assert(css.includes('var(--aurel-native-navigation-inset,0px))!important'),
   'foreground player must reserve native gesture inset exactly once');
-assert(css.includes('margin-top:auto!important')&&css.includes('margin-bottom:auto!important'),
-  'long portrait player must distribute free space above and below content');
+assert(css.includes('--aurel-listen-cover-top:calc(var(--aurel-listen-header-top) + 68px)'),
+  'cover must start after the header and a fixed optical gap');
+assert(css.includes('padding-top:var(--aurel-listen-cover-top)!important'),
+  'portrait artwork must reserve actual header space');
+assert(css.includes('margin-bottom:auto!important'),
+  'spare portrait height must stay below the listening controls');
+for(const status of [0,24,30,40,62]){
+  const headerTop=Math.max(39,status+8),headerHeight=46;
+  const coverTop=headerTop+68;
+  assert(headerTop>=status,'header cannot overlap Android status icons');
+  assert(coverTop-headerTop-headerHeight >=22,'cover cannot overlap header controls');
+}
+for(const marker of ['.app.aurel-player-open::after',
+  'height:calc(var(--aurel-unified-nav-height,64px) +',
+  'background:transparent!important',
+  'pointer-events:none',
+  '--aurel-icon-stroke:2.3',
+  'stroke-width:2.3!important',
+  'transition:transform 190ms',
+  'prefers-reduced-motion:reduce',
+  'data-aurel-motion="off"'])
+  assert(css.includes(marker),'portrait/glass polish regression: '+marker);
+assert(!/transition\\s*:\\s*all\\b/.test(css),'avoid animating layout geometry');
 assert(css.includes('not(.aurel-fit-scroll)')&&css.includes('not(.murglar-sheet-open)'),
   'short and detail-sheet modes must retain their original scroll-safe layout');
 assert(fit.includes('const remainder=Math.floor(usable-reserved-3)'),

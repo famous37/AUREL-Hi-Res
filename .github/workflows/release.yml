@@ -193,19 +193,18 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — genuine FFT glow recovery and complete album color consistency**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — balanced player and seamless Android gesture navigation**" \
             '' \
-            '- Fixed missing Android RECORD_AUDIO permission request when album glow is ON but the separate cover-scaling setting is OFF; only our own media session is analyzed.' \
-            '- Permission prompts occur at most once automatically. A deliberate glow off/on allows one retry after denial; Android playback or USB never pauses for the analyzer.' \
-            '- Replaced the isolated dark player header with transparent floating controls and a full-width album-colored ambient layer behind the header and artwork.' \
-            '- The top ambient responds in brightness only to genuine FFT frames. When paused, unavailable or bit-perfect it stays calm without simulated bass.' \
-            '- Native artwork palette now drives all legacy semantic surface, raised, border, text and contrast tokens; settings, quality choices, cards and search stay coherent.' \
-            '- Kept opt-in global artwork colors with reliable monochrome fallback; late cover events cannot tint the wrong track.' \
-            '- Added explicit real-time FFT status under the Album-colored glow switch for permission, pause, live signal and unsupported audio output.' \
-            '- Retained the 1.1.68 borderless navigation, touch targets, Android 7+ compatibility, responsive portrait and landscape sizing and all user data.' \
-            '- Added regression tests for permission consent and retry, bit-perfect isolation, album palette consistency and top-layer animation; retained USB and signing checks.' \
+            '- Moved minimize and audio-info buttons up into a dedicated safe header lane, entirely above the cover.' \
+            '- Lowered and balanced the portrait cover, title and playback controls while preserving compact layout and landscape.' \
+            '- Unified the five-icon navigation and Android gesture area with one soft, continuous album-coloured translucent background.' \
+            '- Refined icon stroke weights, touch targets, track title, artist and album typography for consistent readability.' \
+            '- Smoothed real FFT-driven cover glow and paint-only feedback without animated layout or artificial audio beats.' \
+            '- Maintained the opt-in album palette and monochrome mode, local page state and accessibility reduced-motion settings.' \
+            '- Audio playback, Android mixer, bit-perfect, existing credentials and Qobuz authentication are unchanged.' \
+            '- Android 10+ compatibility, all offline app data and permanent signed APK upgrade path preserved.' \
             '' \
-            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.68 without clearing library or account information." \
+            "Install v${AUREL_VERSION} over existing signed AUREL 1.1.76 without clearing app data." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
