@@ -21,13 +21,13 @@ def uleb(b, p):
     raise ValueError("invalid LEB128")
 
 def dex_strings(b):
-    if not b.startswith(b"dex\\n"): raise ValueError("invalid DEX magic")
+    if not b.startswith(b"dex\n"): raise ValueError("invalid DEX magic")
     count, start = struct.unpack_from("<II",b,56)
     values=[]
     for i in range(count):
         off, = struct.unpack_from("<I",b,start+i*4)
         _,off=uleb(b,off)
-        end=b.find(b"\\0",off)
+        end=b.find(b"\0",off)
         if end<0: raise ValueError("unterminated DEX string")
         values.append(b[off:end].decode("utf-8","replace"))
     return values
@@ -39,7 +39,7 @@ def inspect(path):
         raise ValueError("SOURCE MISMATCH: expected original Qobuz 10.2.0.0; got sha256="+h)
     result={"sha256":h, "size":len(data), "dex":{}, "found_models":[]}
     with zipfile.ZipFile(path) as z:
-        names=[n for n in z.namelist() if re.fullmatch(r"classes(?:[2-9][0-9]*)?\\.dex",n)]
+        names=[n for n in z.namelist() if re.fullmatch(r"classes(?:[2-9][0-9]*)?\.dex",n)]
         if len(names)!=4: raise ValueError("unexpected DEX count "+str(len(names)))
         found=set()
         for name in sorted(names):
