@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/library-name-only-import-v1.1.88'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/online-library-resolver-v1.1.88'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
