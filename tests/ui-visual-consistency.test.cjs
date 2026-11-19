@@ -48,5 +48,5 @@ assert(bold.includes('width:40px!important'),'Header controls must not protrude'
 assert(bold.includes('@keyframes aurel-bold-spin'),'Buffering must have fallback CSS animation');
 assert(modern.includes('aurelEnsureLoadingAnimation'));
 assert(html.indexOf('aurel-bold-controls.css')>html.indexOf('aurel-monochrome.css'));
-assert(app.includes('1.1.79'));
-console.log('AUREL 1.1.79 icon family, Share size/contrast, narrow screens and spinner PASS');
+assert(app.includes('1.1.80'));
+console.log('AUREL 1.1.80 icon family, Share size/contrast, narrow screens and spinner PASS');
