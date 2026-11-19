@@ -111,7 +111,7 @@
     });
   };
   const typeOf=o=>{
-    const t=String(o.release_type||o.releaseType||o.product_type||o.album_type||'').toLowerCase();
+    const t=String(o.release_type||o.releaseType||o.product_type||o.album_type||o.type||'').toLowerCase();
     if(/compilation|best.?of|anthology/.test(t))return 'compilation';
     if(/ep|single/.test(t))return 'epSingle';
     return 'album';
@@ -161,13 +161,24 @@
     const token=++requestToken;
     const top=extend(id,token,'artistExtras',{},function(s,data){
       s.top=asList(data?.top_tracks||data?.topTracks).filter(x=>safeId(x)&&x.title);
+      // Search results for this exact artist are not a popularity ranking.
+      s.topFallback=!!data?._topFallback;
+      s.topError=String(data?._topError||(s.top.length?'':data?._pageError||''));
       s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x))
         .map(a=>portraitCache.get(safeId(a))?
           {...a,picture:portraitCache.get(safeId(a))}:a);
       loadSimilarPortraits(id,token);
       // The current artist/page API also returns typed release previews. Render
       // them immediately while separately requested complete lists are loading.
-      for(const group of asList(data?.releases)){
+      const preview=data?.releases;
+      const groups=asList(preview);
+      // Some Qobuz variants return a dictionary keyed by release type.
+      if(!groups.length&&preview&&!Array.isArray(preview)&&typeof preview==='object'){
+        for(const [kind,value] of Object.entries(preview)){
+          if(value&&typeof value==='object')groups.push({...value,type:kind});
+        }
+      }
+      for(const group of groups){
         const kind=String(group?.type||group?.release_type||'');
         const releases=asList(group).map(x=>normalizedRelease(x,kind)).filter(Boolean);
         if(kind==='epSingle'||kind==='single'||kind==='ep')
@@ -183,7 +194,7 @@
       s.pageError=String(data?._pageError||'');
       s.similarError=String(data?._similarError||'');
       s.pageDone=true;
-    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.similarError='Request failed';});
+    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.topError='Request failed';s.similarError='Request failed';});
     const ep=extend(id,token,'artistReleaseType',{releaseType:'epSingle'},function(s,data){
       s.ep=unique([...s.ep,...asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'epSingle')).filter(Boolean)]);
       s.epDone=true;
@@ -233,9 +244,9 @@
       +'<small>'+html(t.album?.title||artistLabel(t))+'</small></span>'
       +'<span class="aurel-popular-play" aria-hidden="true">▶</span></button>';
   }
-  function popularSection(list,loading,error){
+  function popularSection(list,loading,error,fallback=false){
     return '<section class="aurel-artist-section" data-artist-section="popular">'
-      +'<header class="aurel-artist-section-heading"><h2>Most popular</h2>'
+      +'<header class="aurel-artist-section-heading"><h2>'+(fallback?'Tracks by artist':'Most popular')+'</h2>'
       +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
       +'</header>'
       +(list.length?'<div class="aurel-popular-list">'+list.map(songRow).join('')+'</div>'
@@ -325,7 +336,7 @@
       +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus',19)+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
       +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
       +'</div></header>'
-      +popularSection(top,!state.pageDone,state.pageError)
+      +popularSection(top,!state.pageDone,state.topError,state.topFallback)
       +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
