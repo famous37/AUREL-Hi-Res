@@ -10,7 +10,7 @@ const player=load('murglar.js'),live=load('aurel-live-ui.js');
 const journal=load('aurel-error-log.js');
 const activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+98/);
+assert.match(gradle,/versionCode\s+99/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.79'/);
 assert.match(player,/classList\.toggle\('aurel-player-open',!!app\.overlay\)/);
 assert.match(player,/previousPage\.setAttribute\('aria-hidden','true'\)/);

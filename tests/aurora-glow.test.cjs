@@ -10,7 +10,7 @@ const service=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java'
 const main=read('app/src/main/java/com/aurel/hires/MainActivity.java');
 const html=read('app/src/main/assets/index.html');
 const gradle=read('app/build.gradle');
-assert.match(gradle,/versionCode\s+98/);
+assert.match(gradle,/versionCode\s+99/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.79'/);
 assert.ok(html.includes('href="aurel-aurora.css"'));
 assert.ok(html.includes('src="aurel-aurora.js"'));

@@ -8,7 +8,7 @@ const gradle=fs.readFileSync('app/build.gradle','utf8');
 const player=read('murglar.js'),settings=read('aurel-settings-pro.js');
 const glass=read('aurel-glass-polish.css'),index=read('index.html');
 const fluid=read('aurel-fluid-transitions.js'),route=read('aurel-motion.js');
-assert.match(gradle,/versionCode\s+98/);
+assert.match(gradle,/versionCode\s+99/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.79'/);
 assert.match(java,/AudioManager\.ACTION_AUDIO_BECOMING_NOISY/);
 assert.match(java,/registerReceiver\(noisyReceiver,filter/);

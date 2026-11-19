@@ -11,7 +11,7 @@ const live=read('app/src/main/assets/aurel-live-ui.js');
 const gradle=read('app/build.gradle');
 const native=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java');
 const usb=read('app/src/main/java/com/aurel/hires/BitPerfectOutput.java');
-assert.match(gradle,/versionCode\s+98/);
+assert.match(gradle,/versionCode\s+99/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.79'/);
 assert(html.includes('aurel-universal-borderless.css'));
 assert(html.indexOf('aurel-universal-borderless.css')>html.indexOf('aurel-landscape-nav.css'),

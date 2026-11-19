@@ -6,7 +6,7 @@ const glass=read('aurel-glass-polish.css'),seamless=read('aurel-seamless-theme.c
  aurora=read('aurel-aurora.js'),html=read('index.html');
 const activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+98/);
+assert.match(gradle,/versionCode\s+99/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.79'/);
 assert.match(activity,/systemInsetTop\/density/,'Android pixels must be converted to CSS dp');
 assert.match(activity,/getResources\(\)\.getDisplayMetrics\(\)\.density/);
