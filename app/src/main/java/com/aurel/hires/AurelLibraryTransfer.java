@@ -41,13 +41,13 @@ final class AurelLibraryTransfer {
     private static final Set<String> ROOT_KEYS=new HashSet<>(
         Arrays.asList("format","createdAt","source","data"));
     private static final Set<String> TRACK_KEYS=new HashSet<>(
-        Arrays.asList("id","title","artist","albumId","albumTitle","duration"));
+        Arrays.asList("id","title","artist","albumId","albumTitle","duration","linkedId"));
     private static final Set<String> ALBUM_KEYS=new HashSet<>(
-        Arrays.asList("id","title","artist"));
+        Arrays.asList("id","title","artist","linkedId"));
     private static final Set<String> ARTIST_KEYS=new HashSet<>(
-        Arrays.asList("id","name"));
+        Arrays.asList("id","name","linkedId"));
     private static final Set<String> PLAYLIST_KEYS=new HashSet<>(
-        Arrays.asList("id","name","tracks"));
+        Arrays.asList("id","name","tracks","linkedId"));
     private final Activity activity;
     private final QobuzApi api;
     private final SecureStore secure;
@@ -97,6 +97,12 @@ final class AurelLibraryTransfer {
             return id.matches("[0-9]{1,24}");
         return id.matches("[a-zA-Z0-9_-]{1,96}");
     }
+    private static boolean validProviderId(String id,String type){
+        if(isLocalId(id)||id==null)return false;
+        if("albums".equals(type))
+            return id.matches("[a-zA-Z0-9_-]{1,96}");
+        return id.matches("[0-9]{1,24}");
+    }
     private static JSONObject unwrap(JSONObject item,String type){
         JSONObject nested=item.optJSONObject(
             type.equals("artists")?"artist":type.equals("albums")?"album":
@@ -132,6 +138,17 @@ final class AurelLibraryTransfer {
         String id=string(src,"id",96);
         if(!validId(id,type))throw new Exception("Invalid "+type+" identifier");
         JSONObject out=new JSONObject().put("id",id);
+        // A linked ID was obtained through an authorized catalogue search.
+        // It is metadata, not a session token or playback entitlement.
+        if(strict&&src.has("linkedId")){
+            Object value=src.opt("linkedId");
+            if(value!=null&&value!=JSONObject.NULL&&!(value instanceof String))
+                throw new Exception("Invalid linked provider identifier");
+            String linkedId=string(src,"linkedId",96);
+            if(!isLocalId(id)||!validProviderId(linkedId,type))
+                throw new Exception("Invalid provider link in imported library");
+            out.put("linkedId",linkedId);
+        }
         // These local records deliberately have no Qobuz entitlement or URL.
         // Their public metadata can be viewed/exported until they are matched
         // using actual provider identifiers from an authorized account.
@@ -499,6 +516,34 @@ final class AurelLibraryTransfer {
                     text(error.getMessage(),135));}
         });
     }
+    synchronized JSONObject link(JSONObject options)throws Exception{
+        if(busy)throw new Exception("Finish the current library transfer first");
+        String type=options.optString("type","");
+        if(!TYPE_SET.contains(type))
+            throw new Exception("Invalid library collection");
+        String localId=options.optString("localId","");
+        if(!isLocalId(localId))
+            throw new Exception("Only screenshot-generated entries can be linked");
+        String providerId=options.optString("providerId","").trim();
+        if(!providerId.isEmpty()&&!validProviderId(providerId,type))
+            throw new Exception("Qobuz did not provide a valid "+type+" ID");
+        JSONObject stored=readData();
+        JSONArray items=stored.getJSONObject("data").getJSONArray(type);
+        boolean found=false;
+        for(int i=0;i<items.length();i++){
+            JSONObject item=items.getJSONObject(i);
+            if(!localId.equals(item.optString("id")))continue;
+            found=true;
+            if(providerId.isEmpty())item.remove("linkedId");
+            else item.put("linkedId",providerId);
+            break;
+        }
+        if(!found)throw new Exception("The local library entry was not found");
+        commit(stored);
+        return new JSONObject().put("type",type)
+            .put("localId",localId).put("linkedId",providerId)
+            .put("counts",new JSONObject(lastCounts.toString()));
+    }
     synchronized JSONObject browse(String type,int offset,int limit)throws Exception{
         if(!TYPE_SET.contains(type))throw new Exception("Unknown library category");
         int start=Math.max(0,offset),size=Math.max(1,Math.min(40,limit));
@@ -510,6 +555,7 @@ final class AurelLibraryTransfer {
             if(type.equals("playlists")){
                 items.put(new JSONObject().put("id",row.getString("id"))
                     .put("name",row.optString("name"))
+                    .put("linkedId",row.optString("linkedId"))
                     .put("tracksCount",row.optJSONArray("tracks")==null?0:
                         row.getJSONArray("tracks").length()));
             }else items.put(row);
