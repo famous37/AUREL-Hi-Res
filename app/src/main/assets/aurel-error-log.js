@@ -1,4 +1,4 @@
-/* AUREL 1.1.80 — bounded, private actionable application error journal.
+/* AUREL 1.1.81 — bounded, private actionable application error journal.
  * No Android system-log access, audio samples, account data or telemetry.
  * Errors stay on this device; they leave only through explicit Copy. */
 (function installAurelErrorJournal(){
@@ -44,9 +44,9 @@
    }catch(_){}finally{writing=false;}
  }
  function report(){
-   return 'AUREL Hi-Res 1.1.80 | App error log\n'+
+   return 'AUREL Hi-Res 1.1.81 | App error log\n'+
      'Local diagnostic only. No audio, account tokens, URLs or system logcat.\n'+
-     JSON.stringify({version:'1.1.80',count:entries.length,errors:entries},null,2);
+     JSON.stringify({version:'1.1.81',count:entries.length,errors:entries},null,2);
  }
  function clear(){entries=[];persist();refreshCount();refreshReport();}
  function refreshReport(){
