@@ -6,6 +6,11 @@ plugins { id 'com.android.application' }
 def aurelKeyPath = System.getenv('AUREL_RELEASE_KEYSTORE_PATH')
 def aurelKeyPassword = System.getenv('AUREL_RELEASE_PASSWORD')
 def aurelHasSigning = aurelKeyPath && aurelKeyPassword
+// A clone installs beside AUREL and Preview; each Android package receives
+// its own Keystore-backed encrypted account storage.
+if (project.hasProperty('aurelClone') && project.hasProperty('aurelPreview')) {
+    throw new GradleException('Choose either aurelClone or aurelPreview, not both.')
+}
 def aurelSigningError = 'AUREL release signing is not configured. Add AUREL_RELEASE_KEYSTORE_BASE64 and AUREL_RELEASE_PASSWORD in GitHub Actions Secrets. Never publish a debug-signed APK as a release.'
 
 android {
@@ -13,13 +18,13 @@ android {
     namespace 'com.aurel.hires'
     compileSdk { version = release(37) { minorApiLevel = 0 } }
     defaultConfig {
-        applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
+        applicationId (project.hasProperty('aurelClone') ? 'com.aurel.hires.clone' : (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires'))
         minSdk 29
         targetSdk 35
         // AUREL 1.1.79: original vinyl/equalizer logo and resilient player controls.
         versionCode 98
-        versionName (project.hasProperty('aurelPreview') ? '1.1.79-preview' : '1.1.79')
-        resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
+        versionName (project.hasProperty('aurelClone') ? '1.1.79-clone' : (project.hasProperty('aurelPreview') ? '1.1.79-preview' : '1.1.79'))
+        resValue 'string', 'aurel_app_name', (project.hasProperty('aurelClone') ? 'AUREL Clone' : (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res'))
     }
     signingConfigs {
         aurelRelease {
