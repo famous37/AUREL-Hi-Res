@@ -140,7 +140,7 @@ function startClock(){
 async function load(p,force=false){
  const key=signature(p);
  if(!key)return;
- if(!force&&key===state.key&&(state.status==='ready'||state.status==='missing'||state.status==='instrumental'||state.status==='loading'))return;
+ if(!force&&key===state.key&&['ready','missing','instrumental','loading','error'].includes(state.status))return;
  state.key=key;state.status='loading';state.lines=[];state.plain='';state.synced=false;state.message='';
  activeLine=-1;
  redraw();

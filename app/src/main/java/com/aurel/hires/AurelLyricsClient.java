@@ -27,7 +27,8 @@ final class AurelLyricsClient {
     };
     private static String clean(String value,int limit){
         if(value==null)return "";
-        return value.trim().replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]","").substring(0,Math.min(value.trim().length(),limit));
+        String safe=value.trim().replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]","");
+        return safe.substring(0,Math.min(safe.length(),limit));
     }
     private static String enc(String s){
         return URLEncoder.encode(s,StandardCharsets.UTF_8);
