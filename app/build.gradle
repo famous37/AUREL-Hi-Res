@@ -16,9 +16,9 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 29
         targetSdk 35
-        // AUREL 1.1.85: artist catalogue and Android media progress fixes.
-        versionCode 102
-        versionName (project.hasProperty('aurelPreview') ? '1.1.85-preview' : '1.1.85')
+        // AUREL 1.1.86: artist catalogue and Android media progress fixes.
+        versionCode 103
+        versionName (project.hasProperty('aurelPreview') ? '1.1.86-preview' : '1.1.86')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     signingConfigs {

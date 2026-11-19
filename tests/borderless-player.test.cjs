@@ -41,8 +41,8 @@ assert(player.includes('data-full-toggle')&&player.includes('data-player-sheet="
  'Functional playback and details controls must stay mounted');
 assert(landscape.includes('grid-template-areas:')&&landscape.includes('"cover transport"'),
  'Do not change established two-column landscape arrangement');
-assert.match(gradle,/versionCode\s+102/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.85'/);
+assert.match(gradle,/versionCode\s+103/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.86'/);
 new Function(aurora);
 
 // Runtime: native artwork palette is mirrored ONLY to the active player

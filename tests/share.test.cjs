@@ -10,7 +10,7 @@ const share=read('app/src/main/assets/aurel-share.js');
 const css=read('app/src/main/assets/aurel-share.css');
 const lang=read('app/src/main/assets/aurel-language.js');
 const build=read('app/build.gradle');
-assert(/versionCode\s+102/.test(build) && build.includes("'1.1.85'"));
+assert(/versionCode\s+103/.test(build) && build.includes("'1.1.86'"));
 for(const fragment of [
  'private static String publicQobuzLink(JSONObject params)',
  'case "shareQobuzLink":','Intent.ACTION_SEND','Intent.EXTRA_TEXT',
