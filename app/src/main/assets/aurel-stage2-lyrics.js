@@ -212,5 +212,5 @@ document.addEventListener('scroll',e=>{
   userScrollUntil=Date.now()+7000;
 },{capture:true,passive:true});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopClock();else startClock();});
-window.AurelStage2Lyrics={parseLrc,afterDraw,status:()=>state.status,redraw};
+window.AurelStage2Lyrics={parseLrc,afterDraw,status:()=>state.status,redraw,panel:lyricsPanel};
 })();

@@ -56,7 +56,7 @@
       }else{
         if(livePanel){
           const contents=active==='upnext'?queuePanel(p):
-            active==='credits'?creditsPanel(p):active==='lyrics'?lyricsPanel(p):audioPanel(p);
+            active==='credits'?creditsPanel(p):active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):audioPanel(p);
           if(livePanel.__aurelPanelHTML!==contents){
             livePanel.innerHTML=contents;
             livePanel.__aurelPanelHTML=contents;
@@ -119,14 +119,14 @@
           <button type="button" data-close-detail aria-label="Close information panel">&times;</button>
         </header>
         <div class="aurel-detail-scroll">
-          <div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?lyricsPanel(p):audioPanel(p)}</div>
+          <div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):audioPanel(p)}</div>
         </div>
       </section>`:''}
     </div>`;
     aurelEnsureLoadingAnimation(overlay);
     const createdPanel=overlay.querySelector('.aurel-detail-sheet');
     if(createdPanel&&active)createdPanel.__aurelPanelHTML=
-      active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?lyricsPanel(p):audioPanel(p);
+      active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):audioPanel(p);
     const scroller=overlay.querySelector('.murglar-player-content');
     const detail=overlay.querySelector('.aurel-detail-scroll');
     const sameTrack=priorTrack===String(t.id||'');
