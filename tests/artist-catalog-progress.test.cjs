@@ -7,7 +7,7 @@ const java=read('app/src/main/java/com/aurel/hires/MainActivity.java');
 const service=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java');
 const disco=read('app/src/main/assets/aurel-discography.js');
 const mini=read('app/src/main/assets/modern.js');
-const css=read('app/src/main/assets/aurel-media-progress.css');
+const css=read('app/src/main/assets/aurel-gesture-safe.css');
 
 // A failed artist/page must not discard reachable Qobuz artist tracks.
 assert.match(java,/case "artistExtras":/);
