@@ -70,4 +70,4 @@ assert.equal(calls.full,4,'Closing drawer rebuilds main view once');
 app.overlay=false;context.drawOverlay();
 assert.equal(calls.full,5,'Minimizing cleans the overlay');
 assert(hidden,'The overlay must be hidden after minimizing');
-console.log('AUREL 1.1.74: native progress/FFT event DOM stability, metadata updates, drawer transitions PASS');
+console.log('AUREL 1.1.75: native progress/FFT event DOM stability, metadata updates, drawer transitions PASS');
