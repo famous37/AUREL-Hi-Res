@@ -111,7 +111,7 @@
     });
   };
   const typeOf=o=>{
-    const t=String(o.release_type||o.releaseType||o.product_type||o.album_type||'').toLowerCase();
+    const t=String(o.release_type||o.releaseType||o.product_type||o.album_type||o.type||'').toLowerCase();
     if(/compilation|best.?of|anthology/.test(t))return 'compilation';
     if(/ep|single/.test(t))return 'epSingle';
     return 'album';
@@ -170,7 +170,15 @@
       loadSimilarPortraits(id,token);
       // The current artist/page API also returns typed release previews. Render
       // them immediately while separately requested complete lists are loading.
-      for(const group of asList(data?.releases)){
+      const preview=data?.releases;
+      const groups=asList(preview);
+      // Some Qobuz variants return a dictionary keyed by release type.
+      if(!groups.length&&preview&&!Array.isArray(preview)&&typeof preview==='object'){
+        for(const [kind,value] of Object.entries(preview)){
+          if(value&&typeof value==='object')groups.push({...value,type:kind});
+        }
+      }
+      for(const group of groups){
         const kind=String(group?.type||group?.release_type||'');
         const releases=asList(group).map(x=>normalizedRelease(x,kind)).filter(Boolean);
         if(kind==='epSingle'||kind==='single'||kind==='ep')
