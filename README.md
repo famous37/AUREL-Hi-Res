@@ -2,13 +2,13 @@
 
 **AUREL Hi-Res** is an independent Android music player focused on lossless streaming, responsive browsing and a consistent, album-aware listening interface.
 
-[![Latest stable release](https://img.shields.io/badge/Stable-v1.1.87-222222?style=flat-square)](https://github.com/famous37/AUREL-Hi-Res/releases/latest)
+[![Latest stable release](https://img.shields.io/badge/Stable-v1.1.88-222222?style=flat-square)](https://github.com/famous37/AUREL-Hi-Res/releases/latest)
 ![Android](https://img.shields.io/badge/Android-10%2B-222222?style=flat-square)
-![Version code](https://img.shields.io/badge/versionCode-104-222222?style=flat-square)
+![Version code](https://img.shields.io/badge/versionCode-105-222222?style=flat-square)
 ![Developer](https://img.shields.io/badge/Developer-famous37-222222?style=flat-square)
 
 **Developer:** famous37  
-**Current stable version:** 1.1.87 (19 November 2026)  
+**Current stable version:** 1.1.88 (19 November 2026)  
 **Minimum Android:** 10 (API 29)  
 **Application ID:** `com.aurel.hires`
 
@@ -27,13 +27,21 @@ The Android app includes a private, metadata-only **Library Import / Export Mana
 - **No session tokens, passwords, App Secrets or signed audio URLs** are included in the export, and transferring never changes Qobuz-managed favorites or playlists.
 - Maximum transfer size 12 MB; collections and playlists have conservative safety caps. If an account exceeds a cap, AUREL reports it without overwriting previously saved data.
 
-## What's new in v1.1.87
+## What's new in v1.1.88
+
+- Imported screenshot library entries can **open online** using the user's already authorized Qobuz catalogue search. Tap an artist, album, track or playlist in **Library → Library Import / Export → Browse local library**.
+- A single exact, unambiguous Qobuz search match opens automatically. If the same name has multiple catalogue results, pick the correct one in the new in-app selector. Never guess provider IDs.
+- Confirmed real Qobuz IDs persist in the private, versioned **AtomicFile** library JSON and survive export/import, app updates and device restarts. Existing offline IDs and their original names stay intact.
+- Wrong matches can be changed or forgotten; available artist, album and playlist metadata can open through either the streaming or separately authorized personal-library session.
+- Missing provider entitlements or incomplete search results are reported rather than silently bypassed. This feature does not write to the user's Qobuz favourites or playlists.
+
+
 
 - Import screenshot-derived JSON files containing **offline local IDs** (`local_<32 hex digits>`) into the existing AUREL Library Import / Export Manager.
 - Import preserves all names even without provider-supplied Qobuz identifiers. Offline records are clearly marked as *not linked to Qobuz* and **cannot** be opened/played as if they had authentic provider IDs.
 - No server-side favorites are modified. The original signed app, playback engine, account settings, transactional import, backups and in-app updates are retained.
 
-Screenshot-derived libraries are **personal files**, not bundled in public GitHub releases. In AUREL v1.1.87, use *Library → Library Import / Export → Import JSON · merge* to import a correctly formatted name-only JSON file.
+Screenshot-derived libraries are **personal files**, not bundled in public GitHub releases. In AUREL v1.1.88, use *Library → Library Import / Export → Import JSON · merge* to import a correctly formatted name-only JSON file.
 
 
 
@@ -44,7 +52,7 @@ Screenshot-derived libraries are **personal files**, not bundled in public GitHu
 - **Signed in-app update checks:** once daily and when the app returns to the foreground. An update is **not** downloaded or installed without the user's choice.
 - Includes the previous **Stage 1** cache, artwork and smooth-animation refinements, and **Stage 2** lyrics, history, local backup and palette features.
 
-See the [v1.1.87 release and checksum](https://github.com/famous37/AUREL-Hi-Res/releases/tag/v1.1.87).
+See the [v1.1.88 release and checksum](https://github.com/famous37/AUREL-Hi-Res/releases/tag/v1.1.88).
 
 ## Features
 
@@ -78,7 +86,7 @@ AUREL uses Android media playback and offers an experimental USB/audio-mixer pre
 
 ## Install or update
 
-1. Open [GitHub Releases](https://github.com/famous37/AUREL-Hi-Res/releases/latest) and download **`AUREL-Hi-Res-v1.1.87.apk`**.
+1. Open [GitHub Releases](https://github.com/famous37/AUREL-Hi-Res/releases/latest) and download **`AUREL-Hi-Res-v1.1.88.apk`**.
 2. Install it on Android 10 or newer.
 3. When upgrading a previously installed *production-signed* AUREL, install over the existing app **without uninstalling**, so its saved local data remains available.
 4. To receive future versions, open **Settings → App updates**, enable automatic update **checks** and approve download/installation when prompted.
@@ -114,9 +122,9 @@ Automated tests verify supported UI, navigation, JavaScript, Android build and s
 
 ## Українською
 
-**AUREL Hi-Res v1.1.87** — музичний програвач для Android 10+ із підтримкою авторизованого каталогу Qobuz, історією прослуховування, синхронізованими текстами пісень, кольоровими палітрами обкладинок і перевіркою підписаних оновлень.
+**AUREL Hi-Res v1.1.88** — музичний програвач для Android 10+ із підтримкою авторизованого каталогу Qobuz, історією прослуховування, синхронізованими текстами пісень, кольоровими палітрами обкладинок і перевіркою підписаних оновлень.
 
-**[Завантажити APK](https://github.com/famous37/AUREL-Hi-Res/releases/latest)** · **[Зміни у v1.1.87](https://github.com/famous37/AUREL-Hi-Res/releases/tag/v1.1.87)**
+**[Завантажити APK](https://github.com/famous37/AUREL-Hi-Res/releases/latest)** · **[Зміни у v1.1.88](https://github.com/famous37/AUREL-Hi-Res/releases/tag/v1.1.88)**
 
 ---
 

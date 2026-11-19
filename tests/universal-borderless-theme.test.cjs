@@ -11,8 +11,8 @@ const live=read('app/src/main/assets/aurel-live-ui.js');
 const gradle=read('app/build.gradle');
 const native=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java');
 const usb=read('app/src/main/java/com/aurel/hires/BitPerfectOutput.java');
-assert.match(gradle,/versionCode\s+104/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.87'/);
+assert.match(gradle,/versionCode\s+105/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.88'/);
 assert(html.includes('aurel-universal-borderless.css'));
 assert(html.indexOf('aurel-universal-borderless.css')>html.indexOf('aurel-landscape-nav.css'),
  'Final stylesheet must defeat previously hard-coded icon frames');
@@ -112,4 +112,4 @@ assert.equal(x.values.get('--aurel-global-glow-one'),'#82878D');
 assert.equal(x.initial.get('aurel_palette_artwork_v1'),'off');
 const y=fixture('on');
 assert.equal(y.attrs.get('data-aurel-palette'),'artwork','Saved preference survives restarts');
-console.log('AUREL 1.1.87: full-screen album opt-in/off, clean icon system, unchanged audio, no stale colors, nav and borderless player PASS');
+console.log('AUREL 1.1.88: full-screen album opt-in/off, clean icon system, unchanged audio, no stale colors, nav and borderless player PASS');
