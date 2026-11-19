@@ -89,15 +89,29 @@ document.addEventListener('change',event=>{
  if(!e?.hasAttribute?.('data-aurel-auto-updates'))return;
  try{localStorage.setItem(AUTO_KEY,e.checked?'on':'off');}catch(_){}
 });
+let checkInProgress=false;
+async function dailyCheck(){
+ if(checkInProgress||!window.AurelNative||!autoOn()||document.hidden)return;
+ let last=0;try{last=Number(localStorage.getItem(LAST_KEY))||0;}catch(_){}
+ if(Date.now()-last<86400000)return;
+ checkInProgress=true;
+ try{
+  const result=await nativeCall('checkUpdate');
+  apply(result);
+  // Do not treat offline errors as a completed daily check; retry on
+  // next foreground launch, capped by a short cooldown.
+  const next=result?.status==='error'?Date.now()-86400000+3600000:Date.now();
+  try{localStorage.setItem(LAST_KEY,String(next));}catch(_){}
+ }catch(_){
+  try{localStorage.setItem(LAST_KEY,String(Date.now()-86400000+3600000));}catch(_){}
+ }finally{checkInProgress=false;}
+}
 setTimeout(async()=>{
  if(!window.AurelNative)return;
- try{
-  apply(await nativeCall('updateStatus'));
-  if(!autoOn())return;
-  let last=0;try{last=Number(localStorage.getItem(LAST_KEY))||0;}catch(_){}
-  if(Date.now()-last<86400000)return;
-  try{localStorage.setItem(LAST_KEY,String(Date.now()));}catch(_){}
-  apply(await nativeCall('checkUpdate'));
- }catch(_){/* Offline startup must not interrupt playback. */}
+ try{apply(await nativeCall('updateStatus'));}catch(_){}
+ void dailyCheck();
 },5500);
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)void dailyCheck();
+});
 })();
