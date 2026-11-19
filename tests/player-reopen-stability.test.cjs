@@ -21,7 +21,7 @@ assert(src.includes('if(after&&(after!==before||after!==observed))schedule()'),
   'reuse existing DOM and avoid remesurements on each progress tick');
 
 const pending=[];
-let current=null, nativeCallback=null, navSize=64;
+let current=null, nativeCallback=null, navSize=64, nextHeight=820;
 const makeStyle=()=>{const attrs=new Map();return{
   setProperty:(key,val)=>attrs.set(key,String(val)),
   getPropertyValue:key=>attrs.get(key)||'',
@@ -75,7 +75,7 @@ const context={
     addEventListener:()=>{},
     visualViewport:{addEventListener:()=>{}}
   },
-  drawOverlay(){ current=newView(); },
+  drawOverlay(){ current=newView(nextHeight); },
   requestAnimationFrame(callback){pending.push(callback);return pending.length;},
   getComputedStyle(element){
     if(element===current?.content)return{
@@ -123,8 +123,7 @@ root.style.setProperty('--aurel-native-navigation-inset','24px');
 nativeCallback();flush();
 assert.equal(Number.parseFloat(current.view.style.getPropertyValue('--aurel-fit-art')),baseline);
 
-current=newView(385);
-context.window.dispatchEvent?.({type:'resize'});
+nextHeight=385;
 context.drawOverlay();flush();
 const compact=Number.parseFloat(current.view.style.getPropertyValue('--aurel-fit-art'));
 assert(compact<=baseline,'short viewport must still reduce cover to protect controls');
