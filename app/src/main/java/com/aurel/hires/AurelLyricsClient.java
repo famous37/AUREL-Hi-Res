@@ -16,12 +16,12 @@ final class AurelLyricsClient {
     private static final String ORIGIN="https://lrclib.net";
     private static final int MAX_RESPONSE=128*1024;
     private static final long POSITIVE_TTL=24L*60*60*1000,NEGATIVE_TTL=20L*60*1000;
-    private static final class Entry {
+    private static final class LyricsCacheEntry {
         final JSONObject value;final long expires;
-        Entry(JSONObject value,long expires){this.value=value;this.expires=expires;}
+        LyricsCacheEntry(JSONObject value,long expires){this.value=value;this.expires=expires;}
     }
-    private final LinkedHashMap<String,Entry> cache=new LinkedHashMap<String,Entry>(48,.75f,true){
-        @Override protected boolean removeEldestEntry(java.util.Map.Entry<String,Entry> e){
+    private final LinkedHashMap<String,LyricsCacheEntry> cache=new LinkedHashMap<String,Entry>(48,.75f,true){
+        @Override protected boolean removeEldestEntry(java.util.Map.Entry<String,LyricsCacheEntry> e){
             return size()>48;
         }
     };
@@ -84,7 +84,7 @@ final class AurelLyricsClient {
             throw new Exception("Track title and artist are required for lyrics");
         int seconds=Math.max(0,Math.min(24*60*60,durationSeconds));
         String key=title+"|"+artist+"|"+album+"|"+seconds;
-        Entry existing=cache.get(key);
+        LyricsCacheEntry existing=cache.get(key);
         if(existing!=null&&existing.expires>System.currentTimeMillis())
             return new JSONObject(existing.value.toString());
         String query="?artist_name="+enc(artist)+"&track_name="+enc(title);
@@ -115,7 +115,7 @@ final class AurelLyricsClient {
             }
         }
         JSONObject outcome=sanitized(matched);
-        cache.put(key,new Entry(outcome,System.currentTimeMillis()+
+        cache.put(key,new LyricsCacheEntry(outcome,System.currentTimeMillis()+
             ("ok".equals(outcome.optString("status"))?POSITIVE_TTL:NEGATIVE_TTL)));
         return new JSONObject(outcome.toString());
     }
