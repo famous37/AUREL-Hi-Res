@@ -68,6 +68,13 @@ jobs:
           SDK_BUILD_TOOLS="$(find "${ANDROID_HOME}/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)"
           "${SDK_BUILD_TOOLS}/d8" --min-api 23 --lib "${ANDROID_JAR}" --output build/moddex $(find build/modclasses -name '*.class')
           test -f build/moddex/classes.dex
+          python3 - <<'PY'
+          data=open("build/moddex/classes.dex","rb").read()
+          assert b"TokenGate" in data, "TokenGate class missing"
+          assert "УВІЙТИ".encode("utf-8") in data, "Token login button label missing"
+          assert b"fetchFavoriteList" in data, "Authenticated library code missing"
+          print("Verified token login UI + Qobuz API library in compiled DEX")
+          PY
           java -jar apktool.jar b decoded -o repack-unsigned.apk >/dev/null
           cp build/moddex/classes.dex classes5.dex
           zip -q repack-unsigned.apk classes5.dex
@@ -82,8 +89,8 @@ jobs:
             --out repack-smoke.apk repack-aligned.apk
           "${SDK_BUILD_TOOLS}/apksigner" verify --verbose repack-smoke.apk > repack-smoke-report.txt
           echo 'Token panel attached to original activities. Legacy API validation is separate from OAuth/QWS native login.' >> repack-smoke-report.txt
-          echo 'Token panel v2 uses ActivityLifecycleCallbacks and safe system-bar positioning; not an OAuth/QWS replacement.' >> repack-smoke-report.txt
-          cp repack-smoke.apk Qobuz-10.2.0.0-TokenPanel-v2-EXPERIMENTAL.apk
+          echo 'Token login v3 includes УВІЙТИ action and legacy API favorite library; original OAuth/QWS is unchanged.' >> repack-smoke-report.txt
+          cp repack-smoke.apk Qobuz-10.2.0.0-TokenLogin-v3-EXPERIMENTAL.apk
           rm -f repack-smoke.apk repack-unsigned.apk repack-aligned.apk
       - uses: actions/upload-artifact@v4
         with:
@@ -92,8 +99,8 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: Qobuz-10.2.0.0-token-panel-v2-EXPERIMENTAL
-          path: Qobuz-10.2.0.0-TokenPanel-v2-EXPERIMENTAL.apk
+          name: Qobuz-10.2.0.0-token-login-v3-EXPERIMENTAL
+          path: Qobuz-10.2.0.0-TokenLogin-v3-EXPERIMENTAL.apk
           retention-days: 2
       - uses: actions/upload-artifact@v4
         with:
