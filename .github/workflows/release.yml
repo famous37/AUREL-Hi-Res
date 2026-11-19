@@ -195,7 +195,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\\n' \
+          printf '%s\n' \
             "**AUREL Hi-Res v${AUREL_VERSION} — artist catalogue and Android media progress" \
             '' \
             '- Fixed incomplete artist catalogues: EPs, singles and track listings now use actual Qobuz metadata fallback requests and typed release pagination.' \
