@@ -1838,6 +1838,13 @@ public final class MainActivity extends Activity {
                         case "libraryTransferSync": {
                             data=libraryTransfer.sync(p);break;
                         }
+                        case "libraryTransferBrowse": {
+                            data=libraryTransfer.browse(p.optString("type","albums"),
+                                p.optInt("offset",0),p.optInt("limit",30));break;
+                        }
+                        case "libraryTransferPlaylist": {
+                            data=libraryTransfer.playlist(p.optString("id",""));break;
+                        }
                         case "libraryTransferCancel": {
                             data=libraryTransfer.cancel();break;
                         }
