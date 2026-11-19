@@ -1548,13 +1548,36 @@ public final class MainActivity extends Activity {
                             if(p.has("appSecret"))secure.put("streamAppSecret",p.optString("appSecret").trim());
                             data=session();break;
                         }
-                        case "discover":
-                            // The Zarz metadata gateway does not guarantee
-                            // album/getFeatured authorization (HTTP 403).
-                            // Use Qobuz's separate public editorial endpoint.
-                            data=mornyeActive()?api.publicFeaturedReleases(24)
-                                :api.discoverReleases(24);
+                        case "discover": {
+                            if(mornyeActive()){
+                                // This authenticated metadata session is already used
+                                // successfully for search; do not force an unrelated
+                                // anonymous Qobuz App ID on every home refresh.
+                                try{
+                                    JSONObject page=catalog("discover/newReleases",
+                                        new JSONObject().put("limit",24));
+                                    JSONObject albums=page.optJSONObject("albums");
+                                    if((albums==null||albums.optJSONArray("items")==null)
+                                        &&page.optJSONArray("items")==null)
+                                        throw new Exception("Gateway returned no album list");
+                                    data=page;
+                                }catch(Exception gatewayError){
+                                    // A missing/expired signed gateway must be
+                                    // re-verified; public access is not a valid
+                                    // replacement for that authentication.
+                                    if(MornyeGateway.requiresVerification(gatewayError))
+                                        throw gatewayError;
+                                    // Only independently authorized library /
+                                    // streaming credentials or public metadata.
+                                    // A 403 from the gateway is not permission to
+                                    // retry the same forbidden route repeatedly.
+                                    data=api.publicFeaturedReleases(24);
+                                }
+                            }else{
+                                data=api.discoverReleases(24);
+                            }
                             break;
+                        }
                         case "search": {
                             String q=p.optString("query").trim();
                             if(q.isEmpty())throw new Exception("Enter a search term");
