@@ -10,7 +10,8 @@
   --aurel-glass-stroke:color-mix(in srgb,var(--aurel-seam-accent,#d5d7db) 13%,transparent);
 }
 :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view{
-  padding-top:var(--aurel-native-status-inset,0px)!important;
+  /* The safe header is absolute; padding the whole player wasted vertical space. */
+  padding-top:0!important;
   background-clip:border-box!important;
   border-top:0!important;
   box-shadow:none!important;
