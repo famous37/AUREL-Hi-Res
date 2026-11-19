@@ -8,7 +8,7 @@ name: Publish permanently signed AUREL release
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation, feature/cover-rhythm-v1.1.58]
+    branches: [main, feature/direct-usb-bitperfect-media3, feature/replace-usb-driver-dual-engine, fix/off-native-usb-isolation, feature/cover-rhythm-v1.1.58, fix/artist-catalog-media-progress-v1.1.79]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation' || github.ref == 'refs/heads/feature/cover-rhythm-v1.1.58'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/direct-usb-bitperfect-media3' || github.ref == 'refs/heads/feature/replace-usb-driver-dual-engine' || github.ref == 'refs/heads/fix/off-native-usb-isolation' || github.ref == 'refs/heads/feature/cover-rhythm-v1.1.58' || github.ref == 'refs/heads/fix/artist-catalog-media-progress-v1.1.79'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -143,6 +143,7 @@ jobs:
           node tests/fullscreen-continuous-canvas.test.cjs
           node tests/global-glass-v1.1.78.test.cjs
           node tests/player-reopen-stability.test.cjs
+          node tests/artist-catalog-progress.test.cjs
           mkdir -p build/media-recovery-test
           javac -d build/media-recovery-test app/src/main/java/com/aurel/hires/AurelMediaRecoveryPolicy.java tests/AurelMediaRecoveryPolicyTest.java
           java -cp build/media-recovery-test com.aurel.hires.AurelMediaRecoveryPolicyTest
@@ -195,17 +196,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — stable Now Playing after minimize/reopen**" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — artist catalogue and Android media progress" \
             '' \
-            '- Fixed progressive shrinking of the album artwork and player cluster when reopening Now Playing repeatedly.' \
-            '- Artwork fitting no longer counts the flexbox auto margin under the audio-quality badge as fixed occupied space.' \
-            '- Android status/gesture WindowInsets changes now trigger one safe resynchronization of portrait layout after immersive transitions.' \
-            '- Added deterministic regression coverage for twelve consecutive minimize/reopen cycles and delayed native insets.' \
-            '- Preserved adaptive compact-screen scrolling and landscape layout rather than cropping controls or adding arbitrary scaling.' \
-            '- Retained the v1.1.78 unified translucent navigation, artwork palette, typography, library controls, and native audio playback.' \
-            '- Qobuz/Mornye credentials, playback progress, FFT, Android media mixer, bit-perfect, favourites, and all user data are unchanged.' \
+            '- Fixed incomplete artist catalogues: EPs, singles and track listings now use actual Qobuz metadata fallback requests and typed release pagination.' \
+            '- Restricted Qobuz artist-page responses no longer hide available tracks; search fallbacks are clearly identified as non-ranked listings.' \
+            '- Fixed Android MediaSession progress by retaining duration and avoiding repeated metadata/notification replacement.' \
+            '- Made the mini-player seek progress visible with album-coloured fill while retaining stable Now Playing layout.' \
+            '- Preserved FFT album animations, audio focus, output routing, navigation, preferences and user account state.' \
+            '- Increased Android versionCode to 99 for updates over 1.1.79; signed by the existing permanent AUREL certificate.' \
             '' \
-            "Install v${AUREL_VERSION} directly over existing signed AUREL 1.1.78 without removing the app." \
+            "Install v${AUREL_VERSION} directly over the existing permanently signed AUREL 1.1.79. No uninstall or data reset." \
             'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

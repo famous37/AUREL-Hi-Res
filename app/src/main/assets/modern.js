@@ -204,7 +204,7 @@ function aurelMiniFrame(time){
  if(time-aurelLastMiniFrame>=110){
    aurelLastMiniFrame=time;
    const p=app.player,clock=window.AurelProgressClock;
-   const durationMs=Number(p.duration)||0;
+   const durationMs=Math.max(0,Number(p.duration)||Math.max(0,Number(p.track?.duration)||0)*1000);
    if(durationMs>0 && clock){
      const position=clock.read(p);
      const ratio=Math.max(0,Math.min(1,position/durationMs));
@@ -273,7 +273,8 @@ updateMini=function(){
  if(miniMode==='loading')aurelEnsureLoadingAnimation(m);
  const position=window.AurelProgressClock?.accept(p)??(Number(p.position)||0);
  const bar=m.querySelector('.mini-progress');
- const percent=p.duration?Math.min(100,Math.max(0,100*position/Number(p.duration))):0;
+ const total=Math.max(0,Number(p.duration)||Math.max(0,Number(t.duration)||0)*1000);
+ const percent=total?Math.min(100,Math.max(0,100*position/total)):0;
  if(bar){
    bar.style.setProperty('--played',percent.toFixed(2)+'%');
    const fill=bar.querySelector('.mini-progress-fill');
