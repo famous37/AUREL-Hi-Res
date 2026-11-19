@@ -14,15 +14,31 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Obtain exact public Qobuz 10.2.0.0 release
+      - name: Obtain publicly available matching Qobuz APK
         shell: bash
         run: |
           set -euo pipefail
-          curl -fL --retry 3 --connect-timeout 15 --max-time 240 \
-            -A 'Mozilla/5.0' \
-            'https://d.apkpure.com/b/APK/com.qobuz.music?versionCode=26110610' \
-            -o original.apk
-          echo '1edc1577006a7fe07f17ee4fdeac2a6bc2109688cae61aa0448813a0b57c0529  original.apk' | sha256sum -c -
+          python3 - <<'PY'
+          import json, urllib.request, hashlib, sys
+          api="https://ws75.aptoide.com/api/7/app/get/package_name=com.qobuz.music"
+          req=urllib.request.Request(api,headers={"User-Agent":"Mozilla/5.0"})
+          try:
+              data=json.load(urllib.request.urlopen(req,timeout=25))
+              f=data["nodes"]["meta"]["data"]["file"]
+              assert int(f["vercode"]) == 26110610, "Version code did not match"
+              url=f["path"]
+              req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
+              with urllib.request.urlopen(req,timeout=100) as source, open("original.apk","wb") as dest:
+                  while True:
+                      buf=source.read(1<<20)
+                      if not buf: break
+                      dest.write(buf)
+          except Exception as exc:
+              raise SystemExit("Unable to fetch original APK: "+str(exc))
+          sha=hashlib.sha256(open("original.apk","rb").read()).hexdigest()
+          assert sha == "1edc1577006a7fe07f17ee4fdeac2a6bc2109688cae61aa0448813a0b57c0529", "Original APK hash mismatch: "+sha
+          print("Verified original APK SHA-256",sha)
+          PY
       - name: Inspect source DEX and authentication data models
         run: python3 qobuz-mod/tools/verify_qobuz_apk.py original.apk > qobuz-auth-analysis.json
       - name: Print safe analysis summary
