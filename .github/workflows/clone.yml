@@ -2,7 +2,7 @@ name: Build signed AUREL Clone
 on:
   workflow_dispatch:
   push:
-    branches: [feature/cover-rhythm-v1.1.58]
+    branches: [feature/aurel-clone-token-id-v1.1.79, feature/cover-rhythm-v1.1.58]
     paths:
       - '.github/workflows/clone.yml'
 
