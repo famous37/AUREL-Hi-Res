@@ -49,5 +49,5 @@ assert(mixer.includes('Standard Android MediaPlayer / AudioFlinger'));
 assert(mixer.includes('setPreferredMixerAttributes('));
 assert(!fs.existsSync(path.join(root,'app/src/main/java/com/aurel/hires/AurelUsbDacHost.java')),
  'Native USB driver must be absent from the repository');
-assert(/versionCode\s+101/.test(gradle) && gradle.includes("'1.1.82'"));
+assert(/versionCode\s+102/.test(gradle) && gradle.includes("'1.1.85'"));
 console.log('Native resume, persisted navigation, signed-update safety and USB policy diagnoses validated.');
