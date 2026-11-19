@@ -4,8 +4,8 @@ const load=n=>fs.readFileSync('app/src/main/assets/'+n,'utf8');
 const c=load('aurel-glass-polish.css'),js=load('aurel-track-swipe.js'),
 aurora=load('aurel-aurora.js'),lang=load('aurel-language.js'),
 html=load('index.html'),gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+100/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.81'/);
+assert.match(gradle,/versionCode\s+101/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.82'/);
 assert(html.indexOf('aurel-track-swipe.js')>html.indexOf('aurel-aurora.js'));
 assert.match(c,/top:max\(56px,calc\(var\(--aurel-native-status-inset/);
 assert.match(c,/padding-top:clamp\(10px,1\.8dvh,24px\)/);
@@ -83,5 +83,5 @@ function harness(){
  h=harness();h.start(145,220);h.move(290,225);
  h.end(301,228);await h.flush();
  assert.equal(h.commands.length,1,'One gesture = one native track command');
- console.log('AUREL 1.1.81: safe horizontal and vertical gestures, position, soft glow and translations PASS');
+ console.log('AUREL 1.1.82: safe horizontal and vertical gestures, position, soft glow and translations PASS');
 })().catch(err=>{console.error(err);process.exitCode=1});
