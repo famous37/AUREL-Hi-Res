@@ -534,3 +534,34 @@ html[data-aurel-motion="off"] .app #screen :is(
 html[data-aurel-motion="off"] .app .mini .mini-buttons button{
   animation:none!important;transition:none!important;
 }
+
+/* AUREL v1.1.79: coherent progress track for the fixed mini player.
+ * Last-loaded stylesheet wins over legacy theme gradients and reset rules. */
+:root[data-aurel-palette] .app .mini:not(.hidden) .mini-progress,
+.app .mini:not(.hidden) .mini-progress{
+  display:block!important;
+  position:absolute!important;
+  left:10px!important;right:10px!important;bottom:0!important;
+  height:3px!important;
+  overflow:hidden!important;
+  border-radius:3px!important;
+  background:color-mix(in srgb,var(--aurel-theme-on,#fff) 25%,transparent)!important;
+  pointer-events:none!important;
+}
+:root[data-aurel-palette] .app .mini:not(.hidden) .mini-progress .mini-progress-fill,
+.app .mini:not(.hidden) .mini-progress .mini-progress-fill{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;height:100%!important;
+  transform:scaleX(0);
+  transform-origin:left center;
+  background:var(--aurel-theme-accent,#ef9dae)!important;
+  transition:transform 750ms linear!important;
+  will-change:transform;
+}
+@media(prefers-reduced-motion:reduce){
+ .app .mini:not(.hidden) .mini-progress .mini-progress-fill{
+  transition:none!important;
+ }
+}
