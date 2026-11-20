@@ -38,7 +38,7 @@ assert.equal(aurelPlaybackLabel({buffering:true}),'Loading audio');
 assert(app.includes('stroke-width="2.55"'),'SVG renderer should use bold outlines');
 assert(app.includes("share:'<circle"),'Share must belong to the vector family');
 assert(share.includes("ic('share',24)"),'Supplemental share control should use shared icon');
-assert(murglar.includes("ic('share',32)"),'Now Playing share should use shared icon');
+assert(murglar.includes("ic('share',28)"),'Now Playing share uses the same SVG family and no oversized 32px glyph');
 assert(!murglar.includes('stroke-width="1.85"'),'No thin standalone icons on Now Playing');
 assert(murglar.includes("const loading=aurelPlaybackMode(p)==='loading'"));
 assert(murglar.includes('toggle.innerHTML=aurelPlaybackIcon(p,39)'));
