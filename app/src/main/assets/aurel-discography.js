@@ -154,7 +154,8 @@
     // applied; stale results and older artist selections are ignored.
     let timer=null;
     try{
-      const timeout=action==='artistReleaseType'?24000:28000;
+      const timeout=action==='artistPublicFallback'?57000:
+        action==='artistReleaseType'?24000:28000;
       const data=await Promise.race([
         nativeCall(action,{id,...params}),
         new Promise((_,reject)=>{
@@ -177,6 +178,27 @@
       if(timer!==null)clearTimeout(timer);
     }
   }
+  function startIndependentArtistCatalog(id,token){
+    const state=byArtist.get(id);
+    if(!state||state.externalStarted||token!==requestToken)return Promise.resolve();
+    state.externalStarted=true;state.externalLoading=true;
+    return extend(id,token,'artistPublicFallback',
+      {name:artistName(app.selected||{})},function(s,data){
+        s.externalLoading=false;s.externalDone=true;
+        const top=normalizedPopularTracks(data?.top_tracks,id);
+        if(!s.top.length&&top.length&&data?._topSource==='deezer'){
+          s.top=top;s.topSource='deezer';s.topError='';
+        }
+        const eps=asList(data?.eps).map(x=>normalizedRelease(x)).filter(Boolean);
+        if(!s.ep.length&&eps.length&&data?._epSource==='deezer'){
+          s.ep=unique(eps);s.epSource='deezer';s.epError='';
+          s.epShortPreview=false;
+        }
+      },function(s){
+        // Optional independent metadata failure must not interrupt Qobuz playback.
+        s.externalLoading=false;s.externalDone=true;
+      });
+  }
   function loadTypedEps(id,token){
     const state=byArtist.get(id);
     if(!state)return Promise.resolve();
@@ -189,6 +211,7 @@
       s.epShortPreview=!!data?._shortPreview;
       // Retain real provider entries from partial responses without a warning overlay.
       s.epError=data?._partial&&!s.epShortPreview&&!s.ep.length?'partial':'';
+      if(!s.ep.length)void startIndependentArtistCatalog(id,token);
     },(s,error)=>{
       s.epDone=true;
       const message=String(error?.message||'');
@@ -212,6 +235,7 @@
       }else{
         s.epError=/401|403|405|unauthori[sz]|forbidden|access denied|not permitted|app.?id/i.test(message)
           ?'authorization':'unavailable';
+        void startIndependentArtistCatalog(id,token);
       }
     });
   }
@@ -253,6 +277,7 @@
       s.top=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id);
       // Only the official Qobuz ranked top_tracks collection is accepted.
       s.topError=String(data?._topError||(s.top.length?'':data?._pageError||''));
+      if(!s.top.length)void startIndependentArtistCatalog(id,token);
       s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x))
         .map(a=>portraitCache.get(safeId(a))?
           {...a,picture:portraitCache.get(safeId(a))}:a);
@@ -284,7 +309,9 @@
       s.similarError=String(data?._similarError||(
         s.similar.length?'':data?._pageError||''));
       s.pageDone=true;
-    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.topError='Request failed';s.similarError='Request failed';});
+    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.topError='Request failed';s.similarError='Request failed';
+      void startIndependentArtistCatalog(id,token);
+    });
     const ep=loadTypedEps(id,token);
     const compilations=extend(id,token,'artistReleaseType',{releaseType:'compilation'},function(s,data){
       s.compilation=unique([...s.compilation,...asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'compilation')).filter(Boolean)]);
@@ -339,9 +366,10 @@
       +'<small>'+html(t.album?.title||artistLabel(t))+'</small></span>'
       +'<span class="aurel-popular-play" aria-hidden="true">▶</span></button>';
   }
-  function popularSection(list,loading,error){
+  function popularSection(list,loading,error,source){
     return '<section class="aurel-artist-section" data-artist-section="popular">'
       +'<header class="aurel-artist-section-heading"><h2>'+'Most popular'+'</h2>'
+      +(source==='deezer'?'<small class="aurel-artist-data-source">Deezer ranking · Qobuz playback</small>':'')
       +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
       +'</header>'
       +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i)).join('')+'</div>'
@@ -431,12 +459,15 @@
       +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus',19)+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
       +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
       +'</div></header>'
-      +popularSection(top,!state.pageDone,state.topError)
+      +popularSection(top,!state.pageDone||!!state.externalLoading,state.topError,state.topSource)
       +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
       +section('EPs & Singles',eps,'eps',
-        'No verified EPs or singles available from this connection',!state.epDone,state.epError)
+        'No verified EPs or singles available from this connection',
+        !state.epDone||!!state.externalLoading,state.epError)
+      +(state.epSource==='deezer'&&eps.length?
+        '<p class="aurel-release-preview-note">Deezer categories · Qobuz albums</p>':'')
       +(state.epShortPreview&&eps.length?'<p class="aurel-release-preview-note">'+
         'EPs and singles identified by Qobuz release metadata.</p>':'')
       +(compilations.length?section('Compilations',compilations,'compilations','',false):'')
