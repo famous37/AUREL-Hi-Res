@@ -8,6 +8,7 @@
  const overlay=document.getElementById('overlay');
  if(!overlay)return;
  let expanded=false,activeKey='',gesture=null,frame=0,pendingHeight=null;
+ let suppressClickUntil=0;
  const root=document.documentElement;
  const num=n=>Number.parseFloat(n)||0;
  const drawer=()=>overlay.querySelector('.murglar-view .aurel-detail-drawer');
@@ -77,6 +78,7 @@
   gesture=null;
   drawer()?.classList.remove('aurel-detail-dragging');
   if(!moved)return;
+  suppressClickUntil=Date.now()+250; // don't toggle again after a completed drag
   if(Math.abs(dy)>42)expanded=dy<0;
   const b=bounds();if(b)writeSize(expanded?b.limit:b.rest);
  }
@@ -87,6 +89,7 @@
  overlay.addEventListener('click',e=>{
   if(!e.target?.closest?.('.aurel-drawer-handle'))return;
   e.preventDefault();e.stopPropagation();
+  if(Date.now()<suppressClickUntil)return;
   const b=bounds();if(!b)return;
   expanded=!expanded;writeSize(expanded?b.limit:b.rest);
  });
