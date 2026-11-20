@@ -260,7 +260,13 @@ function aurelMiniFrame(time){
        if(bar.getAttribute('aria-valuetext')!==label)bar.setAttribute('aria-valuetext',label);
      }
      const slider=document.querySelector('#overlay #progress');
-     if(slider&&!app.dragging)slider.value=String(Math.round(position));
+     if(slider&&!app.dragging){
+       const pos=String(Math.round(position));
+       if(slider.value!==pos)slider.value=pos;
+       const played=(ratio*100).toFixed(2)+'%';
+       if(slider.style.getPropertyValue('--played')!==played)
+         slider.style.setProperty('--played',played);
+     }
      const elapsed=document.querySelector('#overlay #elapsed');
      if(elapsed&&!app.dragging){
        const timeLabel=duration(position/1000);

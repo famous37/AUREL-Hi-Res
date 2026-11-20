@@ -145,12 +145,16 @@
       const max=Math.max(0,Number(p.duration)||0),value=Math.min(max,Math.max(0,Number(p.position)||0));
       if(Number(progress.max)!==Number(max||100))progress.max=max||100;
       if(progress.disabled!==(max<=0))progress.disabled=max<=0;
-      if(Math.abs(Number(progress.value)-Number(value))>150)progress.value=value;
+      // The compositor owns running progress; native snapshots should not
+      // move the slider backwards when the audio clock is active.
+      if((!p.playing||!window.AurelProgressClock)&&
+         Math.abs(Number(progress.value)-Number(value))>150)
+        progress.value=value;
       const seekText=duration(value/1000)+' of '+duration(max/1000);
       if(progress.getAttribute('aria-valuetext')!==seekText)progress.setAttribute('aria-valuetext',seekText);
       const total=Number(p.duration)||0;
       const percent=total?Math.min(100,Math.round((Number(p.position)||0)/total*100))+'%':'0%';
-      if(progress.dataset.played!==percent){
+      if((!p.playing||!window.AurelProgressClock)&&progress.dataset.played!==percent){
         progress.dataset.played=percent;
         progress.style.setProperty('--played',percent);
       }
