@@ -10,8 +10,8 @@ const service=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java'
 const main=read('app/src/main/java/com/aurel/hires/MainActivity.java');
 const html=read('app/src/main/assets/index.html');
 const gradle=read('app/build.gradle');
-assert.match(gradle,/versionCode\s+108/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.91'/);
+assert.match(gradle,/versionCode\s+109/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.92'/);
 assert.ok(html.includes('href="aurel-aurora.css"'));
 assert.ok(html.includes('src="aurel-aurora.js"'));
 assert.ok(html.indexOf('aurel-aurora.css')>html.indexOf('aurel-cover-rhythm.css'));
