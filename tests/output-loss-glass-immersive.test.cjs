@@ -8,7 +8,7 @@ const gradle=fs.readFileSync('app/build.gradle','utf8');
 const player=read('murglar.js'),settings=read('aurel-settings-pro.js');
 const glass=read('aurel-glass-polish.css'),index=read('index.html');
 const fluid=read('aurel-fluid-transitions.js'),route=read('aurel-motion.js');
-assert.match(gradle,/versionCode\s+111/);
+assert.match(gradle,/versionCode\s+112/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
 assert.match(java,/AudioManager\.ACTION_AUDIO_BECOMING_NOISY/);
 assert.match(java,/registerReceiver\(noisyReceiver,filter/);
@@ -48,4 +48,4 @@ assert.doesNotMatch(fluid,/opacity:\.48/);
 assert.match(route,/opacity:\.965/);
 for(const name of ['murglar.js','aurel-settings-pro.js','aurel-fluid-transitions.js','aurel-motion.js'])
  new Function(read(name));
-console.log('AUREL 1.1.94 USB unplug, bit-perfect safety, immersive status glass and flicker-free dialog PASS');
+console.log('AUREL 1.1.95 USB unplug, bit-perfect safety, immersive status glass and flicker-free dialog PASS');
