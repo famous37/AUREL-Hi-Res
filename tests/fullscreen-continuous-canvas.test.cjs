@@ -57,9 +57,11 @@ assert.doesNotMatch(aurora,/setInterval\(|requestAnimationFrame\(/,
 assert(html.indexOf('<link rel="stylesheet" href="aurel-glass-polish.css">')<
  html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">'),
  'Gesture-safe CSS must preserve the pre-existing authoritative album glass');
+assert(html.indexOf('aurel-gesture-safe.css')<html.indexOf('aurel-seek-settings-polish.css'),
+ 'Measured navigation insets must precede the narrow seek-only overrides');
 assert(html.lastIndexOf('<link rel="stylesheet"')===
- html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">'),
- 'Measured navigation insets must be applied after all legacy CSS');
+ html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'),
+ 'Final seek styles must load after all legacy CSS');
 for(const script of ['aurel-player-fit.js','aurel-aurora.js','aurel-track-swipe.js']){
  assert.doesNotThrow(()=>new Function(read(script)),script+' syntax');
 }
