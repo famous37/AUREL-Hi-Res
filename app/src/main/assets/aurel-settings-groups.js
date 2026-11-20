@@ -47,6 +47,18 @@
    advanced.append(title,secret);
    stream.appendChild(advanced);
   }
+  // Additional account facts are available without overwhelming Settings.
+  const infoRows=Array.from(stream.querySelectorAll('.info-row'));
+  if(infoRows.length>2){
+   const details=document.createElement('details');
+   details.className='aurel-settings-advanced aurel-account-details';
+   const heading=document.createElement('summary');
+   heading.textContent='Account details';
+   details.appendChild(heading);
+   for(const row of infoRows.slice(2))details.appendChild(row);
+   const actions=stream.querySelector('.aurel-account-actions');
+   if(actions)actions.after(details);else stream.appendChild(details);
+  }
   const blocks=Array.from(diagnostics.children)
    .filter(n=>n.classList?.contains('aurel-pro-feature'));
   const options=document.createElement('section');
