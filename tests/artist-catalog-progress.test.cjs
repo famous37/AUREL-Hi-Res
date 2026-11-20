@@ -11,7 +11,7 @@ const css=read('app/src/main/assets/aurel-gesture-safe.css');
 
 // A failed artist/page must not fabricate popularity from a generic artist search.
 assert.match(java,/case "artistExtras":/);
-assert.match(java,/artistOfficialTopTracks\(artistId\)/);
+assert.match(java,/\.put\("extra","topTracks"\)/);
 assert.match(java,/case "artistReleaseType":/);
 assert.match(java,/artistReleaseList\(artistId,releaseType\)/);
 assert.match(java,/artistPageReleases\(artistId,releaseType\)/);
