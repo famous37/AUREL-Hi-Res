@@ -40,7 +40,7 @@ const artist=main.slice(main.indexOf('private JSONObject artistReleaseList('),
 assert(artist.includes('.put("sort","release_date_by_priority")'));
 assert(artist.includes('artistInformation("artist/getReleasesList",params)'));
 assert(artist.includes('gridParams.put("sort","release_date")'));
-assert(artist.includes('boolean official=type.contains("single")||type.equals("ep");'));
+assert(artist.includes('boolean official=type.contains("single")||type.equals("ep")'));
 assert(artist.includes('if(!official)continue;'));
 assert(!artist.includes('int count=album.optInt("tracks_count"'));
 assert(main.includes('releaseType.equals("epSingle")'));
