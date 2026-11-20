@@ -2207,10 +2207,37 @@ public final class MainActivity extends Activity {
                 }catch(Exception e){searchError=e;}
             }
         }
+        // Track search can expose the parent single's official release_type
+        // even when album/search returns a stripped, album-only projection.
+        // Never classify a track itself as a single without Qobuz album metadata.
+        if(found.size()<30&&!name.isEmpty()){
+            JSONObject query=new JSONObject().put("query",name+" #ByMainArtist")
+                .put("limit",100).put("offset",0);
+            try{
+                JSONObject response;
+                try{response=catalog("track/search",query);}
+                catch(Exception denied){response=api.library("track/search",query);}
+                JSONArray tracks=artistItems(response,"tracks");
+                if(tracks==null)tracks=response.optJSONArray("items");
+                JSONArray associatedAlbums=new JSONArray();
+                if(tracks!=null)for(int i=0;i<tracks.length()&&i<100;i++){
+                    JSONObject entry=tracks.optJSONObject(i);
+                    if(entry==null)continue;
+                    JSONObject track=entry.optJSONObject("track");
+                    if(track==null)track=entry;
+                    JSONObject album=track.optJSONObject("album");
+                    if(album==null)continue;
+                    JSONObject owner=album.optJSONObject("artist");
+                    String ownerId=owner==null?"":owner.optString("id","");
+                    if(artistId.equals(ownerId))associatedAlbums.put(album);
+                }
+                collectShortReleases(associatedAlbums,artistId,found,false);
+            }catch(Exception e){searchError=e;}
+        }
         if(found.isEmpty())throw new Exception(
-            "Short release preview unavailable: artist/get "+
+            "Short release metadata unavailable from this Qobuz connection: artist/get "+
             (artistError==null?"no matching entries":safeReleaseError(artistError))+
-            "; album/search "+(searchError==null?"no matching entries":safeReleaseError(searchError)));
+            "; authorized search "+(searchError==null?"no classified entries":safeReleaseError(searchError)));
         JSONArray items=new JSONArray();
         for(JSONObject album:found.values())items.put(album);
         return new JSONObject().put("items",items)
