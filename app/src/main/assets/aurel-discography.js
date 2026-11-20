@@ -185,9 +185,9 @@
         if(id&&id!==String(app.selected?.id))return false;
         const kind=String(album?.release_type||album?.album_type||'').toLowerCase();
         if(kind&&kind!=='single'&&kind!=='epsingle'&&kind!=='ep')return false;
-        const count=Number(album?.tracks_count);
-        return kind==='single'||kind==='epsingle'||kind==='ep'||
-          (Number.isInteger(count)&&count>=1&&count<=6);
+        // Partial Qobuz album previews may list only 1–6 tracks even when
+        // the release is a full album; require explicit catalogue type.
+        return kind==='single'||kind==='epsingle'||kind==='ep';
       }).map(album=>normalizedRelease(album)).filter(Boolean);
       if(candidates.length){
         s.ep=unique([...s.ep,...candidates]);
@@ -393,11 +393,10 @@
       +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
-      +section(state.epShortPreview?'Short releases':'EPs & Singles',eps,'eps',
+      +section('EPs & Singles',eps,'eps',
         'No EPs or singles returned by Qobuz',!state.epDone,state.epError)
       +(state.epShortPreview&&eps.length?'<p class="aurel-release-preview-note">'+
-        'Short releases (up to 6 tracks) from the Qobuz catalogue. '+
-        'Their official EP/single category could not be verified.</p>':'')
+        'EPs and singles identified by Qobuz release metadata.</p>':'')
       +(compilations.length?section('Compilations',compilations,'compilations','',false):'')
       +similarSection(state.similar||[],!state.pageDone,state.similarError)
       +(showMore?'<button type="button" class="aurel-artist-load-more" data-load-more-artist>Load more releases</button>':'')
