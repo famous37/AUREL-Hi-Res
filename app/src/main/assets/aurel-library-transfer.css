@@ -89,3 +89,45 @@
 /* Explicit status for screenshot-only names without authentic provider IDs. */
 .aurel-ltm-entries .aurel-ltm-unlinked{font-size:11px;line-height:1.45;
  color:var(--muted,#a8a8a8);opacity:.85;white-space:normal;margin-top:3px}
+
+/* Compact Library-only tools. The browse and destructive actions stay collapsed. */
+#screen #aurel-library-transfer.aurel-ltm{margin:12px 0 20px;padding:0;overflow:hidden;
+ border-radius:17px;box-shadow:none}
+#aurel-library-transfer .aurel-ltm-entrypoint{width:100%;min-height:66px;
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ padding:13px 16px;color:inherit;background:transparent;border:0;
+ text-align:left;font:inherit;cursor:pointer}
+#aurel-library-transfer .aurel-ltm-compact-title{display:flex;flex-direction:column;gap:4px;min-width:0}
+#aurel-library-transfer .aurel-ltm-compact-title strong{font-size:17px;font-weight:740;line-height:1.2}
+#aurel-library-transfer .aurel-ltm-compact-title small{font-size:12px;line-height:1.35;opacity:.68}
+#aurel-library-transfer .aurel-ltm-entry-chevron{font-size:22px;flex:none;opacity:.75}
+#aurel-library-transfer .aurel-ltm-body{padding:0 15px 16px;border-top:1px solid var(--border,rgba(255,255,255,.12))}
+#aurel-library-transfer .aurel-ltm-counts{margin:13px 0;gap:6px}
+#aurel-library-transfer .aurel-ltm-total{padding:7px 9px;gap:6px;font-size:12px}
+#aurel-library-transfer .aurel-ltm-total strong{font-size:16px}
+#aurel-library-transfer .aurel-ltm-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#aurel-library-transfer .aurel-ltm-actions button:first-child{grid-column:1/-1}
+#aurel-library-transfer .aurel-ltm-actions button{min-width:0;min-height:47px;font-size:14px}
+#aurel-library-transfer .aurel-ltm-hint{margin:10px 0 0;font-size:12px;
+ line-height:1.45;color:var(--aurel-theme-secondary,#b8b8b8)}
+#aurel-library-transfer .aurel-ltm-categories,
+#aurel-library-transfer .aurel-ltm-advanced{border-top:1px solid var(--border,rgba(255,255,255,.11));margin-top:12px}
+#aurel-library-transfer .aurel-ltm-categories>summary,
+#aurel-library-transfer .aurel-ltm-advanced>summary{padding:12px 0;cursor:pointer;
+ color:var(--aurel-theme-secondary,#c4c4c4);font-size:13px;font-weight:670}
+#aurel-library-transfer .aurel-ltm-select{margin:4px 0 12px}
+#aurel-library-transfer .aurel-ltm-browser-head{margin:9px 0}
+#aurel-library-transfer .aurel-ltm-secondary-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#aurel-library-transfer .aurel-ltm-secondary-actions button{font:inherit;font-size:13px;
+ font-weight:650;line-height:1.35;min-height:44px;padding:8px;
+ border:1px solid var(--border,rgba(255,255,255,.2));border-radius:12px;
+ color:inherit;background:rgba(140,140,140,.1);overflow-wrap:anywhere}
+#aurel-library-transfer .aurel-ltm-secondary-actions button:disabled{opacity:.43}
+@media(min-width:680px){
+ #aurel-library-transfer .aurel-ltm-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #aurel-library-transfer .aurel-ltm-actions button:first-child{grid-column:auto}
+}
+@media(max-width:350px){
+ #aurel-library-transfer .aurel-ltm-compact-title strong{font-size:16px}
+ #aurel-library-transfer .aurel-ltm-total{font-size:11px}
+}
