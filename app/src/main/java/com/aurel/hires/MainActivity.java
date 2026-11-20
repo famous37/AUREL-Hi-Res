@@ -1761,7 +1761,7 @@ public final class MainActivity extends Activity {
                                         try{data=artistReleaseFromAll(artistId,releaseType);}
                                         catch(Exception unfilteredError){
                                             if(releaseType.equals("epSingle")){
-                                                try{data=artistShortReleasePreview(artistId);}
+                                                try{data=artistShortReleasePreview(artistId,p.optString("name",""));}
                                                 catch(Exception shortError){
                                                     throw new Exception(
                                                         "EP/single data not available. Releases "+
@@ -2122,28 +2122,36 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private JSONObject artistShortReleasePreview(String artistId)throws Exception {
+    private JSONObject artistShortReleasePreview(String artistId,String suppliedName)throws Exception {
         java.util.LinkedHashMap<String,JSONObject> found=new java.util.LinkedHashMap<>();
-        String name="";
+        String name=suppliedName==null?"":suppliedName.trim();
+        if(name.length()>160)name=name.substring(0,160);
         Exception artistError=null,searchError=null;
         try{
             JSONObject info=artistInformation("artist/get",new JSONObject()
                 .put("artist_id",artistId).put("extra","albums")
                 .put("offset",0).put("limit",250));
-            name=info.optString("name","");
+            String canonicalName=info.optString("name","").trim();
+            if(!canonicalName.isEmpty()&&canonicalName.length()<=160)
+                name=canonicalName;
             collectShortReleases(artistItems(info,"albums"),artistId,found,true);
         }catch(Exception e){artistError=e;}
-        // Search is a real, already supported Qobuz catalogue source.
-        // Exact primary artist IDs prevent similarly named artists leaking in.
-        if(found.size()<30&&!name.isEmpty()) {
-            JSONObject params=new JSONObject().put("query",name+" #ByMainArtist")
-                .put("limit",100).put("offset",0);
-            try{
-                JSONObject result;
-                try{result=catalog("album/search",params);}
-                catch(Exception denied){result=api.library("album/search",params);}
-                collectShortReleases(artistItems(result,"albums"),artistId,found,false);
-            }catch(Exception e){searchError=e;}
+        // A search uses only public catalogue metadata available through the
+        // user's authorized source. Never accept a result with a different
+        // primary artist ID, even when the display names happen to match.
+        if(found.size()<30&&!name.isEmpty()){
+            String[] queries=new String[]{name+" #ByMainArtist",name};
+            for(String query:queries){
+                if(found.size()>=30)break;
+                JSONObject params=new JSONObject().put("query",query)
+                    .put("limit",100).put("offset",0);
+                try{
+                    JSONObject response;
+                    try{response=catalog("album/search",params);}
+                    catch(Exception denied){response=api.library("album/search",params);}
+                    collectShortReleases(artistItems(response,"albums"),artistId,found,false);
+                }catch(Exception e){searchError=e;}
+            }
         }
         if(found.isEmpty())throw new Exception(
             "Short release preview unavailable: artist/get "+
