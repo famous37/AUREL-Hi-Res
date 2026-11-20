@@ -2055,18 +2055,23 @@ public final class MainActivity extends Activity {
         for(int page=0;page<maxPages;page++) {
             JSONObject params=new JSONObject()
                 .put("artist_id",artistId).put("release_type",kind)
-                // Current Qobuz releases API uses order/orderDirection, not legacy sort.
-                .put("order","release_date").put("orderDirection","desc")
+                // The 2026 Qobuz releases-list API uses sort=release_date_by_priority.
+                .put("sort","release_date_by_priority")
                 .put("offset",offset).put("limit",pageSize);
             JSONObject response;
             try{
-                response=artistInformation("artist/getReleasesGrid",params);
-            }catch(Exception gridError){
-                try{response=artistInformation("artist/getReleasesList",params);}
-                catch(Exception listError){
+                response=artistInformation("artist/getReleasesList",params);
+            }catch(Exception listError){
+                try{
+                    JSONObject gridParams=new JSONObject(params.toString());
+                    gridParams.remove("sort");
+                    gridParams.put("order","release_date");
+                    gridParams.put("orderDirection","desc");
+                    response=artistInformation("artist/getReleasesGrid",gridParams);
+                }catch(Exception gridError){
                     if(combined.length()==0)throw new Exception(
-                        "Qobuz release endpoints rejected: Grid "+safeReleaseError(gridError)+
-                        ", List "+safeReleaseError(listError));
+                        "Qobuz release endpoints rejected: List "+safeReleaseError(listError)+
+                        ", Grid "+safeReleaseError(gridError));
                     hasMore=true;break;
                 }
             }
@@ -2137,9 +2142,11 @@ public final class MainActivity extends Activity {
                 .toLowerCase(java.util.Locale.ROOT).replaceAll("[ _-]","");
             if(type.contains("compilation")||type.equals("album")||type.equals("live"))
                 continue;
-            int count=album.optInt("tracks_count",item.optInt("tracks_count",0));
+            // Track count alone is not a release type: Qobuz often returns
+            // partial track previews for full-length albums. Only a genuine
+            // provider EP/single designation can enter this category.
             boolean official=type.contains("single")||type.equals("ep");
-            if(!official&&(count<1||count>6))continue;
+            if(!official)continue;
             found.put(id,album);
         }
     }
