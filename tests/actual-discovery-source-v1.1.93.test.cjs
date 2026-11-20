@@ -36,7 +36,7 @@ assert(discovery.includes('data=api.curatedNewReleaseAlbums(24)'));
 assert(discovery.includes('MornyeGateway.requiresVerification(discoveryError)'));
 assert(discovery.includes('safeReleaseError(curatedError)'));
 const artist=main.slice(main.indexOf('private JSONObject artistReleaseList('),
-                        main.indexOf('private JSONObject artistOfficialTopTracks('));
+                        main.indexOf('private JSONObject artistTypedAlbumsFallback('));
 assert(artist.includes('.put("sort","release_date_by_priority")'));
 assert(artist.includes('artistInformation("artist/getReleasesList",params)'));
 assert(artist.includes('gridParams.put("sort","release_date")'));
@@ -54,5 +54,5 @@ assert(css.includes('background:linear-gradient(to right,'));
 assert(css.includes('var(--aurel-mini-progress-accent,#f5f6f8) var(--played,0%)'));
 assert(css.includes('height:6px!important'));
 assert(lang.includes('Добірка новинок Qobuz'));
-assert(/versionCode\s+112/.test(gradle)&&gradle.includes("'1.1.95'"));
-console.log('AUREL 1.1.95 nested current Qobuz index, curated metadata, typed EPs and visible progress PASS');
+assert(/versionCode\s+113/.test(gradle)&&gradle.includes("'1.1.96'"));
+console.log('AUREL 1.1.96 nested current Qobuz index, curated metadata, typed EPs and visible progress PASS');
