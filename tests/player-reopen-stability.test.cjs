@@ -108,13 +108,15 @@ function flush(){
 }
 context.drawOverlay();flush();
 const baseline=Number.parseFloat(current.view.style.getPropertyValue('--aurel-fit-art'));
+const baselineScrollable=current.view.classList.contains('aurel-fit-scroll');
 assert(baseline>200,'test must begin with a realistic full-size cover');
 for(let i=0;i<12;i++){
   context.drawOverlay();flush();
   const actual=Number.parseFloat(current.view.style.getPropertyValue('--aurel-fit-art'));
   assert.equal(actual,baseline,
     'opening '+(i+1)+' must not progressively shrink artwork');
-  assert(!current.view.classList.contains('aurel-fit-scroll'));
+  assert.equal(current.view.classList.contains('aurel-fit-scroll'),baselineScrollable,
+    'opening sheets cannot change scroll mode or resize cover');
 }
 root.style.setProperty('--aurel-native-status-inset','24px');
 nativeCallback();flush();
