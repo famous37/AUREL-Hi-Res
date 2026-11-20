@@ -1,0 +1,61 @@
+# One-time maintenance: remove only the eight explicitly listed outdated
+# published GitHub Releases. Tags, commits, source and latest v1.1.93 stay intact.
+name: One-time cleanup obsolete AUREL releases
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-old-releases-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.repository == 'famous37/AUREL-Hi-Res'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify latest release and remove eight old releases only
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_latest='v1.1.93'
+          latest="$(gh api "repos/${GH_REPO}/releases/latest" --jq '.tag_name')"
+          if [[ "${latest}" != "${expected_latest}" ]]; then
+            echo "::error::Latest release is ${latest}, expected ${expected_latest}. Aborting without deleting anything."
+            exit 1
+          fi
+          releases=(
+            '452400247:v1.1.92'
+            '452381397:v1.1.91'
+            '452363842:v1.1.90'
+            '452348792:v1.1.89'
+            '451868066:v1.1.88'
+            '451836647:v1.1.87'
+            '451777162:v1.1.86'
+            '451731430:v1.1.85'
+          )
+          # Validate the ENTIRE allowlist before any irreversible operation.
+          for entry in "${releases[@]}"; do
+            id="${entry%%:*}"
+            expected_tag="${entry#*:}"
+            actual_tag="$(gh api "repos/${GH_REPO}/releases/${id}" --jq '.tag_name')"
+            if [[ "${actual_tag}" != "${expected_tag}" ]]; then
+              echo "::error::Release ID ${id} has tag ${actual_tag}, expected ${expected_tag}. Aborting."
+              exit 1
+            fi
+          done
+          for entry in "${releases[@]}"; do
+            id="${entry%%:*}"
+            tag="${entry#*:}"
+            gh api --method DELETE "repos/${GH_REPO}/releases/${id}"
+            echo "Deleted old release ${tag} (ID ${id}); Git tag unchanged."
+          done
+          preserved="$(gh api "repos/${GH_REPO}/releases/latest" --jq '.tag_name')"
+          [[ "${preserved}" == "${expected_latest}" ]]
+          echo "Confirmed: ${preserved} remains published."
