@@ -5,7 +5,7 @@ const c=load('aurel-glass-polish.css'),js=load('aurel-track-swipe.js'),
 aurora=load('aurel-aurora.js'),lang=load('aurel-language.js'),
 html=load('index.html'),gradle=fs.readFileSync('app/build.gradle','utf8');
 assert.match(gradle,/versionCode\s+112/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.95'/);
 assert(html.indexOf('aurel-track-swipe.js')>html.indexOf('aurel-aurora.js'));
 assert.match(c,/top:max\(56px,calc\(var\(--aurel-native-status-inset/);
 assert.match(c,/padding-top:clamp\(10px,1\.8dvh,24px\)/);
