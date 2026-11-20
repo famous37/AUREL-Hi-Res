@@ -10,8 +10,8 @@ const player=load('murglar.js'),live=load('aurel-live-ui.js');
 const journal=load('aurel-error-log.js');
 const activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+110/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.93'/);
+assert.match(gradle,/versionCode\s+111/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
 assert.match(player,/classList\.toggle\('aurel-player-open',!!app\.overlay\)/);
 assert.match(player,/previousPage\.setAttribute\('aria-hidden','true'\)/);
 assert.match(player,/previousPage\.removeAttribute\('aria-hidden'\)/);
@@ -78,7 +78,7 @@ const event=button=>({
  await callbacks.click(event(copyButton));
  assert.equal(requests.length,1,'One request must reach Android native clipboard');
  assert.equal(requests[0].action,'copySupportLog');
- assert.match(requests[0].data.report,/^AUREL Hi-Res 1\.1\.93 \| App error log\n/);
+ assert.match(requests[0].data.report,/^AUREL Hi-Res 1\.1\.94 \| App error log\n/);
  assert(requests[0].data.report.includes('Uncaught TypeError'));
  assert(toast.some(x=>/copied/.test(x)),'Successful native copy must show success');
  await callbacks.click(event(viewerButton));
@@ -104,6 +104,6 @@ const event=button=>({
  assert(typeof fallbackClick==='function');
  await fallbackClick(event({...copyButton,disabled:false}));
  assert.equal(captured.length,1);
- assert.match(captured[0],/^AUREL Hi-Res 1\.1\.93/);
- console.log('AUREL 1.1.93 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
+ assert.match(captured[0],/^AUREL Hi-Res 1\.1\.94/);
+ console.log('AUREL 1.1.94 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});

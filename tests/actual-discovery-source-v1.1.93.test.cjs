@@ -44,7 +44,7 @@ assert(artist.includes('boolean official=type.contains("single")||type.equals("e
 assert(artist.includes('if(!official)continue;'));
 assert(!artist.includes('int count=album.optInt("tracks_count"'));
 assert(main.includes('releaseType.equals("epSingle")'));
-assert(main.includes('?artistReleaseFromAll(artistId,releaseType)'));
+assert(main.includes('data=artistReleaseList(artistId,releaseType)'));
 assert(disc.includes("return kind==='single'||kind==='epsingle'||kind==='ep';"));
 assert(!disc.includes('count>=1&&count<=6'));
 assert(app.includes("app.discoverSource=d?._source==='qobuz_new_releases_playlist'?"));
@@ -54,5 +54,5 @@ assert(css.includes('background:linear-gradient(to right,'));
 assert(css.includes('var(--aurel-mini-progress-accent,#f5f6f8) var(--played,0%)'));
 assert(css.includes('height:6px!important'));
 assert(lang.includes('Добірка новинок Qobuz'));
-assert(/versionCode\s+110/.test(gradle)&&gradle.includes("'1.1.93'"));
-console.log('AUREL 1.1.93 nested current Qobuz index, curated metadata, typed EPs and visible progress PASS');
+assert(/versionCode\s+111/.test(gradle)&&gradle.includes("'1.1.94'"));
+console.log('AUREL 1.1.94 nested current Qobuz index, curated metadata, typed EPs and visible progress PASS');

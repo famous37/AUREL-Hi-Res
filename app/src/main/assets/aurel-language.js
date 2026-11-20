@@ -781,6 +781,13 @@ Object.assign(dictionary,{
   'EPs and singles identified by Qobuz release metadata.':'EP та сингли, визначені за даними Qobuz.',
   'EPs & Singles':'EP та сингли'
 });
+/* v1.1.94: distinguish Qobuz ranking from unranked artist tracks. */
+Object.assign(dictionary,{
+ 'Tracks by artist':'Треки виконавця',
+ 'Play tracks':'Відтворити треки',
+ 'EPs & Singles':'EP та сингли',
+ 'Artist catalogue request timed out':'Перевищено час очікування каталогу виконавця'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){

@@ -148,20 +148,33 @@
     window.AurelArtistInfoRefresh?.(id);
   }
   async function extend(id,token,action,params,apply,onError){
+    // The Android bridge can wait 65 seconds for a response. A single
+    // unavailable category must never leave the page on an endless spinner.
+    // The native request may finish later, but only this bounded result is
+    // applied; stale results and older artist selections are ignored.
+    let timer=null;
     try{
-      const data=await nativeCall(action,{id,...params});
-      if(token!==requestToken)return;
+      const timeout=action==='artistReleaseType'?24000:28000;
+      const data=await Promise.race([
+        nativeCall(action,{id,...params}),
+        new Promise((_,reject)=>{
+          timer=setTimeout(()=>reject(new Error('Artist catalogue request timed out')),timeout);
+        })
+      ]);
+      if(token!==requestToken||!validSelection(id))return;
       const state=byArtist.get(id);
       if(!state)return;
       apply(state,data);
       rerender(id);
     }catch(error){
-      // Failed requests must not be displayed as genuinely empty discographies.
-      if(token!==requestToken)return;
+      // A timed-out or rejected request is an error, not an empty catalogue.
+      if(token!==requestToken||!validSelection(id))return;
       const state=byArtist.get(id);
       if(!state)return;
       if(typeof onError==='function')onError(state,error);
       rerender(id);
+    }finally{
+      if(timer!==null)clearTimeout(timer);
     }
   }
   function loadTypedEps(id,token){
@@ -199,16 +212,42 @@
       }
     });
   }
+  // Qobuz top_tracks is already ordered by Qobuz. Preserve that order.
+  // A general artist-name search is not a chart, and collaborations with a
+  // different primary artist must not silently populate this artist's chart.
+  function normalizedPopularTracks(collection,ownerId){
+    const seen=new Set();
+    const result=[];
+    for(const entry of asList(collection)){
+      const track=entry?.track&&typeof entry.track==='object'?entry.track:entry;
+      const id=safeId(track);
+      if(!id||!track?.title||seen.has(id))continue;
+      const primary=track.artist?.id??track.main_artist?.id??
+        track.mainArtist?.id??track.album?.artist?.id;
+      if(primary!=null&&String(primary)!==String(ownerId))continue;
+      seen.add(id);
+      result.push(track);
+      if(result.length===24)break;
+    }
+    return result;
+  }
   function loadExtras(id){
     const cached=byArtist.get(id);
-    if(cached&&cached.loaded&&!cached.loading)return;
+    // A previous page visit may have invalidated its in-flight responses.
+    // Reuse completed metadata, but restart any unfinished categories.
+    if(cached&&cached.loaded&&!cached.loading&&cached.epDone&&
+       cached.pageDone&&cached.compDone)return;
     const state=cached||{loading:true,top:[],similar:[],ep:[],compilation:[],following:false};
+    state.loading=true;
+    state.pageDone=false;
+    state.compDone=false;
+    state.epDone=false;
     state.loaded=true;
     byArtist.set(id,state);
     if(byArtist.size>16)byArtist.delete(byArtist.keys().next().value);
     const token=++requestToken;
     const top=extend(id,token,'artistExtras',{},function(s,data){
-      s.top=asList(data?.top_tracks||data?.topTracks).filter(x=>safeId(x)&&x.title);
+      s.top=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id);
       // Search results for this exact artist are not a popularity ranking.
       s.topFallback=!!data?._topFallback;
       s.topError=String(data?._topError||(s.top.length?'':data?._pageError||''));
@@ -289,9 +328,9 @@
       +(count&&error?'<p class="aurel-artist-placeholder">'+errorMessage+'</p>':'')
       +'</section>';
   }
-  function songRow(t,i){
+  function songRow(t,i,ranked=true){
     return '<button type="button" class="aurel-popular-track" data-artist-play="'+i+'">'
-      +'<span class="aurel-popular-number">'+(i+1)+'</span>'
+      +'<span class="aurel-popular-number">'+(ranked?(i+1):'♪')+'</span>'
       +'<span class="aurel-popular-art">'+(art(t,'aurel-popular-image')||'<span>♪</span>')+'</span>'
       +'<span class="aurel-popular-copy"><strong>'+html(t.title||'Untitled')+'</strong>'
       +'<small>'+html(t.album?.title||artistLabel(t))+'</small></span>'
@@ -302,7 +341,7 @@
       +'<header class="aurel-artist-section-heading"><h2>'+(fallback?'Tracks by artist':'Most popular')+'</h2>'
       +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
       +'</header>'
-      +(list.length?'<div class="aurel-popular-list">'+list.map(songRow).join('')+'</div>'
+      +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i,!fallback)).join('')+'</div>'
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading popular tracks…':error?'<span>Popular tracks could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'No popular tracks returned by Qobuz')+'</p>')
       +'</section>';
   }
@@ -385,7 +424,7 @@
       +'<h1>'+html(artistName(o))+'</h1><span class="aurel-artist-kind">Artist</span>'
       +bio
       +'<div class="aurel-artist-actions">'
-      +'<button type="button" class="aurel-artist-play" data-artist-play-main '+(top.length?'':'disabled')+'>'+ic('play',23)+'<span>Play popular</span></button>'
+      +'<button type="button" class="aurel-artist-play" data-artist-play-main '+(top.length?'':'disabled')+'>'+ic('play',23)+'<span>'+(state.topFallback?'Play tracks':'Play popular')+'</span></button>'
       +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus',19)+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
       +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
       +'</div></header>'
