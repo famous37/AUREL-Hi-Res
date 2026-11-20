@@ -795,6 +795,28 @@ Object.assign(dictionary,{
  'EPs & Singles':'EP та сингли',
  'Artist catalogue request timed out':'Перевищено час очікування каталогу виконавця'
 });
+Object.assign(dictionary,{
+ 'Expand information':'Розгорнути інформацію',
+ 'Collapse information':'Згорнути інформацію',
+ 'Expand information panel':'Розгорнути інформаційне вікно',
+ 'Collapse information panel':'Згорнути інформаційне вікно',
+ 'Audio information':'Відомості про аудіо',
+ 'Track information':'Відомості про композицію',
+ 'Track details':'Відомості про композицію',
+ 'Play queue':'Черга відтворення',
+ 'Expand':'Розгорнути',
+ 'Collapse':'Згорнути',
+ 'Minimize player':'Згорнути програвач',
+ 'Share track':'Поширити композицію',
+ 'Retry':'Повторити',
+ 'Loading':'Завантаження',
+ 'System audio':'Системне аудіо',
+ 'Audio outputs':'Аудіовиходи',
+ 'Appearance':'Вигляд',
+ 'App & data':'Застосунок і дані',
+ 'Playback':'Відтворення',
+ 'Accounts':'Облікові записи'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
@@ -915,8 +937,12 @@ function createLanguagePanel(){
   '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="en" aria-checked="true"><span><span class="aurel-language-name">English</span><small>Default</small></span><span class="aurel-language-check" aria-hidden="true">✓</span></button>'+
   '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="uk" aria-checked="false"><span><span class="aurel-language-name">Українська</span></span><span class="aurel-language-check" aria-hidden="true">✓</span></button>'+
   '</div>';
- var first=root.querySelector('.panel');
- if(first)root.insertBefore(panel,first);else root.appendChild(panel);
+ var appearance=root.querySelector('[data-aurel-settings-group="appearance"] .aurel-settings-group-content');
+ if(appearance)appearance.appendChild(panel);
+ else{
+  var first=root.querySelector('.panel');
+  if(first)root.insertBefore(panel,first);else root.appendChild(panel);
+ }
  syncLanguageButtons();
  visit(panel);
 }
