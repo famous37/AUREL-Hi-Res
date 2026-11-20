@@ -20,7 +20,7 @@ assert.equal(html.lastIndexOf('<link rel="stylesheet"'),html.indexOf('<link rel=
 assert(html.indexOf('src="aurel-detail-drag.js"')>html.indexOf('src="aurel-stage2-lyrics.js"'));
 assert(fit.includes('let lastFit=null'));
 assert(fit.includes('if(lastFit?.key===key)'));
-assert(fit.includes('if(app.playerSheet&&lastFit)'));
+assert(fit.includes("if(typeof app!=='undefined'&&app.playerSheet&&lastFit)"));
 assert(fit.includes('lastFit={key,pixel,scroll:needsScroll}'));
 assert(fit.includes('window.innerWidth*0.94')&&fit.includes('window.innerHeight*0.53'));
 assert(css.includes('.murglar-view.murglar-sheet-open'));
