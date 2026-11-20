@@ -1718,8 +1718,11 @@ public final class MainActivity extends Activity {
                             String artistId=p.getString("id");
                             JSONObject extras=new JSONObject();
                             try {
+                                // Request Qobuz's actual ranked top_tracks collection.
+                                // Artist search/track search is never a popularity chart.
                                 extras=artistInformation("artist/page",
-                                    new JSONObject().put("artist_id",artistId));
+                                    new JSONObject().put("artist_id",artistId)
+                                        .put("extra","topTracks"));
                             }catch(Exception error) {
                                 // A failed endpoint must be distinguishable from an empty Qobuz catalogue.
                                 extras.put("_pageError","Qobuz artist page request failed");
@@ -1757,7 +1760,7 @@ public final class MainActivity extends Activity {
                                     }else extras.put("_topError","No artist tracks returned by Qobuz");
                                 }catch(Exception fallbackError){
                                     extras.put("_topError","Qobuz track catalogue unavailable: "
-                                        +fallbackError.getMessage());
+                                        +safeReleaseError(fallbackError));
                                 }
                             }
                             data=extras;break;
@@ -1769,13 +1772,11 @@ public final class MainActivity extends Activity {
                                 throw new Exception("Unsupported release type");
                             String artistId=p.getString("id");
                             try {
-                                // Qobuz's typed releasesList accepts 'single' and
-                                // 'album', not the AUREL UI label 'epSingle'.
-                                // Query 'all' once and select only explicit
-                                // Qobuz EP/single release_type metadata.
-                                data=releaseType.equals("epSingle")
-                                    ?artistReleaseFromAll(artistId,releaseType)
-                                    :artistReleaseList(artistId,releaseType);
+                                // epSingle is a documented Qobuz release_type.
+                                // Ask the authoritative endpoint directly so EPs
+                                // aren't lost when the unfiltered response omits
+                                // per-item release_type fields.
+                                data=artistReleaseList(artistId,releaseType);
                             }catch(Exception listError) {
                                 // Fall back only to releases with verifiable Qobuz metadata.
                                 // Never guess an album type from its artwork or title.
@@ -2053,7 +2054,10 @@ public final class MainActivity extends Activity {
      * returns fewer items than the requested limit. Bounded to eight pages.
      */
     private JSONObject artistReleaseList(String artistId,String kind)throws Exception {
-        final int pageSize=100,maxPages=8;
+        // EP/single shelves need a bounded first batch, not an expensive
+        // eight-page scan of the artist's entire catalogue.
+        final int pageSize=kind.equals("epSingle")?50:100;
+        final int maxPages=kind.equals("epSingle")?3:8;
         JSONArray combined=new JSONArray();
         java.util.HashSet<String> unique=new java.util.HashSet<>();
         int total=-1,offset=0;
