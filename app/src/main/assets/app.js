@@ -838,7 +838,7 @@ document.addEventListener('input',e=>{
  const ratio=max?Math.max(0,Math.min(1,next/max)):0;
  const fill=e.target.parentElement?.querySelector('.aurel-seek-rail-fill');
  if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
- e.target.style.setProperty('--played',(ratio*100).toFixed(2)+'%');
+ e.target.style?.setProperty?.('--played',(ratio*100).toFixed(2)+'%');
  const text=$('#elapsed');
  if(text)text.textContent=duration(next/1000);
 });
