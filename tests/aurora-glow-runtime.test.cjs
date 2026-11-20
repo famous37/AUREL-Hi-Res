@@ -81,10 +81,12 @@ x.advance(85);
 x.window.AurelBeatFrame(.93);
 assert.equal(x.styles.get('--aurel-aurora-rotation'),'12deg',
   'Constant bass envelope should not simulate new onsets');
+const sustainedGlow=Number(x.styles.get('--aurel-aurora-opacity'));
+assert.ok(sustainedGlow>=initialGlow,'A sustained real FFT onset builds its glow progressively');
 x.advance(85);
 x.window.AurelBeatFrame(0);
 const decay=Number(x.styles.get('--aurel-aurora-opacity'));
-assert.ok(decay<initialGlow&&decay>.340,
+assert.ok(decay<sustainedGlow&&decay>.340,
   'Low-energy FFT dims smoothly, without snapping to the rest brightness');
 x.app.player.playing=false;x.window.AurelEvent('player',{});
 assert.equal(x.classList.contains('aurel-aurora-playing'),false);
