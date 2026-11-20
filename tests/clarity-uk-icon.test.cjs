@@ -15,7 +15,7 @@ const locale=text(assets+'aurel-language.js');
 const foreground=text('app/src/main/res/drawable/aurel_launcher_foreground.xml');
 const mono=text('app/src/main/res/drawable/aurel_launcher_monochrome.xml');
 const gradle=text('app/build.gradle');
-assert(/versionCode\s+118/.test(gradle) && gradle.includes("'1.2.1'"));
+assert(/versionCode\s+119/.test(gradle) && gradle.includes("'1.2.2'"));
 assert(html.includes('aurel-clarity.css') &&
  html.indexOf('aurel-clarity.css')>html.indexOf('aurel-settings-groups.css'));
 assert(css.includes('stroke-width:2.8!important') &&
