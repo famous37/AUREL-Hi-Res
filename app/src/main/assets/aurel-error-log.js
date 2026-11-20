@@ -44,9 +44,9 @@
    }catch(_){}finally{writing=false;}
  }
  function report(){
-   return 'AUREL Hi-Res 1.1.89 | App error log\n'+
+   return 'AUREL Hi-Res 1.1.90 | App error log\n'+
      'Local diagnostic only. No audio, account tokens, URLs or system logcat.\n'+
-     JSON.stringify({version:'1.1.89',count:entries.length,errors:entries},null,2);
+     JSON.stringify({version:'1.1.90',count:entries.length,errors:entries},null,2);
  }
  function clear(){entries=[];persist();refreshCount();refreshReport();}
  function refreshReport(){

@@ -168,16 +168,35 @@
     const state=byArtist.get(id);
     if(!state)return Promise.resolve();
     state.epDone=false;
-    return extend(id,token,'artistReleaseType',{releaseType:'epSingle'},function(s,data){
+    return extend(id,token,'artistReleaseType',{releaseType:'epSingle',
+      name:artistName(app.selected||{})},function(s,data){
       const releases=asList(data?.albums||data?.releases||data)
         .map(x=>normalizedRelease(x,'epSingle')).filter(Boolean);
       s.ep=unique([...s.ep,...releases]);s.epDone=true;
-      s.epError=data?._partial?'partial':'';
+      s.epShortPreview=!!data?._shortPreview;
+      s.epError=data?._partial&&!s.epShortPreview?'partial':'';
     },(s,error)=>{
       s.epDone=true;
       const message=String(error?.message||'');
-      s.epError=/401|403|405|unauthori[sz]|forbidden|access denied|not permitted|app.?id/i.test(message)
-        ?'authorization':'unavailable';
+      // artist/get may already have returned genuine, artist-owned short
+      // releases even when the typed Qobuz endpoint is denied.
+      const candidates=asList(app.selected?.albums).filter(album=>{
+        const id=String(album?.artist?.id||'');
+        if(id&&id!==String(app.selected?.id))return false;
+        const kind=String(album?.release_type||album?.album_type||'').toLowerCase();
+        if(kind&&kind!=='single'&&kind!=='epsingle'&&kind!=='ep')return false;
+        const count=Number(album?.tracks_count);
+        return kind==='single'||kind==='epsingle'||kind==='ep'||
+          (Number.isInteger(count)&&count>=1&&count<=6);
+      }).map(album=>normalizedRelease(album)).filter(Boolean);
+      if(candidates.length){
+        s.ep=unique([...s.ep,...candidates]);
+        s.epShortPreview=true;
+        s.epError='';
+      }else{
+        s.epError=/401|403|405|unauthori[sz]|forbidden|access denied|not permitted|app.?id/i.test(message)
+          ?'authorization':'unavailable';
+      }
     });
   }
   function loadExtras(id){
@@ -374,7 +393,11 @@
       +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
-      +section('EPs & Singles',eps,'eps','No EPs or singles returned by Qobuz',!state.epDone,state.epError)
+      +section(state.epShortPreview?'Short releases':'EPs & Singles',eps,'eps',
+        'No EPs or singles returned by Qobuz',!state.epDone,state.epError)
+      +(state.epShortPreview&&eps.length?'<p class="aurel-release-preview-note">'+
+        'Short releases (up to 6 tracks) from the Qobuz catalogue. '+
+        'Their official EP/single category could not be verified.</p>':'')
       +(compilations.length?section('Compilations',compilations,'compilations','',false):'')
       +similarSection(state.similar||[],!state.pageDone,state.similarError)
       +(showMore?'<button type="button" class="aurel-artist-load-more" data-load-more-artist>Load more releases</button>':'')

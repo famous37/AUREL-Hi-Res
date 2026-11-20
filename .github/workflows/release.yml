@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.89: signed update for catalogue recovery and compact library tools.
+# v1.1.90: signed update for catalogue recovery and compact library tools.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -204,10 +204,10 @@ jobs:
             '' \
             '- Library Import / Export is available inside Library only, in a compact expandable panel.' \
             '- Direct actions: Qobuz import, JSON import, JSON export; browsing and destructive tools remain optional and confirmed.' \
-            '- Artist EP/single retrieval handles pagination and supported provider metadata fallbacks.' \
+            '- Artist EP/single retrieval uses current Qobuz release sorting and genuine artist-owned short-release previews when categories are denied.' \
             '- New release discovery retries available authorized catalogue routes without bypassing Qobuz permissions.' \
             '- Shorter settings text and preserved player, USB audio, user sessions, preferences and local data.' \
-            '- Android versionCode 106, versionName 1.1.89, original permanently signed certificate.' \
+            '- Android versionCode 107, versionName 1.1.90, original permanently signed certificate.' \
             '' \
             "Install v${AUREL_VERSION} over v1.1.88; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

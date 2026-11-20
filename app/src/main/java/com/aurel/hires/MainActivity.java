@@ -1760,9 +1760,21 @@ public final class MainActivity extends Activity {
                                         // Keep only releases whose provider type is explicit.
                                         try{data=artistReleaseFromAll(artistId,releaseType);}
                                         catch(Exception unfilteredError){
-                                            throw new Exception("Qobuz typed releases unavailable: "
-                                                +listError.getMessage()+"; fallback: "
-                                                +unfilteredError.getMessage());
+                                            if(releaseType.equals("epSingle")){
+                                                try{data=artistShortReleasePreview(artistId,p.optString("name",""));}
+                                                catch(Exception shortError){
+                                                    throw new Exception(
+                                                        "EP/single data not available. Releases "+
+                                                        safeReleaseError(listError)+
+                                                        "; artist page "+safeReleaseError(previewError)+
+                                                        "; artist albums "+safeReleaseError(fallbackError)+
+                                                        "; unfiltered "+safeReleaseError(unfilteredError)+
+                                                        "; short previews "+safeReleaseError(shortError));
+                                                }
+                                            }else{
+                                                throw new Exception("Qobuz typed releases unavailable: "+
+                                                    safeReleaseError(listError));
+                                            }
                                         }
                                     }
                                 }
@@ -2021,15 +2033,18 @@ public final class MainActivity extends Activity {
         for(int page=0;page<maxPages;page++) {
             JSONObject params=new JSONObject()
                 .put("artist_id",artistId).put("release_type",kind)
-                .put("sort","release_date_by_priority")
+                // Current Qobuz releases API uses order/orderDirection, not legacy sort.
+                .put("order","release_date").put("orderDirection","desc")
                 .put("offset",offset).put("limit",pageSize);
             JSONObject response;
             try{
-                response=artistInformation("artist/getReleasesList",params);
-            }catch(Exception listError){
-                try{response=artistInformation("artist/getReleasesGrid",params);}
-                catch(Exception gridError){
-                    if(combined.length()==0)throw listError;
+                response=artistInformation("artist/getReleasesGrid",params);
+            }catch(Exception gridError){
+                try{response=artistInformation("artist/getReleasesList",params);}
+                catch(Exception listError){
+                    if(combined.length()==0)throw new Exception(
+                        "Qobuz release endpoints rejected: Grid "+safeReleaseError(gridError)+
+                        ", List "+safeReleaseError(listError));
                     hasMore=true;break;
                 }
             }
@@ -2061,6 +2076,92 @@ public final class MainActivity extends Activity {
         return new JSONObject().put("items",combined)
             .put("total",total>=0?total:combined.length())
             .put("_partial",hasMore||(total>=0&&combined.length()<total));
+    }
+
+    /** Only endpoint names and response codes are exposed. Never log a query,
+     * token, user identity, App ID, server error body or full request URL.
+     */
+    private String safeReleaseError(Exception failure){
+        if(failure instanceof QobuzApi.ApiException)
+            return "HTTP "+((QobuzApi.ApiException)failure).status;
+        String message=String.valueOf(failure.getMessage());
+        if(message.matches(".*\\bHTTP [0-9]{3}\\b.*")){
+            java.util.regex.Matcher m=java.util.regex.Pattern.compile("HTTP [0-9]{3}").matcher(message);
+            if(m.find())return m.group();
+        }
+        return "unavailable";
+    }
+
+    /** Honest fallback when Qobuz denies typed categories: display real
+     * artist-owned short releases with Qobuz IDs. Track count is a browsing
+     * hint, not proof of the provider's official EP/single designation.
+     */
+    private void collectShortReleases(JSONArray items,String artistId,
+        java.util.LinkedHashMap<String,JSONObject> found,boolean artistSource){
+        if(items==null)return;
+        for(int i=0;i<items.length()&&found.size()<72;i++){
+            JSONObject item=items.optJSONObject(i);
+            if(item==null)continue;
+            JSONObject album=item.optJSONObject("album");
+            if(album==null)album=item;
+            String id=album.optString("id","").trim(),title=album.optString("title","");
+            if(id.isEmpty()||title.isEmpty()||found.containsKey(id))continue;
+            JSONObject owner=album.optJSONObject("artist");
+            if(owner==null)owner=item.optJSONObject("artist");
+            String linked=owner==null?"":owner.optString("id","");
+            if(!artistSource&&!artistId.equals(linked))continue;
+            if(artistSource&&!linked.isEmpty()&&!artistId.equals(linked))continue;
+            String type=item.optString("release_type",album.optString("release_type",""))
+                .toLowerCase(java.util.Locale.ROOT).replaceAll("[ _-]","");
+            if(type.contains("compilation")||type.equals("album")||type.equals("live"))
+                continue;
+            int count=album.optInt("tracks_count",item.optInt("tracks_count",0));
+            boolean official=type.contains("single")||type.equals("ep");
+            if(!official&&(count<1||count>6))continue;
+            found.put(id,album);
+        }
+    }
+
+    private JSONObject artistShortReleasePreview(String artistId,String suppliedName)throws Exception {
+        java.util.LinkedHashMap<String,JSONObject> found=new java.util.LinkedHashMap<>();
+        String name=suppliedName==null?"":suppliedName.trim();
+        if(name.length()>160)name=name.substring(0,160);
+        Exception artistError=null,searchError=null;
+        try{
+            JSONObject info=artistInformation("artist/get",new JSONObject()
+                .put("artist_id",artistId).put("extra","albums")
+                .put("offset",0).put("limit",250));
+            String canonicalName=info.optString("name","").trim();
+            if(!canonicalName.isEmpty()&&canonicalName.length()<=160)
+                name=canonicalName;
+            collectShortReleases(artistItems(info,"albums"),artistId,found,true);
+        }catch(Exception e){artistError=e;}
+        // A search uses only public catalogue metadata available through the
+        // user's authorized source. Never accept a result with a different
+        // primary artist ID, even when the display names happen to match.
+        if(found.size()<30&&!name.isEmpty()){
+            String[] queries=new String[]{name+" #ByMainArtist",name};
+            for(String query:queries){
+                if(found.size()>=30)break;
+                JSONObject params=new JSONObject().put("query",query)
+                    .put("limit",100).put("offset",0);
+                try{
+                    JSONObject response;
+                    try{response=catalog("album/search",params);}
+                    catch(Exception denied){response=api.library("album/search",params);}
+                    collectShortReleases(artistItems(response,"albums"),artistId,found,false);
+                }catch(Exception e){searchError=e;}
+            }
+        }
+        if(found.isEmpty())throw new Exception(
+            "Short release preview unavailable: artist/get "+
+            (artistError==null?"no matching entries":safeReleaseError(artistError))+
+            "; album/search "+(searchError==null?"no matching entries":safeReleaseError(searchError)));
+        JSONArray items=new JSONArray();
+        for(JSONObject album:found.values())items.put(album);
+        return new JSONObject().put("items",items)
+            .put("_shortPreview",true)
+            .put("_partial",true);
     }
 
     /** A provider's unfiltered list is a safe fallback for denied category

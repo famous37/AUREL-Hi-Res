@@ -25,6 +25,6 @@ assert(hal.includes('endToEndVerified",false'));
 assert(!service.includes('VolumeProvider'));
 assert(!ui.includes('direct_usb_playback'));
 assert(!ui.includes('libusbdac'));
-assert.match(gradle,/versionCode 106/);
-assert(gradle.includes("'1.1.89'"));
+assert.match(gradle,/versionCode 107/);
+assert(gradle.includes("'1.1.90'"));
 console.log('AUREL 1.1.79 platform-only USB mixer capability and fallback PASS');
