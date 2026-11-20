@@ -114,3 +114,64 @@
 }
 html[data-aurel-motion="off"] #overlay:not(.hidden)
  .murglar-view::before{transition:none!important;}
+
+/* WebView sometimes paints the slider thumb but omits the gradient-filled
+ * native track. A real composited DOM rail is authoritative, not a pseudo-
+ * element whose background can vanish during immersive palette changes. */
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-progress-row.aurel-timeline{position:relative!important;isolation:isolate;}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-progress-row.aurel-timeline .aurel-seek-rail{
+ display:block!important;position:absolute!important;
+ left:clamp(1px,1vw,6px)!important;right:clamp(1px,1vw,6px)!important;
+ top:19px!important;bottom:auto!important;
+ width:auto!important;height:8px!important;min-width:0!important;
+ grid-row:auto!important;grid-column:auto!important;
+ padding:0!important;margin:0!important;
+ pointer-events:none!important;z-index:1!important;
+ border:0!important;border-radius:999px!important;
+ background:var(--aurel-seek-track,#53545a)!important;
+ box-shadow:0 1px 2px #00000024!important;overflow:hidden!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .aurel-seek-rail-fill{
+ display:block!important;width:100%!important;height:100%!important;
+ background:var(--aurel-seek-accent,#f3f4f6)!important;
+ border-radius:inherit!important;transform-origin:0 50%!important;
+ transition:transform 100ms linear!important;
+ will-change:transform;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-progress-row.aurel-timeline #progress{
+ position:relative!important;z-index:2!important;
+ background:transparent!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ .murglar-progress-row.aurel-timeline #progress::-webkit-slider-runnable-track{
+ background:transparent!important;border:0!important;
+ box-shadow:none!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+ #progress:disabled + .aurel-seek-rail{opacity:.4!important;}
+/* A drawer's compositor and overlay stay mounted while sheet contents change.
+ * No alpha restart, backdrop blur, or colour flashes on opening/closing. */
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
+ animation:none!important;
+ transition:opacity 170ms ease-out!important;
+ background:rgba(0,0,0,.35)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-drawer{
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ contain:layout style;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-art-wrap,
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-cover{
+ animation:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+ :root[data-aurel-palette] #overlay:not(.hidden) .aurel-seek-rail-fill,
+ :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
+ transition:none!important;
+ }
+}
