@@ -18,7 +18,7 @@ assert.match(java,/artistPageReleases\(artistId,releaseType\)/);
 assert.match(java,/artistTypedAlbumsFallback\(artistId,releaseType\)/);
 assert.doesNotMatch(java,/private JSONObject artistTrackFallback\(/);
 assert.match(java,/if\(!typeFound\)throw/);
-assert.match(disco,/<h2>Most popular<\/h2>/);
+assert.match(disco,/\+'Most popular'\+'<\/h2>'/);
 assert.doesNotMatch(disco,/topFallback/);
 assert.match(disco,/const groups=asList\(preview\)/);
 
