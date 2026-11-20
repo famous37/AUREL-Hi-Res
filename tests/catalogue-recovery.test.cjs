@@ -12,7 +12,7 @@ const disc=read('app/src/main/assets/aurel-discography.js');
 const home=read('app/src/main/assets/modern.js');
 const source=read('app/src/main/assets/app.js');
 
-assert.match(api,/private JSONObject checkedFeatured\(JSONObject response\)/);
+assert.match(api,/JSONObject checkedFeatured\(JSONObject response\)/);
 assert.match(api,/response\.optJSONArray\("items"\)/);
 assert.match(api,/response\.optJSONObject\("releases"\)/);
 assert.match(api,/response\.optJSONArray\("albums"\)/);
@@ -20,7 +20,7 @@ assert.match(api,/checkedFeatured\(catalog\("discover\/newReleases"/);
 assert.match(api,/checkedFeatured\(catalog\("album\/getFeatured"/);
 assert.match(api,/String libraryAppId=store\.get\("libraryAppId"\)/);
 assert.match(api,/String streamingAppId=streamId\(\),streamingToken=streamToken\(\)/);
-assert.match(api,/false,resolveAppId\("?"\),""/);
+assert.match(api,/false,publicId,""/);
 assert.doesNotMatch(api,/"735532640"|"312369995"/);
 assert.match(main,/catch\(Exception primaryError\)\{data=api\.publicFeaturedReleases\(24\);\}/);
 assert.match(main,/artistInformation\("artist\/getReleasesList",params\)/);
