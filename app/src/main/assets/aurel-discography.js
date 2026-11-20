@@ -255,7 +255,7 @@
     const category=(key==='eps'||key==='compilations');
     const message=category
       ?(error==='authorization'
-        ?'Qobuz denied this category for the current App ID or account.'
+        ?'Qobuz has not authorized this release category.'
         :error==='partial'?'Only part of this release category could be loaded.'
         :'Some release categories could not be loaded.')
       :'Release information could not be loaded.';
