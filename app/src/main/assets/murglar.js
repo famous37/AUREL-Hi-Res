@@ -91,7 +91,7 @@
           <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',28)}<span>Info</span></button>
           <button data-player-sheet="lyrics" class="${active==='lyrics'?'active':''}" aria-expanded="${active==='lyrics'}" aria-label="Lyrics" title="Lyrics">${ic('lyrics',28)}<span>Lyrics</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',28)}<span>Favourite</span></button>
-          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',32)}<span>Share</span></button>
+          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',28)}<span>Share</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>
