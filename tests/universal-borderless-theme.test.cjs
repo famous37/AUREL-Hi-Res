@@ -12,7 +12,7 @@ const gradle=read('app/build.gradle');
 const native=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java');
 const usb=read('app/src/main/java/com/aurel/hires/BitPerfectOutput.java');
 assert.match(gradle,/versionCode\s+112/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.95'/);
 assert(html.includes('aurel-universal-borderless.css'));
 assert(html.indexOf('aurel-universal-borderless.css')>html.indexOf('aurel-landscape-nav.css'),
  'Final stylesheet must defeat previously hard-coded icon frames');
