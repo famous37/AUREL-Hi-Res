@@ -30,9 +30,10 @@ assert(disc.includes("action==='artistPublicFallback'?57000"));
 assert(disc.includes('function startIndependentArtistCatalog(id,token)'));
 assert(disc.includes("s.topSource='deezer'"));
 assert(disc.includes("s.epSource='deezer'"));
-assert(disc.includes('Deezer ranking · Qobuz playback'));
+assert(!disc.includes('<small class="aurel-artist-data-source">'), 'No visible caption should crowd Most popular heading');
+assert(disc.includes('aria-label="Most popular (Deezer ranking, Qobuz playback)"'), 'Keep source information accessible without a visible label');
 assert(disc.includes('Deezer categories · Qobuz albums'));
-assert(css.includes('.aurel-artist-data-source'));
+assert(!css.includes('.aurel-artist-data-source'));
 assert(uk.includes('Рейтинг Deezer · відтворення через Qobuz'));
 
 // 2026 reissues must never silently replace the verified 2006 original.
@@ -53,6 +54,6 @@ assert.equal(canonicalLatestRelease([fallen,doorReissue,doorOriginal]).id,'d');
 const newer={id:'n',title:'The Bitter Truth',release_date_original:'2021-03-26'};
 assert.equal(canonicalLatestRelease([fallen,doorOriginal,doorReissue,newer]).id,'n');
 assert(disc.includes('Latest listed release'));
-assert.match(gradle,/versionCode\s+114/);
-assert(gradle.includes("'1.1.97'"));
+assert.match(gradle,/versionCode\s+115/);
+assert(gradle.includes("'1.1.98'"));
 console.log('Independent chart -> Qobuz ID mapping, source disclosure, release-year accuracy PASS');

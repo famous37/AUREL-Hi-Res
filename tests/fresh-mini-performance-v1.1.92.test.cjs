@@ -52,5 +52,5 @@ assert(css.includes(':root[data-aurel-palette="mono"]'));
 assert(css.includes('transition:transform 165ms linear'));
 assert(css.includes('.aurel-discovery-stale'));
 assert(lang.includes('Завантаження новинок Qobuz'));
-assert(/versionCode\s+114/.test(gradle)&&gradle.includes("'1.1.97'"));
-console.log('AUREL v1.1.97 index discovery, auth safety, single-flight, and artwork progress PASS');
+assert(/versionCode\s+115/.test(gradle)&&gradle.includes("'1.1.98'"));
+console.log('AUREL v1.1.98 index discovery, auth safety, single-flight, and artwork progress PASS');

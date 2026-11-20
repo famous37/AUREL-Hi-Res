@@ -400,9 +400,9 @@
       +'<span class="aurel-popular-play" aria-hidden="true">▶</span></button>';
   }
   function popularSection(list,loading,error,source){
-    return '<section class="aurel-artist-section" data-artist-section="popular">'
+    return '<section class="aurel-artist-section" data-artist-section="popular"'
+      +(source==='deezer'?' aria-label="Most popular (Deezer ranking, Qobuz playback)"':'')+'>'
       +'<header class="aurel-artist-section-heading"><h2>'+'Most popular'+'</h2>'
-      +(source==='deezer'?'<small class="aurel-artist-data-source">Deezer ranking · Qobuz playback</small>':'')
       +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
       +'</header>'
       +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i)).join('')+'</div>'
