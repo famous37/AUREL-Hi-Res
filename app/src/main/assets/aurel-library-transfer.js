@@ -216,7 +216,9 @@ document.addEventListener('change',event=>{
  if(!kind||!TYPES.includes(kind))return;
  if(event.target.checked)state.selected.add(kind);
  else state.selected.delete(kind);
- draw();
+ // Do not destroy the open category picker after each checkbox change.
+ const sync=document.querySelector('#aurel-library-transfer [data-ltm-action="sync"]');
+ if(sync)sync.disabled=!!state.status.busy||!app.session?.libraryConnected||!state.selected.size;
 },true);
 function trackObj(row){
  return {
