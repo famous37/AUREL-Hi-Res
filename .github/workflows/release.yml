@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.95: signed update restoring actual Qobuz rankings and release type fallback.
+# v1.1.96: signed update restoring actual Qobuz rankings and release type fallback.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -207,7 +207,7 @@ jobs:
             '- Unranked search/artist tracks are never substituted into Most popular; missing rankings are reported honestly.' \
             '- artist/page uses the standard Qobuz request; EP/single grid fallback uses the supported release_date sort.' \
             '- Audio engine, bit-perfect routing, account sessions, library, settings, FFT and backup format remain unchanged.' \
-            '- Android versionCode 112, versionName 1.1.95, original permanently signed certificate.' \
+            '- Android versionCode 113, versionName 1.1.96, original permanently signed certificate.' \
             '' \
             "Install v${AUREL_VERSION} over v1.1.94; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
