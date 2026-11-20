@@ -44,7 +44,7 @@ assert(artist.includes('boolean official=type.contains("single")||type.equals("e
 assert(artist.includes('if(!official)continue;'));
 assert(!artist.includes('int count=album.optInt("tracks_count"'));
 assert(main.includes('releaseType.equals("epSingle")'));
-assert(main.includes('?artistReleaseFromAll(artistId,releaseType)'));
+assert(main.includes('data=artistReleaseList(artistId,releaseType)'));
 assert(disc.includes("return kind==='single'||kind==='epsingle'||kind==='ep';"));
 assert(!disc.includes('count>=1&&count<=6'));
 assert(app.includes("app.discoverSource=d?._source==='qobuz_new_releases_playlist'?"));
