@@ -15,13 +15,13 @@ const locale=text(assets+'aurel-language.js');
 const foreground=text('app/src/main/res/drawable/aurel_launcher_foreground.xml');
 const mono=text('app/src/main/res/drawable/aurel_launcher_monochrome.xml');
 const gradle=text('app/build.gradle');
-assert(/versionCode\s+105/.test(gradle) && gradle.includes("'1.1.88'"));
+assert(/versionCode\s+105/.test(gradle) && gradle.includes("'1.1.89'"));
 assert(html.includes('aurel-clarity.css') &&
  html.indexOf('aurel-clarity.css')>html.indexOf('aurel-settings-groups.css'));
 assert(css.includes('stroke-width:2.8!important') &&
  css.includes('font-weight:800!important') &&
  css.includes('--aurel-clarity-accent'));
-for(const section of ['Audio outputs','Playback','Accounts & library','Appearance & app'])
+for(const section of ['Audio outputs','Playback','Accounts','Appearance & app'])
  assert(groups.includes(section),'Missing functional group '+section);
 assert(groups.includes('aurel-group-icon') && groups.includes('glyphs[id]'));
 for(const phrase of ['Audio engine limits','Gapless:','PEQ, Crossfeed and FIR:',
