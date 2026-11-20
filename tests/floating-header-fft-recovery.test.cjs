@@ -7,8 +7,8 @@ const css=load('aurel-seamless-theme.css'),glass=load('aurel-glass-polish.css'),
  activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8'),
  gradle=fs.readFileSync('app/build.gradle','utf8');
 
-assert.match(gradle,/versionCode\s+108/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.91'/);
+assert.match(gradle,/versionCode\s+109/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.92'/);
 assert.match(css,/@media\s*\(orientation:portrait\)[\s\S]*?\.murglar-header\.aurel-listening-nav\{[\s\S]*?position:absolute!important/);
 assert.match(css,/pointer-events:none!important;[\s\S]*?\.murglar-header-button/);
 assert.match(css,/pointer-events:auto!important/);
@@ -65,4 +65,4 @@ assert(Number(s.get('--aurel-reactive-scale'))<1,'Actual silence reduces scale')
 app.player.playing=false;context.window.AurelEvent('player',{});
 assert.equal(s.get('--aurel-reactive-scale'),'1','Pause restores static canvas');
 assert.equal(requests.at(-1)?.[0],false,'Pause releases native audio analyzer');
-console.log('AUREL 1.1.91 floating header, continuous canvas, native FFT watchdog, true-frame scale and explicit diagnostics PASS');
+console.log('AUREL 1.1.92 floating header, continuous canvas, native FFT watchdog, true-frame scale and explicit diagnostics PASS');

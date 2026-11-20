@@ -758,6 +758,21 @@ Object.assign(dictionary,{
  'Developer':'Розробник',
  'Version':'Версія'
 });
+/* v1.1.92: short, functional catalogue and mini-progress messages. */
+Object.assign(dictionary,{
+ 'Loading the latest Qobuz releases…':'Завантаження новинок Qobuz…',
+ 'Showing the last available Qobuz releases. Refresh to try again.':'Показано останні доступні релізи Qobuz. Оновіть для повторної перевірки.',
+ 'No releases have been returned by the connected account.':'Qobuz не повернув нових релізів.',
+ 'Fresh releases could not be loaded. Check your connection and retry.':'Не вдалося завантажити новинки. Перевірте мережу та повторіть спробу.',
+ 'Fresh releases require Qobuz catalogue authorization. Search and your library may still work.':'Qobuz не дозволив завантажити новинки. Пошук і бібліотека можуть працювати.',
+ 'Track progress':'Поступ відтворення',
+ 'Track duration unavailable':'Тривалість треку недоступна',
+ 'Refresh releases':'Оновити релізи',
+ 'Retry':'Спробувати знову',
+ 'Search music':'Пошук музики',
+ 'Fresh on Qobuz':'Новинки Qobuz',
+ 'Recently released albums available in the catalogue':'Нещодавні альбоми з каталогу Qobuz'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){

@@ -48,6 +48,6 @@ for(const phrase of ['App & data','Cache & performance','Playback options','Moti
   assert(lang.includes("'"+phrase+"'"),'Missing Ukrainian label: '+phrase);
 assert(lang.includes('.album-title')&&lang.includes('.murglar-track-data h1'));
 assert(palette.includes("window.AurelTheme={"));
-assert(/versionCode\s+108/.test(gradle)&&gradle.includes("'1.1.91'"));
+assert(/versionCode\s+109/.test(gradle)&&gradle.includes("'1.1.92'"));
 assert(release.includes("AUREL_RELEASE_KEYSTORE_BASE64")&&release.includes('apksigner'));
-console.log('v1.1.91 artwork seek, mono, responsive layout, Ukrainian grouping, backups and signature PASS');
+console.log('v1.1.92 artwork seek, mono, responsive layout, Ukrainian grouping, backups and signature PASS');

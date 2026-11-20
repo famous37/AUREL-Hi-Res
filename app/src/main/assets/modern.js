@@ -16,7 +16,8 @@ const fmtTrack=(t,i)=>{
 };
 function albumShelf(items){if(!items.length){
  const status=app.discoverStatus||'empty';
- const message=status==='authorization'
+ const message=status==='loading'?'Loading the latest Qobuz releases…':
+   status==='authorization'
   ?'Fresh releases require Qobuz catalogue authorization. Search and your library may still work.'
   :status==='network'
   ?'Fresh releases could not be loaded. Check your connection and retry.'
@@ -25,7 +26,8 @@ function albumShelf(items){if(!items.length){
    ?'<div class="aurel-discovery-links"><button type="button" data-nav="search">Search music</button>'+
      '<button type="button" data-nav="library">Your library</button>'+
      '<button type="button" data-refresh>Retry</button></div>'
-   :'<button type="button" data-refresh class="aurel-discovery-retry">Retry</button>';
+   :status==='loading'?'<span class="aurel-discovery-wait" aria-hidden="true"></span>':
+   '<button type="button" data-refresh class="aurel-discovery-retry">Retry</button>';
  return '<div class="empty aurel-discovery-fallback" role="status" data-aurel-discovery-state="'+html(status)+'">'+
    '<p>'+html(message)+'</p>'+fallback+'</div>';
 }return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">♪</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
@@ -37,7 +39,8 @@ renderHome=function(){
  <div class="home-chips"><button class="chip ${app.discoverTab==='new'?'selected':''}" data-discover-tab="new">Home</button><button class="chip ${app.discoverTab==='albums'?'selected':''}" data-discover-tab="albums">New releases</button><button class="chip ${app.discoverTab==='collection'?'selected':''}" data-discover-tab="collection">Your library</button></div>
  ${app.discoverTab==='collection'?`<section class="welcome-panel"><span class="kicker">YOUR COLLECTION</span><h2>Everything you love,<br>in one place.</h2><p>Explore saved music from your library account.</p><button class="action-pill" data-nav="library">Open library ↗</button></section>`:
  `<section class="spotlight"><div class="spotlight-copy"><span class="kicker">AUREL / LOSSLESS LISTENING</span><h2>Listen deeper.</h2><p>Albums, artists and music worth your time.</p><button class="action-pill" data-nav="search">Explore music ↗</button></div><div class="spotlight-stack">${app.albums.slice(0,3).map(a=>art(a,'spotlight-cover')).join('')}</div></section>
- <div class="sectionhead new-section"><div><h2>${app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>Recently released albums available in the catalogue</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">${ic('refresh',25)}</button></div>${albumShelf(app.albums)}
+ <div class="sectionhead new-section"><div><h2>${app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>Recently released albums available in the catalogue</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">${ic('refresh',25)}</button></div>${app.discoverStatus==='stale'?
+  '<p class="aurel-discovery-stale" role="status">Showing the last available Qobuz releases. Refresh to try again.</p>':''}${albumShelf(app.albums)}
  <div class="sectionhead"><div><h2>Go your own way</h2><p>Quick access to music that matters</p></div></div>
  <div class="quicklinks"><button data-nav="library"><span class="quicklink-icon" aria-hidden="true">${ic('library',27)}</span><strong>Your favourites</strong><small>Releases, artists, playlists</small></button><button data-nav="search"><span class="quicklink-icon" aria-hidden="true">${ic('search',27)}</span><strong>Search catalogue</strong><small>Tracks, artists and albums</small></button></div>`}
  <p class="disclaimer">AUREL is an independent client. Catalogue and streaming depend on Qobuz authorization.</p>`;
@@ -220,7 +223,7 @@ function aurelMiniFrame(time){
    aurelMiniAnimating=false;
    return;
  }
- if(time-aurelLastMiniFrame>=110){
+ if(time-aurelLastMiniFrame>=160){
    aurelLastMiniFrame=time;
    const p=app.player,clock=window.AurelProgressClock;
    const durationMs=Math.max(0,Number(p.duration)||Math.max(0,Number(p.track?.duration)||0)*1000);
@@ -228,7 +231,17 @@ function aurelMiniFrame(time){
      const position=clock.read(p);
      const ratio=Math.max(0,Math.min(1,position/durationMs));
      const fill=document.querySelector('#mini .mini-progress-fill');
-     if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
+     if(fill){
+       const next='scaleX('+ratio.toFixed(6)+')';
+       if(fill.style.transform!==next)fill.style.transform=next;
+     }
+     const bar=document.querySelector('#mini .mini-progress');
+     if(bar){
+       const value=String(Math.round(ratio*100));
+       if(bar.getAttribute('aria-valuenow')!==value)bar.setAttribute('aria-valuenow',value);
+       const label=duration(position/1000)+' of '+duration(durationMs/1000);
+       if(bar.getAttribute('aria-valuetext')!==label)bar.setAttribute('aria-valuetext',label);
+     }
      const slider=document.querySelector('#overlay #progress');
      if(slider&&!app.dragging)slider.value=String(Math.round(position));
      const elapsed=document.querySelector('#overlay #elapsed');
@@ -260,7 +273,7 @@ updateMini=function(){
    <div class="meta mini-track-open"><strong class="title"></strong><small class="artist"></small></div>
    <div class="mini-buttons"><button class="mini-love" data-mini-fav="${html(id)}" aria-label="Add to favourites">${ic('heart',24)}</button>
    <button class="mini-play" data-mini-toggle aria-label="Play">${ic('play',26)}</button></div>
-   <div class="mini-progress" aria-hidden="true"><span class="mini-progress-fill"></span></div>`;
+   <div class="mini-progress" role="progressbar" aria-label="Track progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="mini-progress-fill" aria-hidden="true"></span></div>`;
   m.dataset.miniTrack=id;
   m.dataset.miniPlaying='';
   m.dataset.miniArtwork=cover||'';
@@ -295,9 +308,19 @@ updateMini=function(){
  const total=Math.max(0,Number(p.duration)||Math.max(0,Number(t.duration)||0)*1000);
  const percent=total?Math.min(100,Math.max(0,100*position/total)):0;
  if(bar){
-   bar.style.setProperty('--played',percent.toFixed(2)+'%');
+   bar.dataset.durationKnown=total>0?'true':'false';
+   const next=percent.toFixed(2)+'%';
+   if(bar.style.getPropertyValue('--played')!==next)bar.style.setProperty('--played',next);
    const fill=bar.querySelector('.mini-progress-fill');
-   if(fill)fill.style.transform='scaleX('+(percent/100).toFixed(6)+')';
+   if(fill){
+     const target='scaleX('+(percent/100).toFixed(6)+')';
+     if(fill.style.transform!==target)fill.style.transform=target;
+   }
+   const value=String(Math.round(percent));
+   if(bar.getAttribute('aria-valuenow')!==value)bar.setAttribute('aria-valuenow',value);
+   const readable=total>0?duration(position/1000)+' of '+duration(total/1000):
+       'Track duration unavailable';
+   if(bar.getAttribute('aria-valuetext')!==readable)bar.setAttribute('aria-valuetext',readable);
  }
  wakeAurelMiniAnimation();
 };

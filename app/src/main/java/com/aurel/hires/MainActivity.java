@@ -1578,12 +1578,8 @@ public final class MainActivity extends Activity {
                                 // anonymous Qobuz App ID on every home refresh.
                                 try{
                                     JSONObject page=catalog("discover/newReleases",
-                                        new JSONObject().put("limit",24));
-                                    JSONObject albums=page.optJSONObject("albums");
-                                    if((albums==null||albums.optJSONArray("items")==null)
-                                        &&page.optJSONArray("items")==null)
-                                        throw new Exception("Gateway returned no album list");
-                                    data=page;
+                                        new JSONObject().put("limit",24).put("offset",0));
+                                    data=api.checkedFeatured(page);
                                 }catch(Exception gatewayError){
                                     // A missing/expired signed gateway must be
                                     // re-verified; public access is not a valid
@@ -1594,7 +1590,16 @@ public final class MainActivity extends Activity {
                                     // streaming credentials or public metadata.
                                     // A 403 from the gateway is not permission to
                                     // retry the same forbidden route repeatedly.
-                                    data=api.publicFeaturedReleases(24);
+                                    try{
+                                        data=api.checkedFeatured(catalog("discover/index",
+                                            new JSONObject()));
+                                    }catch(Exception indexError){
+                                        if(MornyeGateway.requiresVerification(indexError))
+                                            throw indexError;
+                                        // A separate authorized Qobuz session or
+                                        // public catalogue can still permit metadata.
+                                        data=api.publicFeaturedReleases(24);
+                                    }
                                 }
                             }else{
                                 // A library-only session or an endpoint-restricted

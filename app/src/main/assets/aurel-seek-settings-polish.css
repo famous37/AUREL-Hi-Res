@@ -199,3 +199,69 @@
  #overlay .murglar-progress-row,#overlay #progress,
  #overlay #progress::-webkit-slider-thumb{transition:none!important;animation:none!important}
 }
+
+/* v1.1.92 — actual mini-player progress, clearly above the card edge.
+ * Paint-only updates: no changes to layout, playback time or audio engine.
+ * Every screen and both orientations use the same album/monochrome logic. */
+:root[data-aurel-palette="artwork"] .app .mini:not(.hidden){
+ --aurel-mini-progress-accent:color-mix(in srgb,var(--aurel-theme-accent,#e5d3d8) 84%,white);
+ --aurel-mini-progress-track:color-mix(in srgb,var(--aurel-theme-on,#f5f5f7) 27%,transparent);
+}
+:root[data-aurel-palette="mono"] .app .mini:not(.hidden){
+ --aurel-mini-progress-accent:#f5f6f8;
+ --aurel-mini-progress-track:#5c5e63;
+}
+:root[data-aurel-palette] .app .mini:not(.hidden) .mini-progress,
+.app .mini:not(.hidden) .mini-progress{
+  display:block!important;
+  position:absolute!important;
+  inset:auto 12px 5px 12px!important;
+  width:auto!important;
+  height:6px!important;
+  border-radius:999px!important;
+  background:var(--aurel-mini-progress-track,#ffffff49)!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+  z-index:2!important;
+}
+:root[data-aurel-palette] .app .mini:not(.hidden) .mini-progress .mini-progress-fill,
+.app .mini:not(.hidden) .mini-progress .mini-progress-fill{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  border-radius:inherit!important;
+  background:var(--aurel-mini-progress-accent,#f5f6f8)!important;
+  opacity:1!important;
+  box-shadow:0 0 8px color-mix(in srgb,var(--aurel-mini-progress-accent,#fff) 35%,transparent)!important;
+  transform:scaleX(0);
+  transform-origin:left center!important;
+  transition:transform 165ms linear!important;
+  will-change:auto!important;
+}
+:root[data-aurel-palette="mono"] .app .mini:not(.hidden) .mini-progress .mini-progress-fill{
+  background:#f5f6f8!important;
+  box-shadow:none!important;
+}
+.app .mini:not(.hidden) .mini-progress[data-duration-known="false"]{
+  opacity:.55!important;
+}
+.app #screen .aurel-discovery-stale{
+  margin:8px 2px 12px!important;
+  color:var(--aurel-theme-secondary,#cfd0d2)!important;
+  font-size:13px!important;
+  line-height:1.45!important;
+  font-weight:600!important;
+}
+.app #screen .aurel-discovery-wait{
+  display:inline-block;
+  width:21px;height:21px;border:3px solid var(--aurel-theme-border,#ffffff48);
+  border-top-color:var(--aurel-theme-accent,#f5f6f8);
+  border-radius:50%;
+  animation:aurel-discovery-load 1s linear infinite;
+}
+@keyframes aurel-discovery-load{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){
+ .app .mini:not(.hidden) .mini-progress-fill{transition:none!important}
+ .app #screen .aurel-discovery-wait{animation:none!important}
+}
