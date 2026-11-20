@@ -105,5 +105,5 @@ const event=button=>({
  await fallbackClick(event({...copyButton,disabled:false}));
  assert.equal(captured.length,1);
  assert.match(captured[0],/^AUREL Hi-Res 1\.1\.88/);
- console.log('AUREL 1.1.88 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
+ console.log('AUREL 1.1.89 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});
