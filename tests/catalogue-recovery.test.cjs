@@ -32,7 +32,7 @@ assert.match(main,/if\(identified==0\)throw new Exception\("Qobuz omitted releas
 assert.match(main,/artistPageReleases\(artistId,releaseType\)/);
 assert.match(main,/artistTypedAlbumsFallback\(artistId,releaseType\)/);
 assert.match(disc,/s\.epShortPreview=!!data\?\._shortPreview/);
-assert.match(disc,/s\.epError=data\?\._partial&&!s\.epShortPreview\?'partial':''/);
+assert.match(disc,/s\.epError=data\?\._partial&&!s\.epShortPreview&&!s\.ep\.length\?'partial':''/);
 assert.match(disc,/401\|403\|405/);
 assert.match(disc,/count&&error/);
 assert.match(home,/data-nav="library">Your library/);

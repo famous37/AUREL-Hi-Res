@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.94: signed update for catalogue recovery and compact library tools.
+# v1.1.95: signed update restoring actual Qobuz rankings and release type fallback.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -200,16 +200,16 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — Qobuz-ranked artist tracks, direct EP/single requests and bounded loading" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — authentic Qobuz Most popular and EP/single catalogue recovery" \
             '' \
             '- EP and singles are requested directly with the documented Qobuz epSingle release type.' \
             '- Artist Most popular shows ranked Qobuz top_tracks, with ID validation and original order.' \
-            '- Unranked search/artist tracks are clearly labeled and not numbered as a popularity chart.' \
-            '- Artist metadata requests have bounded UI waits, retries and clean loading-state recovery.' \
+            '- Unranked search/artist tracks are never substituted into Most popular; missing rankings are reported honestly.' \
+            '- artist/page uses the standard Qobuz request; EP/single grid fallback uses the supported release_date sort.' \
             '- Audio engine, bit-perfect routing, account sessions, library, settings, FFT and backup format remain unchanged.' \
-            '- Android versionCode 111, versionName 1.1.94, original permanently signed certificate.' \
+            '- Android versionCode 112, versionName 1.1.95, original permanently signed certificate.' \
             '' \
-            "Install v${AUREL_VERSION} over v1.1.88; do not uninstall or clear AUREL data." \
+            "Install v${AUREL_VERSION} over v1.1.94; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

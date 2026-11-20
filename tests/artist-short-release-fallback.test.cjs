@@ -12,8 +12,8 @@ const subset=native.slice(start,end);
 assert(start>=0&&end>start,'Native artist releases and short previews must exist');
 assert(subset.includes('.put("sort","release_date_by_priority")'),
  'Qobuz releasesList uses the documented sort parameter');
-assert(subset.includes('gridParams.put("order","release_date")'),
- 'Grid-only ordering must not be sent to releasesList');
+assert(subset.includes('gridParams.put("sort","release_date")'),
+ 'Grid sorting must be separate from releasesList ordering');
 assert(subset.indexOf('artist/getReleasesList')<subset.indexOf('artist/getReleasesGrid'),
  'The documented list endpoint precedes the grid fallback');
 assert(native.includes('artistShortReleasePreview(artistId,p.optString("name",""))'),
