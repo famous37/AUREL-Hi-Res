@@ -55,9 +55,10 @@
     // Opening a drawer changes CSS and overlays, but must never recompute the
     // album's size. Reuse this viewport/track geometry until the screen, font,
     // track metadata, or physical viewport genuinely changes.
+    const track=typeof app==='undefined'?null:app.player?.track;
     const key=[window.innerWidth,window.innerHeight,content.clientWidth,
       content.clientHeight,document.documentElement.style.getPropertyValue('--aurel-native-status-inset'),
-      app.player?.track?.id,app.player?.track?.title,app.player?.track?.album?.title].join('|');
+      track?.id,track?.title,track?.album?.title].join('|');
     if(lastFit?.key===key){
       if(view.style.getPropertyValue('--aurel-fit-art')!==lastFit.pixel+'px')
         view.style.setProperty('--aurel-fit-art',lastFit.pixel+'px');
@@ -66,7 +67,7 @@
     }
     // Do not infer available height from a temporarily open sheet. On
     // initial mount it is safe to calculate from the player's usual controls.
-    if(app.playerSheet&&lastFit){
+    if(typeof app!=='undefined'&&app.playerSheet&&lastFit){
       view.style.setProperty('--aurel-fit-art',lastFit.pixel+'px');
       view.classList.toggle('aurel-fit-scroll',lastFit.scroll);
       return;
