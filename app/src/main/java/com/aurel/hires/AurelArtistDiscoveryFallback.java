@@ -183,6 +183,9 @@ final class AurelArtistDiscoveryFallback {
             return result.put("_error","No matching independent metadata source");
         }
 
+        // One artist page must not spawn dozens of slow Qobuz lookups.
+        // Leave headroom for both top tracks and EP discovery.
+        final long started=System.nanoTime();
         // A true independent popularity chart, never the arbitrary order of
         // track/search. The playable objects still come exclusively from Qobuz.
         try{
@@ -203,7 +206,7 @@ final class AurelArtistDiscoveryFallback {
                 JSONObject chosen=trackMatch(
                     external.optString("title_short",external.optString("title","")),
                     external.optString("isrc",""),owned);
-                if(chosen==null&&i<5){
+                if(chosen==null&&i<2&&System.nanoTime()-started<15_000_000_000L){
                     try{
                         ArrayList<JSONObject> exact=candidates(qobuz("track/search",
                             artistName+" "+external.optString("title",""),25),
@@ -241,7 +244,8 @@ final class AurelArtistDiscoveryFallback {
                 if(!shortType(kind))continue;
                 String title=external.optString("title","");
                 JSONObject chosen=albumMatch(title,owned);
-                if(chosen==null&&targeted<5){
+                if(chosen==null&&targeted<4
+                    &&System.nanoTime()-started<35_000_000_000L){
                     targeted++;
                     try{
                         ArrayList<JSONObject> exact=candidates(qobuz("album/search",
