@@ -338,10 +338,12 @@ final class QobuzApi {
             verified.put(album);
         }
         if(verified.length()==0)throw new Exception("Qobuz release list has no album IDs");
-        JSONObject normalized=new JSONObject(response.toString());
-        normalized.put("albums",new JSONObject().put("items",verified)
-            .put("total",verified.length()));
-        return normalized;
+        // A discovery index may carry huge banners, playlists and editorial
+        // payloads. Return only the needed album metadata to WebView; this
+        // avoids serializing and repainting unrelated sections on Home.
+        return new JSONObject().put("albums",new JSONObject()
+            .put("items",verified).put("total",verified.length()))
+            .put("_source","qobuz_discover");
     }
 
     /** Try three legitimate Qobuz discovery shapes on the same authorized
