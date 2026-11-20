@@ -9,7 +9,7 @@ const player=read('murglar.js'),settings=read('aurel-settings-pro.js');
 const glass=read('aurel-glass-polish.css'),index=read('index.html');
 const fluid=read('aurel-fluid-transitions.js'),route=read('aurel-motion.js');
 assert.match(gradle,/versionCode\s+112/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.95'/);
 assert.match(java,/AudioManager\.ACTION_AUDIO_BECOMING_NOISY/);
 assert.match(java,/registerReceiver\(noisyReceiver,filter/);
 assert.match(java,/unregisterReceiver\(noisyReceiver\)/);
