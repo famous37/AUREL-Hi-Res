@@ -237,6 +237,9 @@ function aurelMiniFrame(time){
      }
      const bar=document.querySelector('#mini .mini-progress');
      if(bar){
+       const cssValue=(ratio*100).toFixed(2)+'%';
+       if(bar.style.getPropertyValue('--played')!==cssValue)
+         bar.style.setProperty('--played',cssValue);
        const value=String(Math.round(ratio*100));
        if(bar.getAttribute('aria-valuenow')!==value)bar.setAttribute('aria-valuenow',value);
        const label=duration(position/1000)+' of '+duration(durationMs/1000);
