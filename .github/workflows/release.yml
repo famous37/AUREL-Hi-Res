@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.98: clean Most popular heading while preserving accessible attribution.
+# v1.1.99: unified controls, slim progress, consistent artwork palette and low-repaint frame scheduling.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -200,15 +200,17 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — simplified Most popular header and unchanged verified Qobuz-ID playback" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — consistent album palette, uniform icons and smoother mini progress" \
             '' \
-            '- Remove the visible Deezer ranking subtitle from Most popular, preserving source attribution for screen readers.' \
+            '- All five Now Playing action glyphs have uniform visual size, including Share.' \
             '- Public Deezer Single/EP classifications are matched against actual, artist-verified Qobuz album IDs before display; Qobuz provides all playback and album navigation.' \
             '- The official Qobuz artist ranking and typed releases take priority when available; rejected categories display clear fallback state.' \
             '- Reissue years no longer silently replace the original album date in the latest-listed-release section.' \
             '- If public metadata or authorized Qobuz search is unavailable, shelves accurately remain unavailable; not all catalog categories can be guaranteed.' \
             '- Audio engine, bit-perfect routing, account sessions, library, settings and signature remain unchanged.' \
-            '- Android versionCode 115, versionName 1.1.98, original permanently signed certificate.' \
+            '- A single 3px compositor-only mini progress track removes double-painted 6px gradients; updates use a scheduled 100ms frame and do not race native ticks.' \
+            '- Artwork palette accents apply consistently to mini-player, navigation, controls, cards and settings while monochrome remains neutral.' \
+            '- Android versionCode 116, versionName 1.1.99, original permanently signed certificate.' \
             '' \
             "Install v${AUREL_VERSION} over v1.1.98; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

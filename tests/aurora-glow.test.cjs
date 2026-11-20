@@ -10,14 +10,17 @@ const service=read('app/src/main/java/com/aurel/hires/AurelPlaybackService.java'
 const main=read('app/src/main/java/com/aurel/hires/MainActivity.java');
 const html=read('app/src/main/assets/index.html');
 const gradle=read('app/build.gradle');
-assert.match(gradle,/versionCode\s+115/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.98'/);
+assert.match(gradle,/versionCode\s+116/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.99'/);
 assert.ok(html.includes('href="aurel-aurora.css"'));
 assert.ok(html.includes('src="aurel-aurora.js"'));
 assert.ok(html.indexOf('aurel-aurora.css')>html.indexOf('aurel-cover-rhythm.css'));
 assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-glass-polish.css">')<html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">'));
 assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">')<html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'));
-assert.ok(html.lastIndexOf('<link rel="stylesheet"')===html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'));
+assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">')<
+ html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'));
+assert.ok(html.lastIndexOf('<link rel="stylesheet"')===
+ html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'));
 assert.ok(html.indexOf('aurel-aurora.js')>html.indexOf('aurel-fluid-transitions.js'));
 assert.match(css,/conic-gradient\(/);
 assert.match(css,/radial-gradient\(/);

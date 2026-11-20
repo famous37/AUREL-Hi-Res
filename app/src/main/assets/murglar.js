@@ -91,7 +91,7 @@
           <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',28)}<span>Info</span></button>
           <button data-player-sheet="lyrics" class="${active==='lyrics'?'active':''}" aria-expanded="${active==='lyrics'}" aria-label="Lyrics" title="Lyrics">${ic('lyrics',28)}<span>Lyrics</span></button>
           <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',28)}<span>Favourite</span></button>
-          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',32)}<span>Share</span></button>
+          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',28)}<span>Share</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>
@@ -145,18 +145,26 @@
       const max=Math.max(0,Number(p.duration)||0),value=Math.min(max,Math.max(0,Number(p.position)||0));
       if(Number(progress.max)!==Number(max||100))progress.max=max||100;
       if(progress.disabled!==(max<=0))progress.disabled=max<=0;
-      if(Math.abs(Number(progress.value)-Number(value))>150)progress.value=value;
+      // The compositor owns running progress; native snapshots should not
+      // move the slider backwards when the audio clock is active.
+      if((!p.playing||!window.AurelProgressClock)&&
+         Math.abs(Number(progress.value)-Number(value))>150)
+        progress.value=value;
       const seekText=duration(value/1000)+' of '+duration(max/1000);
-      if(progress.getAttribute('aria-valuetext')!==seekText)progress.setAttribute('aria-valuetext',seekText);
+      if((!p.playing||!window.AurelProgressClock)&&
+         progress.getAttribute('aria-valuetext')!==seekText)
+        progress.setAttribute('aria-valuetext',seekText);
       const total=Number(p.duration)||0;
       const percent=total?Math.min(100,Math.round((Number(p.position)||0)/total*100))+'%':'0%';
-      if(progress.dataset.played!==percent){
+      if((!p.playing||!window.AurelProgressClock)&&progress.dataset.played!==percent){
         progress.dataset.played=percent;
         progress.style.setProperty('--played',percent);
       }
     }
     const elapsed=$('#elapsed'),remaining=$('#remaining');
-    const a=duration((p.position||0)/1000),b=duration((p.duration||0)/1000);
+    const positionForLabels=(p.playing&&window.AurelProgressClock)?
+      window.AurelProgressClock.read(p):(Number(p.position)||0);
+    const a=duration(positionForLabels/1000),b=duration((p.duration||0)/1000);
     if(elapsed&&elapsed.textContent!==a)elapsed.textContent=a;
     if(remaining&&remaining.textContent!==b)remaining.textContent=b;
     const toggle=$('#full-toggle'),mode=aurelPlaybackMode(p);

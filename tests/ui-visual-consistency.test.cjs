@@ -24,7 +24,7 @@ assert(!oldMinimal.includes('.murglar-quick-actions .aurel-share-control{'),
  'Legacy special-case size caused the actual Share button to shrink in Chromium');
 const optical=bold.split('> button.aurel-share-control > svg.ui-icon {')[1]?.split('}\n')[0];
 assert(optical.includes('width:32px!important')&&optical.includes('stroke-width:2.55!important'));
-assert(app.includes("share:'<circle")&&player.includes("ic('share',32)"));
+assert(app.includes("share:'<circle")&&player.includes("ic('share',28)"));
 for(const icon of ['queue','info','audio','heart','share']){
  assert(player.includes("ic('"+icon+"'"),'Missing '+icon+' SVG');
 }
@@ -48,5 +48,5 @@ assert(bold.includes('width:40px!important'),'Header controls must not protrude'
 assert(bold.includes('@keyframes aurel-bold-spin'),'Buffering must have fallback CSS animation');
 assert(modern.includes('aurelEnsureLoadingAnimation'));
 assert(html.indexOf('aurel-bold-controls.css')>html.indexOf('aurel-monochrome.css'));
-assert(app.includes('1.1.98'));
-console.log('AUREL 1.1.98 icon family, Share size/contrast, narrow screens and spinner PASS');
+assert(app.includes('1.1.99'));
+console.log('AUREL 1.1.99 icon family, Share size/contrast, narrow screens and spinner PASS');

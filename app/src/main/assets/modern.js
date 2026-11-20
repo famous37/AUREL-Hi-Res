@@ -213,9 +213,23 @@ const aurelStopLoadingAnimation=(root)=>{
 const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
 let aurelMiniAnimating=false;
 let aurelLastMiniFrame=0;
+let aurelMiniFrameTimer=0;
+/* Schedule one compositor progress paint every ~100ms instead of polling
+ * requestAnimationFrame on all 60 frames each second. */
+function queueAurelMiniFrame(){
+ if(!aurelMiniAnimating||aurelMiniFrameTimer||document.hidden)return;
+ aurelMiniFrameTimer=setTimeout(()=>{
+  aurelMiniFrameTimer=0;
+  if(aurelMiniAnimating&&app.player?.playing&&!document.hidden)
+   requestAnimationFrame(aurelMiniFrame);
+  else aurelMiniAnimating=false;
+ },100);
+}
 function wakeAurelMiniAnimation(){
- if(aurelMiniAnimating||!app.player?.playing||typeof requestAnimationFrame!=='function')return;
+ if(aurelMiniAnimating||!app.player?.playing||document.hidden||
+    typeof requestAnimationFrame!=='function')return;
  aurelMiniAnimating=true;
+ aurelLastMiniFrame=0;
  requestAnimationFrame(aurelMiniFrame);
 }
 function aurelMiniFrame(time){
@@ -223,7 +237,7 @@ function aurelMiniFrame(time){
    aurelMiniAnimating=false;
    return;
  }
- if(time-aurelLastMiniFrame>=160){
+ if(time-aurelLastMiniFrame>=95){
    aurelLastMiniFrame=time;
    const p=app.player,clock=window.AurelProgressClock;
    const durationMs=Math.max(0,Number(p.duration)||Math.max(0,Number(p.track?.duration)||0)*1000);
@@ -246,7 +260,16 @@ function aurelMiniFrame(time){
        if(bar.getAttribute('aria-valuetext')!==label)bar.setAttribute('aria-valuetext',label);
      }
      const slider=document.querySelector('#overlay #progress');
-     if(slider&&!app.dragging)slider.value=String(Math.round(position));
+     if(slider&&!app.dragging){
+       const pos=String(Math.round(position));
+       if(slider.value!==pos)slider.value=pos;
+       const played=(ratio*100).toFixed(2)+'%';
+       if(slider.style.getPropertyValue('--played')!==played)
+         slider.style.setProperty('--played',played);
+       const aria=duration(position/1000)+' of '+duration(durationMs/1000);
+       if(slider.getAttribute('aria-valuetext')!==aria)
+         slider.setAttribute('aria-valuetext',aria);
+     }
      const elapsed=document.querySelector('#overlay #elapsed');
      if(elapsed&&!app.dragging){
        const timeLabel=duration(position/1000);
@@ -259,7 +282,7 @@ function aurelMiniFrame(time){
      }
    }
  }
- requestAnimationFrame(aurelMiniFrame);
+ queueAurelMiniFrame();
 }
 document.addEventListener('visibilitychange',wakeAurelMiniAnimation);
 // Stable mini-player: do not recreate artwork, buttons or metadata on each
@@ -271,7 +294,8 @@ updateMini=function(){
  const t=p.track,id=String(t.id),title=trackTitle(t),performer=artistLabel(t);
  const cover=image(t,'thumb');
  m.classList.remove('hidden');
- if(m.dataset.miniTrack!==id||!m.querySelector('.mini-track-open')){
+ const miniRebuilt=m.dataset.miniTrack!==id||!m.querySelector('.mini-track-open');
+ if(miniRebuilt){
   m.innerHTML=`${cover?'<img class="minicover" src="'+html(cover)+'" alt="Album art" loading="eager">':'<span class="minicover placeholder">♪</span>'}
    <div class="meta mini-track-open"><strong class="title"></strong><small class="artist"></small></div>
    <div class="mini-buttons"><button class="mini-love" data-mini-fav="${html(id)}" aria-label="Add to favourites">${ic('heart',24)}</button>
@@ -310,7 +334,9 @@ updateMini=function(){
  const bar=m.querySelector('.mini-progress');
  const total=Math.max(0,Number(p.duration)||Math.max(0,Number(t.duration)||0)*1000);
  const percent=total?Math.min(100,Math.max(0,100*position/total)):0;
- if(bar){
+ if(bar&&(!p.playing||miniRebuilt)){
+   // The compositor clock owns progress while music plays; ~250ms
+   // native state updates must not restart every transform transition.
    bar.dataset.durationKnown=total>0?'true':'false';
    const next=percent.toFixed(2)+'%';
    if(bar.style.getPropertyValue('--played')!==next)bar.style.setProperty('--played',next);

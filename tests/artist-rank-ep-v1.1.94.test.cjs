@@ -33,7 +33,7 @@ assert(!disc.includes('Tracks by artist'), 'Never display generic artist tracks 
 assert(disc.includes("'+(i+1)+'</span>"), 'Qobuz ranking order is numbered');
 assert(!disc.includes('topFallback'), 'Unranked popularity mode removed');
 assert(language.includes("'Tracks by artist':'Треки виконавця'"));
-assert(/versionCode\s+115/.test(gradle)&&gradle.includes("'1.1.98'"));
+assert(/versionCode\s+116/.test(gradle)&&gradle.includes("'1.1.99'"));
 
 const start=disc.indexOf('  function normalizedPopularTracks(');
 const end=disc.indexOf('  function loadExtras(',start);
