@@ -30,13 +30,14 @@ assert(app.includes("app.libraryCache=Object.create(null)")&&app.includes('app.p
 assert(app.includes("navigate('library')"));
 assert(app.includes("||app.session?.libraryConnected"));
 assert(app.includes("app.session?.libraryConnected&&!app.session?.streamConnected"));
-assert(app.includes('aurel-signin-advanced" open'));
+assert(app.includes('aurel-signin-advanced"'));
+assert(!app.includes('aurel-signin-advanced" open'),'Advanced settings must default to collapsed');
 assert(!/Скрипниківка|Skrypnykivka/.test(language),'Do not show language variant in the UI');
 assert(language.includes('createLoginLanguageSwitch'));
 assert(language.includes('data-aurel-locale="uk"'));
 assert(language.includes("current==='uk'?'Англійська':'English'"));
 assert(ui.includes('aurel-language.js')&&ui.includes('aurel-elegant.css'));
-assert(/versionCode\s+118/.test(build) && build.includes("'1.2.1'"));
+assert(/versionCode\s+119/.test(build) && build.includes("'1.2.2'"));
 const body={nodeType:1,tagName:'BODY',firstChild:null,hasAttribute(){return false;}};
 const document={
  documentElement:{lang:'en'},body,

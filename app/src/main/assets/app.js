@@ -111,7 +111,7 @@ const art=(o,cl='')=>{
  const src=image(o,hero?'full':'thumb');
  return src?`<img class="${cl}" loading="${hero?'eager':'lazy'}" decoding="async" ${hero?'fetchpriority="high"':''} src="${html(src)}" alt="Album art">`:'';
 };
-const app={nav:'home',loginMode:'token',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,dragging:false,catalogRequestId:0};
+const app={nav:'home',loginMode:'password',loginTarget:'stream',session:null,albums:[],results:[],searchQuery:'',searchType:'tracks',libType:'albums',selected:null,selectedTracks:[],searchBusy:false,player:null,overlay:false,dragging:false,catalogRequestId:0};
 let sequence=1;const waiting=new Map();
 function nativeCall(action,data={}){
  return new Promise((resolve,reject)=>{
@@ -308,36 +308,28 @@ function renderLogin(){
   const passwordMode=app.loginMode==='password';
   const webMode=app.loginMode==='mornye'&&!secondary;
   if(webMode){
-    $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
+    $('#screen').innerHTML=`<div class="auth-shell aurel-signin aurel-signin-v2">
       <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
-      <div class="eyebrow">AUREL / MORNYE</div><h1>Connect with Mornye.</h1>
-      <p class="aurel-signin-subtitle">Direct Mornye signed session, with no Qobuz browser sign-in.</p>
-      <div class="aurel-login-methods" role="tablist" aria-label="Sign-in method">
-        <button type="button" role="tab" aria-selected="false" data-login-mode="token">${ic('key',19)} Token</button>
-        <button type="button" role="tab" aria-selected="false" data-login-mode="password">${ic('user',19)} Password</button>
-        <button type="button" role="tab" aria-selected="true" class="active" data-login-mode="mornye">${ic('globe',19)} Mornye</button>
-      </div>
+      <div class="eyebrow">AUREL / MORNYE</div><h1>Connect Mornye</h1>
+      <p class="aurel-signin-subtitle">Use a gateway session instead of a personal Qobuz account.</p>
+      
       <button class="aurel-signin-submit" type="button" data-connect-mornye>${ic('shield-check',23)} Connect Mornye session</button>
       <div id="mornyeLoginError" class="aurel-signin-error hidden" role="alert"></div>
-      <section class="aurel-mornye-status"><div class="aurel-mornye-header"><strong>Native signed session</strong></div>
-        <p>AUREL uses the public Mornye signedSession@3 protocol with the Zarz gateway, verifying catalogue access before connecting. This gateway session is not a personal Qobuz account.</p>
-        <p>When the gateway asks for a one-time grant or CAPTCHA, AUREL opens the Zarz verification page inside the app, then exchanges the approved grant securely. Qobuz Web Player is never opened.</p>
-        <p>For personal playlists and favourites, connect a separate Qobuz account in Settings.</p>
-      </section>
+      <p class="aurel-mornye-hint">Gateway verification may be required. Personal favourites need Qobuz.</p>
+      <div class="aurel-login-footer"><button type="button" class="small-link" data-login-mode="password">Sign in with Qobuz</button></div>
     </div>`;
     return;
   }
-  $('#screen').innerHTML=`<div class="auth-shell aurel-signin">
+  $('#screen').innerHTML=`<div class="auth-shell aurel-signin aurel-signin-v2">
     <div class="aurel-signin-symbol" aria-hidden="true">a<span>.</span></div>
     <div class="eyebrow">AUREL / QOBUZ</div>
-    <h1>${secondary?'Connect your Qobuz library.':'Welcome back to music.'}</h1>
-    <p class="aurel-signin-subtitle">${secondary?'Sign in to your personal Qobuz library using your password or a matching token and App ID. A successful Qobuz sign-in replaces Mornye; the library remains available even when playback is not confirmed.':'Sign in with your email or username and password, or with a matching account token and App ID. Your personal library loads automatically.'}</p>
-    ${rejected?'<div class="aurel-auth-warning" role="alert"><strong>Previous Qobuz authorization was rejected.</strong><span>Try the current web App ID automatically, a fresh token, or email/password sign-in. Your previous account data has not been erased.</span></div>':''}
+    <h1>${secondary?'Connect Qobuz library':'Sign in to Qobuz'}</h1>
+    <p class="aurel-signin-subtitle">${secondary?'Connect your personal collection with a password or compatible token.':'Your library and playlists, in one place.'}</p>
+    ${rejected?'<div class="aurel-auth-warning" role="alert"><strong>Qobuz sign-in expired</strong><span>Sign in again. Your saved library is preserved.</span></div>':''}
     ${app.session?.previewBuild?'<p class="auth-preview-note">This Preview is installed separately and cannot read credentials stored by other AUREL installations.</p>':''}
     <div class="aurel-login-methods" role="tablist" aria-label="Sign-in method">
+      <button type="button" role="tab" aria-selected="${passwordMode}" class="${passwordMode?'active':''}" data-login-mode="password">${ic('user',19)} Email &amp; password</button>
       <button type="button" role="tab" aria-selected="${!passwordMode}" class="${passwordMode?'':'active'}" data-login-mode="token">${ic('key',19)} Session token</button>
-      <button type="button" role="tab" aria-selected="${passwordMode}" class="${passwordMode?'active':''}" data-login-mode="password">${ic('user',19)} Password</button>
-      ${secondary?'':`<button type="button" role="tab" aria-selected="false" data-login-mode="mornye">${ic('globe',19)} Mornye</button>`}
     </div>
     <form id="loginForm" class="aurel-signin-form">
       ${passwordMode?`
@@ -348,30 +340,32 @@ function renderLogin(){
           <input id="password" type="password" autocomplete="current-password" placeholder="Enter Qobuz password" required>
           <button type="button" data-toggle-password aria-label="Show password">${ic('eye',22)}</button>
         </div>
-        <p class="aurel-method-help">${secondary?'Qobuz may reject third-party password login (HTTP 401/403). Use a compatible App ID or a session token if required. Passwords are not saved.':'Qobuz may require CAPTCHA or reject third-party password login. Try a compatible App ID or your own session token. Passwords are not saved.'}</p>`:`
+        <p class="aurel-method-help">Password is not stored. If sign-in is refused, try a session token.</p>`:`
         <label class="aurel-token-label" for="token">Qobuz session token</label>
         <div class="aurel-token-input">
           <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste X-User-Auth-Token" required>
           <button type="button" data-toggle-token aria-label="Show token">${ic('eye',22)}</button>
         </div>
-        <p class="aurel-method-help">A token is accepted only with its compatible App ID. Leave App ID empty to detect the Qobuz web ID, or enter the App ID used to obtain your token.</p>`}
-            <details class="aurel-signin-advanced" open>
-        <summary>${ic('settings',19)} Advanced · App ID, App Secret &amp; User ID ${ic('chevron',17)}</summary>
+        <p class="aurel-method-help">If automatic detection fails, enter the App ID paired with your token in Advanced settings.</p>`}
+      <details class="aurel-signin-advanced">
+        <summary>${ic('settings',19)} Advanced settings ${ic('chevron',17)}</summary>
         <div class="aurel-advanced-fields">
-          <label for="appId">App ID <small>Leave blank for automatic detection from Qobuz's current web player</small></label>
+          <label for="appId">App ID <small>Leave blank for automatic detection</small></label>
           <input id="appId" type="text" inputmode="numeric" autocomplete="off" value="${html(appId)}" placeholder="Auto-detect from Qobuz website">
-          <label for="appSecret">App Secret <small>Optional for token/password login; only needed for compatible signed stream requests</small></label>
+          <label for="appSecret">App Secret <small>Only when required by the integration</small></label>
           <div class="aurel-token-input"><input id="appSecret" type="password" autocomplete="off" placeholder="${(secondary?app.session?.hasLibrarySecret:app.session?.hasSecret)?'Saved on device · leave blank to keep':'Optional App Secret'}"><button type="button" data-toggle-secret aria-label="Show App Secret">${ic('eye',22)}</button></div>
-          <label for="userId">User ID <small>Optional; leave blank unless needed by your Qobuz integration</small></label>
+          <label for="userId">User ID <small>Optional</small></label>
           <input id="userId" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${html(savedUserId||'')}" placeholder="Optional account ID">
         </div>
       </details>
-      <div class="aurel-signin-info">${ic('shield-check',18)} <span>${secondary?'Library login uses your own Qobuz credentials. The separate library token is encrypted on this device; the password is not stored.':'Qobuz checks credentials. AUREL encrypts the issued token and never saves your password.'}</span></div>
+      
       <div id="loginError" class="aurel-signin-error hidden" role="alert"></div>
-      <div class="aurel-login-footer"><button type="button" class="small-link" data-open-qobuz-web>Open official Qobuz sign-in</button> · <button type="button" class="small-link" data-login-mode="token">Use session token</button></div>
-      <button id="loginSubmit" type="submit" class="aurel-signin-submit">${secondary?'Connect library account':'Sign in & load library'} ${ic('chevron',21)}</button>
+      <button id="loginSubmit" type="submit" class="aurel-signin-submit">${secondary?'Connect library':'Sign in'} ${ic('chevron',21)}</button>
     </form>
-    <div class="aurel-login-footer">${secondary?'<button class="small-link" data-cancel-library>Back to settings</button>':''}</div>
+    <div class="aurel-login-footer">
+      <button type="button" class="small-link" data-open-qobuz-web>Qobuz website</button>
+      ${secondary?'<button type="button" class="small-link" data-cancel-library>Back to settings</button>':'<button type="button" class="small-link" data-login-mode="mornye">Use Mornye gateway</button>'}
+    </div>
   </div>`;
 }
 function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.loginTarget='stream';renderLogin();return;}
@@ -408,7 +402,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel" data-aurel-settings-panel="about"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.2.1</strong></div></div>
+ <div class="panel" data-aurel-settings-panel="about"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.2.2</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -663,7 +657,7 @@ async function login(form){
  }else showToast(msg,6500);
   const advanced=document.querySelector('.aurel-signin-advanced');
   if(advanced&&/App ID|X-App-Id|web app|401|403/i.test(msg))advanced.open=true;
-  if(button){button.disabled=false;button.innerHTML=(secondary?'Connect library account':'Sign in & load library')+' '+ic('chevron',21)}
+  if(button){button.disabled=false;button.innerHTML=(secondary?'Connect library':'Sign in')+' '+ic('chevron',21)}
  }finally{
   if(data.password)data.password='';
  }

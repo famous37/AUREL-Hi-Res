@@ -913,6 +913,31 @@ function syncLanguageButtons(){
    small.textContent=current==='uk'?'Усталено':'Default';
  }
 }
+// Compact sign-in remains fully localized in either display mode.
+Object.assign(dictionary,{
+ 'Sign in to Qobuz':'Увійти до Qobuz',
+ 'Connect Qobuz library':'Під’єднати бібліотеку Qobuz',
+ 'Your library and playlists, in one place.':'Ваша бібліотека та плейлисти в одному місці.',
+ 'Connect your personal collection with a password or compatible token.':'Під’єднайте свою бібліотеку за допомогою пароля або сумісного токена.',
+ 'Qobuz sign-in expired':'Сеанс Qobuz завершився',
+ 'Sign in again. Your saved library is preserved.':'Увійдіть знову. Ваша збережена бібліотека залишилася без змін.',
+ 'Email & password':'Ел. пошта й пароль',
+ 'Session token':'Токен сеансу',
+ 'Password is not stored. If sign-in is refused, try a session token.':'Пароль не зберігається. Якщо вхід відхилено, спробуйте токен сеансу.',
+ 'If automatic detection fails, enter the App ID paired with your token in Advanced settings.':'Якщо автовизначення не працює, введіть App ID, пов’язаний із токеном, у додаткових налаштуваннях.',
+ 'Advanced settings':'Додаткові налаштування',
+ 'Leave blank for automatic detection':'Залиште порожнім для автовизначення',
+ 'Only when required by the integration':'Лише за потреби для інтеграції',
+ 'Optional':'Необов’язково',
+ 'Connect library':'Під’єднати бібліотеку',
+ 'Sign in':'Увійти',
+ 'Qobuz website':'Сайт Qobuz',
+ 'Use Mornye gateway':'Увійти через Mornye',
+ 'Connect Mornye':'Під’єднати Mornye',
+ 'Use a gateway session instead of a personal Qobuz account.':'Використовуйте сеанс шлюзу замість особистого облікового запису Qobuz.',
+ 'Gateway verification may be required. Personal favourites need Qobuz.':'Може знадобитися підтвердження через шлюз. Для особистого вибраного потрібен Qobuz.',
+ 'Sign in with Qobuz':'Увійти через Qobuz'
+});
 function createLoginLanguageSwitch(){
  var root=document.querySelector('#screen .aurel-signin');
  if(!root||root.querySelector('.aurel-auth-language'))return;

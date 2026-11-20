@@ -196,3 +196,188 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
  }
 }
 html[data-aurel-motion="off"] #overlay:not(.hidden) :is(.aurel-detail-drawer,.aurel-detail-dimmer){animation:none!important;}
+
+
+/* Status-safe notifications and the compact Qobuz/Mornye sign-in surface.
+   Android supplies --aurel-toast-safe-top only while the player draws beneath
+   the status bar. The normal padded WebView must not receive that inset twice. */
+.app #toast.toast{
+  position:fixed!important;
+  top:calc(max(env(safe-area-inset-top,0px),var(--aurel-toast-safe-top,0px)) + 12px)!important;
+  bottom:auto!important;
+  left:clamp(14px,4vw,28px)!important;
+  right:clamp(14px,4vw,28px)!important;
+  width:auto!important;
+  max-width:540px!important;
+  max-height:min(38dvh,240px)!important;
+  box-sizing:border-box!important;
+  margin-inline:auto!important;
+  padding:12px 12px 12px 15px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 40px;
+  align-items:start!important;
+  column-gap:10px!important;
+  row-gap:7px!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overflow-wrap:anywhere;
+  line-height:1.48!important;
+}
+.app #toast.toast.hidden{display:none!important}
+.app #toast.toast .aurel-toast-message{
+  grid-column:1;grid-row:1;min-width:0;
+  overflow-wrap:anywhere;word-break:normal;white-space:normal;
+}
+.app #toast.toast .aurel-toast-close{
+  grid-column:2;grid-row:1;
+  width:40px;min-height:40px;align-self:start;
+  display:grid;place-items:center;
+  padding:0!important;border-radius:12px!important;
+  color:var(--aurel-theme-on,#f6f6f7)!important;
+}
+.app #toast.toast .aurel-toast-action{
+  grid-column:1;grid-row:2;justify-self:start;
+  min-height:36px;max-width:100%;
+}
+@media(max-width:380px){
+  .app #toast.toast{left:12px!important;right:12px!important;padding:11px!important;grid-template-columns:minmax(0,1fr) 36px}
+  .app #toast.toast .aurel-toast-close{width:36px;min-height:36px}
+}
+.app .screen .aurel-signin-v2{
+  box-sizing:border-box!important;
+  width:min(100%,510px)!important;
+  max-width:510px!important;
+  margin:12px auto 34px!important;
+  padding:clamp(18px,4.5vw,29px)!important;
+  border-radius:22px!important;
+  border:1px solid var(--aurel-theme-border,#ffffff28)!important;
+  background:var(--aurel-theme-card,#202125)!important;
+  color:var(--aurel-theme-on,#f6f7f9)!important;
+  box-shadow:none!important;
+}
+.app .screen .aurel-signin-v2 .aurel-signin-symbol{
+  font-size:43px;letter-spacing:-7px;
+  margin:0 0 8px;padding-right:7px;
+}
+.app .screen .aurel-signin-v2 .eyebrow{
+  font-size:11px;letter-spacing:.09em;
+  color:var(--aurel-theme-secondary,#b9bbc0)!important;
+}
+.app .screen .aurel-signin-v2 h1{
+  font-size:clamp(25px,5.7vw,31px)!important;
+  letter-spacing:-.025em!important;
+  line-height:1.2!important;
+  margin:9px 0 7px!important;
+  color:var(--aurel-theme-on,#f6f7f9)!important;
+}
+.app .screen .aurel-signin-v2 p.aurel-signin-subtitle{
+  font-size:14px!important;line-height:1.5!important;
+  margin:0 0 18px!important;
+  color:var(--aurel-theme-secondary,#b9bbc0)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-login-methods{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:5px!important;margin:0 0 17px!important;
+  padding:4px!important;border:1px solid var(--aurel-theme-line,#ffffff25)!important;
+  border-radius:14px!important;
+  background:var(--aurel-theme-surface,#27282c)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-login-methods button{
+  min-width:0;min-height:46px!important;
+  gap:6px!important;padding:8px 6px!important;
+  border-radius:10px!important;
+  font-size:13.5px!important;font-weight:700!important;
+  color:var(--aurel-theme-secondary,#bdbfc4)!important;
+  background:transparent!important;
+}
+.app .screen .aurel-signin-v2 .aurel-login-methods button.active{
+  background:var(--aurel-theme-on,#e4e5e8)!important;
+  color:var(--aurel-theme-ink,#151619)!important;
+  box-shadow:none!important;
+}
+.app .screen .aurel-signin-v2 .aurel-signin-form{gap:9px!important}
+.app .screen .aurel-signin-v2 .aurel-token-label{
+  font-size:14px!important;font-weight:690!important;
+  color:var(--aurel-theme-on,#f6f7f9)!important;
+  margin:3px 0 1px!important;
+}
+.app .screen .aurel-signin-v2 :is(.aurel-login-textbox,.aurel-token-input input){
+  height:53px!important;min-height:53px!important;
+  border-radius:13px!important;
+  border:1px solid var(--aurel-theme-line,#ffffff35)!important;
+  background:var(--aurel-theme-surface,#292a2e)!important;
+  color:var(--aurel-theme-on,#f5f6f8)!important;
+  box-shadow:none!important;
+}
+.app .screen .aurel-signin-v2 :is(.aurel-login-textbox,.aurel-token-input input):focus-visible{
+  outline:2px solid var(--aurel-theme-accent,#efeff0)!important;
+  outline-offset:1px;
+}
+.app .screen .aurel-signin-v2 .aurel-method-help{
+  font-size:12.5px!important;line-height:1.45!important;
+  margin:0 0 3px!important;padding:0 2px!important;
+  color:var(--aurel-theme-secondary,#b9bbc0)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-signin-advanced{
+  margin:7px 0 3px!important;
+  border:1px solid var(--aurel-theme-line,#ffffff26)!important;
+  border-radius:13px!important;
+  background:var(--aurel-theme-surface,#292a2e)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-signin-advanced summary{
+  min-height:48px!important;padding:11px 13px!important;
+  font-size:13.5px!important;
+  color:var(--aurel-theme-on,#eeeeef)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-advanced-fields{padding:0 13px 13px!important}
+.app .screen .aurel-signin-v2 .aurel-advanced-fields>label{
+  font-size:13px!important;color:var(--aurel-theme-on,#eeeeef)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-advanced-fields>label small{
+  font-size:12px!important;color:var(--aurel-theme-secondary,#b9bbc0)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-signin-submit{
+  width:100%;min-height:53px!important;height:auto!important;
+  padding:12px 15px!important;margin:5px 0 0!important;
+  border-radius:13px!important;
+  background:var(--aurel-theme-on,#e5e6e8)!important;
+  color:var(--aurel-theme-ink,#17181a)!important;
+  font-size:16px!important;font-weight:760!important;
+  box-shadow:none!important;
+}
+.app .screen .aurel-signin-v2 .aurel-signin-submit:disabled{opacity:.6!important}
+.app .screen .aurel-signin-v2 .aurel-auth-warning{
+  margin:0 0 14px!important;padding:11px 12px!important;
+  border-radius:11px!important;gap:3px!important;
+  background:var(--aurel-theme-surface,#292a2e)!important;
+  border-color:var(--aurel-theme-line,#ffffff35)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-auth-warning strong{
+  font-size:13.5px!important;color:var(--aurel-theme-on,#ffffff)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-auth-warning span{
+  font-size:12.5px!important;color:var(--aurel-theme-secondary,#c5c5c8)!important;
+}
+.app .screen .aurel-signin-v2 .aurel-login-footer{
+  display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;
+  margin:14px 0 0;
+}
+.app .screen .aurel-signin-v2 .aurel-login-footer button{
+  min-height:42px;padding:7px 2px;
+  color:var(--aurel-theme-secondary,#e0e0e1)!important;
+  font-size:13.5px!important;
+}
+.app .screen .aurel-signin-v2 .aurel-signin-error{
+  border-radius:11px!important;
+  font-size:13px!important;
+  overflow-wrap:anywhere!important;
+}
+.app .screen .aurel-signin-v2 .aurel-mornye-hint{
+  margin:10px 0 0!important;font-size:12.5px!important;
+}
+@media(max-width:380px){
+ .app .screen .aurel-signin-v2{padding:16px!important}
+ .app .screen .aurel-signin-v2 .aurel-login-methods button{font-size:12px!important}
+ .app .screen .aurel-signin-v2 .aurel-login-methods button .ui-icon{width:16px;height:16px}
+}
