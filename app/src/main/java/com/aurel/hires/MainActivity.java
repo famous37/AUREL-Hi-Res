@@ -1572,6 +1572,7 @@ public final class MainActivity extends Activity {
                             data=session();break;
                         }
                         case "discover": {
+                            try{
                             if(mornyeActive()){
                                 // This authenticated metadata session is already used
                                 // successfully for search; do not force an unrelated
@@ -1606,6 +1607,22 @@ public final class MainActivity extends Activity {
                                 // streaming ID may still have authorized featured metadata.
                                 try{data=api.discoverReleases(24);}
                                 catch(Exception primaryError){data=api.publicFeaturedReleases(24);}
+                            }
+                            }catch(Exception discoveryError){
+                                if(mornyeActive()&&
+                                   MornyeGateway.requiresVerification(discoveryError))
+                                    throw discoveryError;
+                                // An independently authorized, Qobuz-owned
+                                // weekly curated playlist offers real albums
+                                // when the global editorial feed is restricted.
+                                // The response explicitly labels this source.
+                                try{data=api.curatedNewReleaseAlbums(24);}
+                                catch(Exception curatedError){
+                                    throw new Exception("Fresh releases unavailable: "+
+                                        "discover "+safeReleaseError(discoveryError)+
+                                        "; Qobuz curated playlist "+
+                                        safeReleaseError(curatedError));
+                                }
                             }
                             break;
                         }
