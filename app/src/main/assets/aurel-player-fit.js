@@ -12,6 +12,7 @@
   // setPlayerImmersive(). A view may keep its width/height while the status
   // inset changes, so observing only the view misses the final geometry.
   let insetStamp='';
+  let lastFit=null; // Covers remain identical across opening/closing a detail sheet.
   function synchronizeNavHeight(){
     const nav=document.querySelector('.app .bottom-nav');
     const overlay=document.getElementById('overlay');
@@ -51,6 +52,25 @@
     }
     const wrap=content.querySelector('.murglar-art-wrap');
     if(!wrap)return;
+    // Opening a drawer changes CSS and overlays, but must never recompute the
+    // album's size. Reuse this viewport/track geometry until the screen, font,
+    // track metadata, or physical viewport genuinely changes.
+    const key=[window.innerWidth,window.innerHeight,content.clientWidth,
+      content.clientHeight,document.documentElement.style.getPropertyValue('--aurel-native-status-inset'),
+      app.player?.track?.id,app.player?.track?.title,app.player?.track?.album?.title].join('|');
+    if(lastFit?.key===key){
+      if(view.style.getPropertyValue('--aurel-fit-art')!==lastFit.pixel+'px')
+        view.style.setProperty('--aurel-fit-art',lastFit.pixel+'px');
+      view.classList.toggle('aurel-fit-scroll',lastFit.scroll);
+      return;
+    }
+    // Do not infer available height from a temporarily open sheet. On
+    // initial mount it is safe to calculate from the player's usual controls.
+    if(app.playerSheet&&lastFit){
+      view.style.setProperty('--aurel-fit-art',lastFit.pixel+'px');
+      view.classList.toggle('aurel-fit-scroll',lastFit.scroll);
+      return;
+    }
     const cs=getComputedStyle(content);
     const usable=Math.max(0,content.clientHeight-number(cs.paddingTop)-number(cs.paddingBottom));
     if(!usable)return;
@@ -74,16 +94,20 @@
     const gap=number(cs.rowGap||cs.gap);
     reserved+=gap*visible;
     const maxWidth=Math.max(0,content.clientWidth-number(cs.paddingLeft)-number(cs.paddingRight));
-    const ideal=Math.min(maxWidth,window.innerWidth*0.88,window.innerHeight*0.47,410);
+    const ideal=Math.min(maxWidth,window.innerWidth*0.94,window.innerHeight*0.53,460);
     const remainder=Math.floor(usable-reserved-3);
     const minCover=104;
-    const cover=Math.max(minCover,Math.min(ideal,remainder));
+    // Spend up to 20 extra CSS pixels on the cover; the surrounding content
+    // scrolls naturally if the display has little vertical room.
+    const cover=Math.max(minCover,Math.min(ideal,remainder+20));
     const pixel=Math.floor(Math.max(0,cover));
     // Avoid flickering due to +/-1px viewport rounding while playing.
     const previous=number(view.style.getPropertyValue('--aurel-fit-art'));
     if(!previous||Math.abs(previous-pixel)>2)
       view.style.setProperty('--aurel-fit-art',pixel+'px');
-    view.classList.toggle('aurel-fit-scroll',remainder<minCover);
+    const needsScroll=remainder<cover;
+    view.classList.toggle('aurel-fit-scroll',needsScroll);
+    lastFit={key,pixel,scroll:needsScroll};
   }
   function schedule(){
     if(frame)return;
