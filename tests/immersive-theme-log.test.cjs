@@ -10,7 +10,7 @@ const player=load('murglar.js'),live=load('aurel-live-ui.js');
 const journal=load('aurel-error-log.js');
 const activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+111/);
+assert.match(gradle,/versionCode\s+112/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
 assert.match(player,/classList\.toggle\('aurel-player-open',!!app\.overlay\)/);
 assert.match(player,/previousPage\.setAttribute\('aria-hidden','true'\)/);
@@ -105,5 +105,5 @@ const event=button=>({
  await fallbackClick(event({...copyButton,disabled:false}));
  assert.equal(captured.length,1);
  assert.match(captured[0],/^AUREL Hi-Res 1\.1\.94/);
- console.log('AUREL 1.1.94 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
+ console.log('AUREL 1.1.95 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});
