@@ -30,7 +30,8 @@ assert(app.includes("app.libraryCache=Object.create(null)")&&app.includes('app.p
 assert(app.includes("navigate('library')"));
 assert(app.includes("||app.session?.libraryConnected"));
 assert(app.includes("app.session?.libraryConnected&&!app.session?.streamConnected"));
-assert(app.includes('aurel-signin-advanced" open'));
+assert(app.includes('aurel-signin-advanced"'));
+assert(!app.includes('aurel-signin-advanced" open'),'Advanced settings must default to collapsed');
 assert(!/Скрипниківка|Skrypnykivka/.test(language),'Do not show language variant in the UI');
 assert(language.includes('createLoginLanguageSwitch'));
 assert(language.includes('data-aurel-locale="uk"'));
