@@ -368,3 +368,14 @@
     animation:none!important;transition:none!important;scroll-behavior:auto!important;
   }
 }
+
+/* Read-only Qobuz short-release preview. Never presented as verified EP metadata. */
+.aurel-artist-page .aurel-release-preview-note{
+  margin:5px 10px 20px;
+  max-width:720px;
+  color:var(--aurel-theme-secondary,#c2c2c4);
+  font-size:12px;
+  line-height:1.55;
+  font-weight:500;
+  overflow-wrap:anywhere;
+}
