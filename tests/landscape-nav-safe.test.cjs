@@ -16,8 +16,10 @@ assert(css.includes('@media (orientation:landscape) {'));
 assert(!css.includes('@media (orientation:portrait)'));
 assert(!css.includes('@media(max-width:820px)'));
 const last=html.lastIndexOf('<link rel="stylesheet"');
-assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'),
- 'Final seek/typography layer must load after proven landscape geometry');
+assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-ui-quality.css">'),
+ 'Final UI polish must load after proven landscape geometry');
+assert(html.indexOf('aurel-seek-settings-polish.css')<html.indexOf('aurel-ui-quality.css'),
+ 'Mini progress must use the last, unified styling layer');
 assert(html.indexOf('aurel-gesture-safe.css')<html.indexOf('aurel-seek-settings-polish.css'),
  'Final seek styles must preserve existing gesture-safe geometry');
 assert(html.indexOf('aurel-glass-polish.css')<html.indexOf('aurel-gesture-safe.css'),
