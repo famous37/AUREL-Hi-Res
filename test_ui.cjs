@@ -395,9 +395,11 @@ run("app.playerSheet='';drawOverlay()");
 assert(!nodes.get('#overlay').innerHTML.includes('aurel-detail-drawer'), 'drawer must unmount when closed');
 const releaseGradle=fs.readFileSync(__dirname+'/app/build.gradle','utf8');
 const releaseCode=releaseGradle.match(/versionCode\s+(\d+)/);
-const releaseName=releaseGradle.match(/versionName[\s\S]{0,160}?1\.1\.(\d+)/);
-assert(releaseCode&&Number(releaseCode[1])>=67&&releaseName&&Number(releaseName[1])>=48,
- 'APK version should advance without pinning tests to an old release');
+const releaseName=releaseGradle.match(/versionName[\s\S]{0,160}?['"](\d+)\.(\d+)\.(\d+)(?:-preview)?['"]/);
+const versionNumber=releaseName?
+ Number(releaseName[1])*1000000+Number(releaseName[2])*1000+Number(releaseName[3]):0;
+assert(releaseCode&&Number(releaseCode[1])>=117&&releaseName&&versionNumber>=1002000,
+ 'APK version must advance across minor versions, including v1.2.0');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
