@@ -1718,12 +1718,19 @@ public final class MainActivity extends Activity {
                             String artistId=p.getString("id");
                             JSONObject extras=new JSONObject();
                             try {
-                                // top_tracks is included in the standard artist/page payload.
-                                // Do not send unsupported extra=topTracks (which can cause 4xx).
+                                // Qobuz artist/page supports the optional topTracks expansion;
+                                // requesting only artist/get does NOT provide the ranked chart.
                                 extras=artistInformation("artist/page",
-                                    new JSONObject().put("artist_id",artistId));
-                            }catch(Exception error){
-                                extras.put("_pageError","Qobuz artist page request failed");
+                                    new JSONObject().put("artist_id",artistId)
+                                        .put("extra","topTracks"));
+                            }catch(Exception expandedError){
+                                try {
+                                    extras=artistInformation("artist/page",
+                                        new JSONObject().put("artist_id",artistId));
+                                }catch(Exception error){
+                                    extras.put("_pageError","Qobuz artist page access denied: "
+                                        +safeReleaseError(error));
+                                }
                             }
                             Object similar=extras.opt("similar_artists");
                             JSONArray relatedItems=similar instanceof JSONObject
@@ -1748,16 +1755,12 @@ public final class MainActivity extends Activity {
                                 topBlock.optJSONArray("items");
                             if(topItems==null)topItems=extras.optJSONArray("topTracks");
                             if(topItems==null||topItems.length()==0) {
-                                try {
-                                    JSONObject ranked=artistOfficialTopTracks(artistId);
-                                    JSONArray actual=ranked.optJSONArray("items");
-                                    if(actual!=null&&actual.length()>0)
-                                        extras.put("top_tracks",ranked);
-                                    else extras.put("_topError","Qobuz returned no ranked tracks");
-                                }catch(Exception rankedError){
-                                    extras.put("_topError","Qobuz ranked tracks unavailable: "
-                                        +safeReleaseError(rankedError));
-                                }
+                                // An artist search or "tracks" list is not a popularity ranking.
+                                // Keep an explicit restricted/unavailable state instead of
+                                // fabricating chart positions from unrelated ordering.
+                                extras.put("_topError",extras.has("_pageError")
+                                    ?"Qobuz ranking endpoint unavailable for this session"
+                                    :"Qobuz did not return an official top_tracks ranking");
                             }
                             data=extras;break;
                         }
@@ -2230,24 +2233,6 @@ public final class MainActivity extends Activity {
             throw new Exception("Qobuz returned only a partial unfiltered release list");
         return new JSONObject().put("items",selected)
             .put("_partial",result.optBoolean("_partial",false));
-    }
-
-    /** Additional provider-backed ranked list, never a generic track search.
-     * Do not turn the artist's latest tracks into fabricated popularity ranks. */
-    private JSONObject artistOfficialTopTracks(String artistId)throws Exception {
-        JSONObject info;
-        try {
-            info=artistInformation("artist/get",new JSONObject()
-                .put("artist_id",artistId).put("extra","top_tracks"));
-        }catch(Exception unsupportedExtra) {
-            info=artistInformation("artist/get",new JSONObject()
-                .put("artist_id",artistId));
-        }
-        JSONArray ranked=artistItems(info,"top_tracks");
-        if(ranked==null)ranked=artistItems(info,"topTracks");
-        if(ranked==null||ranked.length()==0)
-            throw new Exception("Official ranking not provided");
-        return new JSONObject().put("items",ranked);
     }
 
     /** Last-resort type-filtered releases from the artist's own Qobuz albums.
