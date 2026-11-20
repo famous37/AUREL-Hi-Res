@@ -1190,6 +1190,10 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void setWindowPalette(String color) {
             ui.post(()->setSystemChrome(color));
         }
+        @JavascriptInterface public void setMediaArtworkColors(boolean enabled) {
+            // Only change the media notification, never third-party notifications.
+            ui.post(()->AurelPlaybackService.setAlbumNotificationColors(enabled));
+        }
         @JavascriptInterface public void setPlayerImmersive(boolean open) {
             ui.post(()->MainActivity.this.setPlayerImmersive(open));
         }
