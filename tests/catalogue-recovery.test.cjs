@@ -24,7 +24,7 @@ assert.match(api,/false,publicId,""/);
 assert.doesNotMatch(api,/"735532640"|"312369995"/);
 assert.match(main,/catch\(Exception primaryError\)\{data=api\.publicFeaturedReleases\(24\);\}/);
 assert.match(main,/artistInformation\("artist\/getReleasesList",params\)/);
-assert.match(main,/artistInformation\("artist\/getReleasesGrid",params\)/);
+assert.match(main,/artistInformation\("artist\/getReleasesGrid",gridParams\)/);
 assert.match(main,/offset\+=items\.length\(\)/);
 assert.match(main,/response\.optBoolean\("has_more"/);
 assert.match(main,/private JSONObject artistReleaseFromAll\(/);
