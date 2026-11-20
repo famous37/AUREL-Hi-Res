@@ -15,11 +15,11 @@ assert(html.indexOf('aurel-settings-groups.js')>html.indexOf('aurel-settings-pro
  'Grouping must run after functional audio handlers');
 assert(html.indexOf('aurel-settings-groups.css')>html.indexOf('aurel-studio.css'),
  'Settings layout CSS must override the old layout');
-for(const section of ['Playback','Audio outputs','Accounts','Appearance & app']){
+for(const section of ['Audio outputs','Playback','Accounts','Appearance','App & data']){
  assert(groups.includes(section),'Missing settings group: '+section);
 }
 assert(groups.includes('original.apply(this,arguments)'),'Original settings must remain intact');
-assert(groups.includes('containers.audio.append(quality,playback)'),'Playback controls should be grouped');
+assert(groups.includes('containers.playback.append(quality,options)'),'Playback controls should remain grouped');
 assert(groups.includes('containers.outputs.append(diagnostics)'),'Diagnostics should be grouped');
 assert(groups.includes('containers.accounts.append(stream,library)'),'Accounts should be grouped');
 assert(groups.includes('window.AurelProSettings?.scanOutputs?.()'),'Output scanning must be functional');

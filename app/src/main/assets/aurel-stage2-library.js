@@ -70,26 +70,28 @@ function appendSettings(){
  const root=document.getElementById('screen');
  if(app.nav!=='settings'||app.selected||!root?.querySelector('.aurel-settings-heading')||
     root.querySelector('[data-aurel-stage2-settings]'))return;
+ // The settings accordion is already mounted by the earlier settings layer.
+ // Attach data tools inside its real App & data category, never below the cards.
+ const host=root.querySelector('[data-aurel-settings-group="app"] .aurel-settings-group-content')||root;
  const section=document.createElement('section');
  section.className='panel aurel-stage2-settings';
  section.setAttribute('data-aurel-stage2-settings','');
- section.innerHTML='<h3>'+html(text('Your listening data','Ваші дані прослуховування'))+'</h3>'+
-  '<p class="aurel-stage2-note">'+html(text(
-   'History is stored on this device. Qobuz favourites and playlists remain with your account.',
-   'Історія зберігається на пристрої. Вибране та плейлисти Qobuz залишаються у вашому обліковому записі.'))+'</p>'+
+ section.innerHTML='<h3>'+html(text('Listening history & backup','Історія та резервні копії'))+'</h3>'+
   '<details class="aurel-stage2-disclosure"><summary>'+html(text('Recently played','Нещодавно прослухані'))+
    ' ('+history.length+')</summary>'+rows(15)+
   '<button type="button" class="aurel-stage2-secondary" data-aurel-history-clear>'+
-   html(text('Clear listening history','Очистити історію прослуховування'))+'</button></details>'+
+   html(text('Clear listening history','Очистити історію'))+'</button></details>'+
   '<div class="aurel-stage2-backup-actions">'+
    '<button type="button" data-aurel-backup-export>'+html(text('Export backup','Зберегти копію'))+'</button>'+
    '<button type="button" data-aurel-backup-import>'+html(text('Restore backup','Відновити копію'))+'</button>'+
   '</div>'+
-  '<small class="aurel-stage2-note">'+html(text(
-   'Backup contains only selected local settings, navigation, searches and listening history. No passwords, Qobuz tokens or provider-managed favourites.',
-   'Копія містить лише локальні налаштування, навігацію, пошук та історію. Без паролів, токенів Qobuz і вибраного, що зберігається на сервері.'))+'</small>'+
+  '<details class="aurel-stage2-disclosure aurel-stage2-backup-info"><summary>'+
+    html(text('About backup','Про резервну копію'))+'</summary>'+
+    '<p class="aurel-stage2-note">'+html(text(
+     'Backup contains only local settings, navigation, searches and listening history. No passwords, Qobuz tokens or online favourites.',
+     'Копія містить локальні налаштування, навігацію, пошук та історію. Без паролів, токенів Qobuz і вибраного на сервері.'))+'</p></details>'+
   '<small data-aurel-backup-status role="status">'+html(lastResult)+'</small>';
- root.appendChild(section);
+ host.appendChild(section);
 }
 function appendHome(){
  const root=document.getElementById('screen');

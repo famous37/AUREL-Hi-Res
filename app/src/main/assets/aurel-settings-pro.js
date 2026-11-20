@@ -86,7 +86,7 @@ function perfPanel(){
    '<div class="aurel-pro-feature"><strong>Transitions</strong>'+
    ''+
    '<div class="aurel-pro-choice" role="group" aria-label="Transitions">'+motionChoices+'</div>'+ 
-    '<small class="aurel-gesture-guide">Now Playing gestures: swipe down to minimize · right for next track · left for previous track.</small></div>'+
+    '</div>'+
    ''+
    '</section>';
 }

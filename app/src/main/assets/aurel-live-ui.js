@@ -162,7 +162,7 @@
       const panel=document.createElement('section');
       panel.className='panel aurel-appearance-panel';
       panel.innerHTML='<h3>Appearance</h3><label class="aurel-appearance-toggle">'+
-        '<span><strong>Use album artwork colours</strong><small>On: the entire app follows the playing album. Off: neutral graphite throughout.</small></span>'+
+        '<span><strong>Use album artwork colours</strong></span>'+
         '<input type="checkbox" data-aurel-artwork-colours '+(artworkPalette?'checked':'')+'></label>';
       const first=screen.querySelector('.panel');
       if(first)first.before(panel);else screen.appendChild(panel);
