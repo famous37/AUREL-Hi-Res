@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.92: signed update for catalogue recovery and compact library tools.
+# v1.1.93: signed update for catalogue recovery and compact library tools.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -200,14 +200,14 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — reliable Qobuz discovery and visible mini progress" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — corrected Qobuz discovery containers, curated fallback and typed EPs" \
             '' \
-            '- Fresh releases also try the authorized discover/index metadata route; exact real album IDs only.' \
-            '- Home discovery uses bounded, single-flight fetches, avoiding duplicate API calls and stale session results.' \
-            '- Visible six-pixel album-color mini-player progress, accessible percentage and smooth native-clock updates.' \
-            '- On catalogue errors, preserve last successful releases and show honest availability states.' \
+            '- Parse the current discover/index containers.new_releases.data.items response; only genuine Qobuz albums.' \
+            '- If editorial discovery is denied, try the official Qobuz New Releases curated playlist and label it accurately.' \
+            '- Mini-player uses native-clock CSS gradient plus transform fallback for visible progress.' \
+            '- Artist EP/singles use the documented releasesList sort and explicit release types, never track-count guesses.' \
             '- Audio engine, bit-perfect routing, account sessions, library, settings, FFT and backup format remain unchanged.' \
-            '- Android versionCode 109, versionName 1.1.92, original permanently signed certificate.' \
+            '- Android versionCode 110, versionName 1.1.93, original permanently signed certificate.' \
             '' \
             "Install v${AUREL_VERSION} over v1.1.88; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

@@ -16,9 +16,9 @@ android {
         applicationId (project.hasProperty('aurelPreview') ? 'com.aurel.hires.preview' : 'com.aurel.hires')
         minSdk 29
         targetSdk 35
-        // AUREL 1.1.92: compact Library tools and authorized catalogue recovery with persistent real IDs.
-        versionCode 109
-        versionName (project.hasProperty('aurelPreview') ? '1.1.92-preview' : '1.1.92')
+        // AUREL 1.1.93: compact Library tools and authorized catalogue recovery with persistent real IDs.
+        versionCode 110
+        versionName (project.hasProperty('aurelPreview') ? '1.1.93-preview' : '1.1.93')
         resValue 'string', 'aurel_app_name', (project.hasProperty('aurelPreview') ? 'AUREL Preview' : 'AUREL Hi-Res')
     }
     signingConfigs {
