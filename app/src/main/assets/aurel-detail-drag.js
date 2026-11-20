@@ -29,7 +29,12 @@
   d.style.setProperty('--aurel-drawer-size',h+'px');
   d.dataset.aurelExpanded=h>b.rest+24?'true':'false';
   const handle=d.querySelector('.aurel-drawer-handle');
-  if(handle)handle.setAttribute('aria-label',d.dataset.aurelExpanded==='true'?'Згорнути інформаційне вікно':'Розгорнути інформаційне вікно');
+  if(handle){
+   const uk=window.AurelLanguage?.get?.()==='uk';
+   handle.setAttribute('aria-label',d.dataset.aurelExpanded==='true'?
+     (uk?'Згорнути інформаційне вікно':'Collapse information panel'):
+     (uk?'Розгорнути інформаційне вікно':'Expand information panel'));
+  }
  }
  function schedule(height){
   pendingHeight=height;
