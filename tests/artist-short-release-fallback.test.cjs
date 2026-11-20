@@ -19,7 +19,7 @@ assert(subset.indexOf('artist/getReleasesGrid')<subset.indexOf('artist/getReleas
 assert(native.includes('artistShortReleasePreview(artistId,p.optString("name",""))'),
  'When official category is denied, artist-owned short metadata is attempted');
 assert(native.includes('collectShortReleases(artistItems(info,"albums"),artistId,found,true)'));
-assert(native.includes('collectShortReleases(artistItems(result,"albums"),artistId,found,false)'));
+assert(native.includes('collectShortReleases(artistItems(response,"albums"),artistId,found,false)'));
 assert(native.includes('if(!artistSource&&!artistId.equals(linked))continue;'),
  'Search cannot introduce similarly named artists');
 assert(native.includes('if(type.contains("compilation")||type.equals("album")||type.equals("live"))'),
