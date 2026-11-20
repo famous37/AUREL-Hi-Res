@@ -19,7 +19,7 @@ for(const section of ['Audio outputs','Playback','Accounts','Appearance','App & 
  assert(groups.includes(section),'Missing settings group: '+section);
 }
 assert(groups.includes('original.apply(this,arguments)'),'Original settings must remain intact');
-assert(groups.includes('containers.audio.append(quality,playback)'),'Playback controls should be grouped');
+assert(groups.includes('containers.playback.append(quality,options)'),'Playback controls should remain grouped');
 assert(groups.includes('containers.outputs.append(diagnostics)'),'Diagnostics should be grouped');
 assert(groups.includes('containers.accounts.append(stream,library)'),'Accounts should be grouped');
 assert(groups.includes('window.AurelProSettings?.scanOutputs?.()'),'Output scanning must be functional');
