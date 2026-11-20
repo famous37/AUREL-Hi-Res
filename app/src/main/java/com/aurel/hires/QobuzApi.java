@@ -304,6 +304,27 @@ final class QobuzApi {
         }
         if(items==null)items=response.optJSONArray("new_releases");
         if(items==null)items=response.optJSONArray("newReleases");
+        // Qobuz 2026 discover/index returns sections in containers.*.data.items.
+        // Only inspect release containers; never display banners or playlists
+        // as album releases.
+        if(items==null||items.length()==0){
+            JSONObject containers=response.optJSONObject("containers");
+            if(containers!=null){
+                String[] keys={"new_releases","newReleases","recent_releases",
+                               "recentReleases"};
+                for(String key:keys){
+                    JSONObject wrapper=containers.optJSONObject(key);
+                    if(wrapper==null)continue;
+                    JSONObject data=wrapper.optJSONObject("data");
+                    if(data==null)data=wrapper;
+                    JSONObject section=data.optJSONObject("albums");
+                    org.json.JSONArray found=section==null?null:section.optJSONArray("items");
+                    if(found==null)found=data.optJSONArray("items");
+                    if(found==null)found=data.optJSONArray("albums");
+                    if(found!=null&&found.length()>0){items=found;break;}
+                }
+            }
+        }
         if(items==null||items.length()==0)
             throw new Exception("Qobuz provided no new release albums");
         org.json.JSONArray verified=new org.json.JSONArray();
@@ -404,6 +425,67 @@ final class QobuzApi {
             throw new Exception("Fresh releases unavailable: "+hint+
                 " Qobuz authorization is required for this source; regular search and playback can remain functional.");
         }
+    }
+
+    /** Curated Qobuz New Releases playlist, not the complete global feed.
+     * Source is the Qobuz-owned public playlist 2049430; expose that source
+     * honestly in the UI. Track/album IDs come only from the live catalogue.
+     */
+    private JSONObject newReleasesPlaylist(String appId,String token,int limit)
+        throws Exception {
+        JSONObject params=new JSONObject().put("playlist_id","2049430")
+            .put("extra","tracks").put("offset",0).put("limit",80);
+        JSONObject playlist=request("playlist/get",params,false,appId,token);
+        JSONObject tracks=playlist.optJSONObject("tracks");
+        if(tracks==null){
+            JSONObject wrapped=playlist.optJSONObject("playlist");
+            if(wrapped!=null)tracks=wrapped.optJSONObject("tracks");
+        }
+        org.json.JSONArray items=tracks==null?playlist.optJSONArray("items"):
+            tracks.optJSONArray("items");
+        if(items==null||items.length()==0)
+            throw new Exception("Qobuz New Releases playlist has no tracks");
+        org.json.JSONArray albums=new org.json.JSONArray();
+        java.util.HashSet<String> seen=new java.util.HashSet<>();
+        for(int i=0;i<items.length()&&albums.length()<Math.max(1,limit);i++){
+            JSONObject track=items.optJSONObject(i);
+            if(track==null)continue;
+            JSONObject item=track.optJSONObject("track");
+            if(item==null)item=track;
+            JSONObject album=item.optJSONObject("album");
+            if(album==null)continue;
+            String id=album.optString("id","").trim();
+            if(id.isEmpty()||album.optString("title","").trim().isEmpty()
+                ||!seen.add(id))continue;
+            albums.put(album);
+        }
+        if(albums.length()==0)
+            throw new Exception("Qobuz curated playlist contains no resolved albums");
+        return new JSONObject()
+            .put("albums",new JSONObject().put("items",albums)
+                .put("total",albums.length()))
+            .put("_source","qobuz_new_releases_playlist");
+    }
+
+    JSONObject curatedNewReleaseAlbums(int limit)throws Exception {
+        Exception last=null;
+        String libraryAppId=store.get("libraryAppId");
+        String libraryToken=store.get("libraryToken");
+        if(libraryAppId.matches("[0-9]{6,15}")&&!libraryToken.isEmpty()){
+            try{return newReleasesPlaylist(libraryAppId,libraryToken,limit);}
+            catch(Exception e){last=e;}
+        }
+        String streamingAppId=streamId(),streamingToken=streamToken();
+        if(streamingAppId.matches("[0-9]{6,15}")&&!streamingToken.isEmpty()&&
+            (!streamingAppId.equals(libraryAppId)||
+             !streamingToken.equals(libraryToken))){
+            try{return newReleasesPlaylist(streamingAppId,streamingToken,limit);}
+            catch(Exception e){last=e;}
+        }
+        try{return newReleasesPlaylist(resolveAppId(""),"",limit);}
+        catch(Exception e){last=e;}
+        if(last instanceof ApiException)throw last;
+        throw new Exception("Qobuz curated releases unavailable");
     }
 
     /** Public track credits and catalogue capabilities from Qobuz's widget
