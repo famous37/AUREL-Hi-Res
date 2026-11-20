@@ -6,7 +6,7 @@ const glass=read('aurel-glass-polish.css'),seamless=read('aurel-seamless-theme.c
  aurora=read('aurel-aurora.js'),html=read('index.html');
 const activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+111/);
+assert.match(gradle,/versionCode\s+112/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
 assert.match(activity,/systemInsetTop\/density/,'Android pixels must be converted to CSS dp');
 assert.match(activity,/getResources\(\)\.getDisplayMetrics\(\)\.density/);
@@ -65,4 +65,4 @@ assert(html.lastIndexOf('<link rel="stylesheet"')===
 for(const script of ['aurel-player-fit.js','aurel-aurora.js','aurel-track-swipe.js']){
  assert.doesNotThrow(()=>new Function(read(script)),script+' syntax');
 }
-console.log('AUREL 1.1.94: native CSS-density insets, safe Android header, seamless navbar canvas, responsive artwork and genuine FFT shimmer PASS');
+console.log('AUREL 1.1.95: native CSS-density insets, safe Android header, seamless navbar canvas, responsive artwork and genuine FFT shimmer PASS');
