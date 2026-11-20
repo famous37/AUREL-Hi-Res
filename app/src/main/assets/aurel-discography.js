@@ -187,7 +187,8 @@
         .map(x=>normalizedRelease(x,'epSingle')).filter(Boolean);
       s.ep=unique([...s.ep,...releases]);s.epDone=true;
       s.epShortPreview=!!data?._shortPreview;
-      s.epError=data?._partial&&!s.epShortPreview?'partial':'';
+      // Retain real provider entries from partial responses without a warning overlay.
+      s.epError=data?._partial&&!s.epShortPreview&&!s.ep.length?'partial':'';
     },(s,error)=>{
       s.epDone=true;
       const message=String(error?.message||'');
@@ -202,8 +203,10 @@
         // the release is a full album; require explicit catalogue type.
         return kind==='single'||kind==='epsingle'||kind==='ep';
       }).map(album=>normalizedRelease(album)).filter(Boolean);
-      if(candidates.length){
+      if(candidates.length)
         s.ep=unique([...s.ep,...candidates]);
+      if(s.ep.length){
+        // Do not discard authentic artist/page EPs after a typed API rejection.
         s.epShortPreview=true;
         s.epError='';
       }else{
@@ -248,8 +251,7 @@
     const token=++requestToken;
     const top=extend(id,token,'artistExtras',{},function(s,data){
       s.top=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id);
-      // Search results for this exact artist are not a popularity ranking.
-      s.topFallback=!!data?._topFallback;
+      // Only the official Qobuz ranked top_tracks collection is accepted.
       s.topError=String(data?._topError||(s.top.length?'':data?._pageError||''));
       s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x))
         .map(a=>portraitCache.get(safeId(a))?
@@ -325,23 +327,23 @@
       +'</header>'
       +(count?'<div class="aurel-release-strip">'+items.map(releaseCard).join('')+'</div>'
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading releases…':errorMessage||empty)+'</p>')
-      +(count&&error?'<p class="aurel-artist-placeholder">'+errorMessage+'</p>':'')
+      +(count&&error&&!category?'<p class="aurel-artist-placeholder">'+errorMessage+'</p>':'')
       +'</section>';
   }
-  function songRow(t,i,ranked=true){
+  function songRow(t,i){
     return '<button type="button" class="aurel-popular-track" data-artist-play="'+i+'">'
-      +'<span class="aurel-popular-number">'+(ranked?(i+1):'♪')+'</span>'
+      +'<span class="aurel-popular-number">'+(i+1)+'</span>'
       +'<span class="aurel-popular-art">'+(art(t,'aurel-popular-image')||'<span>♪</span>')+'</span>'
       +'<span class="aurel-popular-copy"><strong>'+html(t.title||'Untitled')+'</strong>'
       +'<small>'+html(t.album?.title||artistLabel(t))+'</small></span>'
       +'<span class="aurel-popular-play" aria-hidden="true">▶</span></button>';
   }
-  function popularSection(list,loading,error,fallback=false){
+  function popularSection(list,loading,error){
     return '<section class="aurel-artist-section" data-artist-section="popular">'
-      +'<header class="aurel-artist-section-heading"><h2>'+(fallback?'Tracks by artist':'Most popular')+'</h2>'
+      +'<header class="aurel-artist-section-heading"><h2>'+'Most popular'+'</h2>'
       +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
       +'</header>'
-      +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i,!fallback)).join('')+'</div>'
+      +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i)).join('')+'</div>'
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading popular tracks…':error?'<span>Popular tracks could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'No popular tracks returned by Qobuz')+'</p>')
       +'</section>';
   }
@@ -424,11 +426,11 @@
       +'<h1>'+html(artistName(o))+'</h1><span class="aurel-artist-kind">Artist</span>'
       +bio
       +'<div class="aurel-artist-actions">'
-      +'<button type="button" class="aurel-artist-play" data-artist-play-main '+(top.length?'':'disabled')+'>'+ic('play',23)+'<span>'+(state.topFallback?'Play tracks':'Play popular')+'</span></button>'
+      +'<button type="button" class="aurel-artist-play" data-artist-play-main '+(top.length?'':'disabled')+'>'+ic('play',23)+'<span>'+'Play popular'+'</span></button>'
       +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus',19)+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
       +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
       +'</div></header>'
-      +popularSection(top,!state.pageDone,state.topError,state.topFallback)
+      +popularSection(top,!state.pageDone,state.topError)
       +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
