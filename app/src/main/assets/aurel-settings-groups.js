@@ -30,9 +30,14 @@
   if(!root?.querySelector('.aurel-settings-heading')||
       root.querySelector('[data-aurel-settings-groups]'))return;
   const panels=Array.from(root.children).filter(n=>n.classList?.contains('panel'));
-  const find=label=>panels.find(n=>n.querySelector('h3')?.textContent.trim()===label);
-  const stream=find('Streaming account'),library=find('Personal Qobuz library');
-  const quality=find('Streaming quality'),about=find('About AUREL');
+  // Never search translated heading text: locale mutation may run before
+  // settings grouping and made the five groups silently disappear.
+  const find=id=>root.querySelector('[data-aurel-settings-panel="'+id+'"]');
+  const stream=find('stream')||panels.find(n=>n.querySelector('[data-change-stream]'));
+  const library=find('library')||panels.find(n=>n.querySelector('[data-add-library]'));
+  const quality=find('quality')||panels.find(n=>n.querySelector('#newSecret'));
+  const about=find('about')||panels.find(n=>
+    Array.from(n.querySelectorAll('.info-row strong')).some(x=>x.textContent==='famous37'));
   const logout=panels.find(n=>n.querySelector('[data-logout]'));
   const diagnostics=root.querySelector('[data-aurel-pro-settings="audio"]');
   const performance=root.querySelector('[data-aurel-pro-settings="performance"]');
