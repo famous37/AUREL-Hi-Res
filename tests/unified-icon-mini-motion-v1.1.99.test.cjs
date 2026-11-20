@@ -14,7 +14,7 @@ new Function(mini);
 new Function(player);
 const lastStylesheet=index.match(/href="([^"]+\.css)"\s*><\/head>/);
 assert(lastStylesheet,'Final CSS reference must exist');
-assert.equal(lastStylesheet[1],'aurel-ui-quality.css','New visual rules must override legacy duplicates');
+assert.equal(lastStylesheet[1],'aurel-stable-detail.css','New visual rules must override legacy duplicates');
 assert(css.includes('--aurel-control-glyph:25px'));
 assert(css.includes('--aurel-control-stroke:2.30'));
 assert(css.includes('.murglar-quick-actions > button.aurel-share-control'));
@@ -46,5 +46,5 @@ assert(player.includes('!p.playing||!window.AurelProgressClock'));
 assert(player.includes('positionForLabels'));
 for(const action of ['data-full-toggle','data-like-track','data-aurel-share-kind','data-shuffle','data-repeat','data-prev','data-next'])
  assert(player.includes(action),'Playback controls must survive restyling: '+action);
-assert(/versionCode\s+116/.test(gradle)&&gradle.includes("'1.1.99'"));
-console.log('AUREL 1.1.99 icon sizes, mini progress, artwork palette, smooth clock and controls PASS');
+assert(/versionCode\s+117/.test(gradle)&&gradle.includes("'1.2.0'"));
+console.log('AUREL 1.2.0 icon sizes, mini progress, artwork palette, smooth clock and controls PASS');

@@ -12,7 +12,7 @@ const share=source('app/src/main/assets/aurel-share.js');
 const murglar=source('app/src/main/assets/murglar.js');
 const html=source('app/src/main/assets/index.html');
 const gradle=source('app/build.gradle');
-assert(/versionCode\s+116/.test(gradle) && gradle.includes("'1.1.99'"));
+assert(/versionCode\s+117/.test(gradle) && gradle.includes("'1.2.0'"));
 assert(html.includes('<link rel="stylesheet" href="aurel-smooth.css">'));
 assert(html.indexOf('aurel-smooth.css')<html.indexOf('aurel-release.css'));
 assert(html.includes('<script src="aurel-motion.js"></script>'));

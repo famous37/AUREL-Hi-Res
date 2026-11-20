@@ -16,7 +16,7 @@ assert(html.indexOf('aurel-gesture-safe.css')<html.indexOf('aurel-seek-settings-
 assert(html.indexOf('aurel-seek-settings-polish.css')<
  html.indexOf('aurel-ui-quality.css'), 'New visual tokens must follow gesture-safe seek rules');
 assert.equal(html.lastIndexOf('<link rel="stylesheet"'),
- html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'),
+ html.indexOf('<link rel="stylesheet" href="aurel-stable-detail.css">'),
  'Final shared UI polish must win over older CSS skins');
 for(const rule of [
  ':root[data-aurel-palette] .app::after{',
