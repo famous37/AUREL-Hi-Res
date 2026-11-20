@@ -340,14 +340,14 @@ function renderLogin(){
           <input id="password" type="password" autocomplete="current-password" placeholder="Enter Qobuz password" required>
           <button type="button" data-toggle-password aria-label="Show password">${ic('eye',22)}</button>
         </div>
-        <p class="aurel-method-help">${secondary?'Password is not stored. If sign-in is refused, try a session token.':'Password is not stored. If sign-in is refused, try a session token.'}</p>`:`
+        <p class="aurel-method-help">Password is not stored. If sign-in is refused, try a session token.</p>`:`
         <label class="aurel-token-label" for="token">Qobuz session token</label>
         <div class="aurel-token-input">
           <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste X-User-Auth-Token" required>
           <button type="button" data-toggle-token aria-label="Show token">${ic('eye',22)}</button>
         </div>
         <p class="aurel-method-help">If automatic detection fails, enter the App ID paired with your token in Advanced settings.</p>`}
-            <details class="aurel-signin-advanced">
+      <details class="aurel-signin-advanced">
         <summary>${ic('settings',19)} Advanced settings ${ic('chevron',17)}</summary>
         <div class="aurel-advanced-fields">
           <label for="appId">App ID <small>Leave blank for automatic detection</small></label>
