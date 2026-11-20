@@ -445,7 +445,7 @@ vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
 const artistHtml=nodes.get('#screen').innerHTML;
 assert(artistHtml.includes('Test Artist'), 'real artist identity should be present');
-assert(artistHtml.includes('Most popular')&&artistHtml.includes('Latest release'));
+assert(artistHtml.includes('Most popular')&&artistHtml.includes('Latest listed release'));
 assert(artistHtml.includes('EPs & Singles')&&artistHtml.includes('Similar artists'));
 assert(artistHtml.includes('data-open-album="abc"'), 'release cards must link to existing album navigation');
 assert(artistHtml.includes('No popular tracks returned')||artistHtml.includes('Loading popular tracks'), 'do not invent popularity');
