@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.1.99: unified controls, slim progress, consistent artwork palette and low-repaint frame scheduling.
+# v1.2.0: stable album geometry, safe expandable drawers, robust Ukrainian settings and native media color.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -200,7 +200,7 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — consistent album palette, uniform icons and smoother mini progress" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — stable cover, expandable info drawers, native media color and resilient Ukrainian settings" \
             '' \
             '- All five Now Playing action glyphs have uniform visual size, including Share.' \
             '- Public Deezer Single/EP classifications are matched against actual, artist-verified Qobuz album IDs before display; Qobuz provides all playback and album navigation.' \
@@ -210,9 +210,14 @@ jobs:
             '- Audio engine, bit-perfect routing, account sessions, library, settings and signature remain unchanged.' \
             '- A single 3px compositor-only mini progress track removes double-painted 6px gradients; updates use a scheduled 100ms frame and do not race native ticks.' \
             '- Artwork palette accents apply consistently to mini-player, navigation, controls, cards and settings while monochrome remains neutral.' \
-            '- Android versionCode 116, versionName 1.1.99, original permanently signed certificate.' \
+            '- Artwork size remains stable when opening/closing Lyrics, Queue, Credits and Audio; portrait cover is slightly larger.' \
+            '- Drag any information panel header to expand below the Android status indicators, or collapse it; native top and bottom insets are respected.' \
+            '- Ukrainian settings panels use stable nontranslated identities, retaining their five categories; additional interface translations.' \
+            '- Optional album-derived colors are supplied to the Android AUREL media notification where Android SystemUI permits.' \
+            '- Existing real-FFT ambient effects use only composited transforms, not timers or fabricated beats.' \
+            '- Android versionCode 117, versionName 1.2.0, original permanently signed certificate.' \
             '' \
-            "Install v${AUREL_VERSION} over v1.1.98; do not uninstall or clear AUREL data." \
+            "Install v${AUREL_VERSION} over v1.2.0; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

@@ -46,6 +46,19 @@ public final class AurelPlaybackService extends Service {
     private long duration=0,position=0;
     private boolean playing=false,buffering=false;
     private String lastMetadataSignature="",lastNotificationSignature="";
+    private static volatile boolean colorizeMediaNotification=false;
+    private int notificationArtworkAccent=Color.rgb(213,215,219);
+    /** Android may enforce its own Material You/media colours despite app tint. */
+    static void setAlbumNotificationColors(boolean enabled){
+        if(colorizeMediaNotification==enabled)return;
+        colorizeMediaNotification=enabled;
+        AurelPlaybackService s=instance;
+        if(s!=null&&s.session!=null&&s.hasTrack){
+            s.lastNotificationSignature="";
+            s.update(s.title,s.artist,s.albumTitle,s.coverUrl,
+                s.duration,s.position,s.playing,s.buffering);
+        }
+    }
     private final ExecutorService coverJobs=Executors.newSingleThreadExecutor();
     private final Handler mainThread=new Handler(Looper.getMainLooper());
     private String albumTitle="",coverUrl="";
@@ -232,6 +245,7 @@ public final class AurelPlaybackService extends Service {
                 if(session==null||generation!=coverGeneration||!url.equals(coverUrl))return;
                 coverBitmap=artwork;
                 if(paletteColors!=null){
+                    notificationArtworkAccent=Color.parseColor(paletteColors[2]);
                     MainActivity a=controller.get();
                     if(a!=null)a.onAlbumArtworkPalette(url,paletteColors[0],paletteColors[1],
                         paletteColors[2],paletteColors[3],paletteColors[4],paletteColors[5]);
@@ -368,6 +382,7 @@ public final class AurelPlaybackService extends Service {
         if(!safeUrl.equals(coverUrl)) {
             coverUrl=safeUrl;
             coverBitmap=null;
+            notificationArtworkAccent=Color.rgb(213,215,219);
             int generation=++coverGeneration;
             if(!safeUrl.isEmpty())refreshCover(safeUrl,generation);
         }
@@ -405,11 +420,15 @@ public final class AurelPlaybackService extends Service {
         // PlaybackState carries the current position and live playback speed.
         // Only rebuild the foreground notification if visible controls, cover
         // or metadata changed; SystemUI advances the seekbar on its own.
-        String notificationSignature=metadataSignature+"|"+status;
+        String notificationSignature=metadataSignature+"|"+status+"|"+
+            (colorizeMediaNotification?notificationArtworkAccent:0);
         if(isForeground&&notificationSignature.equals(lastNotificationSignature))return;
         lastNotificationSignature=notificationSignature;
         Notification.Builder notification=Build.VERSION.SDK_INT>=26?
             new Notification.Builder(this,CHANNEL):new Notification.Builder(this);
+        notification.setColor(notificationArtworkAccent);
+        if(Build.VERSION.SDK_INT>=26)
+            notification.setColorized(colorizeMediaNotification&&coverBitmap!=null);
         notification.setSmallIcon(R.drawable.ic_stat_aurel)
             .setContentTitle(title).setContentText(artist)
             .setContentIntent(openApp()).setShowWhen(false)

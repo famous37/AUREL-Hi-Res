@@ -1,0 +1,116 @@
+/* AUREL 1.2.00 — stable full-size artwork, safe expandable information
+ * sheets and artwork-derived compositor light. Keep audio timing untouched. */
+:root[data-aurel-palette]{
+ --aurel-detail-rest:min(68dvh,590px);
+ --aurel-sheet-safe-top:max(36px,calc(var(--aurel-native-status-inset,24px) + 14px));
+}
+/* Source view geometry must never depend on the open/closed drawer state.
+ * Earlier .murglar-sheet-open rules forced a second album cover size. */
+@media (orientation:portrait){
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+  .murglar-cover,
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view.murglar-sheet-open
+  .murglar-cover{
+   width:var(--aurel-fit-art,min(92vw,49dvh,445px))!important;
+   height:auto!important;
+   aspect-ratio:1!important;
+   max-width:100%!important;
+   max-height:none!important;
+   object-fit:cover!important;
+   transition:opacity 170ms ease!important; /* never animate cover dimensions */
+ }
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
+   .murglar-player-content{
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+ }
+}
+/* Constrain the actual sheet inside the player viewport. The player viewport
+ * already excludes both the bottom Android gesture inset and AUREL nav. */
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer{
+ height:var(--aurel-drawer-size,var(--aurel-detail-rest))!important;
+ min-height:0!important;
+ max-height:calc(100% - var(--aurel-sheet-safe-top))!important;
+ bottom:0!important;top:auto!important;
+ overflow:hidden!important;
+ border-radius:23px 23px 0 0!important;
+ background:var(--aurel-theme-surface,#202124)!important;
+ animation:none!important;
+ transform:none!important;
+ transition:border-color 180ms ease,background-color 180ms ease!important;
+ touch-action:pan-y;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-drawer-header{
+ flex:0 0 66px!important;
+ min-height:66px!important;
+ touch-action:none!important;
+ user-select:none!important;
+ -webkit-user-select:none!important;
+ cursor:ns-resize;
+ background:transparent!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-drawer-header button{
+ cursor:pointer!important;touch-action:manipulation!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-drawer-handle{
+ width:52px!important;height:5px!important;
+ left:calc(50% - 26px)!important;
+ background:color-mix(in srgb,var(--aurel-theme-on,#f8f8f8) 45%,transparent)!important;
+ border-radius:999px!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-scroll{
+ min-height:0!important;flex:1 1 auto!important;
+ overscroll-behavior:contain!important;
+ touch-action:pan-y!important;
+ scrollbar-width:thin;
+ padding-bottom:max(25px,env(safe-area-inset-bottom))!important;
+}
+:root[data-aurel-palette="artwork"] #overlay:not(.hidden)
+ .aurel-detail-drawer{
+ background:color-mix(in srgb,var(--aurel-theme-surface,#242329) 92%,
+   var(--aurel-theme-accent,#e6d6ca))!important;
+ border-color:color-mix(in srgb,var(--aurel-theme-accent,#dedede) 22%,transparent)!important;
+}
+:root[data-aurel-palette="artwork"] #overlay:not(.hidden)
+ .aurel-drawer-header button{
+ background:color-mix(in srgb,var(--aurel-theme-accent,#dddddd) 12%,
+   var(--aurel-theme-raised,#313135))!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden)
+ .aurel-detail-drawer.aurel-detail-dragging{transition:none!important;}
+/* One continuous diffuse three-tone artwork field, driven only by real
+ * existing FFT updates. Do not add timers, canvas, filter or layout animation. */
+:root[data-aurel-palette="artwork"] #overlay.aurel-aurora-enabled:not(.hidden)
+ .murglar-view::before{
+ background:
+  radial-gradient(ellipse 90% 85% at 23% 31%,color-mix(in srgb,var(--aurel-album-one,#aaa) 24%,transparent),transparent 88%),
+  radial-gradient(ellipse 93% 81% at 78% 57%,color-mix(in srgb,var(--aurel-album-two,#aaa) 22%,transparent),transparent 91%),
+  radial-gradient(ellipse 75% 72% at 50% 79%,color-mix(in srgb,var(--aurel-album-three,#aaa) 16%,transparent),transparent 93%)!important;
+ opacity:var(--aurel-aurora-opacity,.34);
+ transform:translate3d(var(--aurel-aurora-glide-x,0px),var(--aurel-aurora-glide-y,0px),0)
+  scale(var(--aurel-reactive-scale,1))!important;
+ will-change:transform,opacity;
+}
+:root[data-aurel-palette] .app .toast:not(.hidden){
+ max-width:calc(100vw - 28px)!important;
+ z-index:120!important;
+ bottom:calc(var(--aurel-unified-nav-height,64px) +
+   var(--aurel-native-navigation-inset,0px) + 16px)!important;
+ background:var(--aurel-theme-raised,#303135)!important;
+ color:var(--aurel-theme-on,#f7f8f9)!important;
+ border-color:var(--aurel-theme-border,#ffffff25)!important;
+}
+:root[data-aurel-palette="artwork"] .app .toast:not(.hidden){
+ background:color-mix(in srgb,var(--aurel-theme-surface,#252529) 84%,
+   var(--aurel-theme-accent,#dedede))!important;
+ border-color:color-mix(in srgb,var(--aurel-theme-accent,#dedede) 25%,transparent)!important;
+}
+@media (prefers-reduced-motion:reduce){
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .murglar-cover,
+ :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-drawer,
+ :root[data-aurel-palette] #overlay.aurel-aurora-enabled:not(.hidden) .murglar-view::before{
+  animation:none!important;transition:none!important;
+ }
+}
+html[data-aurel-motion="off"] #overlay:not(.hidden)
+ .murglar-view::before{transition:none!important;}

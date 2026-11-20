@@ -62,6 +62,7 @@
   // Explicit theme state lets monochrome selectors override old artwork
   // gradients everywhere, even when older components set inline variables.
   document.documentElement.setAttribute('data-aurel-palette',artworkPalette?'artwork':'mono');
+  try{window.AurelNative?.setMediaArtworkColors?.(artworkPalette);}catch(_){};
   let activeCover='';
   const validHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
   // Material-style palette tokens for all existing settings, search and
@@ -147,6 +148,7 @@
   }
   function setArtworkPalette(value){
     artworkPalette=!!value;
+    try{window.AurelNative?.setMediaArtworkColors?.(artworkPalette);}catch(_){};
     try{localStorage.setItem(PALETTE_KEY,artworkPalette?'on':'off');}catch(_){}
     syncTheme(true);
     window.AurelAurora?.refresh?.();

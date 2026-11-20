@@ -16,7 +16,7 @@ assert(css.includes('@media (orientation:landscape) {'));
 assert(!css.includes('@media (orientation:portrait)'));
 assert(!css.includes('@media(max-width:820px)'));
 const last=html.lastIndexOf('<link rel="stylesheet"');
-assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-ui-quality.css">'),
+assert(html.slice(last).startsWith('<link rel="stylesheet" href="aurel-stable-detail.css">'),
  'Final UI polish must load after proven landscape geometry');
 assert(html.indexOf('aurel-seek-settings-polish.css')<html.indexOf('aurel-ui-quality.css'),
  'Mini progress must use the last, unified styling layer');

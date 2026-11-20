@@ -380,7 +380,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  const bpLabels={off:'Android audio',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Requires Android 14+',no_usb:'USB DAC not connected',waiting_track:'Waiting for track',unknown_format:'Audio format unverified',unsupported_format:'PCM format not supported',policy_unavailable:'Android bit-perfect unavailable',policy_error:'Android mixer error',rejected:'Android mixer rejected request',requested:'Android bit-perfect preference accepted',usb_mixer_routed:'Android USB policy routed'};
  const bpStatus=bpLabels[bp.status]||'Checking Android USB audio';
  const bpDescription=bp.detail||'The system USB audio driver is used. Bit-perfect is optional and may be unavailable on this device.';
- $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back',25)}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel"><h3>Streaming account</h3>
+ $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back',25)}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel" data-aurel-settings-panel="stream"><h3>Streaming account</h3>
  ${app.session.gatewayPlaybackRejected?`<div class="aurel-gateway-warning" role="status"><strong>Streaming verification needed</strong><span>The Zarz gateway rejected audio playback. Catalogue access alone does not confirm streaming authorization.</span><button class="pill secondary" data-reverify-mornye>Verify Mornye session</button></div>`:'' }
 <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
  <div class="info-row"><span>Session verification</span><strong>${app.session.mornyeConnected?'Mornye catalogue verified · playback depends on Zarz':app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':app.session.streamValidation==='rejected'?'Rejected · check token and App ID':'Not checked'}</strong></div>
@@ -391,11 +391,11 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
   <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
  <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button>${app.session.mornyeConfigured?'<button class="pill secondary" data-reverify-mornye>Reverify Mornye</button>':''}<button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
  ${app.session.libraryConnected&&!app.session.streamConnected?'<div class="auth-status-banner" role="status"><strong>Account connected but streaming was not verified. You can browse your library; connect a compatible playback account to listen.</strong></div>':''}
- <div class="panel"><h3>Personal Qobuz library</h3>
+ <div class="panel" data-aurel-settings-panel="library"><h3>Personal Qobuz library</h3>
  <div class="info-row"><span>Library account</span><strong>${app.session.libraryConnected?html(lp.displayName||lp.userId||'Connected'):'Uses streaming account'}</strong></div>
  <button class="pill secondary" data-add-library>${app.session.libraryConnected?'Change library account':'Connect separate library'}</button>
  ${app.session.libraryConnected?'<button class="small-link" data-logout-library style="margin-left:18px">Disconnect library</button>':''}</div>
- <div class="panel"><h3>Streaming quality</h3>
+ <div class="panel" data-aurel-settings-panel="quality"><h3>Streaming quality</h3>
  <div class="selectrow" role="group" aria-label="Streaming quality">${[5,6,7,27].map(q=>`<button type="button" class="quality ${app.session.quality===q?'selected':''}" data-quality="${q}" aria-pressed="${app.session.quality===q}"><strong>${q===5?'MP3':q===6?'CD Lossless':q===7?'Hi-Res':'Max Hi-Res'}</strong><small>${q===5?'320 kbps':q===6?'16 / 44.1':q===7?'24 / 96':'24 / 192'}</small></button>`).join('')}</div>
  <section class="aurel-bp-panel" aria-label="USB bit-perfect playback setting">
    <div class="aurel-bp-heading"><div><h3>Android USB bit-perfect</h3><p>Android 14+ · AudioManager preferred mixer · no third-party USB driver</p></div>
@@ -408,7 +408,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.99</strong></div></div>
+ <div class="panel" data-aurel-settings-panel="about"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.2.0</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
