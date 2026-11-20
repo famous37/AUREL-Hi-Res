@@ -1770,6 +1770,15 @@ public final class MainActivity extends Activity {
                                 && !releaseType.equals("album"))
                                 throw new Exception("Unsupported release type");
                             String artistId=p.getString("id");
+                            // Prioritize an accessible, typed artist/search preview when
+                            // the Mornye catalogue is active without a separately
+                            // authorized Qobuz library. This route cannot authorize the
+                            // private getReleasesList endpoints by itself.
+                            if(releaseType.equals("epSingle")&&mornyeActive()
+                                &&secure.get("libraryToken").isEmpty()){
+                                data=artistShortReleasePreview(artistId,p.optString("name",""));
+                                break;
+                            }
                             try {
                                 // epSingle is a documented Qobuz release_type.
                                 // Ask the authoritative endpoint directly so EPs
@@ -2147,14 +2156,21 @@ public final class MainActivity extends Activity {
             String linked=owner==null?"":owner.optString("id","");
             if(!artistSource&&!artistId.equals(linked))continue;
             if(artistSource&&!linked.isEmpty()&&!artistId.equals(linked))continue;
-            String type=item.optString("release_type",album.optString("release_type",""))
+            // Qobuz metadata varies between wrapped search entries and
+            // album/get; check only explicit provider release classifications.
+            String type=item.optString("release_type",
+                album.optString("release_type",
+                    item.optString("album_type",album.optString("album_type",
+                        item.optString("product_type",album.optString("product_type",
+                            item.optString("type",album.optString("type",""))))))))
                 .toLowerCase(java.util.Locale.ROOT).replaceAll("[ _-]","");
             if(type.contains("compilation")||type.equals("album")||type.equals("live"))
                 continue;
             // Track count alone is not a release type: Qobuz often returns
             // partial track previews for full-length albums. Only a genuine
             // provider EP/single designation can enter this category.
-            boolean official=type.contains("single")||type.equals("ep");
+            boolean official=type.contains("single")||type.equals("ep")
+                ||type.equals("epsingle");
             if(!official)continue;
             found.put(id,album);
         }
@@ -2276,6 +2292,9 @@ public final class MainActivity extends Activity {
             if(albums.length()<100)break;
         }
         if(!typeFound)throw new Exception("Qobuz returned albums without release types");
+        // A legacy artist/get page may contain only album releases.
+        // An empty filtered list is not proof that EPs/singles do not exist.
+        if(typed.length()==0)throw new Exception("No explicitly categorized releases in legacy artist preview");
         return new JSONObject().put("items",typed).put("_partial",pages>=4);
     }
 
