@@ -697,6 +697,67 @@ Object.assign(dictionary,{
  'Now Playing gestures: swipe down to minimize · right for next track · left for previous track.':
    'Жести програвача: униз — згорнути · праворуч — наступний трек · ліворуч — попередній.'
 });
+/* v1.1.91 — complete, concise Ukrainian names for grouped Settings and
+ * player controls. Technical identifiers and Qobuz music titles are not translated.
+ */
+Object.assign(dictionary,{
+ 'App & data':'Застосунок і дані',
+ 'Appearance':'Вигляд',
+ 'Account details':'Відомості про обліковий запис',
+ 'Playback options':'Параметри відтворення',
+ 'Cache & performance':'Кеш і швидкодія',
+ 'Motion':'Анімації',
+ 'Listening history & backup':'Історія та резервні копії',
+ 'Recently played':'Нещодавно прослухані',
+ 'Clear listening history':'Очистити історію',
+ 'Export backup':'Зберегти копію',
+ 'Restore backup':'Відновити копію',
+ 'About backup':'Про резервну копію',
+ 'Backup contains only local settings, navigation, searches and listening history. No passwords, Qobuz tokens or online favourites.':'Резервна копія містить лише локальні налаштування, навігацію, пошук та історію. Без паролів, токенів Qobuz і вибраного на сервері.',
+ 'Advanced account credentials':'Додаткові облікові дані',
+ 'Streaming account':'Обліковий запис для музики',
+ 'Personal Qobuz library':'Особиста бібліотека Qobuz',
+ 'Streaming quality':'Якість відтворення',
+ 'Connected devices':'Під’єднані пристрої',
+ 'Playback controls':'Керування відтворенням',
+ 'Settings':'Налаштування',
+ 'Queue':'Черга',
+ 'Info':'Відомості',
+ 'Lyrics':'Текст',
+ 'Favourite':'Вибране',
+ 'Share':'Поширити',
+ 'Play queue':'Черга відтворення',
+ 'Track details':'Відомості про трек',
+ 'Track actions':'Дії з треком',
+ 'Playback position':'Позиція відтворення',
+ 'Seek within track':'Перемотати трек',
+ 'Playback controls':'Керування відтворенням',
+ 'Minimize player':'Згорнути програвач',
+ 'Audio information':'Відомості про звук',
+ 'Previous track':'Попередній трек',
+ 'Next track':'Наступний трек',
+ 'Shuffle':'Перемішати',
+ 'Repeat one':'Повторювати трек',
+ 'Repeat all':'Повторювати все',
+ 'Repeat off':'Вимкнути повтор',
+ 'Share track':'Поширити трек',
+ 'Open audio source details':'Відомості про джерело звуку',
+ 'Back':'Назад',
+ 'Show more':'Показати більше',
+ 'Check now':'Перевірити зараз',
+ 'Check daily':'Перевіряти щодня',
+ 'Up to date.':'Оновлень немає.',
+ 'Download update':'Завантажити оновлення',
+ 'Install update':'Установити оновлення',
+ 'App updates':'Оновлення застосунку',
+ 'Application error log':'Журнал помилок',
+ 'Copy error log':'Скопіювати журнал',
+ 'View log':'Переглянути журнал',
+ 'Clear log':'Очистити журнал',
+ 'About AUREL':'Про AUREL',
+ 'Developer':'Розробник',
+ 'Version':'Версія'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){
