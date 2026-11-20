@@ -9,7 +9,7 @@ const theme=read('aurel-live-ui.js'),css=read('aurel-seamless-theme.css');
 const index=read('index.html'),native=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
 assert.match(gradle,/versionCode\s+112/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.95'/);
 assert(app.indexOf('const ic=')>=0&&app.indexOf('const ic=')<app.indexOf('window.AurelEvent='),
   'Icon helper must exist before native can emit the first player event');
 assert(app.indexOf('const aurelPlaybackIcon=')<app.indexOf('window.AurelEvent='),
