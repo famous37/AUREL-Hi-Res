@@ -226,7 +226,11 @@
       name:artistName(app.selected||{})},function(s,data){
       const releases=asList(data?.albums||data?.releases||data)
         .map(x=>normalizedRelease(x,'epSingle')).filter(Boolean);
-      s.ep=unique([...s.ep,...releases]);s.epDone=true;
+      if(releases.length){
+        // The official Qobuz category takes priority over independent hints.
+        s.ep=unique(releases);s.epSource='qobuz';
+      }
+      s.epDone=true;
       s.epShortPreview=!!data?._shortPreview;
       // Retain real provider entries from partial responses without a warning overlay.
       s.epError=data?._partial&&!s.epShortPreview&&!s.ep.length?'partial':'';
@@ -282,7 +286,11 @@
     // A previous page visit may have invalidated its in-flight responses.
     // Reuse completed metadata, but restart any unfinished categories.
     if(cached&&cached.loaded&&!cached.loading&&cached.epDone&&
-       cached.pageDone&&cached.compDone)return;
+       cached.pageDone&&cached.compDone&&
+       (!cached.externalStarted||cached.externalDone))return;
+    if(cached?.externalStarted&&!cached.externalDone){
+      cached.externalStarted=false;cached.externalLoading=false;
+    }
     const state=cached||{loading:true,top:[],similar:[],ep:[],compilation:[],following:false};
     state.loading=true;
     state.pageDone=false;
@@ -293,10 +301,14 @@
     if(byArtist.size>16)byArtist.delete(byArtist.keys().next().value);
     const token=++requestToken;
     const top=extend(id,token,'artistExtras',{},function(s,data){
-      s.top=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id);
-      // Only the official Qobuz ranked top_tracks collection is accepted.
-      s.topError=String(data?._topError||(s.top.length?'':data?._pageError||''));
-      if(!s.top.length)void startIndependentArtistCatalog(id,token);
+      const official=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id);
+      // Prefer the official Qobuz ranking; never erase already matched
+      // independent chart results when a slower Qobuz request returns empty.
+      if(official.length){s.top=official;s.topSource='qobuz';s.topError='';}
+      else if(!s.top.length){
+        s.topError=String(data?._topError||data?._pageError||'');
+        void startIndependentArtistCatalog(id,token);
+      }
       s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x))
         .map(a=>portraitCache.get(safeId(a))?
           {...a,picture:portraitCache.get(safeId(a))}:a);
@@ -328,8 +340,8 @@
       s.similarError=String(data?._similarError||(
         s.similar.length?'':data?._pageError||''));
       s.pageDone=true;
-    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.topError='Request failed';s.similarError='Request failed';
-      void startIndependentArtistCatalog(id,token);
+    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.similarError='Request failed';
+      if(!s.top.length){s.topError='Request failed';void startIndependentArtistCatalog(id,token);}
     });
     const ep=loadTypedEps(id,token);
     const compilations=extend(id,token,'artistReleaseType',{releaseType:'compilation'},function(s,data){
@@ -373,7 +385,9 @@
       +(count>8?'<button type="button" data-artist-more="'+key+'" aria-expanded="false">See all ›</button>':'')
       +'</header>'
       +(count?'<div class="aurel-release-strip">'+items.map(releaseCard).join('')+'</div>'
-       :'<p class="aurel-artist-placeholder">'+(loading?'Loading releases…':errorMessage||empty)+'</p>')
+       :'<p class="aurel-artist-placeholder">'+(loading?'Loading releases…':
+         errorMessage||empty+(key==='eps'?
+          ' <button type="button" data-artist-retry="eps">Retry</button>':''))+'</p>')
       +(count&&error&&!category?'<p class="aurel-artist-placeholder">'+errorMessage+'</p>':'')
       +'</section>';
   }
@@ -511,6 +525,7 @@
         const state=byArtist.get(id);
         if(state){
           state.epDone=false;state.epError='';
+          state.externalStarted=false;state.externalDone=false;state.externalLoading=false;
           rerender(id);
           void loadTypedEps(id,requestToken);
         }else loadExtras(id);
