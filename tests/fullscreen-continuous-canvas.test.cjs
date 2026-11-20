@@ -59,9 +59,12 @@ assert(html.indexOf('<link rel="stylesheet" href="aurel-glass-polish.css">')<
  'Gesture-safe CSS must preserve the pre-existing authoritative album glass');
 assert(html.indexOf('aurel-gesture-safe.css')<html.indexOf('aurel-seek-settings-polish.css'),
  'Measured navigation insets must precede the narrow seek-only overrides');
+assert(html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">')<
+ html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'),
+ 'The unified artwork/pacing layer must follow validated seek styles');
 assert(html.lastIndexOf('<link rel="stylesheet"')===
- html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'),
- 'Final seek styles must load after all legacy CSS');
+ html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'),
+ 'Unified UI polish must be the final stylesheet');
 for(const script of ['aurel-player-fit.js','aurel-aurora.js','aurel-track-swipe.js']){
  assert.doesNotThrow(()=>new Function(read(script)),script+' syntax');
 }
