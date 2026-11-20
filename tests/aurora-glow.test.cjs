@@ -20,7 +20,7 @@ assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">')<
 assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">')<
  html.indexOf('<link rel="stylesheet" href="aurel-stable-detail.css">'));
 assert.ok(html.lastIndexOf('<link rel="stylesheet"')===
- html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'));
+ html.indexOf('<link rel="stylesheet" href="aurel-stable-detail.css">'));
 assert.ok(html.indexOf('aurel-aurora.js')>html.indexOf('aurel-fluid-transitions.js'));
 assert.match(css,/conic-gradient\(/);
 assert.match(css,/radial-gradient\(/);
