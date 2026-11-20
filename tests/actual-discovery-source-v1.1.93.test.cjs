@@ -54,5 +54,5 @@ assert(css.includes('background:linear-gradient(to right,'));
 assert(css.includes('var(--aurel-mini-progress-accent,#f5f6f8) var(--played,0%)'));
 assert(css.includes('height:6px!important'));
 assert(lang.includes('Добірка новинок Qobuz'));
-assert(/versionCode\s+113/.test(gradle)&&gradle.includes("'1.1.96'"));
-console.log('AUREL 1.1.96 nested current Qobuz index, curated metadata, typed EPs and visible progress PASS');
+assert(/versionCode\s+114/.test(gradle)&&gradle.includes("'1.1.97'"));
+console.log('AUREL 1.1.97 nested current Qobuz index, curated metadata, typed EPs and visible progress PASS');

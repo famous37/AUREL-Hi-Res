@@ -20,7 +20,7 @@ assert(native.includes('extras.put("_topError"'), 'Explain unavailable official 
 assert(!native.includes('artistTrackFallback(artistId)'), 'Never run unranked track search to populate popularity');
 assert(!native.includes('private JSONObject artistTrackFallback('), 'Delete misleading artist search ranking');
 assert(disc.includes('function normalizedPopularTracks(collection,ownerId)'));
-assert(disc.includes('s.top=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id)'));
+assert(disc.includes('const official=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id)'));
 assert(disc.includes('new Promise((_,reject)=>'));
 assert(disc.includes("action==='artistReleaseType'?24000:28000"));
 assert(disc.includes('if(timer!==null)clearTimeout(timer)'));
@@ -33,7 +33,7 @@ assert(!disc.includes('Tracks by artist'), 'Never display generic artist tracks 
 assert(disc.includes("'+(i+1)+'</span>"), 'Qobuz ranking order is numbered');
 assert(!disc.includes('topFallback'), 'Unranked popularity mode removed');
 assert(language.includes("'Tracks by artist':'Треки виконавця'"));
-assert(/versionCode\s+113/.test(gradle)&&gradle.includes("'1.1.96'"));
+assert(/versionCode\s+114/.test(gradle)&&gradle.includes("'1.1.97'"));
 
 const start=disc.indexOf('  function normalizedPopularTracks(');
 const end=disc.indexOf('  function loadExtras(',start);
