@@ -494,6 +494,9 @@ async function loadHome(force=false){
      }).slice(0,36);
      if(!albums.length)throw new Error('Qobuz returned no recent releases');
      app.albums=albums;
+     // Do not present a curated Qobuz playlist as the complete global feed.
+     app.discoverSource=d?._source==='qobuz_new_releases_playlist'?
+       'curated':'global';
      app.discoverStatus='';
      aurelHomeFetchedAt=Date.now();
    }catch(e){
