@@ -133,6 +133,25 @@
     const s=String(o.release_date_original||o.release_date_stream||o.release_date||o.dates?.stream||'');
     return /^\d{4}-\d{2}-\d{2}/.test(s)?s.slice(0,10):'';
   }
+  function canonicalLatestRelease(items){
+    // Reissues can inherit a new 2026 streaming date even when the album was
+    // originally released in 2006. Deduplicate each work by title, prefer the
+    // earliest verified original date, then choose the newest distinct work.
+    const works=new Map();
+    for(const release of items){
+      if(!release||!safeId(release))continue;
+      const key=String(release.title||release.name||'').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s*[([{](?:remaster(?:ed)?|deluxe|expanded|anniversary|edition|reissue)[^\])}]*[\])}]/gi,'')
+        .replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+      if(!key)continue;
+      const current=works.get(key),date=releaseDate(release);
+      if(!current||(date&&(!releaseDate(current)||date<releaseDate(current))))
+        works.set(key,release);
+    }
+    return [...works.values()].filter(x=>releaseDate(x))
+      .sort((a,b)=>releaseDate(b).localeCompare(releaseDate(a)))[0]||null;
+  }
   function detailFor(id){return byArtist.get(id)||{loading:true,top:[],similar:[],ep:[],compilation:[],following:false};}
   function validSelection(id){
     return app.selectedKind==='artist'&&String(app.selected?.id||'')===String(id);
@@ -154,7 +173,8 @@
     // applied; stale results and older artist selections are ignored.
     let timer=null;
     try{
-      const timeout=action==='artistReleaseType'?24000:28000;
+      const timeout=action==='artistPublicFallback'?57000:
+        action==='artistReleaseType'?24000:28000;
       const data=await Promise.race([
         nativeCall(action,{id,...params}),
         new Promise((_,reject)=>{
@@ -177,6 +197,27 @@
       if(timer!==null)clearTimeout(timer);
     }
   }
+  function startIndependentArtistCatalog(id,token){
+    const state=byArtist.get(id);
+    if(!state||state.externalStarted||token!==requestToken)return Promise.resolve();
+    state.externalStarted=true;state.externalLoading=true;
+    return extend(id,token,'artistPublicFallback',
+      {name:artistName(app.selected||{})},function(s,data){
+        s.externalLoading=false;s.externalDone=true;
+        const top=normalizedPopularTracks(data?.top_tracks,id);
+        if(!s.top.length&&top.length&&data?._topSource==='deezer'){
+          s.top=top;s.topSource='deezer';s.topError='';
+        }
+        const eps=asList(data?.eps).map(x=>normalizedRelease(x)).filter(Boolean);
+        if(!s.ep.length&&eps.length&&data?._epSource==='deezer'){
+          s.ep=unique(eps);s.epSource='deezer';s.epError='';
+          s.epShortPreview=false;
+        }
+      },function(s){
+        // Optional independent metadata failure must not interrupt Qobuz playback.
+        s.externalLoading=false;s.externalDone=true;
+      });
+  }
   function loadTypedEps(id,token){
     const state=byArtist.get(id);
     if(!state)return Promise.resolve();
@@ -185,10 +226,15 @@
       name:artistName(app.selected||{})},function(s,data){
       const releases=asList(data?.albums||data?.releases||data)
         .map(x=>normalizedRelease(x,'epSingle')).filter(Boolean);
-      s.ep=unique([...s.ep,...releases]);s.epDone=true;
+      if(releases.length){
+        // The official Qobuz category takes priority over independent hints.
+        s.ep=unique(releases);s.epSource='qobuz';
+      }
+      s.epDone=true;
       s.epShortPreview=!!data?._shortPreview;
       // Retain real provider entries from partial responses without a warning overlay.
       s.epError=data?._partial&&!s.epShortPreview&&!s.ep.length?'partial':'';
+      if(!s.ep.length)void startIndependentArtistCatalog(id,token);
     },(s,error)=>{
       s.epDone=true;
       const message=String(error?.message||'');
@@ -212,6 +258,7 @@
       }else{
         s.epError=/401|403|405|unauthori[sz]|forbidden|access denied|not permitted|app.?id/i.test(message)
           ?'authorization':'unavailable';
+        void startIndependentArtistCatalog(id,token);
       }
     });
   }
@@ -239,7 +286,11 @@
     // A previous page visit may have invalidated its in-flight responses.
     // Reuse completed metadata, but restart any unfinished categories.
     if(cached&&cached.loaded&&!cached.loading&&cached.epDone&&
-       cached.pageDone&&cached.compDone)return;
+       cached.pageDone&&cached.compDone&&
+       (!cached.externalStarted||cached.externalDone))return;
+    if(cached?.externalStarted&&!cached.externalDone){
+      cached.externalStarted=false;cached.externalLoading=false;
+    }
     const state=cached||{loading:true,top:[],similar:[],ep:[],compilation:[],following:false};
     state.loading=true;
     state.pageDone=false;
@@ -250,9 +301,14 @@
     if(byArtist.size>16)byArtist.delete(byArtist.keys().next().value);
     const token=++requestToken;
     const top=extend(id,token,'artistExtras',{},function(s,data){
-      s.top=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id);
-      // Only the official Qobuz ranked top_tracks collection is accepted.
-      s.topError=String(data?._topError||(s.top.length?'':data?._pageError||''));
+      const official=normalizedPopularTracks(data?.top_tracks||data?.topTracks,id);
+      // Prefer the official Qobuz ranking; never erase already matched
+      // independent chart results when a slower Qobuz request returns empty.
+      if(official.length){s.top=official;s.topSource='qobuz';s.topError='';}
+      else if(!s.top.length){
+        s.topError=String(data?._topError||data?._pageError||'');
+        void startIndependentArtistCatalog(id,token);
+      }
       s.similar=asList(data?.similar_artists||data?.similarArtists).filter(x=>safeId(x))
         .map(a=>portraitCache.get(safeId(a))?
           {...a,picture:portraitCache.get(safeId(a))}:a);
@@ -284,7 +340,9 @@
       s.similarError=String(data?._similarError||(
         s.similar.length?'':data?._pageError||''));
       s.pageDone=true;
-    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.topError='Request failed';s.similarError='Request failed';});
+    },(s)=>{s.pageDone=true;s.pageError='Request failed';s.similarError='Request failed';
+      if(!s.top.length){s.topError='Request failed';void startIndependentArtistCatalog(id,token);}
+    });
     const ep=loadTypedEps(id,token);
     const compilations=extend(id,token,'artistReleaseType',{releaseType:'compilation'},function(s,data){
       s.compilation=unique([...s.compilation,...asList(data?.albums||data?.releases||data).map(x=>normalizedRelease(x,'compilation')).filter(Boolean)]);
@@ -327,7 +385,9 @@
       +(count>8?'<button type="button" data-artist-more="'+key+'" aria-expanded="false">See all ›</button>':'')
       +'</header>'
       +(count?'<div class="aurel-release-strip">'+items.map(releaseCard).join('')+'</div>'
-       :'<p class="aurel-artist-placeholder">'+(loading?'Loading releases…':errorMessage||empty)+'</p>')
+       :'<p class="aurel-artist-placeholder">'+(loading?'Loading releases…':
+         errorMessage||empty+(key==='eps'?
+          ' <button type="button" data-artist-retry="eps">Retry</button>':''))+'</p>')
       +(count&&error&&!category?'<p class="aurel-artist-placeholder">'+errorMessage+'</p>':'')
       +'</section>';
   }
@@ -339,9 +399,10 @@
       +'<small>'+html(t.album?.title||artistLabel(t))+'</small></span>'
       +'<span class="aurel-popular-play" aria-hidden="true">▶</span></button>';
   }
-  function popularSection(list,loading,error){
+  function popularSection(list,loading,error,source){
     return '<section class="aurel-artist-section" data-artist-section="popular">'
       +'<header class="aurel-artist-section-heading"><h2>'+'Most popular'+'</h2>'
+      +(source==='deezer'?'<small class="aurel-artist-data-source">Deezer ranking · Qobuz playback</small>':'')
       +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
       +'</header>'
       +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i)).join('')+'</div>'
@@ -412,7 +473,7 @@
     const separate=new Set([...eps,...compilations].map(safeId));
     const albums=base.filter(x=>!separate.has(safeId(x)));
     const all=unique([...base,...eps,...compilations,...(state.lastRelease?[state.lastRelease]:[])]);
-    const last=all.slice().sort((a,b)=>releaseDate(b).localeCompare(releaseDate(a)))[0];
+    const last=canonicalLatestRelease(all);
     const top=state.top||[];
     const avatar=art(o,'aurel-artist-photo')||'<span class="aurel-artist-photo aurel-art-placeholder">♪</span>';
     const fullBio=window.AurelArtistInfoData(id)?.biography||'';
@@ -431,12 +492,15 @@
       +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus',19)+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
       +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
       +'</div></header>'
-      +popularSection(top,!state.pageDone,state.topError)
-      +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
+      +popularSection(top,!state.pageDone||!!state.externalLoading,state.topError,state.topSource)
+      +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest listed release</h2></header>'
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
       +section('EPs & Singles',eps,'eps',
-        'No verified EPs or singles available from this connection',!state.epDone,state.epError)
+        'No verified EPs or singles available from this connection',
+        !state.epDone||!!state.externalLoading,state.epError)
+      +(state.epSource==='deezer'&&eps.length?
+        '<p class="aurel-release-preview-note">Deezer categories · Qobuz albums</p>':'')
       +(state.epShortPreview&&eps.length?'<p class="aurel-release-preview-note">'+
         'EPs and singles identified by Qobuz release metadata.</p>':'')
       +(compilations.length?section('Compilations',compilations,'compilations','',false):'')
@@ -461,6 +525,7 @@
         const state=byArtist.get(id);
         if(state){
           state.epDone=false;state.epError='';
+          state.externalStarted=false;state.externalDone=false;state.externalLoading=false;
           rerender(id);
           void loadTypedEps(id,requestToken);
         }else loadExtras(id);

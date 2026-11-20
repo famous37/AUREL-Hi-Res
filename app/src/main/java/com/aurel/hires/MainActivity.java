@@ -1764,6 +1764,22 @@ public final class MainActivity extends Activity {
                             }
                             data=extras;break;
                         }
+                        case "artistPublicFallback": {
+                            // Independent public ranking/category hints are mapped back
+                            // to Qobuz IDs. They never authorize streaming themselves.
+                            String ownerId=p.getString("id");
+                            String name=p.optString("name","");
+                            AurelArtistDiscoveryFallback discover=new AurelArtistDiscoveryFallback(
+                                (endpoint,params)->{
+                                    try{return catalog(endpoint,params);}
+                                    catch(Exception error){
+                                        if(secure.get("libraryToken").isEmpty())throw error;
+                                        return api.library(endpoint,params);
+                                    }
+                                });
+                            data=discover.discover(ownerId,name);
+                            break;
+                        }
                         case "artistReleaseType": {
                             String releaseType=p.optString("releaseType","");
                             if(!releaseType.equals("epSingle") && !releaseType.equals("compilation")
