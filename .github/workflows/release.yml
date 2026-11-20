@@ -199,7 +199,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\\n' \
+          printf '%s\n' \
             "**AUREL Hi-Res v${AUREL_VERSION} — library tools and catalogue loading fixes" \
             '' \
             '- Library Import / Export is available inside Library only, in a compact expandable panel.' \
