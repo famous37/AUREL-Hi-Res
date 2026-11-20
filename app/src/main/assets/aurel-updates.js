@@ -6,7 +6,7 @@ let info=null,notified='';
 const autoOn=()=>{try{return localStorage.getItem(AUTO_KEY)!=='off';}catch(_){return true;}};
 const escapeText=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function panelMarkup(){
- const s=info||{},status=s.status||'idle',installed=escapeText(s.installedVersion||'1.1.89');
+ const s=info||{},status=s.status||'idle',installed=escapeText(s.installedVersion||'1.1.90');
  const latest=escapeText(s.latestVersion||'—'),supported=s.supported!==false;
  const message={
   idle:'Check for updates.',
