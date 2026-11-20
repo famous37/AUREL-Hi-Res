@@ -7,8 +7,8 @@ const css=load('aurel-seamless-theme.css'),glass=load('aurel-glass-polish.css'),
  activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8'),
  gradle=fs.readFileSync('app/build.gradle','utf8');
 
-assert.match(gradle,/versionCode\s+117/);
-assert.match(gradle,/versionName[^\n]*'1\.2\.0'/);
+assert.match(gradle,/versionCode\s+118/);
+assert.match(gradle,/versionName[^\n]*'1\.2\.1'/);
 assert.match(css,/@media\s*\(orientation:portrait\)[\s\S]*?\.murglar-header\.aurel-listening-nav\{[\s\S]*?position:absolute!important/);
 assert.match(css,/pointer-events:none!important;[\s\S]*?\.murglar-header-button/);
 assert.match(css,/pointer-events:auto!important/);
@@ -37,6 +37,7 @@ new Function(aurora);new Function(rhythm);
 // True FFT pulses must change shared canvas brightness and transform.
 // Crucially, elapsed time alone must never do so.
 const s=new Map(),classes=new Set(),requests=[];
+let fakeNow=1000;
 const cover={};let halo;
 const art={querySelector:q=>q==='.murglar-cover'?cover:q==='.aurel-aurora-halo'?halo:null,
  insertBefore(el){halo=el;}};
@@ -54,15 +55,18 @@ const context={app,document,window:{
  AurelEvent:()=>{},AurelBeatFrame:()=>{},
  AurelCoverRhythm:{setAuraCaptureWanted:(enabled,ask)=>requests.push([enabled,ask])}
  },image:o=>o.image,localStorage:{getItem:()=>null,setItem(){}},
- renderSettings(){},drawOverlay(){},Math,Number,Date};
+ renderSettings(){},drawOverlay(){},Math,Number,Date:{now:()=>fakeNow}};
 vm.runInNewContext(aurora,context);
 assert.equal(s.get('--aurel-reactive-scale'),'1','No fake music animation before FFT');
 context.window.AurelBeatFrame(.9);
-assert(Number(s.get('--aurel-reactive-scale'))>1.03,'Real FFT moves full artwork canvas');
+const firstScale=Number(s.get('--aurel-reactive-scale'));
+assert(firstScale>1.01,'Real FFT moves canvas with smoothed, nonflashing attack');
 assert(classes.has('aurel-aurora-beat-live'),'Native audio frame marks active live state');
+fakeNow+=85;
 context.window.AurelBeatFrame(0);
-assert(Number(s.get('--aurel-reactive-scale'))<1,'Actual silence reduces scale');
+assert(Number(s.get('--aurel-reactive-scale'))<firstScale,
+ 'Actual silence reduces the real FFT envelope gradually, not in one visual flash');
 app.player.playing=false;context.window.AurelEvent('player',{});
 assert.equal(s.get('--aurel-reactive-scale'),'1','Pause restores static canvas');
 assert.equal(requests.at(-1)?.[0],false,'Pause releases native audio analyzer');
-console.log('AUREL 1.2.0 floating header, continuous canvas, native FFT watchdog, true-frame scale and explicit diagnostics PASS');
+console.log('AUREL 1.2.1 floating header, continuous canvas, native FFT watchdog, true-frame scale and explicit diagnostics PASS');

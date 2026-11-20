@@ -1,5 +1,5 @@
 name: Publish permanently signed AUREL release
-# v1.2.0: stable album geometry, safe expandable drawers, robust Ukrainian settings and native media color.
+# v1.2.1: persistent seek rail, no artwork remount on drawer toggles, smooth real FFT.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
@@ -200,7 +200,7 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — stable cover, expandable info drawers, native media color and resilient Ukrainian settings" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — reliable seek progress, flicker-free information sheets and smooth FFT glow" \
             '' \
             '- All five Now Playing action glyphs have uniform visual size, including Share.' \
             '- Public Deezer Single/EP classifications are matched against actual, artist-verified Qobuz album IDs before display; Qobuz provides all playback and album navigation.' \
@@ -215,7 +215,10 @@ jobs:
             '- Ukrainian settings panels use stable nontranslated identities, retaining their five categories; additional interface translations.' \
             '- Optional album-derived colors are supplied to the Android AUREL media notification where Android SystemUI permits.' \
             '- Existing real-FFT ambient effects use only composited transforms, not timers or fabricated beats.' \
-            '- Android versionCode 117, versionName 1.2.0, original permanently signed certificate.' \
+            '- Keep the same album cover DOM when opening any information sheet; a short GPU-only enter transition removes flashes.' \
+            '- Independent WebView seek fill stays visible even when Android fails to paint its range gradient.' \
+            '- Real FFT envelope uses attack/release smoothing and limits CSS writes to ~25 fps.' \
+            '- Android versionCode 118, versionName 1.2.1, original permanently signed certificate.' \
             '' \
             "Install v${AUREL_VERSION} over v1.2.0; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md

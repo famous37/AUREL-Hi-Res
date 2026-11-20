@@ -8,6 +8,7 @@ function classes(){
 }
 function setup(saved=null){
  let hidden=false,reduced=false,halo=null,inserts=0,forward=0;
+ let tick=1000;
  const classList=classes(),styles=new Map(),events={},requests=[];
  const cover={className:'murglar-cover'};
  const art={querySelector:q=>q==='.murglar-cover'?cover:q==='.aurel-aurora-halo'?halo:null,
@@ -28,13 +29,13 @@ function setup(saved=null){
    AurelEvent:type=>'event:'+type,
    AurelCoverRhythm:{setAuraCaptureWanted:(v,ask)=>requests.push({v,ask})}
  };
- const context={window,document,app,Date,Number,Math,
+ const context={window,document,app,Date:{now:()=>tick},Number,Math,
    image:track=>track?.image||'',
    renderSettings:()=>{},drawOverlay:()=>{},
    localStorage:{getItem:key=>store.get(key)||null,setItem:(key,v)=>store.set(key,v)}};
  vm.runInNewContext(source,context);
  return {app,window,context,overlay,styles,classList,events,store,requests,
-   inserts:()=>inserts,forward:()=>forward,
+   inserts:()=>inserts,forward:()=>forward,advance:ms=>{tick+=ms},
    setReduced:v=>{reduced=v},setHidden:v=>{hidden=v}};
 }
 const x=setup();
@@ -68,19 +69,25 @@ assert.deepEqual(x.requests[x.requests.length-1],{v:true,ask:false},
   'Normal audio enables genuine FFT capture independently of cover-scale toggle');
 x.window.AurelBeatFrame(.94);
 assert.equal(x.forward(),2,'Original cover FFT callback must be preserved');
-assert.ok(Number(x.styles.get('--aurel-aurora-opacity'))>.9,
-  'Real bass onset brightens multicolor light');
+const initialGlow=Number(x.styles.get('--aurel-aurora-opacity'));
+assert.ok(initialGlow>.55&&initialGlow<.90,
+  'Real bass onset responds immediately while attack filtering prevents flash');
 assert.equal(x.classList.contains('aurel-aurora-beat-live'),true);
 assert.equal(x.styles.get('--aurel-aurora-rotation'),'12deg',
   'Genuine bass transient, not clock, shifts album-color gradient');
 assert.ok(x.styles.has('--aurel-aurora-glide-x')&&x.styles.has('--aurel-aurora-glide-y'),
   'Real FFT moves both shared gradient fields without fake keyframes');
+x.advance(85);
 x.window.AurelBeatFrame(.93);
 assert.equal(x.styles.get('--aurel-aurora-rotation'),'12deg',
   'Constant bass envelope should not simulate new onsets');
+const sustainedGlow=Number(x.styles.get('--aurel-aurora-opacity'));
+assert.ok(sustainedGlow>=initialGlow,'A sustained real FFT onset builds its glow progressively');
+x.advance(85);
 x.window.AurelBeatFrame(0);
-assert.equal(x.styles.get('--aurel-aurora-opacity'),'0.340',
-  'Low-energy frames dim the halo');
+const decay=Number(x.styles.get('--aurel-aurora-opacity'));
+assert.ok(decay<sustainedGlow&&decay>.340,
+  'Low-energy FFT dims smoothly, without snapping to the rest brightness');
 x.app.player.playing=false;x.window.AurelEvent('player',{});
 assert.equal(x.classList.contains('aurel-aurora-playing'),false);
 assert.equal(x.classList.contains('aurel-aurora-beat-live'),false);

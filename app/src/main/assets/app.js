@@ -408,7 +408,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel" data-aurel-settings-panel="about"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.2.0</strong></div></div>
+ <div class="panel" data-aurel-settings-panel="about"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.2.1</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -833,8 +833,14 @@ document.addEventListener('pointerdown',e=>{
 document.addEventListener('input',e=>{
  if(e.target?.id!=='progress')return;
  app.dragging=true;
+ const next=Math.max(0,Number(e.target.value)||0);
+ const max=Math.max(0,Number(e.target.max)||0);
+ const ratio=max?Math.max(0,Math.min(1,next/max)):0;
+ const fill=e.target.parentElement?.querySelector('.aurel-seek-rail-fill');
+ if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
+ e.target.style?.setProperty?.('--played',(ratio*100).toFixed(2)+'%');
  const text=$('#elapsed');
- if(text)text.textContent=duration(Math.max(0,Number(e.target.value)||0)/1000);
+ if(text)text.textContent=duration(next/1000);
 });
 document.addEventListener('change',e=>{
  if(e.target?.id!=='progress')return;
