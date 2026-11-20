@@ -63,7 +63,10 @@
       String(t.artist?.id||''),String(artistLabel(t)||''),String(src||''),
       String(t.available??''),String(p.error||'')]);
     const existing=overlay.querySelector('.murglar-view');
-    if(existing&&active!==priorSheet&&!overlay.classList.contains('hidden')&&
+    if(existing&&typeof existing.classList?.toggle==='function'&&
+       typeof existing.querySelectorAll==='function'&&
+       typeof existing.insertAdjacentHTML==='function'&&
+       active!==priorSheet&&!overlay.classList.contains('hidden')&&
        overlay.dataset.openIdentity===stableIdentity){
       existing.classList.toggle('murglar-sheet-open',!!active);
       existing.querySelectorAll('.murglar-quick-actions [data-player-sheet]').forEach(button=>{
