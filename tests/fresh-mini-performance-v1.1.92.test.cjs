@@ -44,7 +44,7 @@ assert(mini.includes('if(time-aurelLastMiniFrame>=95)'));
 assert(mini.includes("window.AurelProgressClock?.accept(p)"));
 assert(mini.includes("if(fill.style.transform!==next)"));
 assert(mini.includes('document.hidden'));
-assert(mini.includes("if(m.dataset.miniTrack!==id"));
+assert(mini.includes("const miniRebuilt=m.dataset.miniTrack!==id"));
 assert(css.includes('height:6px!important'));
 assert(css.includes('inset:auto 12px 5px 12px!important'));
 assert(css.includes('--aurel-mini-progress-accent'));
