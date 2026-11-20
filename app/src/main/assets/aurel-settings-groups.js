@@ -2,7 +2,7 @@
 (function installAurelSettingsGroups(){
  'use strict';
  const KEY='aurel-settings-open-v1';
- const names={outputs:'Audio outputs',audio:'Playback',accounts:'Accounts & library',app:'Appearance & app'};
+ const names={outputs:'Audio outputs',audio:'Playback',accounts:'Accounts',app:'Appearance & app'};
  const glyphs={
   outputs:'<path d="M11 5 6 9H3v6h3l5 4V5ZM15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/>',
   audio:'<path d="M6 7v10M12 3v18M18 7v10M3 11v2M21 11v2"/>',

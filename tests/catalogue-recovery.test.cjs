@@ -1,0 +1,40 @@
+'use strict';
+// Regression invariants for Qobuz release categories and home discovery.
+// These offline tests do not claim that Qobuz has granted server-side access.
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.join(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const api=read('app/src/main/java/com/aurel/hires/QobuzApi.java');
+const main=read('app/src/main/java/com/aurel/hires/MainActivity.java');
+const disc=read('app/src/main/assets/aurel-discography.js');
+const home=read('app/src/main/assets/modern.js');
+const source=read('app/src/main/assets/app.js');
+
+assert.match(api,/private JSONObject checkedFeatured\(JSONObject response\)/);
+assert.match(api,/response\.optJSONArray\("items"\)/);
+assert.match(api,/response\.optJSONObject\("releases"\)/);
+assert.match(api,/response\.optJSONArray\("albums"\)/);
+assert.match(api,/checkedFeatured\(catalog\("discover\/newReleases"/);
+assert.match(api,/checkedFeatured\(catalog\("album\/getFeatured"/);
+assert.match(api,/String libraryAppId=store\.get\("libraryAppId"\)/);
+assert.match(api,/String streamingAppId=streamId\(\),streamingToken=streamToken\(\)/);
+assert.match(api,/false,resolveAppId\("?"\),""/);
+assert.doesNotMatch(api,/"735532640"|"312369995"/);
+assert.match(main,/catch\(Exception primaryError\)\{data=api\.publicFeaturedReleases\(24\);\}/);
+assert.match(main,/artistInformation\("artist\/getReleasesList",params\)/);
+assert.match(main,/artistInformation\("artist\/getReleasesGrid",params\)/);
+assert.match(main,/offset\+=items\.length\(\)/);
+assert.match(main,/response\.optBoolean\("has_more"/);
+assert.match(main,/private JSONObject artistReleaseFromAll\(/);
+assert.match(main,/if\(identified==0\)throw new Exception\("Qobuz omitted release types"\)/);
+assert.match(main,/artistPageReleases\(artistId,releaseType\)/);
+assert.match(main,/artistTypedAlbumsFallback\(artistId,releaseType\)/);
+assert.match(disc,/s\.epError=data\?\._partial\?'partial':''/);
+assert.match(disc,/401\|403\|405/);
+assert.match(disc,/count&&error/);
+assert.match(home,/data-nav="library">Your library/);
+assert.match(home,/data-refresh>Retry/);
+assert.match(source,/app\.discoverStatus=/);
+console.log('Qobuz discovery / artist release recovery invariants PASS');

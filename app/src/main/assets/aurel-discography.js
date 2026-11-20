@@ -171,11 +171,12 @@
     return extend(id,token,'artistReleaseType',{releaseType:'epSingle'},function(s,data){
       const releases=asList(data?.albums||data?.releases||data)
         .map(x=>normalizedRelease(x,'epSingle')).filter(Boolean);
-      s.ep=unique([...s.ep,...releases]);s.epDone=true;s.epError='';
+      s.ep=unique([...s.ep,...releases]);s.epDone=true;
+      s.epError=data?._partial?'partial':'';
     },(s,error)=>{
       s.epDone=true;
       const message=String(error?.message||'');
-      s.epError=/401|403|unauthori[sz]|forbidden|access denied|not permitted|appid/i.test(message)
+      s.epError=/401|403|405|unauthori[sz]|forbidden|access denied|not permitted|app.?id/i.test(message)
         ?'authorization':'unavailable';
     });
   }
@@ -255,6 +256,7 @@
     const message=category
       ?(error==='authorization'
         ?'Qobuz has not authorized this release category.'
+        :error==='partial'?'Only part of this release category could be loaded.'
         :'Some release categories could not be loaded.')
       :'Release information could not be loaded.';
     const errorMessage=error?'<span>'+message+
@@ -265,6 +267,7 @@
       +'</header>'
       +(count?'<div class="aurel-release-strip">'+items.map(releaseCard).join('')+'</div>'
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading releases…':errorMessage||empty)+'</p>')
+      +(count&&error?'<p class="aurel-artist-placeholder">'+errorMessage+'</p>':'')
       +'</section>';
   }
   function songRow(t,i){

@@ -280,63 +280,83 @@ final class QobuzApi {
         if(profile==null)result.put("profile_unavailable",true);
         return result;
     }
-    /** Fallback to documented album discovery when a newer discover endpoint
-     *  is restricted to some Qobuz client capabilities.
+    /** Normalize genuine Qobuz album-list envelopes, without synthesizing music. */
+    private JSONObject checkedFeatured(JSONObject response) throws Exception {
+        JSONObject albums=response.optJSONObject("albums");
+        if(albums!=null&&albums.optJSONArray("items")!=null)return response;
+        org.json.JSONArray items=response.optJSONArray("albums");
+        if(items==null)items=response.optJSONArray("items");
+        JSONObject releases=response.optJSONObject("releases");
+        if(items==null&&releases!=null)items=releases.optJSONArray("items");
+        if(items==null)throw new Exception("Qobuz discovery response has no album list");
+        JSONObject normalized=new JSONObject(response.toString());
+        normalized.put("albums",new JSONObject().put("items",items).put("total",items.length()));
+        return normalized;
+    }
+
+    /** Try authorized discovery first, then the documented featured-album route.
+     * Never retry a rejected (HTTP 405) App ID with another endpoint.
      */
     JSONObject discoverReleases(int limit)throws Exception{
         int safeLimit=Math.max(1,Math.min(48,limit));
         try{
-            return catalog("discover/newReleases",new JSONObject().put("limit",safeLimit));
+            return checkedFeatured(catalog("discover/newReleases",
+                new JSONObject().put("limit",safeLimit)));
         }catch(ApiException e){
             if(e.status!=401&&e.status!=403&&e.status!=404&&e.status!=400)throw e;
-            return catalog("album/getFeatured",
-                new JSONObject().put("type","new-releases").put("limit",safeLimit));
+        }catch(Exception shapeError){
+            // A valid session may get a different response shape for this endpoint.
         }
+        return checkedFeatured(catalog("album/getFeatured",
+            new JSONObject().put("type","new-releases").put("limit",safeLimit)));
     }
 
-    /** Public Qobuz editorial catalogue when the gateway does not expose
-     * featured albums. Uses the current public web-client App ID and does
-     * not send account credentials.
-     * This is not an attempt to access a forbidden Zarz route.
+    /** Discover with the authorized library first, then streaming, then the
+     * current public Qobuz Web App ID. No token is sent to public endpoints.
      */
     JSONObject publicFeaturedReleases(int limit)throws Exception{
         int safeLimit=Math.max(1,Math.min(48,limit));
         JSONObject query=new JSONObject().put("type","new-releases").put("limit",safeLimit);
-        // A connected account explicitly authorizes its own catalogue use.
-        // Prefer that to the unrelated public Web App ID, which Qobuz can
-        // reject with HTTP 405 even when the signed Mornye gateway is valid.
         Exception authorizedFailure=null;
         String libraryAppId=store.get("libraryAppId");
         String libraryAuthToken=store.get("libraryToken");
         if(libraryAppId.matches("[0-9]{6,15}")&&!libraryAuthToken.isEmpty()){
             try{
-                JSONObject page=request("album/getFeatured",query,false,
-                    libraryAppId,libraryAuthToken);
-                JSONObject albums=page.optJSONObject("albums");
-                if(albums!=null&&albums.optJSONArray("items")!=null)return page;
-                throw new Exception("Unexpected library featured-album response");
-            }catch(Exception denied){authorizedFailure=denied;}
+                return checkedFeatured(request("discover/newReleases",
+                    new JSONObject().put("limit",safeLimit),false,libraryAppId,libraryAuthToken));
+            }catch(Exception denied){
+                authorizedFailure=denied;
+                if(!(denied instanceof ApiException)||
+                    ((ApiException)denied).status!=405){
+                    try{return checkedFeatured(request("album/getFeatured",query,false,
+                        libraryAppId,libraryAuthToken));}
+                    catch(Exception featuredDenied){authorizedFailure=featuredDenied;}
+                }
+            }
         }
         String streamingAppId=streamId(),streamingToken=streamToken();
         if(streamingAppId.matches("[0-9]{6,15}")&&!streamingToken.isEmpty()){
             try{return discoverReleases(safeLimit);}
             catch(Exception denied){authorizedFailure=denied;}
         }
-        // Public metadata never carries account cookies or user tokens. Its
-        // Web App ID is not interchangeable with a user-provided streaming ID.
+        // Never replace a rejected public App ID with a guessed legacy value.
         try{
-            JSONObject page=request("album/getFeatured",query,false,
-                resolveAppId(""),"");
-            JSONObject albums=page.optJSONObject("albums");
-            if(albums==null||albums.optJSONArray("items")==null)
-                throw new Exception("Qobuz public featured-albums endpoint returned no album list");
-            return page;
+            String publicId=resolveAppId("");
+            try{
+                return checkedFeatured(request("discover/newReleases",
+                    new JSONObject().put("limit",safeLimit),false,publicId,""));
+            }catch(Exception denied){
+                if(denied instanceof ApiException&&((ApiException)denied).status==405)
+                    throw denied;
+                return checkedFeatured(request("album/getFeatured",query,
+                    false,resolveAppId(""),""));
+            }
         }catch(Exception publicError){
             String hint=authorizedFailure==null?
                 "No connected Qobuz account provided a permitted featured catalogue.":
                 "The connected account and public featured catalogue both failed.";
             throw new Exception("Fresh releases unavailable: "+hint+
-                " Qobuz authorization is required for this source; the regular search and playback can remain functional.");
+                " Qobuz authorization is required for this source; regular search and playback can remain functional.");
         }
     }
 

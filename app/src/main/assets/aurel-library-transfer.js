@@ -13,7 +13,7 @@ let lastLibraryConnection=null;
 const state={
  status:{busy:false,stage:'idle',message:'',done:0,total:0,
   counts:{artists:0,albums:0,tracks:0,playlists:0}},
- opened:false,active:'albums',selected:new Set(TYPES),
+ toolsOpen:false,opened:false,active:'albums',selected:new Set(TYPES),
  offset:0,total:0,items:[],loading:false,playlist:null,
  pending:'',serial:0
 };
@@ -29,18 +29,17 @@ const esc=value=>html(String(value==null?'':value));
 function counts(){return state.status.counts||{};}
 function root(){return document.getElementById('screen');}
 function mount(){
- if(!['settings','library'].includes(app.nav)||app.selected)return;
+ // The library manager belongs exclusively to Library; never add it to Settings.
+ if(app.nav!=='library'||app.selected)return;
  const host=root();if(!host||host.querySelector('#aurel-library-transfer'))return;
- if(app.nav==='settings'&&!host.querySelector('.aurel-settings-heading'))return;
  const node=document.createElement('section');
  node.id='aurel-library-transfer';
- node.className='panel aurel-ltm';
- if(app.nav==='library'){
-  const anchor=host.querySelector('.collection-note');
-  if(anchor)anchor.after(node);else host.prepend(node);
- }else{
-  const anchor=host.querySelector('[data-aurel-stage2-settings]');
-  if(anchor)anchor.before(node);else host.appendChild(node);
+ node.className='aurel-ltm';
+ const anchor=host.querySelector('.collection-note');
+ if(anchor)anchor.after(node);
+ else {
+  const tabs=host.querySelector('.library-tabs');
+  if(tabs)tabs.before(node);else host.prepend(node);
  }
  draw();
 }
@@ -100,56 +99,60 @@ function draw(){
  const source=!!app.session?.libraryConnected;
  const progress=Number(state.status.done)||0,maximum=Math.max(0,Number(state.status.total)||0);
  const percentage=maximum?Math.min(100,Math.round(100*progress/maximum)):0;
- node.innerHTML='<div class="aurel-ltm-title"><span class="aurel-ltm-mark">▦</span><div>'+
-  '<h3>'+esc(tr('Library Import / Export','Імпорт та експорт бібліотеки'))+'</h3>'+
-  '<p>'+esc(tr('Independent local copy of your Qobuz collections',
-    'Незалежна локальна копія колекцій Qobuz'))+'</p></div></div>'+
-  '<div class="aurel-ltm-counts">'+summary()+'</div>'+
-  '<p class="aurel-ltm-note">'+esc(source?tr(
-   'Source: connected separate Qobuz library account. Streaming account stays unchanged.',
-   'Джерело: підключений окремий Qobuz-акаунт. Акаунт відтворення не змінюється.'):
-   tr('To fetch another Qobuz account, connect it under Settings → Personal Qobuz library. You can still import a saved JSON.',
-   'Для перенесення з іншого Qobuz-акаунта підключіть його в Налаштування → Особиста бібліотека Qobuz. Імпорт JSON доступний і без цього.'))+'</p>'+
-  '<div class="aurel-ltm-select">'+TYPES.map(t=>
-   '<label><input type="checkbox" data-ltm-kind="'+t+'" '+
-   (state.selected.has(t)?'checked':'')+(busy?' disabled':'')+'><span>'+esc(label(t))+'</span></label>').join('')+'</div>'+
-  '<div class="aurel-ltm-actions">'+
-  button('sync',tr('Import from Qobuz','Завантажити з Qobuz'),
-    busy||!source||!state.selected.size)+
-  button('export',tr('Export JSON','Експорт JSON'),busy)+
-  button('import',tr('Import JSON · merge','Імпорт JSON · об’єднати'),busy)+
-  button('replace',tr('Restore · replace local copy','Відновити · замінити копію'),busy)+
-  '</div>'+
-  (busy?'<div class="aurel-ltm-progress"><progress max="100" value="'+percentage+
-   '"></progress><span>'+esc(state.status.message||'Working…')+
-    (maximum?' · '+progress+'/'+maximum:'')+'</span>'+
-    button('cancel',tr('Cancel transfer','Скасувати перенесення'))+'</div>':'')+
-  (!busy&&state.status.message?'<p class="aurel-ltm-status" role="status">'+
-    esc(state.status.message)+'</p>':'')+
-  (state.pending?'<div class="aurel-ltm-confirm" role="alert"><p>'+
-   esc(state.pending==='clear'
-    ?tr('Clear only the local copy? Qobuz will not be modified.',
-       'Очистити лише локальну копію? Дані Qobuz не зміняться.')
-    :tr('Replace the local library with the JSON file? Make an export first.',
-       'Замінити локальну бібліотеку вмістом JSON? Спочатку збережіть копію.'))+'</p>'+
-   button('confirm',tr('Confirm','Підтвердити'))+
-   button('cancel-confirm',tr('Keep existing data','Зберегти дані'))+'</div>':'')+
-  '<div class="aurel-ltm-browser-head">'+
-    button('toggle',state.opened?tr('Hide local library','Сховати локальну бібліотеку'):
-      tr('Browse local library','Переглянути локальну бібліотеку'))+
-    button('clear',tr('Clear local copy','Очистити локальну копію'),busy)+'</div>'+
+ const tools=state.toolsOpen;
+ node.innerHTML='<button type="button" class="aurel-ltm-entrypoint" data-ltm-action="tools" aria-expanded="'+String(tools)+'">'+
+   '<span class="aurel-ltm-compact-title"><strong>'+esc(tr('Library Import / Export','Імпорт та експорт бібліотеки'))+'</strong>'+
+   '<small>'+esc(tr('Import · Export · Local copy','Імпорт · Експорт · Локальна копія'))+'</small></span>'+
+   '<span class="aurel-ltm-entry-chevron" aria-hidden="true">'+(tools?'⌃':'⌄')+'</span></button>'+
+ (tools?'<div class="aurel-ltm-body">'+
+   '<div class="aurel-ltm-counts">'+summary()+'</div>'+
+   '<div class="aurel-ltm-actions">'+
+     button('sync',tr('Import from Qobuz','Імпорт із Qobuz'),busy||!source||!state.selected.size)+
+     button('import',tr('Import JSON','Імпорт JSON'),busy)+
+     button('export',tr('Export JSON','Експорт JSON'),busy)+
+   '</div>'+
+   (!source?'<p class="aurel-ltm-hint">'+esc(tr(
+     'To import from Qobuz, connect your library account in Settings → Accounts.',
+     'Для імпорту з Qobuz під’єднайте акаунт у Налаштуваннях → Облікові записи.'))+'</p>':'')+
+   '<details class="aurel-ltm-categories"><summary>'+esc(tr(
+      'Select Qobuz categories','Вибрати категорії Qobuz'))+'</summary>'+
+     '<div class="aurel-ltm-select">'+TYPES.map(t=>
+      '<label><input type="checkbox" data-ltm-kind="'+t+'" '+
+      (state.selected.has(t)?'checked':'')+(busy?' disabled':'')+'><span>'+
+      esc(label(t))+'</span></label>').join('')+'</div></details>'+
+   (busy?'<div class="aurel-ltm-progress"><progress max="100" value="'+percentage+
+     '"></progress><span>'+esc(state.status.message||tr('Importing…','Імпортування…'))+
+     (maximum?' · '+progress+'/'+maximum:'')+'</span>'+
+     button('cancel',tr('Cancel','Скасувати'))+'</div>':'')+
+   (!busy&&state.status.message?'<p class="aurel-ltm-status" role="status">'+
+     esc(state.status.message)+'</p>':'')+
+   (state.pending?'<div class="aurel-ltm-confirm" role="alert"><p>'+
+     esc(state.pending==='clear'
+      ?tr('Delete the local copy? Your Qobuz library remains unchanged.',
+          'Видалити локальну копію? Бібліотека Qobuz не зміниться.')
+      :tr('Replace the local copy with the selected JSON file?',
+          'Замінити локальну копію вибраним JSON-файлом?'))+'</p>'+
+     button('confirm',tr('Confirm','Підтвердити'))+
+     button('cancel-confirm',tr('Cancel','Скасувати'))+'</div>':'')+
+   '<div class="aurel-ltm-browser-head">'+
+     button('toggle',state.opened?tr('Hide saved music','Сховати збережене'):
+       tr('Browse saved music','Переглянути збережене'))+'</div>'+
    (state.opened?'<div class="aurel-ltm-browser">'+
-    '<div class="aurel-ltm-tabs">'+TYPES.map(t=>'<button type="button" data-ltm-tab="'+t+
-       '" class="'+(state.active===t?'active':'')+'">'+esc(label(t))+'</button>').join('')+'</div>'+
-    contentRows()+
-    (!state.playlist&&state.total>30?'<div class="aurel-ltm-pager">'+
-      button('prev','‹',state.offset===0)+
-      '<span>'+(state.offset+1)+'–'+Math.min(state.offset+30,state.total)+' / '+state.total+'</span>'+
-      button('next','›',state.offset+30>=state.total)+'</div>':'')+
-    '</div>':'')+
-  '<p class="aurel-ltm-note">'+esc(tr(
-    'JSON contains catalogue metadata only, never passwords, session tokens, signed URLs or audio. Local playlists are not written to Qobuz. Playing saved tracks requires a permitted online source.',
-    'JSON містить лише метадані каталогу: без паролів, токенів, підписаних URL та аудіо. Локальні плейлисти не змінюють Qobuz. Для відтворення потрібне авторизоване онлайн-джерело.'))+'</p>';
+     '<div class="aurel-ltm-tabs">'+TYPES.map(t=>
+       '<button type="button" data-ltm-tab="'+t+'" class="'+(state.active===t?'active':'')+'">'+
+       esc(label(t))+'</button>').join('')+'</div>'+
+     contentRows()+
+     (!state.playlist&&state.total>30?'<div class="aurel-ltm-pager">'+
+       button('prev','‹',state.offset===0)+
+       '<span>'+(state.offset+1)+'–'+Math.min(state.offset+30,state.total)+' / '+state.total+'</span>'+
+       button('next','›',state.offset+30>=state.total)+'</div>':'')+
+     '</div>':'')+
+   '<details class="aurel-ltm-advanced"><summary>'+esc(tr('More options','Інші дії'))+'</summary>'+
+     '<div class="aurel-ltm-secondary-actions">'+
+       button('replace',tr('Replace from JSON','Замінити з JSON'),busy)+
+       button('clear',tr('Clear local copy','Очистити локальну копію'),busy)+
+     '</div></details>'+
+   '</div>':'');
  window.AurelLanguage?.refresh?.(node);
 }
 async function call(action,payload){
@@ -182,11 +185,6 @@ async function playlist(id){
  if(result){state.playlist=result;}
  draw();
 }
-const prevSettings=renderSettings;
-renderSettings=function(){
- const result=prevSettings.apply(this,arguments);
- mount();return result;
-};
 const prevLibrary=renderLibrary;
 renderLibrary=function(){
  const result=prevLibrary.apply(this,arguments);
@@ -218,7 +216,9 @@ document.addEventListener('change',event=>{
  if(!kind||!TYPES.includes(kind))return;
  if(event.target.checked)state.selected.add(kind);
  else state.selected.delete(kind);
- draw();
+ // Do not destroy the open category picker after each checkbox change.
+ const sync=document.querySelector('#aurel-library-transfer [data-ltm-action="sync"]');
+ if(sync)sync.disabled=!!state.status.busy||!app.session?.libraryConnected||!state.selected.size;
 },true);
 function trackObj(row){
  return {
@@ -293,8 +293,9 @@ document.addEventListener('click',async event=>{
  }
  const action=target.getAttribute('data-ltm-action');
  if(!action)return;
- if(state.status.busy&&!['cancel'].includes(action))return;
+ if(state.status.busy&&!['cancel','tools'].includes(action))return;
  switch(action){
+ case 'tools':state.toolsOpen=!state.toolsOpen;draw();break;
  case 'toggle':
   state.opened=!state.opened;state.playlist=null;
   draw();if(state.opened)await browse();break;

@@ -1,14 +1,14 @@
 name: Publish permanently signed AUREL release
-# v1.1.88: match imported screenshot metadata to authorized Qobuz catalogue entries and preserve player audio.
+# v1.1.89: signed update for catalogue recovery and compact library tools.
 # Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
 
 # Release signing always requires private GitHub Actions Secrets.
-# Push triggers here only when the release workflow itself changes; other
-# source commits run the ordinary test build, never an unsigned release.
+# Publish only on a version bump or release workflow change merged into main.
+# Every release retains certificate pinning, signed APK verification and all tests.
 on:
   workflow_dispatch:
   push:
-    branches: [feature/online-library-resolver-v1.1.88]
+    branches: [main]
     paths: ['.github/workflows/release.yml', 'app/build.gradle']
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/online-library-resolver-v1.1.88'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       AUREL_RELEASE_PASSWORD: ${{ secrets.AUREL_RELEASE_PASSWORD }}
@@ -200,20 +200,17 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — One-tap online library opening with verified Qobuz matches" \
+            "**AUREL Hi-Res v${AUREL_VERSION} — library tools and catalogue loading fixes" \
             '' \
-            '- Tap screenshot-imported artists, albums, tracks or playlists to search authorized Qobuz live metadata.' \
-            '- Unique exact matches open automatically; ambiguous names require a manual selection. Confirmed provider IDs persist in safe local JSON.' \
-            '- Import/export local JSON using Android document picker, strict field/version validation, deduplication, transactional storage and safe merge/replace.' \
-            '- Read-only local playlist and favourites browser; no changes to Qobuz-managed favourites or playlists.' \
-            '- No passwords, account tokens, App Secrets, streaming URLs or audio content are exported.' \
-            '- All Stage 1/2 performance, synced LRCLIB lyrics, Qobuz browsing and existing UI preferences remain available.' \
-            '- Native audio player, USB output and existing account authentication are unchanged.' \
-            '- In-app auto-update check remains enabled with user-approved APK installation.' \
-            '- Android versionCode 105, versionName 1.1.88, signed by the original AUREL release certificate.' \
+            '- Library Import / Export is available inside Library only, in a compact expandable panel.' \
+            '- Direct actions: Qobuz import, JSON import, JSON export; browsing and destructive tools remain optional and confirmed.' \
+            '- Artist EP/single retrieval handles pagination and supported provider metadata fallbacks.' \
+            '- New release discovery retries available authorized catalogue routes without bypassing Qobuz permissions.' \
+            '- Shorter settings text and preserved player, USB audio, user sessions, preferences and local data.' \
+            '- Android versionCode 106, versionName 1.1.89, original permanently signed certificate.' \
             '' \
-            "Install v${AUREL_VERSION} over the existing permanently signed AUREL 1.1.87 without uninstalling or clearing app data." \
-            'Signing certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
+            "Install v${AUREL_VERSION} over v1.1.88; do not uninstall or clear AUREL data." \
+            'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \

@@ -6,22 +6,22 @@ let info=null,notified='';
 const autoOn=()=>{try{return localStorage.getItem(AUTO_KEY)!=='off';}catch(_){return true;}};
 const escapeText=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function panelMarkup(){
- const s=info||{},status=s.status||'idle',installed=escapeText(s.installedVersion||'1.1.86');
+ const s=info||{},status=s.status||'idle',installed=escapeText(s.installedVersion||'1.1.89');
  const latest=escapeText(s.latestVersion||'—'),supported=s.supported!==false;
  const message={
-  idle:'Check GitHub Releases for permanently signed updates.',
+  idle:'Check for updates.',
   checking:'Checking signed GitHub releases…',
-  upToDate:'You have the latest published version.',
-  available:'A newer permanently signed version is available.',
-  downloading:'Downloading APK; audio playback stays available.',
-  downloaded:'Verified APK downloaded. Ready for Android installation.',
+  upToDate:'Up to date.',
+  available:'New version available.',
+  downloading:'Downloading update…',
+  downloaded:'Verified. Ready to install.',
   error:'Update could not be completed.'
  }[status]||'Check for new releases.';
  const progress=Math.min(100,Math.max(0,Number(s.progress)||0));
  const notes=s.available&&s.notes?String(s.notes).slice(0,1000):'';
  const disabled=status==='checking'||status==='downloading'?' disabled':'';
  let result='<div class="aurel-update-head"><div><h3>App updates</h3>'+
-   '<p class="subline">Signed releases via GitHub</p></div>'+
+   '</div>'+
    '<span class="aurel-update-version">v'+installed+'</span></div>'+
    '<p class="aurel-update-message" role="status">'+escapeText(message)+'</p>';
  if(s.available)result+='<div class="aurel-update-release"><strong>Version '+latest+'</strong>'+
@@ -38,7 +38,7 @@ function panelMarkup(){
  if(supported&&status==='downloaded')
    result+='<button type="button" class="pill" data-aurel-install-update>Install update</button>';
  result+='</div><label class="aurel-update-toggle"><input type="checkbox" data-aurel-auto-updates'+
-   (autoOn()?' checked':'')+'/><span>Automatically check for updates once a day</span></label>'+
+   (autoOn()?' checked':'')+'/><span>Check daily</span></label>'+
    '';
  return result;
 }

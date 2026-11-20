@@ -44,9 +44,9 @@
    }catch(_){}finally{writing=false;}
  }
  function report(){
-   return 'AUREL Hi-Res 1.1.88 | App error log\n'+
+   return 'AUREL Hi-Res 1.1.89 | App error log\n'+
      'Local diagnostic only. No audio, account tokens, URLs or system logcat.\n'+
-     JSON.stringify({version:'1.1.88',count:entries.length,errors:entries},null,2);
+     JSON.stringify({version:'1.1.89',count:entries.length,errors:entries},null,2);
  }
  function clear(){entries=[];persist();refreshCount();refreshReport();}
  function refreshReport(){
@@ -142,8 +142,6 @@
    panel.setAttribute('data-aurel-error-panel','');
    const uk=window.AurelLanguage?.get?.()==='uk';
    panel.innerHTML='<h3>'+(uk?'Журнал помилок застосунку':'Application error log')+'</h3>'+
-     '<p>'+(uk?'Записує лише помилки AUREL. Без аудіозаписів, паролів і надсилання на сервер.':
-       'Records AUREL errors only. No audio, passwords or automatic uploads.')+'</p>'+
      '<small data-aurel-error-count role="status"></small>'+
      '<div class="aurel-error-actions"><button type="button" data-aurel-copy-errors>'+
        (uk?'Скопіювати журнал':'Copy error log')+'</button>'+
