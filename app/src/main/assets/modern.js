@@ -23,7 +23,7 @@ function albumShelf(items){if(!items.length){
   :'No releases have been returned by the connected account.';
  const fallback=status==='authorization'
    ?'<div class="aurel-discovery-links"><button type="button" data-nav="search">Search music</button>'+
-     '<button type="button" data-nav="settings">Check account</button>'+
+     '<button type="button" data-nav="library">Your library</button>'+
      '<button type="button" data-refresh>Retry</button></div>'
    :'<button type="button" data-refresh class="aurel-discovery-retry">Retry</button>';
  return '<div class="empty aurel-discovery-fallback" role="status" data-aurel-discovery-state="'+html(status)+'">'+
