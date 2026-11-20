@@ -1769,7 +1769,13 @@ public final class MainActivity extends Activity {
                                 throw new Exception("Unsupported release type");
                             String artistId=p.getString("id");
                             try {
-                                data=artistReleaseList(artistId,releaseType);
+                                // Qobuz's typed releasesList accepts 'single' and
+                                // 'album', not the AUREL UI label 'epSingle'.
+                                // Query 'all' once and select only explicit
+                                // Qobuz EP/single release_type metadata.
+                                data=releaseType.equals("epSingle")
+                                    ?artistReleaseFromAll(artistId,releaseType)
+                                    :artistReleaseList(artistId,releaseType);
                             }catch(Exception listError) {
                                 // Fall back only to releases with verifiable Qobuz metadata.
                                 // Never guess an album type from its artwork or title.
