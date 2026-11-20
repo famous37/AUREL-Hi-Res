@@ -39,7 +39,7 @@ assert(app.includes('if(owner!==aurelDiscoverSessionKey())return'));
 assert(app.includes("loadHome(true);return"));
 assert(mini.includes("role=\"progressbar\""));
 assert(mini.includes('aria-valuenow="0"'));
-assert(mini.includes('data-duration-known'));
+assert(mini.includes('bar.dataset.durationKnown'));
 assert(mini.includes('if(time-aurelLastMiniFrame>=160)'));
 assert(mini.includes("window.AurelProgressClock?.accept(p)"));
 assert(mini.includes("if(fill.style.transform!==next)"));
