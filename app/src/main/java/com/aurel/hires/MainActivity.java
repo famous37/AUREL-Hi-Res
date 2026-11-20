@@ -75,11 +75,17 @@ public final class MainActivity extends Activity {
         String cssInset=String.format(Locale.US,"%.1fpx",systemInsetTop/density);
         String cssNavigationInset=String.format(Locale.US,"%.1fpx",
             edgeToEdgeNavigation&&!keyboardVisible?systemInsetBottom/density:0f);
+        // The WebView normally starts below the status bar, but the full player
+        // deliberately draws edge-to-edge. Keep floating alerts below status icons
+        // only in that immersive mode; never double-apply the normal top padding.
+        String cssToastInset=fullPlayerImmersive?cssInset:"0px";
         if(web!=null)script("document.documentElement.style.setProperty("+
             JSONObject.quote("--aurel-native-status-inset")+","+
             JSONObject.quote(cssInset)+");document.documentElement.style.setProperty("+
             JSONObject.quote("--aurel-native-navigation-inset")+","+
-            JSONObject.quote(cssNavigationInset)+")");
+            JSONObject.quote(cssNavigationInset)+");document.documentElement.style.setProperty("+
+            JSONObject.quote("--aurel-toast-safe-top")+","+
+            JSONObject.quote(cssToastInset)+")");
     }
     private void setPlayerImmersive(boolean open){
         if(fullPlayerImmersive==open)return;
