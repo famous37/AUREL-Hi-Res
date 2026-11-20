@@ -26,7 +26,7 @@ assert(css.includes('.aurel-ltm-entrypoint')&&css.includes('.aurel-ltm-secondary
 assert(groups.includes("accounts:'Accounts'"),'Account preferences remain in Settings');
 assert(!groups.includes('Accounts & library'));
 assert(updates.includes('Check daily')&&updates.includes('Up to date.'));
-assert(/versionCode\s+109/.test(gradle)&&gradle.includes("'1.1.92'"));
+assert(/versionCode\s+110/.test(gradle)&&gradle.includes("'1.1.93'"));
 assert(workflow.includes('branches: [main]'),'Production update must publish on main');
 assert(workflow.includes('EXPECTED_CERT=')&&workflow.includes('apksigner'));
 console.log('AUREL compact library manager, safe restore and signed release contract PASS');
