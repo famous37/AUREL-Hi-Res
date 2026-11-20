@@ -219,7 +219,14 @@
   width:auto!important;
   height:6px!important;
   border-radius:999px!important;
-  background:var(--aurel-mini-progress-track,#ffffff49)!important;
+  /* Gradient is the primary visible progress state. Even if a legacy
+   * WebView compositor fails to paint the nested span transform, the same
+   * clock drives --played on this track, so progress remains visible. */
+  background:linear-gradient(to right,
+      var(--aurel-mini-progress-accent,#f5f6f8) 0%,
+      var(--aurel-mini-progress-accent,#f5f6f8) var(--played,0%),
+      var(--aurel-mini-progress-track,#ffffff49) var(--played,0%),
+      var(--aurel-mini-progress-track,#ffffff49) 100%)!important;
   overflow:hidden!important;
   pointer-events:none!important;
   z-index:2!important;
