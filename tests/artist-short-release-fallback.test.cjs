@@ -16,7 +16,7 @@ assert(!subset.includes('.put("sort","release_date_by_priority")'),
  'No obsolete sort parameter may be sent on typed endpoints');
 assert(subset.indexOf('artist/getReleasesGrid')<subset.indexOf('artist/getReleasesList'),
  'Grid metadata must precede optional richer list fallback');
-assert(native.includes('artistShortReleasePreview(artistId)'),
+assert(native.includes('artistShortReleasePreview(artistId,p.optString("name",""))'),
  'When official category is denied, artist-owned short metadata is attempted');
 assert(native.includes('collectShortReleases(artistItems(info,"albums"),artistId,found,true)'));
 assert(native.includes('collectShortReleases(artistItems(result,"albums"),artistId,found,false)'));
@@ -26,6 +26,10 @@ assert(native.includes('if(type.contains("compilation")||type.equals("album")||t
  'Explicit album/compilation/live designation overrides short track counts');
 assert(native.includes('int count=album.optInt("tracks_count"'));
 assert(native.includes('found.put(id,album)'), 'Only actual Qobuz releases are displayed');
+assert(native.includes('String[] queries=new String[]{name+" #ByMainArtist",name};'),
+ 'Two bounded search queries may recover short releases from the permitted catalogue');
+assert(js.includes("name:artistName(app.selected||{})"),
+ 'Selected artist name remains available even if legacy artist/get is limited');
 assert(native.includes('"_shortPreview",true'), 'Approximate results must carry a disclosure flag');
 assert(native.includes('safeReleaseError('), 'Sensitive API details must not enter diagnostic messages');
 assert(js.includes('s.epShortPreview=!!data?._shortPreview;'));
