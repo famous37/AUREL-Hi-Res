@@ -28,7 +28,7 @@ assert(disc.includes('if(token!==requestToken||!validSelection(id))return'));
 assert(disc.includes('cached.epDone&&'));
 assert(disc.includes('cached.pageDone&&cached.compDone'));
 assert(disc.includes('state.epDone=false'));
-assert(disc.includes('<h2>Most popular</h2>'));
+assert(disc.includes("+'Most popular'+'</h2>'));
 assert(!disc.includes('Tracks by artist'), 'Never display generic artist tracks as popular');
 assert(disc.includes("'+(i+1)+'</span>"), 'Qobuz ranking order is numbered');
 assert(!disc.includes('topFallback'), 'Unranked popularity mode removed');
