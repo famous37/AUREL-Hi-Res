@@ -37,6 +37,6 @@ assert(lang.includes('Це підключення Qobuz не має доступ
 // The existing player and signed updates must be preserved.
 assert(native.includes('case "play":')||native.includes('case "playTrack":'));
 const gradle=source('app/build.gradle');
-assert.match(gradle,/versionCode\s+114/);
-assert(gradle.includes("'1.1.97'"));
+assert.match(gradle,/versionCode\s+115/);
+assert(gradle.includes("'1.1.98'"));
 console.log('Authorized Qobuz ranking, EP metadata fallback and truthful unavailable states PASS');
