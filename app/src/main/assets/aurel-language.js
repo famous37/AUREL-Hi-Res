@@ -773,6 +773,14 @@ Object.assign(dictionary,{
  'Fresh on Qobuz':'Новинки Qobuz',
  'Recently released albums available in the catalogue':'Нещодавні альбоми з каталогу Qobuz'
 });
+/* v1.1.93: disclose curated source and verified EP labels, without
+ * translating music metadata or technical API identifiers. */
+Object.assign(dictionary,{
+  'Qobuz New Releases playlist':'Добірка новинок Qobuz',
+  'Albums from the official Qobuz weekly playlist':'Альбоми з офіційної щотижневої добірки Qobuz',
+  'EPs and singles identified by Qobuz release metadata.':'EP та сингли, визначені за даними Qobuz.',
+  'EPs & Singles':'EP та сингли'
+});
 var skipContent='.album-title,.album-artist,.track-title,.track-meta,.shelf-card strong,.shelf-card>span:last-child,.aurel-popular-copy,.aurel-release-card,.aurel-similar-artist strong,.aurel-artist-bio,.aurel-artist-hero h1,.artist-hero h1,.murglar-track-data h1,.aurel-song-details h1,.mini .title,.mini .artist,.queue-text,.recents,.credit strong,.playlist-entry strong,.library-album-row strong,.spotlight-stack,.track-details,.aurel-language-choice,.aurel-artist-info-name,.aurel-artist-info-biography,.aurel-artist-bio>span:first-child';
 var originalText=new WeakMap(),originalAttributes=new WeakMap();
 function translateEnglish(s){

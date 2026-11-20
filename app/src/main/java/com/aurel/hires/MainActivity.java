@@ -1572,6 +1572,7 @@ public final class MainActivity extends Activity {
                             data=session();break;
                         }
                         case "discover": {
+                            try{
                             if(mornyeActive()){
                                 // This authenticated metadata session is already used
                                 // successfully for search; do not force an unrelated
@@ -1606,6 +1607,22 @@ public final class MainActivity extends Activity {
                                 // streaming ID may still have authorized featured metadata.
                                 try{data=api.discoverReleases(24);}
                                 catch(Exception primaryError){data=api.publicFeaturedReleases(24);}
+                            }
+                            }catch(Exception discoveryError){
+                                if(mornyeActive()&&
+                                   MornyeGateway.requiresVerification(discoveryError))
+                                    throw discoveryError;
+                                // An independently authorized, Qobuz-owned
+                                // weekly curated playlist offers real albums
+                                // when the global editorial feed is restricted.
+                                // The response explicitly labels this source.
+                                try{data=api.curatedNewReleaseAlbums(24);}
+                                catch(Exception curatedError){
+                                    throw new Exception("Fresh releases unavailable: "+
+                                        "discover "+safeReleaseError(discoveryError)+
+                                        "; Qobuz curated playlist "+
+                                        safeReleaseError(curatedError));
+                                }
                             }
                             break;
                         }
@@ -1752,7 +1769,13 @@ public final class MainActivity extends Activity {
                                 throw new Exception("Unsupported release type");
                             String artistId=p.getString("id");
                             try {
-                                data=artistReleaseList(artistId,releaseType);
+                                // Qobuz's typed releasesList accepts 'single' and
+                                // 'album', not the AUREL UI label 'epSingle'.
+                                // Query 'all' once and select only explicit
+                                // Qobuz EP/single release_type metadata.
+                                data=releaseType.equals("epSingle")
+                                    ?artistReleaseFromAll(artistId,releaseType)
+                                    :artistReleaseList(artistId,releaseType);
                             }catch(Exception listError) {
                                 // Fall back only to releases with verifiable Qobuz metadata.
                                 // Never guess an album type from its artwork or title.
@@ -2038,18 +2061,23 @@ public final class MainActivity extends Activity {
         for(int page=0;page<maxPages;page++) {
             JSONObject params=new JSONObject()
                 .put("artist_id",artistId).put("release_type",kind)
-                // Current Qobuz releases API uses order/orderDirection, not legacy sort.
-                .put("order","release_date").put("orderDirection","desc")
+                // The 2026 Qobuz releases-list API uses sort=release_date_by_priority.
+                .put("sort","release_date_by_priority")
                 .put("offset",offset).put("limit",pageSize);
             JSONObject response;
             try{
-                response=artistInformation("artist/getReleasesGrid",params);
-            }catch(Exception gridError){
-                try{response=artistInformation("artist/getReleasesList",params);}
-                catch(Exception listError){
+                response=artistInformation("artist/getReleasesList",params);
+            }catch(Exception listError){
+                try{
+                    JSONObject gridParams=new JSONObject(params.toString());
+                    gridParams.remove("sort");
+                    gridParams.put("order","release_date");
+                    gridParams.put("orderDirection","desc");
+                    response=artistInformation("artist/getReleasesGrid",gridParams);
+                }catch(Exception gridError){
                     if(combined.length()==0)throw new Exception(
-                        "Qobuz release endpoints rejected: Grid "+safeReleaseError(gridError)+
-                        ", List "+safeReleaseError(listError));
+                        "Qobuz release endpoints rejected: List "+safeReleaseError(listError)+
+                        ", Grid "+safeReleaseError(gridError));
                     hasMore=true;break;
                 }
             }
@@ -2120,9 +2148,11 @@ public final class MainActivity extends Activity {
                 .toLowerCase(java.util.Locale.ROOT).replaceAll("[ _-]","");
             if(type.contains("compilation")||type.equals("album")||type.equals("live"))
                 continue;
-            int count=album.optInt("tracks_count",item.optInt("tracks_count",0));
+            // Track count alone is not a release type: Qobuz often returns
+            // partial track previews for full-length albums. Only a genuine
+            // provider EP/single designation can enter this category.
             boolean official=type.contains("single")||type.equals("ep");
-            if(!official&&(count<1||count>6))continue;
+            if(!official)continue;
             found.put(id,album);
         }
     }

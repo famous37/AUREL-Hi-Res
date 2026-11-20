@@ -39,7 +39,7 @@ renderHome=function(){
  <div class="home-chips"><button class="chip ${app.discoverTab==='new'?'selected':''}" data-discover-tab="new">Home</button><button class="chip ${app.discoverTab==='albums'?'selected':''}" data-discover-tab="albums">New releases</button><button class="chip ${app.discoverTab==='collection'?'selected':''}" data-discover-tab="collection">Your library</button></div>
  ${app.discoverTab==='collection'?`<section class="welcome-panel"><span class="kicker">YOUR COLLECTION</span><h2>Everything you love,<br>in one place.</h2><p>Explore saved music from your library account.</p><button class="action-pill" data-nav="library">Open library ↗</button></section>`:
  `<section class="spotlight"><div class="spotlight-copy"><span class="kicker">AUREL / LOSSLESS LISTENING</span><h2>Listen deeper.</h2><p>Albums, artists and music worth your time.</p><button class="action-pill" data-nav="search">Explore music ↗</button></div><div class="spotlight-stack">${app.albums.slice(0,3).map(a=>art(a,'spotlight-cover')).join('')}</div></section>
- <div class="sectionhead new-section"><div><h2>${app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>Recently released albums available in the catalogue</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">${ic('refresh',25)}</button></div>${app.discoverStatus==='stale'?
+ <div class="sectionhead new-section"><div><h2>${app.discoverSource==='curated'?'Qobuz New Releases playlist':app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>${app.discoverSource==='curated'?'Albums from the official Qobuz weekly playlist':'Recently released albums available in the catalogue'}</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">${ic('refresh',25)}</button></div>${app.discoverStatus==='stale'?
   '<p class="aurel-discovery-stale" role="status">Showing the last available Qobuz releases. Refresh to try again.</p>':''}${albumShelf(app.albums)}
  <div class="sectionhead"><div><h2>Go your own way</h2><p>Quick access to music that matters</p></div></div>
  <div class="quicklinks"><button data-nav="library"><span class="quicklink-icon" aria-hidden="true">${ic('library',27)}</span><strong>Your favourites</strong><small>Releases, artists, playlists</small></button><button data-nav="search"><span class="quicklink-icon" aria-hidden="true">${ic('search',27)}</span><strong>Search catalogue</strong><small>Tracks, artists and albums</small></button></div>`}
@@ -237,6 +237,9 @@ function aurelMiniFrame(time){
      }
      const bar=document.querySelector('#mini .mini-progress');
      if(bar){
+       const cssValue=(ratio*100).toFixed(2)+'%';
+       if(bar.style.getPropertyValue('--played')!==cssValue)
+         bar.style.setProperty('--played',cssValue);
        const value=String(Math.round(ratio*100));
        if(bar.getAttribute('aria-valuenow')!==value)bar.setAttribute('aria-valuenow',value);
        const label=duration(position/1000)+' of '+duration(durationMs/1000);

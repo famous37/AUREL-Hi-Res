@@ -408,7 +408,7 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.92</strong></div></div>
+ <div class="panel"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.1.93</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
@@ -494,6 +494,9 @@ async function loadHome(force=false){
      }).slice(0,36);
      if(!albums.length)throw new Error('Qobuz returned no recent releases');
      app.albums=albums;
+     // Do not present a curated Qobuz playlist as the complete global feed.
+     app.discoverSource=d?._source==='qobuz_new_releases_playlist'?
+       'curated':'global';
      app.discoverStatus='';
      aurelHomeFetchedAt=Date.now();
    }catch(e){
