@@ -1718,12 +1718,19 @@ public final class MainActivity extends Activity {
                             String artistId=p.getString("id");
                             JSONObject extras=new JSONObject();
                             try {
-                                // top_tracks is included in the standard artist/page payload.
-                                // Do not send unsupported extra=topTracks (which can cause 4xx).
+                                // Qobuz artist/page supports the optional topTracks expansion;
+                                // requesting only artist/get does NOT provide the ranked chart.
                                 extras=artistInformation("artist/page",
-                                    new JSONObject().put("artist_id",artistId));
-                            }catch(Exception error){
-                                extras.put("_pageError","Qobuz artist page request failed");
+                                    new JSONObject().put("artist_id",artistId)
+                                        .put("extra","topTracks"));
+                            }catch(Exception expandedError){
+                                try {
+                                    extras=artistInformation("artist/page",
+                                        new JSONObject().put("artist_id",artistId));
+                                }catch(Exception error){
+                                    extras.put("_pageError","Qobuz artist page access denied: "
+                                        +safeReleaseError(error));
+                                }
                             }
                             Object similar=extras.opt("similar_artists");
                             JSONArray relatedItems=similar instanceof JSONObject
@@ -1748,16 +1755,12 @@ public final class MainActivity extends Activity {
                                 topBlock.optJSONArray("items");
                             if(topItems==null)topItems=extras.optJSONArray("topTracks");
                             if(topItems==null||topItems.length()==0) {
-                                try {
-                                    JSONObject ranked=artistOfficialTopTracks(artistId);
-                                    JSONArray actual=ranked.optJSONArray("items");
-                                    if(actual!=null&&actual.length()>0)
-                                        extras.put("top_tracks",ranked);
-                                    else extras.put("_topError","Qobuz returned no ranked tracks");
-                                }catch(Exception rankedError){
-                                    extras.put("_topError","Qobuz ranked tracks unavailable: "
-                                        +safeReleaseError(rankedError));
-                                }
+                                // An artist search or "tracks" list is not a popularity ranking.
+                                // Keep an explicit restricted/unavailable state instead of
+                                // fabricating chart positions from unrelated ordering.
+                                extras.put("_topError",extras.has("_pageError")
+                                    ?"Qobuz ranking endpoint unavailable for this session"
+                                    :"Qobuz did not return an official top_tracks ranking");
                             }
                             data=extras;break;
                         }
@@ -1767,6 +1770,15 @@ public final class MainActivity extends Activity {
                                 && !releaseType.equals("album"))
                                 throw new Exception("Unsupported release type");
                             String artistId=p.getString("id");
+                            // Prioritize an accessible, typed artist/search preview when
+                            // the Mornye catalogue is active without a separately
+                            // authorized Qobuz library. This route cannot authorize the
+                            // private getReleasesList endpoints by itself.
+                            if(releaseType.equals("epSingle")&&mornyeActive()
+                                &&secure.get("libraryToken").isEmpty()){
+                                data=artistShortReleasePreview(artistId,p.optString("name",""));
+                                break;
+                            }
                             try {
                                 // epSingle is a documented Qobuz release_type.
                                 // Ask the authoritative endpoint directly so EPs
@@ -2144,14 +2156,21 @@ public final class MainActivity extends Activity {
             String linked=owner==null?"":owner.optString("id","");
             if(!artistSource&&!artistId.equals(linked))continue;
             if(artistSource&&!linked.isEmpty()&&!artistId.equals(linked))continue;
-            String type=item.optString("release_type",album.optString("release_type",""))
+            // Qobuz metadata varies between wrapped search entries and
+            // album/get; check only explicit provider release classifications.
+            String type=item.optString("release_type",
+                album.optString("release_type",
+                    item.optString("album_type",album.optString("album_type",
+                        item.optString("product_type",album.optString("product_type",
+                            item.optString("type",album.optString("type",""))))))))
                 .toLowerCase(java.util.Locale.ROOT).replaceAll("[ _-]","");
             if(type.contains("compilation")||type.equals("album")||type.equals("live"))
                 continue;
             // Track count alone is not a release type: Qobuz often returns
             // partial track previews for full-length albums. Only a genuine
             // provider EP/single designation can enter this category.
-            boolean official=type.contains("single")||type.equals("ep");
+            boolean official=type.contains("single")||type.equals("ep")
+                ||type.equals("epsingle");
             if(!official)continue;
             found.put(id,album);
         }
@@ -2188,10 +2207,37 @@ public final class MainActivity extends Activity {
                 }catch(Exception e){searchError=e;}
             }
         }
+        // Track search can expose the parent single's official release_type
+        // even when album/search returns a stripped, album-only projection.
+        // Never classify a track itself as a single without Qobuz album metadata.
+        if(found.size()<30&&!name.isEmpty()){
+            JSONObject query=new JSONObject().put("query",name+" #ByMainArtist")
+                .put("limit",100).put("offset",0);
+            try{
+                JSONObject response;
+                try{response=catalog("track/search",query);}
+                catch(Exception denied){response=api.library("track/search",query);}
+                JSONArray tracks=artistItems(response,"tracks");
+                if(tracks==null)tracks=response.optJSONArray("items");
+                JSONArray associatedAlbums=new JSONArray();
+                if(tracks!=null)for(int i=0;i<tracks.length()&&i<100;i++){
+                    JSONObject entry=tracks.optJSONObject(i);
+                    if(entry==null)continue;
+                    JSONObject track=entry.optJSONObject("track");
+                    if(track==null)track=entry;
+                    JSONObject album=track.optJSONObject("album");
+                    if(album==null)continue;
+                    JSONObject owner=album.optJSONObject("artist");
+                    String ownerId=owner==null?"":owner.optString("id","");
+                    if(artistId.equals(ownerId))associatedAlbums.put(album);
+                }
+                collectShortReleases(associatedAlbums,artistId,found,false);
+            }catch(Exception e){searchError=e;}
+        }
         if(found.isEmpty())throw new Exception(
-            "Short release preview unavailable: artist/get "+
+            "Short release metadata unavailable from this Qobuz connection: artist/get "+
             (artistError==null?"no matching entries":safeReleaseError(artistError))+
-            "; album/search "+(searchError==null?"no matching entries":safeReleaseError(searchError)));
+            "; authorized search "+(searchError==null?"no classified entries":safeReleaseError(searchError)));
         JSONArray items=new JSONArray();
         for(JSONObject album:found.values())items.put(album);
         return new JSONObject().put("items",items)
@@ -2230,24 +2276,6 @@ public final class MainActivity extends Activity {
             throw new Exception("Qobuz returned only a partial unfiltered release list");
         return new JSONObject().put("items",selected)
             .put("_partial",result.optBoolean("_partial",false));
-    }
-
-    /** Additional provider-backed ranked list, never a generic track search.
-     * Do not turn the artist's latest tracks into fabricated popularity ranks. */
-    private JSONObject artistOfficialTopTracks(String artistId)throws Exception {
-        JSONObject info;
-        try {
-            info=artistInformation("artist/get",new JSONObject()
-                .put("artist_id",artistId).put("extra","top_tracks"));
-        }catch(Exception unsupportedExtra) {
-            info=artistInformation("artist/get",new JSONObject()
-                .put("artist_id",artistId));
-        }
-        JSONArray ranked=artistItems(info,"top_tracks");
-        if(ranked==null)ranked=artistItems(info,"topTracks");
-        if(ranked==null||ranked.length()==0)
-            throw new Exception("Official ranking not provided");
-        return new JSONObject().put("items",ranked);
     }
 
     /** Last-resort type-filtered releases from the artist's own Qobuz albums.
@@ -2291,6 +2319,9 @@ public final class MainActivity extends Activity {
             if(albums.length()<100)break;
         }
         if(!typeFound)throw new Exception("Qobuz returned albums without release types");
+        // A legacy artist/get page may contain only album releases.
+        // An empty filtered list is not proof that EPs/singles do not exist.
+        if(typed.length()==0)throw new Exception("No explicitly categorized releases in legacy artist preview");
         return new JSONObject().put("items",typed).put("_partial",pages>=4);
     }
 

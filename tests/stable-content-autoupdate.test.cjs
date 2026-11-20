@@ -15,7 +15,7 @@ assert(disco.includes("const ep=loadTypedEps(id,token);"),
 assert(disco.includes("const section=b.dataset.artistRetry||'';")&&
        disco.includes("void loadTypedEps(id,requestToken);"),
  'Section-level retry should not reload the whole artist page');
-assert(disco.includes('Qobuz has not authorized this release category.'),
+assert(disco.includes('This Qobuz connection cannot access this release category.'),
  'Unavailable content must not be labelled as an empty discography');
 assert(disco.includes("const img=document.createElement('img');")&&
        !disco.includes('rerender(ownerId);'),

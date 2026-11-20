@@ -281,7 +281,8 @@
       const biography=data?.biography?.content||data?.biography?.text||data?.biography;
       s.biography=biographyText(biography);
       s.pageError=String(data?._pageError||'');
-      s.similarError=String(data?._similarError||'');
+      s.similarError=String(data?._similarError||(
+        s.similar.length?'':data?._pageError||''));
       s.pageDone=true;
     },(s)=>{s.pageDone=true;s.pageError='Request failed';s.topError='Request failed';s.similarError='Request failed';});
     const ep=loadTypedEps(id,token);
@@ -315,7 +316,7 @@
     const category=(key==='eps'||key==='compilations');
     const message=category
       ?(error==='authorization'
-        ?'Qobuz has not authorized this release category.'
+        ?'This Qobuz connection cannot access this release category.'
         :error==='partial'?'Only part of this release category could be loaded.'
         :'Some release categories could not be loaded.')
       :'Release information could not be loaded.';
@@ -344,7 +345,7 @@
       +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
       +'</header>'
       +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i)).join('')+'</div>'
-       :'<p class="aurel-artist-placeholder">'+(loading?'Loading popular tracks…':error?'<span>Popular tracks could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'No popular tracks returned by Qobuz')+'</p>')
+       :'<p class="aurel-artist-placeholder">'+(loading?'Loading popular tracks…':error?'<span>Popular tracks could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'Qobuz did not provide a ranked track list for this connection')+'</p>')
       +'</section>';
   }
   function similarSection(items,loading,error){
@@ -361,7 +362,7 @@
           +(src?'<img class="aurel-artist-portrait" loading="lazy" src="'+html(src)+'" alt="'+html(label)+'">':'')
           +'</span><strong>'+html(label)+'</strong><small>Artist</small></button>';
       }).join('')+'</div>'
-       :'<p class="aurel-artist-placeholder">'+(loading?'Loading related artists…':error?'<span>Similar artists could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'No similar artists returned by Qobuz')+'</p>')
+       :'<p class="aurel-artist-placeholder">'+(loading?'Loading related artists…':error?'<span>Similar artists could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'Qobuz did not provide similar-artist recommendations for this connection')+'</p>')
       +'</section>';
   }
   // Called only after a newly verified session to retry previously rejected
@@ -435,7 +436,7 @@
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
       +section('EPs & Singles',eps,'eps',
-        'No EPs or singles returned by Qobuz',!state.epDone,state.epError)
+        'No verified EPs or singles available from this connection',!state.epDone,state.epError)
       +(state.epShortPreview&&eps.length?'<p class="aurel-release-preview-note">'+
         'EPs and singles identified by Qobuz release metadata.</p>':'')
       +(compilations.length?section('Compilations',compilations,'compilations','',false):'')
