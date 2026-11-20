@@ -10,7 +10,7 @@ const css=read('aurel-universal-borderless.css');
 const html=read('index.html');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
 const native=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
-assert.match(gradle,/versionCode\s+111/);
+assert.match(gradle,/versionCode\s+112/);
 assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
 assert.match(html,/aurel-universal-borderless\.css/);
 assert.match(css,/#overlay:not\(\.hidden\) \.murglar-view::before/);
