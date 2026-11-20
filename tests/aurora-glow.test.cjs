@@ -17,7 +17,10 @@ assert.ok(html.includes('src="aurel-aurora.js"'));
 assert.ok(html.indexOf('aurel-aurora.css')>html.indexOf('aurel-cover-rhythm.css'));
 assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-glass-polish.css">')<html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">'));
 assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">')<html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'));
-assert.ok(html.lastIndexOf('<link rel="stylesheet"')===html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'));
+assert.ok(html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">')<
+ html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'));
+assert.ok(html.lastIndexOf('<link rel="stylesheet"')===
+ html.indexOf('<link rel="stylesheet" href="aurel-ui-quality.css">'));
 assert.ok(html.indexOf('aurel-aurora.js')>html.indexOf('aurel-fluid-transitions.js'));
 assert.match(css,/conic-gradient\(/);
 assert.match(css,/radial-gradient\(/);
