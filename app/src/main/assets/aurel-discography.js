@@ -133,6 +133,25 @@
     const s=String(o.release_date_original||o.release_date_stream||o.release_date||o.dates?.stream||'');
     return /^\d{4}-\d{2}-\d{2}/.test(s)?s.slice(0,10):'';
   }
+  function canonicalLatestRelease(items){
+    // Reissues can inherit a new 2026 streaming date even when the album was
+    // originally released in 2006. Deduplicate each work by title, prefer the
+    // earliest verified original date, then choose the newest distinct work.
+    const works=new Map();
+    for(const release of items){
+      if(!release||!safeId(release))continue;
+      const key=String(release.title||release.name||'').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s*[([{](?:remaster(?:ed)?|deluxe|expanded|anniversary|edition|reissue)[^\])}]*[\])}]/gi,'')
+        .replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+      if(!key)continue;
+      const current=works.get(key),date=releaseDate(release);
+      if(!current||(date&&(!releaseDate(current)||date<releaseDate(current))))
+        works.set(key,release);
+    }
+    return [...works.values()].filter(x=>releaseDate(x))
+      .sort((a,b)=>releaseDate(b).localeCompare(releaseDate(a)))[0]||null;
+  }
   function detailFor(id){return byArtist.get(id)||{loading:true,top:[],similar:[],ep:[],compilation:[],following:false};}
   function validSelection(id){
     return app.selectedKind==='artist'&&String(app.selected?.id||'')===String(id);
@@ -440,7 +459,7 @@
     const separate=new Set([...eps,...compilations].map(safeId));
     const albums=base.filter(x=>!separate.has(safeId(x)));
     const all=unique([...base,...eps,...compilations,...(state.lastRelease?[state.lastRelease]:[])]);
-    const last=all.slice().sort((a,b)=>releaseDate(b).localeCompare(releaseDate(a)))[0];
+    const last=canonicalLatestRelease(all);
     const top=state.top||[];
     const avatar=art(o,'aurel-artist-photo')||'<span class="aurel-artist-photo aurel-art-placeholder">♪</span>';
     const fullBio=window.AurelArtistInfoData(id)?.biography||'';
@@ -460,7 +479,7 @@
       +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
       +'</div></header>'
       +popularSection(top,!state.pageDone||!!state.externalLoading,state.topError,state.topSource)
-      +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest release</h2></header>'
+      +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest listed release</h2></header>'
          +'<div class="aurel-latest-release">'+releaseCard(last)+'</div></section>':'')
       +section('Albums',albums,'albums','No albums available for this artist',false)
       +section('EPs & Singles',eps,'eps',
