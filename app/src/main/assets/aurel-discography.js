@@ -168,7 +168,8 @@
     const state=byArtist.get(id);
     if(!state)return Promise.resolve();
     state.epDone=false;
-    return extend(id,token,'artistReleaseType',{releaseType:'epSingle'},function(s,data){
+    return extend(id,token,'artistReleaseType',{releaseType:'epSingle',
+      name:artistName(app.selected||{})},function(s,data){
       const releases=asList(data?.albums||data?.releases||data)
         .map(x=>normalizedRelease(x,'epSingle')).filter(Boolean);
       s.ep=unique([...s.ep,...releases]);s.epDone=true;
