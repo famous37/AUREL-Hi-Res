@@ -8,7 +8,7 @@ const css=load('aurel-seamless-theme.css'),glass=load('aurel-glass-polish.css'),
  gradle=fs.readFileSync('app/build.gradle','utf8');
 
 assert.match(gradle,/versionCode\s+112/);
-assert.match(gradle,/versionName[^\n]*'1\.1\.94'/);
+assert.match(gradle,/versionName[^\n]*'1\.1\.95'/);
 assert.match(css,/@media\s*\(orientation:portrait\)[\s\S]*?\.murglar-header\.aurel-listening-nav\{[\s\S]*?position:absolute!important/);
 assert.match(css,/pointer-events:none!important;[\s\S]*?\.murglar-header-button/);
 assert.match(css,/pointer-events:auto!important/);
