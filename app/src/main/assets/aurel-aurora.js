@@ -27,6 +27,7 @@
  let currentCover='',current=neutral,captureWanted=null,lastFrame=0;
  let lastPaletteMode=null;
  let lastPulse=0,lastPeak=0,rotation=0;
+ let smoothedLevel=0,lastVisualUpdate=0;
  const palettes=new Map();
 
  function coverUrl(){
@@ -64,6 +65,7 @@
  }
  function resetBeat(){
    lastFrame=0;lastPeak=0;lastPulse=0;rotation=0;
+   smoothedLevel=0;lastVisualUpdate=0;
    overlay.style.setProperty('--aurel-aurora-rotation','0deg');
    overlay.style.setProperty('--aurel-reactive-scale','1');
    overlay.style.setProperty('--aurel-aurora-drift','0px');
@@ -114,7 +116,12 @@
    const level=Math.max(0,Math.min(1,n));
    const now=Date.now();
    lastFrame=now;
-   const strong=Math.pow(level,.70);
+   // React exclusively to real FFT while smoothing the envelope and avoiding
+   // 60fps CSS invalidations on Android WebView.
+   if(now-lastVisualUpdate<40)return;
+   lastVisualUpdate=now;
+   smoothedLevel+=(level-smoothedLevel)*(level>smoothedLevel?.43:.14);
+   const strong=Math.pow(smoothedLevel,.72);
    overlay.style.setProperty('--aurel-aurora-beat',strong.toFixed(3));
    // The shared ambient layer now reacts to REAL native frames, not only
    // the halo behind the cover (which may be clipped by the WebView scroller).

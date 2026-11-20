@@ -175,3 +175,24 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
  transition:none!important;
  }
 }
+
+/* Drawer only enters once per panel change. Artwork DOM never remounts. */
+@keyframes aurelDetailEnter{from{opacity:.86;transform:translate3d(0,12px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes aurelDimmerEnter{from{opacity:0}to{opacity:1}}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer:not(.aurel-detail-dragging){
+ animation:aurelDetailEnter 190ms cubic-bezier(.2,.72,.25,1) both!important;
+ transform:translate3d(0,0,0)!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
+ animation:aurelDimmerEnter 180ms ease-out both!important;
+}
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer.aurel-detail-dragging{
+ animation:none!important;transform:translate3d(0,0,0)!important;
+}
+@media(prefers-reduced-motion:reduce){
+ :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer,
+ :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
+ animation:none!important;transition:none!important;
+ }
+}
+html[data-aurel-motion="off"] #overlay:not(.hidden) :is(.aurel-detail-drawer,.aurel-detail-dimmer){animation:none!important;}
