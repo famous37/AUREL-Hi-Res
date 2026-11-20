@@ -280,33 +280,64 @@ final class QobuzApi {
         if(profile==null)result.put("profile_unavailable",true);
         return result;
     }
-    /** Normalize genuine Qobuz album-list envelopes, without synthesizing music. */
-    private JSONObject checkedFeatured(JSONObject response) throws Exception {
+    /** Normalize actual Qobuz release metadata across featured and index
+     * responses. Never substitute searched or made-up albums for fresh releases.
+     * An empty provider list is not a successful discovery response.
+     */
+    JSONObject checkedFeatured(JSONObject response) throws Exception {
+        if(response==null)throw new Exception("Empty Qobuz discovery response");
         JSONObject albums=response.optJSONObject("albums");
-        if(albums!=null&&albums.optJSONArray("items")!=null)return response;
-        org.json.JSONArray items=response.optJSONArray("albums");
+        org.json.JSONArray items=albums==null?null:albums.optJSONArray("items");
+        if(items==null)items=response.optJSONArray("albums");
         if(items==null)items=response.optJSONArray("items");
         JSONObject releases=response.optJSONObject("releases");
         if(items==null&&releases!=null)items=releases.optJSONArray("items");
-        if(items==null)throw new Exception("Qobuz discovery response has no album list");
+        // discover/index may wrap the genuine latest-album list in a separate
+        // new_releases/newReleases collection.
+        JSONObject recent=response.optJSONObject("new_releases");
+        if(recent==null)recent=response.optJSONObject("newReleases");
+        if(items==null&&recent!=null){
+            JSONObject inner=recent.optJSONObject("albums");
+            if(inner!=null)items=inner.optJSONArray("items");
+            if(items==null)items=recent.optJSONArray("items");
+            if(items==null)items=recent.optJSONArray("albums");
+        }
+        if(items==null)items=response.optJSONArray("new_releases");
+        if(items==null)items=response.optJSONArray("newReleases");
+        if(items==null||items.length()==0)
+            throw new Exception("Qobuz provided no new release albums");
+        org.json.JSONArray verified=new org.json.JSONArray();
+        for(int i=0;i<items.length()&&verified.length()<48;i++){
+            JSONObject item=items.optJSONObject(i);
+            if(item==null)continue;
+            JSONObject album=item.optJSONObject("album");
+            if(album==null)album=item;
+            if(album.optString("id","").trim().isEmpty()||
+               album.optString("title","").trim().isEmpty())continue;
+            verified.put(album);
+        }
+        if(verified.length()==0)throw new Exception("Qobuz release list has no album IDs");
         JSONObject normalized=new JSONObject(response.toString());
-        normalized.put("albums",new JSONObject().put("items",items).put("total",items.length()));
+        normalized.put("albums",new JSONObject().put("items",verified)
+            .put("total",verified.length()));
         return normalized;
     }
 
-    /** Try authorized discovery first, then the documented featured-album route.
-     * Never retry a rejected (HTTP 405) App ID with another endpoint.
+    /** Try three legitimate Qobuz discovery shapes on the same authorized
+     * account. A rejected App ID (405) is never retried against a different
+     * endpoint using that same invalid identity.
      */
     JSONObject discoverReleases(int limit)throws Exception{
         int safeLimit=Math.max(1,Math.min(48,limit));
         try{
             return checkedFeatured(catalog("discover/newReleases",
-                new JSONObject().put("limit",safeLimit)));
-        }catch(ApiException e){
-            if(e.status!=401&&e.status!=403&&e.status!=404&&e.status!=400)throw e;
-        }catch(Exception shapeError){
-            // A valid session may get a different response shape for this endpoint.
-        }
+                new JSONObject().put("limit",safeLimit).put("offset",0)));
+        }catch(ApiException e){if(e.status==405)throw e;}
+         catch(Exception ignored){/* Try the authorized index. */}
+        try{
+            return checkedFeatured(catalog("discover/index",new JSONObject()));
+        }catch(ApiException e){if(e.status==405)throw e;}
+         catch(Exception ignored){/* Try supported featured albums. */}
         return checkedFeatured(catalog("album/getFeatured",
             new JSONObject().put("type","new-releases").put("limit",safeLimit)));
     }
@@ -328,9 +359,19 @@ final class QobuzApi {
                 authorizedFailure=denied;
                 if(!(denied instanceof ApiException)||
                     ((ApiException)denied).status!=405){
-                    try{return checkedFeatured(request("album/getFeatured",query,false,
-                        libraryAppId,libraryAuthToken));}
-                    catch(Exception featuredDenied){authorizedFailure=featuredDenied;}
+                    boolean idRejected=false;
+                    try{return checkedFeatured(request("discover/index",new JSONObject(),
+                        false,libraryAppId,libraryAuthToken));}
+                    catch(Exception indexDenied){
+                        authorizedFailure=indexDenied;
+                        idRejected=indexDenied instanceof ApiException &&
+                            ((ApiException)indexDenied).status==405;
+                    }
+                    if(!idRejected){
+                        try{return checkedFeatured(request("album/getFeatured",query,false,
+                            libraryAppId,libraryAuthToken));}
+                        catch(Exception featuredDenied){authorizedFailure=featuredDenied;}
+                    }
                 }
             }
         }
@@ -348,8 +389,13 @@ final class QobuzApi {
             }catch(Exception denied){
                 if(denied instanceof ApiException&&((ApiException)denied).status==405)
                     throw denied;
+                try{return checkedFeatured(request("discover/index",new JSONObject(),
+                    false,publicId,""));}
+                catch(ApiException indexDenied){
+                    if(indexDenied.status==405)throw indexDenied;
+                }catch(Exception ignored){/* Fall through to featured albums. */}
                 return checkedFeatured(request("album/getFeatured",query,
-                    false,resolveAppId(""),""));
+                    false,publicId,""));
             }
         }catch(Exception publicError){
             String hint=authorizedFailure==null?
