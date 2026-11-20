@@ -462,20 +462,55 @@ async function navigate(page){
  else if(page==='playlists')await loadPlaylists();
  }catch(e){showToast(e.message)}
 }
-async function loadHome(){
- try{
-  const d=await api('discover',{},true);
-  app.albums=sliceItems(d,'albums').length?sliceItems(d,'albums'):sliceItems(d);
-  app.discoverStatus=app.albums.length?'':'empty';
-  if(app.nav==='home')render();
- }catch(e){
-  // Discovery has separate authorization from search, library and playback.
-  // Display a concise inline state instead of obscuring the page.
-  const message=String(e?.message||'');
-  app.discoverStatus=/authorization|authoriz|403|401|permitted featured|Fresh releases unavailable/i.test(message)
-   ?'authorization':'network';
-  if(app.nav==='home')render();
+// Only one discovery request at a time; do not drop usable albums on a
+// transient network/authorization failure. This cache is session-local only.
+let aurelHomeInFlight=null, aurelHomeFetchedAt=0;
+function aurelDiscoverSessionKey(){
+ const x=app.session||{};
+ return [x.streamUserId||'',x.libraryUserId||'',
+         x.streamConnected?'1':'0',x.mornyeConnected?'1':'0',
+         x.libraryConnected?'1':'0'].join(':');
+}
+async function loadHome(force=false){
+ if(aurelHomeInFlight)return aurelHomeInFlight;
+ if(!force&&app.albums.length&&Date.now()-aurelHomeFetchedAt<90000)return;
+ const owner=aurelDiscoverSessionKey();
+ if(!app.albums.length){
+   app.discoverStatus='loading';
+   if(app.nav==='home')render();
  }
+ aurelHomeInFlight=(async()=>{
+   try{
+     const d=await api('discover',{},true);
+     if(owner!==aurelDiscoverSessionKey())return;
+     const fresh=sliceItems(d,'albums').length?sliceItems(d,'albums'):sliceItems(d);
+     // Distinct real Qobuz album IDs, not locally invented releases.
+     const seen=new Set();
+     const albums=fresh.filter(row=>{
+       if(!row||!row.id||!(row.title||row.name))return false;
+       const id=String(row.id);
+       if(seen.has(id))return false;
+       seen.add(id);return true;
+     }).slice(0,36);
+     if(!albums.length)throw new Error('Qobuz returned no recent releases');
+     app.albums=albums;
+     app.discoverStatus='';
+     aurelHomeFetchedAt=Date.now();
+   }catch(e){
+     if(owner!==aurelDiscoverSessionKey())return;
+     if(app.albums.length){
+       app.discoverStatus='stale';
+     }else{
+       const message=String(e?.message||'');
+       app.discoverStatus=/authorization|authoriz|403|401|405|permitted featured|Fresh releases unavailable/i.test(message)
+         ?'authorization':'network';
+     }
+   }finally{
+     if(app.nav==='home'&&owner===aurelDiscoverSessionKey())render();
+   }
+ })();
+ try{return await aurelHomeInFlight;}
+ finally{aurelHomeInFlight=null;}
 }
 async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()||app.searchQuery;if(!app.searchQuery)return;
  if(window.AurelSearchHistory)window.AurelSearchHistory(app.searchQuery);
@@ -712,7 +747,7 @@ document.addEventListener('click',async ev=>{
   }
  if(b.dataset.searchType){app.searchType=b.dataset.searchType;app.results=[];renderSearch();if(app.searchQuery)search();return}
  if(b.dataset.libType){app.libType=b.dataset.libType;if(app.libType==='playlists')loadPlaylists();else loadLibrary();return}
- if(b.hasAttribute('data-refresh')){loadHome();return}
+ if(b.hasAttribute('data-refresh')){loadHome(true);return}
  if(b.dataset.openAlbum){openAlbum(b.dataset.openAlbum);return}
  if(b.dataset.openArtist){openArtist(b.dataset.openArtist);return}
  if(b.hasAttribute('data-artist-from-album')){openArtistFor(app.selected);return}
