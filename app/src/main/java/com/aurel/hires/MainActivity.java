@@ -1723,9 +1723,15 @@ public final class MainActivity extends Activity {
                                 extras=artistInformation("artist/page",
                                     new JSONObject().put("artist_id",artistId)
                                         .put("extra","topTracks"));
-                            }catch(Exception error) {
-                                // A failed endpoint must be distinguishable from an empty Qobuz catalogue.
-                                extras.put("_pageError","Qobuz artist page request failed");
+                            }catch(Exception expandedError) {
+                                // Older Qobuz page variants ignore or reject extra=topTracks.
+                                // Retry the standard artist page before treating it as unavailable.
+                                try{
+                                    extras=artistInformation("artist/page",
+                                        new JSONObject().put("artist_id",artistId));
+                                }catch(Exception error){
+                                    extras.put("_pageError","Qobuz artist page request failed");
+                                }
                             }
                             Object similar=extras.opt("similar_artists");
                             JSONArray relatedItems=similar instanceof JSONObject
@@ -2101,7 +2107,7 @@ public final class MainActivity extends Activity {
                 if(item==null)continue;
                 JSONObject album=item.optJSONObject("album");
                 String id=item.optString("id",album==null?"":album.optString("id",""));
-                if(id.isEmpty()||unique.add(id))combined.put(item);
+                if(!id.isEmpty()&&unique.add(id))combined.put(item);
             }
             hasMore=response.optBoolean("has_more",
                 block!=null&&block.optBoolean("has_more",false));
