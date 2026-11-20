@@ -11,9 +11,11 @@ const html=read(base+'index.html');
 const native=read('app/src/main/java/com/aurel/hires/MainActivity.java');
 
 assert(html.includes('href="aurel-gesture-safe.css"'));
+assert(html.indexOf('aurel-gesture-safe.css')<html.indexOf('aurel-seek-settings-polish.css'),
+ 'existing shared theme must load before targeted seek overrides');
 assert.equal(html.lastIndexOf('<link rel="stylesheet"'),
- html.indexOf('<link rel="stylesheet" href="aurel-gesture-safe.css">'),
- 'the shared design system must win over old CSS skins');
+ html.indexOf('<link rel="stylesheet" href="aurel-seek-settings-polish.css">'),
+ 'the final shared UI system must win over older CSS skins');
 for(const rule of [
  ':root[data-aurel-palette] .app::after{',
  'var(--aurel-native-navigation-inset,0px)',
