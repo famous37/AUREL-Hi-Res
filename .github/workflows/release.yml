@@ -212,7 +212,7 @@ jobs:
             '- Artwork palette accents apply consistently to mini-player, navigation, controls, cards and settings while monochrome remains neutral.' \
             '- Android versionCode 116, versionName 1.1.99, original permanently signed certificate.' \
             '' \
-            "Install v${AUREL_VERSION} over v1.1.99; do not uninstall or clear AUREL data." \
+            "Install v${AUREL_VERSION} over v1.1.98; do not uninstall or clear AUREL data." \
             'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \

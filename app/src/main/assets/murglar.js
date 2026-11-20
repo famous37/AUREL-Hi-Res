@@ -151,7 +151,9 @@
          Math.abs(Number(progress.value)-Number(value))>150)
         progress.value=value;
       const seekText=duration(value/1000)+' of '+duration(max/1000);
-      if(progress.getAttribute('aria-valuetext')!==seekText)progress.setAttribute('aria-valuetext',seekText);
+      if((!p.playing||!window.AurelProgressClock)&&
+         progress.getAttribute('aria-valuetext')!==seekText)
+        progress.setAttribute('aria-valuetext',seekText);
       const total=Number(p.duration)||0;
       const percent=total?Math.min(100,Math.round((Number(p.position)||0)/total*100))+'%':'0%';
       if((!p.playing||!window.AurelProgressClock)&&progress.dataset.played!==percent){
@@ -160,7 +162,9 @@
       }
     }
     const elapsed=$('#elapsed'),remaining=$('#remaining');
-    const a=duration((p.position||0)/1000),b=duration((p.duration||0)/1000);
+    const positionForLabels=(p.playing&&window.AurelProgressClock)?
+      window.AurelProgressClock.read(p):(Number(p.position)||0);
+    const a=duration(positionForLabels/1000),b=duration((p.duration||0)/1000);
     if(elapsed&&elapsed.textContent!==a)elapsed.textContent=a;
     if(remaining&&remaining.textContent!==b)remaining.textContent=b;
     const toggle=$('#full-toggle'),mode=aurelPlaybackMode(p);
