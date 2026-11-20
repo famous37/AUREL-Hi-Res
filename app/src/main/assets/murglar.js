@@ -96,6 +96,7 @@
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>
           <input id="progress" class="progress" type="range" min="0" max="${total||100}" step="500" value="${position}" style="--played:${played}%" ${total>0?'':'disabled'} aria-label="Seek within track" aria-valuetext="${duration(position/1000)} of ${duration(total/1000)}">
+          <span class="aurel-seek-rail" aria-hidden="true"><span class="aurel-seek-rail-fill" style="transform:scaleX(${(played/100).toFixed(4)})"></span></span>
           <span id="remaining">${duration(total/1000)}</span>
         </section>
         <section class="murglar-transport aurel-main-actions" aria-label="Playback controls">
@@ -159,6 +160,9 @@
       if((!p.playing||!window.AurelProgressClock)&&progress.dataset.played!==percent){
         progress.dataset.played=percent;
         progress.style.setProperty('--played',percent);
+        const rail=progress.parentElement?.querySelector('.aurel-seek-rail-fill');
+        if(rail)rail.style.transform='scaleX('+
+          (Math.min(100,Math.max(0,parseFloat(percent)||0))/100).toFixed(5)+')';
       }
     }
     const elapsed=$('#elapsed'),remaining=$('#remaining');
