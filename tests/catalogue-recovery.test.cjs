@@ -34,7 +34,7 @@ assert.match(main,/artistTypedAlbumsFallback\(artistId,releaseType\)/);
 assert.match(disc,/s\.epError=data\?\._partial\?'partial':''/);
 assert.match(disc,/401\|403\|405/);
 assert.match(disc,/count&&error/);
-assert.match(home,/data-nav="settings">Check account/);
+assert.match(home,/data-nav="library">Your library/);
 assert.match(home,/data-refresh>Retry/);
 assert.match(source,/app\.discoverStatus=/);
 console.log('Qobuz discovery / artist release recovery invariants PASS');
