@@ -1597,7 +1597,10 @@ public final class MainActivity extends Activity {
                                     data=api.publicFeaturedReleases(24);
                                 }
                             }else{
-                                data=api.discoverReleases(24);
+                                // A library-only session or an endpoint-restricted
+                                // streaming ID may still have authorized featured metadata.
+                                try{data=api.discoverReleases(24);}
+                                catch(Exception primaryError){data=api.publicFeaturedReleases(24);}
                             }
                             break;
                         }
@@ -1752,8 +1755,15 @@ public final class MainActivity extends Activity {
                                 catch(Exception previewError) {
                                     try {data=artistTypedAlbumsFallback(artistId,releaseType);}
                                     catch(Exception fallbackError) {
-                                        throw new Exception("Qobuz typed releases unavailable: "
-                                            +listError.getMessage());
+                                        // Some catalogues authorize the unfiltered
+                                        // release list but reject typed requests.
+                                        // Keep only releases whose provider type is explicit.
+                                        try{data=artistReleaseFromAll(artistId,releaseType);}
+                                        catch(Exception unfilteredError){
+                                            throw new Exception("Qobuz typed releases unavailable: "
+                                                +listError.getMessage()+"; fallback: "
+                                                +unfilteredError.getMessage());
+                                        }
                                     }
                                 }
                             }
@@ -1999,43 +2009,91 @@ public final class MainActivity extends Activity {
         return source.optJSONArray(key);
     }
 
-    /** Bounded, paged, typed releases. A blocked additional page returns the
-     * actual pages already received; it cannot turn them into invented entries. */
+    /** Paginate actual Qobuz releases, respecting has_more when the server
+     * returns fewer items than the requested limit. Bounded to eight pages.
+     */
     private JSONObject artistReleaseList(String artistId,String kind)throws Exception {
-        final int pageSize=100,maxPages=4;
+        final int pageSize=100,maxPages=8;
         JSONArray combined=new JSONArray();
-        int total=-1;
+        java.util.HashSet<String> unique=new java.util.HashSet<>();
+        int total=-1,offset=0;
+        boolean hasMore=false;
         for(int page=0;page<maxPages;page++) {
-            int offset=page*pageSize;
+            JSONObject params=new JSONObject()
+                .put("artist_id",artistId).put("release_type",kind)
+                .put("sort","release_date_by_priority")
+                .put("offset",offset).put("limit",pageSize);
             JSONObject response;
             try{
-                response=artistInformation("artist/getReleasesList",new JSONObject()
-                    .put("artist_id",artistId).put("release_type",kind)
-                    .put("sort","release_date_by_priority")
-                    .put("offset",offset).put("limit",pageSize));
-            }catch(Exception error){
-                if(combined.length()==0)throw error;
-                break;
+                response=artistInformation("artist/getReleasesList",params);
+            }catch(Exception listError){
+                try{response=artistInformation("artist/getReleasesGrid",params);}
+                catch(Exception gridError){
+                    if(combined.length()==0)throw listError;
+                    hasMore=true;break;
+                }
             }
             JSONArray items=artistItems(response,"albums");
             if(items==null)items=artistItems(response,"releases");
             if(items==null)items=response.optJSONArray("items");
-            if(items==null) {
+            if(items==null){
                 if(combined.length()==0)throw new Exception("Unexpected releases response");
-                break;
+                hasMore=true;break;
             }
             JSONObject block=response.optJSONObject("albums");
             if(block==null)block=response.optJSONObject("releases");
-            if(total<0&&block!=null)total=block.optInt("total",-1);
-            for(int n=0;n<items.length();n++) {
+            if(total<0)total=block!=null?block.optInt("total",-1):
+                response.optInt("total",-1);
+            for(int n=0;n<items.length();n++){
                 JSONObject item=items.optJSONObject(n);
-                if(item!=null)combined.put(item);
+                if(item==null)continue;
+                JSONObject album=item.optJSONObject("album");
+                String id=item.optString("id",album==null?"":album.optString("id",""));
+                if(id.isEmpty()||unique.add(id))combined.put(item);
             }
-            if(items.length()<pageSize||(total>=0&&combined.length()>=total))break;
+            hasMore=response.optBoolean("has_more",
+                block!=null&&block.optBoolean("has_more",false));
+            if(items.length()==0)break;
+            offset+=items.length();
+            if(total>=0&&combined.length()>=total){hasMore=false;break;}
+            if(!hasMore&&items.length()<pageSize)break;
         }
         return new JSONObject().put("items",combined)
             .put("total",total>=0?total:combined.length())
-            .put("_partial",total>combined.length());
+            .put("_partial",hasMore||(total>=0&&combined.length()<total));
+    }
+
+    /** A provider's unfiltered list is a safe fallback for denied category
+     * filters. Never infer an EP from title, image, duration, or track count.
+     */
+    private JSONObject artistReleaseFromAll(String artistId,String releaseType)throws Exception {
+        JSONObject result=artistReleaseList(artistId,"all");
+        JSONArray items=result.optJSONArray("items");
+        if(items==null)throw new Exception("Qobuz returned no release list");
+        JSONArray selected=new JSONArray();
+        int identified=0;
+        for(int i=0;i<items.length();i++){
+            JSONObject wrapper=items.optJSONObject(i);
+            if(wrapper==null)continue;
+            JSONObject album=wrapper.optJSONObject("album");
+            if(album==null)album=wrapper;
+            String type=wrapper.optString("release_type",
+                album.optString("release_type",album.optString("album_type",
+                    album.optString("product_type",album.optString("type","")))))
+                .toLowerCase(java.util.Locale.ROOT).replaceAll("[ _-]","");
+            if(type.isEmpty())continue;
+            identified++;
+            boolean same=releaseType.equals("epSingle")
+                ?type.contains("single")||type.equals("ep")||type.equals("epsingle")
+                :releaseType.equals("compilation")
+                    ?type.contains("compilation"):type.equals("album");
+            if(same)selected.put(wrapper);
+        }
+        if(identified==0)throw new Exception("Qobuz omitted release types");
+        if(selected.length()==0&&result.optBoolean("_partial",false))
+            throw new Exception("Qobuz returned only a partial unfiltered release list");
+        return new JSONObject().put("items",selected)
+            .put("_partial",result.optBoolean("_partial",false));
     }
 
     /** With restricted artist/page, use an artist-owned track list if provided;
