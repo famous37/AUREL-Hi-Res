@@ -9,17 +9,17 @@ const disco=read('app/src/main/assets/aurel-discography.js');
 const mini=read('app/src/main/assets/modern.js');
 const css=read('app/src/main/assets/aurel-gesture-safe.css');
 
-// A failed artist/page must not discard reachable Qobuz artist tracks.
+// A failed artist/page must not fabricate popularity from a generic artist search.
 assert.match(java,/case "artistExtras":/);
-assert.match(java,/artistTrackFallback\(artistId\)/);
+assert.match(java,/artistOfficialTopTracks\(artistId\)/);
 assert.match(java,/case "artistReleaseType":/);
 assert.match(java,/artistReleaseList\(artistId,releaseType\)/);
 assert.match(java,/artistPageReleases\(artistId,releaseType\)/);
 assert.match(java,/artistTypedAlbumsFallback\(artistId,releaseType\)/);
-assert.match(java,/if\(!artistId\.equals\(actual\)\)continue/);
+assert.doesNotMatch(java,/private JSONObject artistTrackFallback\(/);
 assert.match(java,/if\(!typeFound\)throw/);
-assert.match(disco,/Tracks by artist/);
-assert.match(disco,/s\.topFallback=!!data\?\._topFallback/);
+assert.match(disco,/<h2>Most popular<\/h2>/);
+assert.doesNotMatch(disco,/topFallback/);
 assert.match(disco,/const groups=asList\(preview\)/);
 
 // MediaSession must receive real duration in milliseconds and keep a stable seek bar.
