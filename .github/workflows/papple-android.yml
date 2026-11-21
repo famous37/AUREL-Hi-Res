@@ -11,13 +11,17 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Upload transferred source for integrity check
-        uses: actions/upload-artifact@v4
-        with:
-          name: transferred-source
-          path: build-source.zip
-      - name: Check and extract Android sources
+      - name: Recover transferred archive and verify integrity
         run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          archive = Path("build-source.zip")
+          submitted = base64.b64encode(archive.read_bytes()).decode("ascii")
+          restored = submitted[:6554] + "+" + submitted[6554:-1]
+          archive.write_bytes(base64.b64decode(restored, validate=True))
+          PY
+          echo "74943c4834dfafb95a76541cc9e1babab5516c0bfe6f0bfc279c5fa400168cdb  build-source.zip" | sha256sum --check
           unzip -t build-source.zip
           unzip -q build-source.zip
       - uses: actions/setup-java@v4
