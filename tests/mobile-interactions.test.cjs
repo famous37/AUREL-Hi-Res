@@ -185,6 +185,8 @@ async function checkLibraryAndSearch(){
  field.value='';field.dispatchEvent(new Event('input',{bubbles:true}));
  check(!app.results.length&&!app.searchQuery&&!app.searchBusy,'Clearing search retained old results');
  check(document.querySelector('#searchHistory [data-search-recent]'),'Clearing search did not restore recent searches');
+ // Dismiss the queue confirmation before testing the controls underneath it.
+ document.querySelector('#toast.aurel-toast-visible [data-dismiss-aurel-toast]')?.click();
  document.querySelector('#mini .mini-track-open').click();
  await until(()=>document.querySelector('#overlay #progress'));
 }
