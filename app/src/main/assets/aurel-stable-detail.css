@@ -28,6 +28,8 @@
 /* Constrain the actual sheet inside the player viewport. The player viewport
  * already excludes both the bottom Android gesture inset and AUREL nav. */
 :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer{
+ /* The immersive player header occupies stacking level 30. */
+ z-index:32!important;
  height:var(--aurel-drawer-size,var(--aurel-detail-rest))!important;
  min-height:0!important;
  max-height:calc(100% - var(--aurel-sheet-safe-top))!important;
@@ -145,6 +147,7 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
 /* A drawer's compositor and overlay stay mounted while sheet contents change.
  * No alpha restart, backdrop blur, or colour flashes on opening/closing. */
 :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
+ z-index:31!important;
  animation:none!important;
  transition:none!important;
  background:rgba(0,0,0,.35)!important;
@@ -170,10 +173,10 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
 @keyframes aurelDimmerEnter{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:no-preference){
  :root[data-aurel-palette]:not([data-aurel-motion="off"]) #overlay:not(.hidden) .murglar-view .aurel-detail-drawer{
-  animation:aurelDetailEnter 190ms cubic-bezier(.2,.72,.25,1) both!important;
+  animation:aurelDetailEnter 190ms cubic-bezier(.2,.72,.25,1)!important;
  }
  :root[data-aurel-palette]:not([data-aurel-motion="off"]) #overlay:not(.hidden) .aurel-detail-dimmer{
-  animation:aurelDimmerEnter 180ms ease-out both!important;
+  animation:aurelDimmerEnter 180ms ease-out!important;
  }
 }
 :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer{

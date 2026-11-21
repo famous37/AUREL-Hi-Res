@@ -63,8 +63,12 @@ async function run(){
   await evaluate(checkReopen);
   const handlePoint=()=>evaluate(async()=>{
    await fixture.frame();
-   const rect=document.querySelector('.aurel-drawer-handle').getBoundingClientRect();
-   return {x:Math.round(rect.x+rect.width/2),y:Math.round(rect.y+rect.height/2)};
+   const handle=document.querySelector('.aurel-drawer-handle');
+   const rect=handle.getBoundingClientRect();
+   const x=Math.round(rect.x+rect.width/2),y=Math.round(rect.y+rect.height/2);
+   const hit=document.elementFromPoint(x,y);
+   fixture.check(handle.contains(hit),'Drawer handle covered by '+hit?.outerHTML.slice(0,180));
+   return {x,y};
   });
   async function touch(deltaY){
    const {x,y}=await handlePoint();
