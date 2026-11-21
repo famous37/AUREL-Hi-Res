@@ -11,16 +11,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Upload transferred source for integrity check
+        uses: actions/upload-artifact@v4
+        with:
+          name: transferred-source
+          path: build-source.zip
       - name: Check and extract Android sources
         run: |
-          file build-source.zip
-          wc -c build-source.zip
-          head -c 24 build-source.zip | xxd
-          tail -c 40 build-source.zip | xxd
-          if head -c 4 build-source.zip | grep -q 'UEsD'; then
-            base64 -d build-source.zip > decoded.zip
-            mv decoded.zip build-source.zip
-          fi
           unzip -t build-source.zip
           unzip -q build-source.zip
       - uses: actions/setup-java@v4
