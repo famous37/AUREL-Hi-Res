@@ -905,6 +905,7 @@ document.addEventListener('input',e=>{
  const ratio=max?Math.max(0,Math.min(1,next/max)):0;
  const fill=e.target.parentElement?.querySelector('.aurel-seek-rail-fill');
  if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
+ if(e.target.dataset)delete e.target.dataset.played;
  e.target.style?.setProperty?.('--played',(ratio*100).toFixed(2)+'%');
  const elapsed=duration(next/1000),remaining=duration(Math.max(0,max-next)/1000);
  const text=$('#elapsed'),end=$('#remaining');

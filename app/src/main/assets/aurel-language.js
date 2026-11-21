@@ -920,6 +920,7 @@ Object.assign(dictionary,{
  'Your library and playlists, in one place.':'Ваша бібліотека та плейлисти в одному місці.',
  'Connect your personal collection with a password or compatible token.':'Під’єднайте свою бібліотеку за допомогою пароля або сумісного токена.',
  'Qobuz sign-in expired':'Сеанс Qobuz завершився',
+ 'Dismiss notification':'Закрити сповіщення',
  'Sign in again. Your saved library is preserved.':'Увійдіть знову. Ваша збережена бібліотека залишилася без змін.',
  'Email & password':'Ел. пошта й пароль',
  'Session token':'Токен сеансу',
@@ -1011,7 +1012,8 @@ var observer=new MutationObserver(function(mutations){
  if(settingsNeeded)createLanguagePanel();
  if(loginNeeded)createLoginLanguageSwitch();
 });
-observer.observe(document.body,{childList:true,characterData:true,subtree:true});
+observer.observe(document.body,{childList:true,characterData:true,subtree:true,
+ attributes:true,attributeFilter:attributeNames});
 createLanguagePanel();
 createLoginLanguageSwitch();
 if(current==='uk')visit(document.body);

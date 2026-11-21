@@ -53,10 +53,41 @@ async function run(){
    return result.value;
   }
   await viewport(393,808);
+  await cdp('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
+  await cdp('Network.enable',{});
+  await cdp('Network.setBlockedURLs',{urls:['*://*.qobuz.com/*']});
   await cdp('Page.addScriptToEvaluateOnNewDocument',{source:'('+installFixture.toString()+')()'});
   await command(session+'/url',{url:pathToFileURL(path.join(__dirname,'../app/src/main/assets/index.html')).href});
   await evaluate(checkLibraryAndSearch);
   await evaluate(checkGestures);
+  await evaluate(checkReopen);
+  const handlePoint=()=>evaluate(async()=>{
+   await fixture.frame();
+   const rect=document.querySelector('.aurel-drawer-handle').getBoundingClientRect();
+   return {x:Math.round(rect.x+rect.width/2),y:Math.round(rect.y+rect.height/2)};
+  });
+  async function touch(deltaY){
+   const {x,y}=await handlePoint();
+   const actions=[{type:'pointerMove',origin:'viewport',x,y},{type:'pointerDown',button:0}];
+   if(deltaY)actions.push({type:'pointerMove',duration:130,origin:'viewport',x,y:y+deltaY});
+   actions.push({type:'pointerUp',button:0});
+   await command(session+'/actions',{actions:[{type:'pointer',id:'finger',parameters:{pointerType:'touch'},actions}]});
+  }
+  await evaluate(()=>document.querySelector('button[data-player-sheet="credits"]').click());
+  await touch(-72);
+  assert(await evaluate(()=>AurelDetailDrag.isExpanded()),'Touch drag did not expand the drawer');
+  await touch(0);
+  assert.equal(await evaluate(()=>AurelDetailDrag.isExpanded()),false,'A new tap after dragging did not collapse the drawer');
+  await viewport(320,600);
+  await evaluate(async()=>{
+   await fixture.frame();
+   const cover=document.querySelector('.murglar-cover'),width=cover.getBoundingClientRect().width;
+   const fit=getComputedStyle(cover).getPropertyValue('--aurel-fit-art');
+   fixture.check(parseFloat(fit)<=innerWidth*.94+1,'Open drawer kept the previous viewport fit');
+   document.querySelector('.aurel-drawer-header [data-close-detail]').click();
+   await fixture.frame();
+   fixture.check(Math.abs(cover.getBoundingClientRect().width-width)<2,'Closing the resized drawer changed cover width');
+  });
   for(const [width,height] of [[393,808],[360,640],[808,393]]){
    await viewport(width,height);
    const metrics=await evaluate(checkLayout);
@@ -77,7 +108,7 @@ async function run(){
 // All fixtures stay in this browser process. No external provider is contacted.
 function installFixture(){
  const tracks=['Zulu','Alpha','Middle'].map((title,i)=>({id:101+i,title,
-  artist:{name:['Alpha band','Zulu band','Middle band'][i]},album:{id:'a12',title:'Album'},duration:180}));
+  artist:{name:['Alpha band','Zulu band','Middle band'][i]},album:{id:'a12',title:'Album',image:{large:'https://static.qobuz.com/qa/missing.jpg'}},duration:180}));
  const session={streamConnected:true,streamValidation:'verified',profile:{displayName:'QA'},quality:6};
  const player={track:tracks[0],queue:tracks,index:0,duration:180000,position:54000,playing:false};
  const pending=new Map(),calls=[];
@@ -165,7 +196,11 @@ async function checkGestures(){
  window.AurelEvent('player',player);
  check(elapsed.textContent==='1:30','A playback tick overwrote the seek preview');
  pointer(slider,'pointercancel');
+ check(Math.abs(parseFloat(document.querySelector('.aurel-seek-rail-fill').style.transform.slice(7))-.3)<.001,
+  'Cancelled seek left the paused rail showing the preview');
+ await fixture.until(()=>document.querySelector('.murglar-art-placeholder')&&document.querySelector('#mini .minicover.placeholder'));
  const cover=document.querySelector('.murglar-cover');
+ check(cover.getBoundingClientRect().width>100,'Unavailable artwork collapsed the cover');
  document.querySelector('button[data-player-sheet="credits"]').click();
  const drawer=document.querySelector('.aurel-detail-drawer'),handle=drawer.querySelector('.aurel-drawer-handle');
  const height=()=>parseFloat(drawer.style.getPropertyValue('--aurel-drawer-size'));
@@ -182,6 +217,22 @@ async function checkGestures(){
  handle.click();check(height()===rest,'Accessible handle did not collapse drawer');
  drawer.querySelector('[data-close-detail]').click();
  check(document.querySelector('.murglar-cover')===cover,'Drawer remounted artwork');
+}
+async function checkReopen(){
+ const {check,frame,player}=fixture;
+ const close=document.querySelector('[data-close-overlay]');
+ close.click();close.click();
+ check(app.overlay,'Second tap interrupted the close animation');
+ window.AurelBack();
+ check(app.overlay,'Repeated Back interrupted the close animation');
+ window.AurelMinimizePlayer();
+ document.querySelector('#mini .mini-track-open').click();
+ await new Promise(r=>setTimeout(r,430));
+ check(app.overlay,'A previous dismiss timer closed a newly opened player');
+ window.AurelEvent('player',{...player,repeat:2});
+ await frame();
+ check(document.querySelector('#full-repeat').getAttribute('aria-label')===AurelLanguage.translate('Repeat one'),
+  'Changed repeat state lost its Ukrainian accessibility label');
 }
 async function checkLayout(){
  const {check,frame}=fixture;

@@ -484,4 +484,19 @@ document.addEventListener('click',function(ev){const b=ev.target.closest('button
  }return}
 },true);
 document.addEventListener('change',e=>{if(e.target.id==='libSort'){app.libSort=e.target.value;renderLibrary();}});
-document.addEventListener('error',e=>{if(e.target.tagName==='IMG'){e.target.style.display='none';const parent=e.target.parentElement;if(parent&&parent.classList.contains('shelf-image'))parent.textContent='♪';}},true);
+document.addEventListener('error',event=>{
+ const img=event.target;
+ if(img.tagName!=='IMG'||!img.isConnected)return;
+ const full=img.matches('#overlay .murglar-cover');
+ if(full||img.matches('#mini .minicover')){
+  const fallback=document.createElement(full?'div':'span');
+  fallback.className=full?'murglar-cover murglar-art-placeholder':'minicover placeholder';
+  fallback.textContent=full?'♫':'♪';
+  if(full){fallback.setAttribute('role','img');fallback.setAttribute('aria-label','No cover art available');}
+  else fallback.setAttribute('aria-hidden','true');
+  img.replaceWith(fallback);
+  return;
+ }
+ img.style.display='none';
+ if(img.parentElement?.classList.contains('shelf-image'))img.parentElement.textContent='♪';
+},true);

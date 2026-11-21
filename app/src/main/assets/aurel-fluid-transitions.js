@@ -41,7 +41,6 @@
    if(typeof prior!=='function')return;
    window[name]=function(){
      if(app.overlay&&!app.playerSheet&&allowed()&&
-       !overlay.classList.contains('aurel-swipe-dismissing')&&
        overlay.querySelector('.murglar-view')&&
        typeof window.AurelSwipeMinimize?.minimize==='function'){
        window.AurelSwipeMinimize.minimize();return;

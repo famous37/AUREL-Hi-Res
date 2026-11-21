@@ -35,8 +35,8 @@ assert(aurora.includes('smoothedLevel')&&aurora.includes('lastVisualUpdate'),
  'FFT animation is smoothed and frame-rate limited');
 assert(fit.includes('let lastFit=null'));
 assert(fit.includes('if(lastFit?.key===key)'));
-assert(fit.includes("if(typeof app!=='undefined'&&app.playerSheet&&lastFit)"));
-assert(fit.includes('lastFit={key,pixel,scroll:needsScroll}'));
+assert(fit.includes("if(typeof app!=='undefined'&&app.playerSheet&&lastFit?.identity===identity)"));
+assert(fit.includes('lastFit={identity,key,pixel,scroll:needsScroll}'));
 assert(fit.includes('window.innerWidth*0.94')&&fit.includes('window.innerHeight*0.53'));
 assert(css.includes('.murglar-view.murglar-sheet-open'));
 assert(css.includes('width:var(--aurel-fit-art'));

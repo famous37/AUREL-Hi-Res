@@ -59,6 +59,7 @@
   const size=bounds();
   if(!size)return;
   clearGesture();
+  suppressClickUntil=0;
   gesture={id:e.pointerId,startY:e.clientY,delta:0,moved:false,size,base:expanded?size.limit:size.rest};
   // Capture on the original target so a tap still clicks the native button.
   if(e.isTrusted)e.target.setPointerCapture?.(e.pointerId);

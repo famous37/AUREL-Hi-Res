@@ -27,7 +27,7 @@
     const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
     const total=Math.max(0,Number(p.duration)||0),position=Math.min(total,Math.max(0,Number(p.position)||0));
     const played=total?100*position/total:0;
-    const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" aria-label="No cover art available">♫</div>';
+    const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" role="img" aria-label="No cover art available">♫</div>';
     const source=actualSource(p);
     const loading=aurelPlaybackMode(p)==='loading';
     // Preserve the actual drawer DOM across all player/session/quality updates.
@@ -211,14 +211,13 @@
       if(toggle.dataset.icon!==mode){
         aurelStopLoadingAnimation(toggle);
         toggle.dataset.icon=mode;
+        toggle.setAttribute('aria-label',aurelPlaybackLabel(p));
         toggle.innerHTML=aurelPlaybackIcon(p,39);
       }
       toggle.classList.toggle('is-loading',mode==='loading');
       if(mode==='loading')aurelEnsureLoadingAnimation(toggle);
       if(toggle.getAttribute('aria-busy')!==String(mode==='loading'))
         toggle.setAttribute('aria-busy',String(mode==='loading'));
-      const label=aurelPlaybackLabel(p);
-      if(toggle.getAttribute('aria-label')!==label)toggle.setAttribute('aria-label',label);
     }
     const shuffleButton=$('#full-shuffle');
     if(shuffleButton){
@@ -228,15 +227,16 @@
     const repeatButton=$('#full-repeat');
     if(repeatButton){
       if(repeatButton.classList.contains('active')!==!!p.repeat)repeatButton.classList.toggle('active',!!p.repeat);
-      const repeatText=repeatCaption(p);
-      if(repeatButton.getAttribute('aria-label')!==repeatText)repeatButton.setAttribute('aria-label',repeatText);
       if(repeatButton.getAttribute('aria-pressed')!==String(!!p.repeat))repeatButton.setAttribute('aria-pressed',String(!!p.repeat));
       if(repeatButton.dataset.mode!==String(p.repeat)){
         repeatButton.dataset.mode=String(p.repeat);
+        repeatButton.setAttribute('aria-label',repeatCaption(p));
         repeatButton.innerHTML=ic('repeat',25)+(p.repeat===2?'<sup>1</sup>':'');
       }
     }
     const state=$('#playingStatus'),caption=stateCaption(p);
-    if(state&&state.textContent!==caption)state.textContent=caption;
+    if(state&&state.dataset.caption!==caption){
+      state.dataset.caption=caption;state.textContent=caption;
+    }
   };
 })();

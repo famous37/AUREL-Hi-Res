@@ -56,9 +56,10 @@
     // album's size. Reuse this viewport/track geometry until the screen, font,
     // track metadata, or physical viewport genuinely changes.
     const track=typeof app==='undefined'?null:app.player?.track;
-    const key=[window.innerWidth,window.innerHeight,content.clientWidth,
-      content.clientHeight,document.documentElement.style.getPropertyValue('--aurel-native-status-inset'),
+    const identity=[window.innerWidth,window.innerHeight,
+      document.documentElement.style.getPropertyValue('--aurel-native-status-inset'),
       track?.id,track?.title,track?.album?.title].join('|');
+    const key=[identity,content.clientWidth,content.clientHeight].join('|');
     if(lastFit?.key===key){
       if(view.style.getPropertyValue('--aurel-fit-art')!==lastFit.pixel+'px')
         view.style.setProperty('--aurel-fit-art',lastFit.pixel+'px');
@@ -67,7 +68,7 @@
     }
     // Do not infer available height from a temporarily open sheet. On
     // initial mount it is safe to calculate from the player's usual controls.
-    if(typeof app!=='undefined'&&app.playerSheet&&lastFit){
+    if(typeof app!=='undefined'&&app.playerSheet&&lastFit?.identity===identity){
       view.style.setProperty('--aurel-fit-art',lastFit.pixel+'px');
       view.classList.toggle('aurel-fit-scroll',lastFit.scroll);
       return;
@@ -108,7 +109,7 @@
       view.style.setProperty('--aurel-fit-art',pixel+'px');
     const needsScroll=remainder<cover;
     view.classList.toggle('aurel-fit-scroll',needsScroll);
-    lastFit={key,pixel,scroll:needsScroll};
+    lastFit={identity,key,pixel,scroll:needsScroll};
   }
   function schedule(){
     if(frame)return;
@@ -124,6 +125,11 @@
     // Text/artwork changes replace the view, and ResizeObserver still
     // handles genuine viewport changes and font scaling.
     if(after&&(after!==before||after!==observed))schedule();
+    else if(!after&&observed){
+      observer.disconnect();
+      observer=null;
+      observed=null;
+    }
     return result;
   };
   window.addEventListener('resize',schedule,{passive:true});
