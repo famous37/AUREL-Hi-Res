@@ -1,0 +1,213 @@
+// Exercise the shipped HTML, styles and delegated handlers together in mobile Chromium.
+// GitHub's Android build runner includes a matching Chrome and ChromeDriver.
+'use strict';
+const assert=require('node:assert/strict');
+const {spawn,spawnSync}=require('node:child_process');
+const net=require('node:net');
+const path=require('node:path');
+const {pathToFileURL}=require('node:url');
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+async function run(){
+ const binary=process.env.AUREL_CHROMEDRIVER||'chromedriver';
+ if(spawnSync(binary,['--version']).status!==0){
+  if(process.env.GITHUB_ACTIONS)throw new Error('ChromeDriver required for mobile interaction tests');
+  console.log('Mobile Chromium tests skipped locally (install ChromeDriver to run).');
+  return;
+ }
+ const portServer=net.createServer();
+ await new Promise(resolve=>portServer.listen(0,'127.0.0.1',resolve));
+ const port=portServer.address().port;
+ await new Promise(resolve=>portServer.close(resolve));
+ const base='http://127.0.0.1:'+port;
+ const driver=spawn(binary,['--port='+port],{stdio:'ignore'});
+ let session;
+ async function command(endpoint,body){
+  const response=await fetch(base+endpoint,body===undefined?{}:{
+   method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+  });
+  const {value}=await response.json();
+  if(!response.ok)throw new Error(value?.message||'ChromeDriver '+response.status);
+  return value;
+ }
+ try{
+  let ready=false;
+  for(let i=0;i<60&&!ready;i++){
+   try{ready=(await command('/status')).ready;}catch{await delay(100);}
+  }
+  assert(ready,'ChromeDriver did not start');
+  const options={args:['--headless','--no-sandbox','--disable-dev-shm-usage']};
+  if(process.env.AUREL_CHROME)options.binary=process.env.AUREL_CHROME;
+  const info=await command('/session',{capabilities:{alwaysMatch:{browserName:'chrome','goog:chromeOptions':options}}});
+  session='/session/'+info.sessionId;
+  const cdp=(cmd,params)=>command(session+'/goog/cdp/execute',{cmd,params});
+  const viewport=async(width,height)=>cdp('Emulation.setDeviceMetricsOverride',{
+   width,height,deviceScaleFactor:2,mobile:true
+  });
+  async function evaluate(fn,...args){
+   const script='const done=arguments[arguments.length-1];'+
+    'Promise.resolve().then(()=>('+fn.toString()+')(...Array.from(arguments).slice(0,-1)))'+
+    '.then(value=>done({value}),error=>done({error:String(error.stack||error)}));';
+   const result=await command(session+'/execute/async',{script,args});
+   assert(!result.error,result.error);
+   return result.value;
+  }
+  await viewport(393,808);
+  await cdp('Page.addScriptToEvaluateOnNewDocument',{source:'('+installFixture.toString()+')()'});
+  await command(session+'/url',{url:pathToFileURL(path.join(__dirname,'../app/src/main/assets/index.html')).href});
+  await evaluate(checkLibraryAndSearch);
+  await evaluate(checkGestures);
+  for(const [width,height] of [[393,808],[360,640],[808,393]]){
+   await viewport(width,height);
+   const metrics=await evaluate(checkLayout);
+   console.log('Mobile layout',width+'x'+height,JSON.stringify(metrics));
+  }
+  await cdp('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  const animations=await evaluate(async()=>{
+   document.querySelector('button[data-player-sheet="credits"]').click();
+   return document.querySelector('.aurel-detail-drawer').getAnimations().length;
+  });
+  assert.equal(animations,0,'Reduced motion must suppress drawer entrance');
+  console.log('Mobile Chrome '+info.capabilities.browserVersion+' interaction checks passed.');
+ }finally{
+  try{if(session)await fetch(base+session,{method:'DELETE'});}finally{driver.kill();}
+ }
+}
+
+// All fixtures stay in this browser process. No external provider is contacted.
+function installFixture(){
+ const tracks=['Zulu','Alpha','Middle'].map((title,i)=>({id:101+i,title,
+  artist:{name:['Alpha band','Zulu band','Middle band'][i]},album:{id:'a12',title:'Album'},duration:180}));
+ const session={streamConnected:true,streamValidation:'verified',profile:{displayName:'QA'},quality:6};
+ const player={track:tracks[0],queue:tracks,index:0,duration:180000,position:54000,playing:false};
+ const pending=new Map(),calls=[];
+ window.fixture={player,calls,pending,errors:[],
+  check(value,message){if(!value)throw Error(message);},
+  async until(test){
+   for(let i=0;i<100;i++){if(test())return;await new Promise(r=>setTimeout(r,30));}
+   throw Error('Timed out waiting for '+String(test));
+  },
+  frame:()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))
+ };
+ window.addEventListener('error',e=>{if(e.message)fixture.errors.push(e.message);});
+ window.AurelNative={
+  call(id,action,raw){
+   const params=JSON.parse(raw);calls.push({action,params});
+   const reply=data=>window.AurelReceive(id,{ok:true,data});
+   if(action==='search'){pending.set(params.query,reply);return;}
+   const data={session,validateSession:session,discover:{albums:{items:[{id:'a12',title:'Album'}]}},
+    favorites:{tracks:{items:tracks}},audioDiagnostics:{outputs:[]},lyrics:{status:'missing'}};
+   setTimeout(()=>reply(data[action]||{}),0);
+  },
+  setPlayerImmersive(open){
+   document.documentElement.style.setProperty('--aurel-native-status-inset','24px');
+   document.documentElement.style.setProperty('--aurel-toast-safe-top',open?'24px':'0px');
+  }
+ };
+}
+async function checkLibraryAndSearch(){
+ const {check,until,pending,player,calls}=fixture;
+ await until(()=>window.AurelLanguage&&app.session?.streamConnected);
+ AurelLanguage.set('uk');
+ await navigate('settings');
+ check(document.querySelectorAll('[data-aurel-settings-group]').length===5,'Missing Ukrainian settings groups');
+ document.querySelector('.aurel-settings-heading h1').click();
+ check(!document.documentElement.hasAttribute('aria-pressed'),'Unrelated taps selected the page as a motion control');
+ const motion=document.querySelector('button[data-aurel-motion="off"]');
+ motion.click();
+ check(document.documentElement.dataset.aurelMotion==='off'&&motion.getAttribute('aria-pressed')==='true','Motion switch did not update');
+ document.querySelector('button[data-aurel-motion="soft"]').click();
+
+ app.libType='tracks';
+ await navigate('library');
+ window.AurelEvent('player',player);
+ for(const [sort,title] of [['alpha','Alpha'],['artist','Zulu']]){
+  const select=document.querySelector('#libSort');
+  select.value=sort;select.dispatchEvent(new Event('change',{bubbles:true}));
+  const row=document.querySelector('#libraryContent .track-title');
+  check(row?.textContent===title,'Unexpected first row for '+sort);
+  document.querySelector('#libraryContent [data-play-next="0"]').click();
+  check(calls.filter(c=>c.action==='queueAdd').at(-1)?.params.tracks[0].title===title,'Queued the wrong row for '+sort);
+  document.querySelector('#libraryContent [data-play-index="0"]').click();
+  await until(()=>app.overlay);
+  const play=calls.filter(c=>c.action==='play').at(-1)?.params;
+  check(play?.tracks[play.index].title===title,'Played the wrong row for '+sort);
+  window.AurelMinimizePlayer();
+ }
+ await navigate('search');
+ const field=document.querySelector('#searchInput');
+ field.focus();field.value='Older';
+ field.form.requestSubmit();
+ await until(()=>pending.has('Older'));
+ field.value='Latest';field.dispatchEvent(new Event('input',{bubbles:true}));
+ await until(()=>pending.has('Latest'));
+ pending.get('Latest')({tracks:{items:[{id:301,title:'Latest result'}]}});
+ await until(()=>app.results[0]?.id===301);
+ pending.get('Older')({tracks:{items:[{id:302,title:'Stale result'}]}});
+ await fixture.frame();
+ check(app.results[0]?.id===301&&document.querySelector('#searchResults').textContent.includes('Latest result'),'Stale search overwrote latest results');
+ check(document.activeElement===field,'Completing a search replaced the focused input');
+ field.value='';field.dispatchEvent(new Event('input',{bubbles:true}));
+ check(!app.results.length&&!app.searchQuery&&!app.searchBusy,'Clearing search retained old results');
+ check(document.querySelector('#searchHistory [data-search-recent]'),'Clearing search did not restore recent searches');
+ document.querySelector('#mini .mini-track-open').click();
+ await until(()=>document.querySelector('#overlay #progress'));
+}
+async function checkGestures(){
+ const {check,frame,player}=fixture;
+ const slider=document.querySelector('#progress'),elapsed=document.querySelector('#elapsed');
+ const pointer=(target,type,y=0)=>target.dispatchEvent(new PointerEvent(type,{
+  pointerId:42,pointerType:'touch',isPrimary:true,bubbles:true,cancelable:true,clientY:y
+ }));
+ pointer(slider,'pointerdown');pointer(slider,'pointerup');
+ check(!app.dragging,'A stationary touch froze seek updates');
+ pointer(slider,'pointerdown');slider.value='90000';slider.dispatchEvent(new Event('input',{bubbles:true}));
+ window.AurelEvent('player',player);
+ check(elapsed.textContent==='1:30','A playback tick overwrote the seek preview');
+ pointer(slider,'pointercancel');
+ const cover=document.querySelector('.murglar-cover');
+ document.querySelector('button[data-player-sheet="credits"]').click();
+ const drawer=document.querySelector('.aurel-detail-drawer'),handle=drawer.querySelector('.aurel-drawer-handle');
+ const height=()=>parseFloat(drawer.style.getPropertyValue('--aurel-drawer-size'));
+ const rest=height();
+ check(handle.tagName==='BUTTON'&&handle.getBoundingClientRect().height>=44,'Drawer handle is not a finger-sized button');
+ check(drawer.getAnimations().length===1,'Drawer has competing entrance animations');
+ pointer(handle,'pointerdown',380);pointer(handle,'pointermove',308);
+ drawOverlay();pointer(handle,'pointerup',308);
+ const expanded=height();await frame();
+ check(expanded>rest+20&&height()===expanded&&handle.getAttribute('aria-expanded')==='true','Queued drag frame overwrote expanded height');
+ pointer(handle,'pointerdown',200);pointer(handle,'pointermove',307);pointer(handle,'pointercancel',307);
+ await frame();
+ check(height()===expanded,'Cancelled drag changed the settled size');
+ handle.click();check(height()===rest,'Accessible handle did not collapse drawer');
+ drawer.querySelector('[data-close-detail]').click();
+ check(document.querySelector('.murglar-cover')===cover,'Drawer remounted artwork');
+}
+async function checkLayout(){
+ const {check,frame}=fixture;
+ await frame();
+ const box=s=>document.querySelector(s).getBoundingClientRect();
+ const rail=box('.aurel-seek-rail'),input=box('#progress');
+ const offset=Math.abs((rail.y+rail.height/2)-(input.y+input.height/2));
+ check(rail.width>60&&rail.height>=3&&offset<=1,'Seek rail not centered under thumb: '+JSON.stringify({offset,rail,input}));
+ const root=document.documentElement;
+ const checkToast=()=>{
+  const r=box('#toast');
+  check(r.top>=24&&r.left>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight,'Notification escaped the viewport');
+  return getComputedStyle(document.querySelector('#toast')).backgroundColor;
+ };
+ window.AurelTheme.setArtworkPalette(false);
+ showToast('Test notification '+innerWidth+' '+('Long text '.repeat(16)));
+ await new Promise(r=>setTimeout(r,250));
+ const mono=checkToast();
+ window.AurelTheme.setArtworkPalette(true);
+ root.style.setProperty('--aurel-theme-surface','#224466');
+ root.style.setProperty('--aurel-theme-accent','#ddaa33');
+ const tinted=checkToast();
+ check(tinted!==mono,'Artwork palette did not reach notification');
+ const dismiss=document.querySelector('[data-dismiss-aurel-toast]');dismiss.click();
+ check(document.querySelector('#toast').classList.contains('hidden'),'Notification did not dismiss');
+ check(!fixture.errors.length,fixture.errors.join('; '));
+ return {width:innerWidth,height:innerHeight,railOffset:offset,railWidth:Math.round(rail.width)};
+}
+run().catch(error=>{console.error(error);process.exitCode=1;});

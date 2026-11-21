@@ -262,60 +262,8 @@
       drawOverlay();
     }
   },true);
-  // Fast in-place suggestions, no input focus loss and no screen rerender on keystrokes.
-  let timer=0,serial=0;
-  const cache=new Map();
-  function show(items,query){
-    const field=document.querySelector('#searchInput');
-    const pane=document.querySelector('#searchResults');
-    if(!field||!pane||app.nav!=='search'||field.value.trim()!==query)return;
-    app.results=items;
-    pane.innerHTML=items.length?searchResults():'<div class="aurel-live-results-status">No matching results yet.</div>';
-  }
-  document.addEventListener('input',function(e){
-    const input=e.target;
-    if(input.id!=='searchInput'||e.isComposing)return;
-    const query=input.value.trim();
-    app.searchQuery=query;
-    const id=++serial;
-    clearTimeout(timer);
-    const pane=document.querySelector('#searchResults');
-    if(query.length<2){
-      app.results=[];
-      if(pane)pane.innerHTML='<div class="aurel-live-results-status">Enter at least two characters to search.</div>';
-      return;
-    }
-    const category=app.searchType;
-    const key=category+'|'+query.toLocaleLowerCase();
-    const previous=cache.get(key);
-    if(previous&&Date.now()-previous.time<60000)show(previous.items,query);
-    else if(pane)pane.innerHTML='<div class="aurel-live-results-status">Searching…</div>';
-    timer=setTimeout(async function(){
-      try{
-        const response=await api('search',{query:query,type:category},true);
-        if(id!==serial||app.searchType!==category)return;
-        let items=sliceItems(response,category);
-        if(!items.length)items=sliceItems(response);
-        const needle=query.toLocaleLowerCase();
-        const rank=function(item){
-          const primary=String(item.title||item.name||'').toLocaleLowerCase();
-          const artistName=String(artistLabel(item)||'').toLocaleLowerCase();
-          return primary===needle?0:primary.startsWith(needle)?1:primary.includes(needle)?2:artistName.includes(needle)?3:4;
-        };
-        items=items.slice().sort(function(a,b){return rank(a)-rank(b)});
-        cache.set(key,{time:Date.now(),items:items});
-        if(cache.size>30)cache.delete(cache.keys().next().value);
-        show(items,query);
-      }catch(error){
-        if(id!==serial)return;
-        if(pane&&app.nav==='search'){
-          pane.innerHTML='<div class="aurel-live-results-status">Could not load suggestions. Press Search to retry.</div>';
-        }
-      }
-    },320);
-  },true);
-  document.addEventListener('submit',function(e){
-    if(e.target.id==='searchForm'){serial++;clearTimeout(timer);}
+  document.addEventListener('input',event=>{
+    if(event.target.id==='searchInput'&&!event.isComposing)void search(true);
   },true);
   setTheme(baseTheme);
   navSync();

@@ -154,7 +154,7 @@ async function scanOutputs(){
  try{return await scanInFlight;}finally{scanInFlight=null;}
 }
 document.addEventListener('click',async e=>{
- const b=e.target?.closest?.('[data-aurel-scan-dac],[data-aurel-headroom],[data-aurel-cache-clear],[data-aurel-motion]');
+ const b=e.target?.closest?.('[data-aurel-scan-dac],[data-aurel-headroom],[data-aurel-cache-clear],button[data-aurel-motion]');
  if(!b||b.disabled)return;
  if(b.hasAttribute('data-aurel-scan-dac')){
    await scanOutputs();
@@ -179,7 +179,7 @@ document.addEventListener('click',async e=>{
    showToast('Page buffer cleared');
  }else if(b.hasAttribute('data-aurel-motion')){
    const chosen=b.dataset.aurelMotion;applyMotion(chosen);
-   document.querySelectorAll('[data-aurel-motion]').forEach(x=>{
+   document.querySelectorAll('button[data-aurel-motion]').forEach(x=>{
      const yes=x.dataset.aurelMotion===chosen;
      x.classList.toggle('is-selected',yes);x.setAttribute('aria-pressed',String(yes));
    });

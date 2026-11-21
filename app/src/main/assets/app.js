@@ -445,6 +445,7 @@ async function navigate(page){
  const focus=document.activeElement;
  if(focus&&typeof focus.blur==='function')focus.blur();
  ++app.catalogRequestId;
+ cancelSearch();
  app.selected=null;app.selectedTracks=[];app.nav=page;
  render();
  // Restore saved vertical position after switching to this route.
@@ -509,12 +510,76 @@ async function loadHome(force=false){
  try{return await aurelHomeInFlight;}
  finally{aurelHomeInFlight=null;}
 }
-async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()||app.searchQuery;if(!app.searchQuery)return;
- if(window.AurelSearchHistory)window.AurelSearchHistory(app.searchQuery);
- const buffered=window.AurelPageCache?.peek('search',{query:app.searchQuery,type:app.searchType});
- if(buffered){app.results=sliceItems(buffered,app.searchType);if(!app.results.length)app.results=sliceItems(buffered);app.searchBusy=false;renderSearch();return;}
- app.searchBusy=true;renderSearch();try{let d=await api('search',{query:app.searchQuery,type:app.searchType},true);app.results=sliceItems(d,app.searchType);if(!app.results.length)app.results=sliceItems(d);}
- catch(e){app.results=[];showToast(e.message,6000)}finally{app.searchBusy=false;if(app.nav==='search')renderSearch();}}
+let searchGeneration=0,searchTimer=0;
+function cancelSearch(){
+ clearTimeout(searchTimer);
+ searchTimer=0;
+ app.searchBusy=false;
+ return ++searchGeneration;
+}
+function rankedSuggestions(items,query){
+ const needle=query.toLocaleLowerCase();
+ const rank=item=>{
+  const name=String(item.title||item.name||'').toLocaleLowerCase();
+  if(name===needle)return 0;
+  if(name.startsWith(needle))return 1;
+  if(name.includes(needle))return 2;
+  return artistLabel(item).toLocaleLowerCase().includes(needle)?3:4;
+ };
+ return items.slice().sort((a,b)=>rank(a)-rank(b));
+}
+async function search(suggestions=false){
+ const request=cancelSearch();
+ const field=$('#searchInput'),pane=$('#searchResults');
+ if(!field||!pane||app.nav!=='search'||app.selected)return;
+ const query=field.value.trim(),type=app.searchType,route=app.catalogRequestId;
+ const owner=aurelDiscoverSessionKey();
+ const current=()=>request===searchGeneration&&route===app.catalogRequestId&&
+  app.nav==='search'&&!app.selected&&app.searchQuery===query&&app.searchType===type&&
+  owner===aurelDiscoverSessionKey();
+ app.searchQuery=query;
+ app.results=[];
+ const history=$('#searchHistory');
+ if(history){
+  if(query){if(history.firstChild)history.replaceChildren();}
+  else history.innerHTML=recentSearchesMarkup();
+ }
+ if(!query||(suggestions&&query.length<2)){
+  pane.innerHTML=query?'<div class="aurel-live-results-status">Enter at least two characters to search.</div>':searchResults();
+  return;
+ }
+ if(!suggestions)window.AurelSearchHistory?.(query);
+ function display(data){
+  const typed=sliceItems(data,type);
+  const items=typed.length?typed:sliceItems(data);
+  app.results=suggestions?rankedSuggestions(items,query):items;
+  const results=$('#searchResults');
+  if(results)results.innerHTML=searchResults();
+ }
+ const params={query,type};
+ const cached=window.AurelPageCache?.peek('search',params);
+ if(cached){display(cached);return;}
+ app.searchBusy=true;
+ pane.innerHTML='<div class="aurel-live-results-status" role="status">Searching…</div>';
+ async function fetchResults(){
+  if(request!==searchGeneration)return;
+  searchTimer=0;
+  try{
+   if(!current())return;
+   const data=await api('search',params,true);
+   if(current())display(data);
+  }catch(error){
+   if(!current())return;
+   const results=$('#searchResults');
+   if(results)results.innerHTML='<div class="aurel-live-results-status" role="status">Could not load suggestions. Press Search to retry.</div>';
+   if(!suggestions)showToast(error.message,6000);
+  }finally{
+   if(request===searchGeneration)app.searchBusy=false;
+  }
+ }
+ if(suggestions)searchTimer=setTimeout(fetchResults,320);
+ else await fetchResults();
+}
 async function loadLibrary(force=false){
  const type=app.libType;
  app.libraryCache=app.libraryCache||Object.create(null);
@@ -759,8 +824,7 @@ document.addEventListener('click',async ev=>{
    return;
   }
  if(b.hasAttribute('data-play-index')){
-  const source=app.selected?app.selectedTracks:app.nav==='library'?app.libraryItems:app.results;
-  playFromTracks(source||[],Number(b.dataset.playIndex));return;
+  playFromTracks(trackSource(),Number(b.dataset.playIndex));return;
  }
  if(b.dataset.likeTrack){like('tracks',b.dataset.likeTrack);return}
  if(b.dataset.likeAlbum){like('albums',b.dataset.likeAlbum);return}
@@ -821,8 +885,17 @@ document.addEventListener('submit',e=>{
 });
 // A seek is an intentional user gesture. Ignore periodic native position
 // updates until it ends, then commit one bounded seek (not one per input).
+let seekPointer=null;
 document.addEventListener('pointerdown',e=>{
- if(e.target?.id==='progress')app.dragging=true;
+ if(e.target?.id!=='progress'||e.isPrimary===false)return;
+ seekPointer=e.pointerId;
+ app.dragging=true;
+},{passive:true});
+document.addEventListener('pointerup',e=>{
+ if(seekPointer===null||e.pointerId!==seekPointer)return;
+ // A tap on the current thumb produces no change event.
+ seekPointer=null;
+ app.dragging=false;
 },{passive:true});
 document.addEventListener('input',e=>{
  if(e.target?.id!=='progress')return;
@@ -833,8 +906,11 @@ document.addEventListener('input',e=>{
  const fill=e.target.parentElement?.querySelector('.aurel-seek-rail-fill');
  if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
  e.target.style?.setProperty?.('--played',(ratio*100).toFixed(2)+'%');
- const text=$('#elapsed');
- if(text)text.textContent=duration(next/1000);
+ const elapsed=duration(next/1000),remaining=duration(Math.max(0,max-next)/1000);
+ const text=$('#elapsed'),end=$('#remaining');
+ if(text)text.textContent=elapsed;
+ if(end)end.textContent='-'+remaining;
+ e.target.setAttribute?.('aria-valuetext',elapsed+' of '+duration(max/1000));
 });
 document.addEventListener('change',e=>{
  if(e.target?.id!=='progress')return;
@@ -851,7 +927,8 @@ document.addEventListener('change',e=>{
  });
 });
 const cancelSeek=e=>{
- if(e.target?.id==='progress'){
+ if(e.target?.id==='progress'||(seekPointer!=null&&e.pointerId===seekPointer)){
+   seekPointer=null;
    app.dragging=false;
    updateOverlayState();
  }
@@ -860,7 +937,7 @@ document.addEventListener('pointercancel',cancelSeek,{passive:true});
 document.addEventListener('touchcancel',cancelSeek,{passive:true});
 document.addEventListener('focusout',cancelSeek,{passive:true});
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden)app.dragging=false;
+ if(document.hidden){seekPointer=null;app.dragging=false;}
 });
 $('#mini').addEventListener('click',e=>{if(e.target.closest('button'))return;app.overlay=true;drawOverlay()});
 // Startup: no injected credentials or assumed subscription status.

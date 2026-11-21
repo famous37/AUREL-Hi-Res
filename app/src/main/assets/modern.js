@@ -7,7 +7,11 @@ app.libSort='recent';
 app.libLayout='grid';
 app.playerSheet='';
 app.lastQueueFingerprint='';
-const trackSource=()=>app.selected?app.selectedTracks:(app.nav==='library'?app.libraryItems:app.results)||[];
+function trackSource(){
+ if(app.selected)return app.selectedTracks||[];
+ if(app.nav==='library')return displaySort(app.libraryItems||[]);
+ return app.results||[];
+}
 function remembered(){try{const v=JSON.parse(localStorage.getItem('aurel_recent_searches')||'[]');return Array.isArray(v)?v.filter(x=>typeof x==='string').slice(0,10):[]}catch(_){return []}}
 window.AurelSearchHistory=(query)=>{if(!query||query.length>120)return;const next=[query,...remembered().filter(s=>s.toLowerCase()!==query.toLowerCase())].slice(0,10);try{localStorage.setItem('aurel_recent_searches',JSON.stringify(next))}catch(_){}};
 const fmtTrack=(t,i)=>{
@@ -51,12 +55,15 @@ function renderMagazine(){
  <div class="magazine-features"><div class="magazine-tile">${ic('info',27)}<strong>Interviews</strong><small>The people behind the music</small></div><div class="magazine-tile">${ic('album',27)}<strong>Album stories</strong><small>Context for deeper listening</small></div><div class="magazine-tile">${ic('audio',27)}<strong>Discoveries</strong><small>Genres, labels and recordings</small></div></div>
  <p class="disclaimer">Articles are not mirrored or redistributed inside AUREL.</p>`;
 };
-renderSearch=function(){
+function recentSearchesMarkup(){
  const recent=remembered();
+ return recent.length?`<div class="recent-head"><h2>Recent searches</h2><button data-clear-recent aria-label="Clear recent searches">Clear</button></div><div class="recents">${recent.map(q=>`<button data-search-recent="${html(q)}"><span>↗</span>${html(q)}<b>›</b></button>`).join('')}</div>`:'';
+}
+renderSearch=function(){
  $('#screen').innerHTML=`<div class="page-heading"><h1>Search</h1></div>
  <form id="searchForm" class="searchbox qsearch"><span class="aurel-search-leading" aria-hidden="true">${ic('search',24)}</span><input id="searchInput" type="search" enterkeyhint="search" placeholder="Artists, albums, tracks…" autocomplete="off" value="${html(app.searchQuery)}"><button class="search-submit" type="submit" aria-label="Search">${ic('arrow-right',27)}</button></form>
  <div class="tabs search-tabs">${['tracks','albums','artists'].map(t=>`<button class="tab ${app.searchType===t?'active':''}" data-search-type="${t}">${({tracks:'Tracks',albums:'Albums',artists:'Artists'})[t]}</button>`).join('')}</div>
- ${!app.searchQuery&&recent.length?`<div class="recent-head"><h2>Recent searches</h2><button data-clear-recent aria-label="Clear recent searches">Clear</button></div><div class="recents">${recent.map(q=>`<button data-search-recent="${html(q)}"><span>↗</span>${html(q)}<b>›</b></button>`).join('')}</div>`:''}
+ <div id="searchHistory">${app.searchQuery?'':recentSearchesMarkup()}</div>
  <div id="searchResults">${app.searchBusy?'<div class="loading"><div class="pulse"></div>Searching catalogue…</div>':searchResults()}</div>`;
 };
 function displaySort(items){const list=items.slice();if(app.libSort==='alpha')list.sort((a,b)=>String(a.title||a.name||'').localeCompare(String(b.title||b.name||'')));else if(app.libSort==='artist')list.sort((a,b)=>artist(a).localeCompare(artist(b)));return list}
@@ -69,7 +76,7 @@ renderLibrary=function(){
  if(isLoading)contents='<div class="loading"><div class="pulse"></div>Loading your collection…</div>';
  else if(kind==='playlists')contents=items.length?`<div class="playlist-list">${items.map(o=>`<button class="playlist-entry" data-playlist-id="${html(o.id)}"><span class="playlist-art">▤</span><span><strong>${html(o.name||'Playlist')}</strong><small>${Number(o.tracks_count)||0} tracks</small></span><b>›</b></button>`).join('')}</div>`:'<div class="empty">No playlists have been returned for this account.</div>';
  else if(kind==='albums')contents=app.libLayout==='list'?`<div class="library-album-list">${displaySort(items).map(o=>`<button class="library-album-row" data-open-album="${html(o.id)}">${art(o,'library-row-image')||'<span class="library-row-image placeholder">♪</span>'}<span><strong>${html(o.title||'Untitled')}</strong><small>${html(artistLabel(o))}</small></span><b>›</b></button>`).join('')}</div>`:albumCards(displaySort(items));
- else if(kind==='tracks')contents=listTracks(displaySort(items));
+ else if(kind==='tracks')contents=listTracks(trackSource());
  else contents=artistRows(displaySort(items));
  $('#screen').innerHTML=`<div class="page-heading"><h1>Library</h1><button class="subtle-icon" data-nav="settings" aria-label="Library account">＋</button></div>
  <div class="collection-note">${app.session?.libraryConnected?'Showing your separate library account':'Showing favourites from your streaming account'}</div>
@@ -339,10 +346,11 @@ updateMini=function(){
  const bar=m.querySelector('.mini-progress');
  const total=Math.max(0,Number(p.duration)||Math.max(0,Number(t.duration)||0)*1000);
  const percent=total?Math.min(100,Math.max(0,100*position/total)):0;
+ const durationKnown=String(total>0);
+ if(bar&&bar.dataset.durationKnown!==durationKnown)bar.dataset.durationKnown=durationKnown;
  if(bar&&(!p.playing||miniRebuilt)){
    // The compositor clock owns progress while music plays; ~250ms
    // native state updates must not restart every transform transition.
-   bar.dataset.durationKnown=total>0?'true':'false';
    const next=percent.toFixed(2)+'%';
    if(bar.style.getPropertyValue('--played')!==next)bar.style.setProperty('--played',next);
    const fill=bar.querySelector('.mini-progress-fill');

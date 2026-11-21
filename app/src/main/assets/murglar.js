@@ -26,7 +26,7 @@
     const priorTrack=overlay.dataset.openTrack||'';
     const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
     const total=Math.max(0,Number(p.duration)||0),position=Math.min(total,Math.max(0,Number(p.position)||0));
-    const played=total?Math.min(100,Math.round(position/total*100)):0;
+    const played=total?100*position/total:0;
     const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" aria-label="No cover art available">♫</div>';
     const source=actualSource(p);
     const loading=aurelPlaybackMode(p)==='loading';
@@ -45,15 +45,17 @@
       String(artistLabel(t)||''),String(src||''),String(active),
       String(t.available??''),String(p.error||'')
     ]);
+    const contents=active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):
+      active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):active?audioPanel(p):'';
     const drawerHTML=active?`<button type="button" class="aurel-detail-dimmer" data-close-detail aria-label="Close details"></button>
       <section class="aurel-detail-drawer" role="dialog" aria-modal="true" aria-label="${active==='upnext'?'Queue':active==='credits'?'Track information':active==='lyrics'?'Lyrics':'Audio information'}">
         <header class="aurel-drawer-header">
-          <span class="aurel-drawer-handle" aria-hidden="true"></span>
+          <button type="button" class="aurel-drawer-handle" aria-expanded="false" aria-controls="aurel-detail-content" aria-label="Expand information panel"></button>
           <h2>${active==='upnext'?'Queue':active==='credits'?'Track information':active==='lyrics'?'Lyrics':'Audio information'}</h2>
           <button type="button" data-close-detail aria-label="Close information panel">&times;</button>
         </header>
-        <div class="aurel-detail-scroll">
-          <div class="aurel-detail-sheet murglar-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):audioPanel(p)}</div>
+        <div class="aurel-detail-scroll" id="aurel-detail-content">
+          <div class="aurel-detail-sheet murglar-detail-sheet">${contents}</div>
         </div>
       </section>`:'';
     // Switching Lyrics / Queue / Credits / Audio updates ONLY the drawer.
@@ -80,9 +82,7 @@
         existing.insertAdjacentHTML('beforeend',drawerHTML);
         const panel=existing.querySelector('.aurel-detail-sheet');
         if(panel){
-          panel.__aurelPanelHTML=active==='upnext'?queuePanel(p):
-            active==='credits'?creditsPanel(p):
-            active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):audioPanel(p);
+          panel.__aurelPanelHTML=contents;
           window.AurelLanguage?.refresh?.(panel);
         }
       }
@@ -101,8 +101,6 @@
         // A drawer was removed elsewhere: rebuild once, not on every tick.
       }else{
         if(livePanel){
-          const contents=active==='upnext'?queuePanel(p):
-            active==='credits'?creditsPanel(p):active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):audioPanel(p);
           if(livePanel.__aurelPanelHTML!==contents){
             livePanel.innerHTML=contents;
             livePanel.__aurelPanelHTML=contents;
@@ -162,8 +160,7 @@
     </div>`;
     aurelEnsureLoadingAnimation(overlay);
     const createdPanel=overlay.querySelector('.aurel-detail-sheet');
-    if(createdPanel&&active)createdPanel.__aurelPanelHTML=
-      active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):active==='lyrics'?(window.AurelStage2Lyrics?.panel?.(p)||''):audioPanel(p);
+    if(createdPanel)createdPanel.__aurelPanelHTML=contents;
     const scroller=overlay.querySelector('.murglar-player-content');
     const detail=overlay.querySelector('.aurel-detail-scroll');
     const sameTrack=priorTrack===String(t.id||'');
@@ -193,7 +190,7 @@
          progress.getAttribute('aria-valuetext')!==seekText)
         progress.setAttribute('aria-valuetext',seekText);
       const total=Number(p.duration)||0;
-      const percent=total?Math.min(100,Math.round((Number(p.position)||0)/total*100))+'%':'0%';
+      const percent=total?(value/total*100).toFixed(2)+'%':'0%';
       if((!p.playing||!window.AurelProgressClock)&&progress.dataset.played!==percent){
         progress.dataset.played=percent;
         progress.style.setProperty('--played',percent);
@@ -207,8 +204,8 @@
       window.AurelProgressClock.read(p):(Number(p.position)||0);
     const a=duration(positionForLabels/1000),
       b='-'+duration(Math.max(0,(Number(p.duration)||0)-positionForLabels)/1000);
-    if(elapsed&&elapsed.textContent!==a)elapsed.textContent=a;
-    if(remaining&&remaining.textContent!==b)remaining.textContent=b;
+    if(!app.dragging&&elapsed&&elapsed.textContent!==a)elapsed.textContent=a;
+    if(!app.dragging&&remaining&&remaining.textContent!==b)remaining.textContent=b;
     const toggle=$('#full-toggle'),mode=aurelPlaybackMode(p);
     if(toggle){
       if(toggle.dataset.icon!==mode){
