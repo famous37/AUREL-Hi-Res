@@ -39,7 +39,7 @@ const aurelIconPaths={
   list:'<path d="M4 5h.1M9 5h11M4 12h.1M9 12h11M4 19h.1M9 19h11"/>',
   music:'<path d="M9 17V6l11-2v11M9 9l11-2"/><ellipse cx="6" cy="17.5" rx="3" ry="2.5"/><ellipse cx="17" cy="15.5" rx="3" ry="2.5"/>',
   speaker:'<path d="M11 5 6 9H3v6h3l5 4V5ZM15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/>',
-  palette:'Appearance',
+  palette:'<path d="M12 3a9 9 0 1 0 9 9c0-1.2-1-2.1-2.2-2.1h-2.1c-.9 0-1.7-.7-1.7-1.6V6.1C15 4.3 13.7 3 12 3Z"/><circle cx="8" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="14" r="1"/>',
 };
 // Lists reuse the same finite set of vectors. Render each glyph once.
 const aurelIconMarkup=new Map();
