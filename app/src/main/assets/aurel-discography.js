@@ -364,7 +364,7 @@
     const title=String(o.title||o.name||'Untitled');
     const date=releaseDate(o),year=date?date.slice(0,4):'';
     return '<button type="button" class="aurel-release-card" data-open-album="'+html(safeId(o))+'" aria-label="Open '+html(title)+' album">'
-      +'<span class="aurel-release-art">'+(art(o,'aurel-release-image')||'<span class="aurel-art-placeholder">♪</span>')+'</span>'
+      +'<span class="aurel-release-art">'+(art(o,'aurel-release-image')||'<span class="aurel-art-placeholder">'+ic('music')+'</span>')+'</span>'
       +'<strong>'+html(title)+'</strong>'
       +'<small>'+html(year||artistLabel(o))+'</small>'
       +(Number(o.maximum_bit_depth)>16?'<em>Hi-Res</em>':'')+'</button>';
@@ -382,7 +382,7 @@
       '</span> <button type="button" data-artist-retry="'+html(key)+'">Retry</button>':'';
     return '<section class="aurel-artist-section" data-artist-section="'+key+'">'
       +'<header class="aurel-artist-section-heading"><h2>'+title+'</h2>'
-      +(count>8?'<button type="button" data-artist-more="'+key+'" aria-expanded="false">See all ›</button>':'')
+      +(count>8?'<button type="button" data-artist-more="'+key+'" aria-expanded="false">See all '+ic('chevron')+'</button>':'')
       +'</header>'
       +(count?'<div class="aurel-release-strip">'+items.map(releaseCard).join('')+'</div>'
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading releases…':
@@ -394,16 +394,16 @@
   function songRow(t,i){
     return '<button type="button" class="aurel-popular-track" data-artist-play="'+i+'">'
       +'<span class="aurel-popular-number">'+(i+1)+'</span>'
-      +'<span class="aurel-popular-art">'+(art(t,'aurel-popular-image')||'<span>♪</span>')+'</span>'
+      +'<span class="aurel-popular-art">'+(art(t,'aurel-popular-image')||'<span>'+ic('music')+'</span>')+'</span>'
       +'<span class="aurel-popular-copy"><strong>'+html(t.title||'Untitled')+'</strong>'
       +'<small>'+html(t.album?.title||artistLabel(t))+'</small></span>'
-      +'<span class="aurel-popular-play" aria-hidden="true">▶</span></button>';
+      +'<span class="aurel-popular-play" aria-hidden="true">'+ic('play')+'</span></button>';
   }
   function popularSection(list,loading,error,source){
     return '<section class="aurel-artist-section" data-artist-section="popular"'
       +(source==='deezer'?' aria-label="Most popular (Deezer ranking, Qobuz playback)"':'')+'>'
       +'<header class="aurel-artist-section-heading"><h2>'+'Most popular'+'</h2>'
-      +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all ›</button>':'')
+      +(list.length>5?'<button type="button" data-artist-more="popular" aria-expanded="false">See all '+ic('chevron')+'</button>':'')
       +'</header>'
       +(list.length?'<div class="aurel-popular-list">'+list.map((track,i)=>songRow(track,i)).join('')+'</div>'
        :'<p class="aurel-artist-placeholder">'+(loading?'Loading popular tracks…':error?'<span>Popular tracks could not be loaded.</span> <button type="button" data-artist-retry>Retry</button>':'Qobuz did not provide a ranked track list for this connection')+'</p>')
@@ -412,7 +412,7 @@
   function similarSection(items,loading,error){
     return '<section class="aurel-artist-section" data-artist-section="similar">'
       +'<header class="aurel-artist-section-heading"><h2>Similar artists</h2>'
-      +(items.length>8?'<button type="button" data-artist-more="similar" aria-expanded="false">See all ›</button>':'')
+      +(items.length>8?'<button type="button" data-artist-more="similar" aria-expanded="false">See all '+ic('chevron')+'</button>':'')
       +'</header>'
       +(items.length?'<div class="aurel-similar-strip">'+items.map(o=>{
         const label=artistName(o);
@@ -475,22 +475,22 @@
     const all=unique([...base,...eps,...compilations,...(state.lastRelease?[state.lastRelease]:[])]);
     const last=canonicalLatestRelease(all);
     const top=state.top||[];
-    const avatar=art(o,'aurel-artist-photo')||'<span class="aurel-artist-photo aurel-art-placeholder">♪</span>';
+    const avatar=art(o,'aurel-artist-photo')||'<span class="aurel-artist-photo aurel-art-placeholder">'+ic('music')+'</span>';
     const fullBio=window.AurelArtistInfoData(id)?.biography||'';
     const bio=fullBio?'<button type="button" class="aurel-artist-bio" data-artist-info-open aria-label="Read full biography">'
       +'<span>'+html(fullBio.slice(0,260))+(fullBio.length>260?'…':'')+'</span>'
-      +'<span class="aurel-artist-read-more">Read more '+ic('chevron',16)+'</span></button>':'';
+      +'<span class="aurel-artist-read-more">Read more '+ic('chevron')+'</span></button>':'';
     const showMore=base.length>=Number(o.albums?.limit||100)&&base.length<Number(o.albums?.total||base.length);
     $('#screen').innerHTML='<div class="aurel-artist-page">'
       +'<header class="aurel-artist-hero">'
-      +'<div class="aurel-artist-hero-toolbar"><button type="button" data-back aria-label="Back">'+ic('back',26)+'</button><span>Artist</span></div>'
+      +'<div class="aurel-artist-hero-toolbar"><button type="button" data-back aria-label="Back">'+ic('back')+'</button><span>Artist</span></div>'
       +'<div class="aurel-artist-photo-frame">'+avatar+'</div>'
       +'<h1>'+html(artistName(o))+'</h1><span class="aurel-artist-kind">Artist</span>'
       +bio
       +'<div class="aurel-artist-actions">'
-      +'<button type="button" class="aurel-artist-play" data-artist-play-main '+(top.length?'':'disabled')+'>'+ic('play',23)+'<span>'+'Play popular'+'</span></button>'
-      +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus',19)+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
-      +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info',19)+'<span>About artist</span></button>'
+      +'<button type="button" class="aurel-artist-play" data-artist-play-main '+(top.length?'':'disabled')+'>'+ic('play')+'<span>'+'Play popular'+'</span></button>'
+      +'<button type="button" class="aurel-artist-follow" data-artist-follow="'+html(id)+'">'+ic('plus')+'<span>'+(state.following?'Following':'Follow')+'</span></button>'
+      +'<button type="button" class="aurel-artist-about" data-artist-info-open aria-haspopup="dialog" aria-label="About artist">'+ic('info')+'<span>About artist</span></button>'
       +'</div></header>'
       +popularSection(top,!state.pageDone||!!state.externalLoading,state.topError,state.topSource)
       +(last?'<section class="aurel-artist-section"><header class="aurel-artist-section-heading"><h2>Latest listed release</h2></header>'
@@ -541,7 +541,7 @@
       if(!section)return;
       const expand=!section.classList.contains('expanded');
       section.classList.toggle('expanded',expand);
-      b.textContent=expand?'Show less ↑':'See all ›';
+      b.innerHTML=expand?'Show less '+ic('up'):'See all '+ic('chevron');
       b.setAttribute('aria-expanded',String(expand));
       if(expand&&b.dataset.artistMore==='similar')
         loadSimilarPortraits(safeId(app.selected),requestToken,true);

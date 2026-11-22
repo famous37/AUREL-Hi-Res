@@ -64,7 +64,7 @@ function updateButton(b){
  }
  if(b.classList.contains('aurel-favourite-control')){
    // The vector icon remains in the DOM during every optimistic state update.
-   if(!b.querySelector('svg')&&b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
+   if(!b.querySelector('svg'))b.innerHTML=ic('heart');
    b.setAttribute('title',on?local('Remove from favourites','Вилучити з вибраного'):local('Add to favourites','Додати до вибраного'));
    return;
  }
@@ -84,11 +84,10 @@ function updateButton(b){
    return;
  }
  if(b.hasAttribute('data-like-track')&&!b.querySelector('svg')){
-   if(b.textContent!==(on?'♥':'♡'))b.textContent=on?'♥':'♡';
+   b.innerHTML=ic('heart');
    b.setAttribute('title',on?local('Remove from favourites','Вилучити з вибраного'):local('Add to favourites','Додати до вибраного'));
  }else if(b.hasAttribute('data-like-album')&&!b.querySelector('svg')){
-   const next=on?local('♥ Saved','♥ Збережено'):local('♡ Save','♡ Зберегти');
-   if(b.textContent!==next)b.textContent=next;
+   b.innerHTML=ic('heart')+'<span class="aurel-save-label">'+(on?local('Saved','Збережено'):local('Save','Зберегти'))+'</span>';
  }
 }
 function syncAll(){
@@ -100,7 +99,7 @@ function makeHeart(type,id){
  b.type='button';
  b.className='aurel-favourite-control';
  b.setAttribute('data-like-'+type.slice(0,-1),id);
- b.innerHTML=ic('heart',24);
+ b.innerHTML=ic('heart');
  b.setAttribute('aria-pressed','false');
  b.setAttribute('aria-label','Add to favourites');
  return b;
@@ -254,7 +253,8 @@ if(typeof MutationObserver==='function'){
  const observer=new MutationObserver(function(records){
    // Playback timer updates only text nodes; ignore those mutations instead
    // of rescanning every button on every second of music.
-   if(records.some(change=>Array.from(change.addedNodes).some(n=>n.nodeType===1)))
+   if(records.some(change=>Array.from(change.addedNodes).some(n=>
+       n.nodeType===1&&n.namespaceURI!=='http://www.w3.org/2000/svg'&&!n.matches?.('.aurel-share-control,.aurel-favourite-control'))))
      schedule();
  });
  const screen=document.getElementById('screen');

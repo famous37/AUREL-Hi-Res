@@ -16,7 +16,7 @@ function remembered(){try{const v=JSON.parse(localStorage.getItem('aurel_recent_
 window.AurelSearchHistory=(query)=>{if(!query||query.length>120)return;const next=[query,...remembered().filter(s=>s.toLowerCase()!==query.toLowerCase())].slice(0,10);try{localStorage.setItem('aurel_recent_searches',JSON.stringify(next))}catch(_){}};
 const fmtTrack=(t,i)=>{
  const state=window.AurelTrackAccess?.status(t)||{playable:true};
- return `<button class="queue-item ${i===app.player?.index?'current':''}" data-queue-play="${i}" ${state.playable?'':'disabled'}><span class="queue-cover">${art(t,'queue-image')||'<span>♪</span>'}</span><span class="queue-text"><strong>${html(t.title||'Untitled')}</strong><small>${html(state.playable?artistLabel(t):'Unavailable for streaming')}</small></span>${i===app.player?.index?'<span class="playing-indicator">♫</span>':''}</button>`;
+ return `<button class="queue-item ${i===app.player?.index?'current':''}" data-queue-play="${i}" ${state.playable?'':'disabled'}><span class="queue-cover">${art(t,'queue-image')||'<span>'+ic('music')+'</span>'}</span><span class="queue-text"><strong>${html(t.title||'Untitled')}</strong><small>${html(state.playable?artistLabel(t):'Unavailable for streaming')}</small></span>${i===app.player?.index?'<span class="playing-indicator">'+ic('audio')+'</span>':''}</button>`;
 };
 function albumShelf(items){if(!items.length){
  const status=app.discoverStatus||'empty';
@@ -34,34 +34,34 @@ function albumShelf(items){if(!items.length){
    '<button type="button" data-refresh class="aurel-discovery-retry">Retry</button>';
  return '<div class="empty aurel-discovery-fallback" role="status" data-aurel-discovery-state="'+html(status)+'">'+
    '<p>'+html(message)+'</p>'+fallback+'</div>';
-}return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">♪</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
+}return `<div class="album-shelf">${items.slice(0,30).map(o=>`<button class="shelf-card" data-open-album="${html(o.id)}"><span class="shelf-image">${art(o,'shelf-cover')||'<span class="shelf-placeholder">'+ic('music')+'</span>'}</span><strong>${html(o.title||o.name||'Untitled')}</strong><span>${html(artistLabel(o))}</span>${Number(o.maximum_bit_depth)>16?'<em class="hires-tag">Hi-Res</em>':''}</button>`).join('')}</div>`}
 renderHome=function(){
  const name=app.session?.profile?.displayName||'Listener';
- $('#screen').innerHTML=`<div class="page-heading"><h1>Discover</h1><button class="subtle-icon" data-nav="settings" aria-label="Settings">${ic('settings',26)}</button></div>
+ $('#screen').innerHTML=`<div class="page-heading"><h1>Discover</h1><button class="subtle-icon" data-nav="settings" aria-label="Settings">${ic('settings')}</button></div>
  ${app.session?.streamValidation==='unverified'?
- '<div class="auth-status-banner" role="status">'+ic('info',21)+'<div><strong>Session saved, not verified</strong><span>The Qobuz API did not confirm this token. Try playing a track to check streaming access.</span></div></div>':''}
+ '<div class="auth-status-banner" role="status">'+ic('info')+'<div><strong>Session saved, not verified</strong><span>The Qobuz API did not confirm this token. Try playing a track to check streaming access.</span></div></div>':''}
  <div class="home-chips"><button class="chip ${app.discoverTab==='new'?'selected':''}" data-discover-tab="new">Home</button><button class="chip ${app.discoverTab==='albums'?'selected':''}" data-discover-tab="albums">New releases</button><button class="chip ${app.discoverTab==='collection'?'selected':''}" data-discover-tab="collection">Your library</button></div>
- ${app.discoverTab==='collection'?`<section class="welcome-panel"><span class="kicker">YOUR COLLECTION</span><h2>Everything you love,<br>in one place.</h2><p>Explore saved music from your library account.</p><button class="action-pill" data-nav="library">Open library ↗</button></section>`:
- `<section class="spotlight"><div class="spotlight-copy"><span class="kicker">AUREL / LOSSLESS LISTENING</span><h2>Listen deeper.</h2><p>Albums, artists and music worth your time.</p><button class="action-pill" data-nav="search">Explore music ↗</button></div><div class="spotlight-stack">${app.albums.slice(0,3).map(a=>art(a,'spotlight-cover')).join('')}</div></section>
- <div class="sectionhead new-section"><div><h2>${app.discoverSource==='curated'?'Qobuz New Releases playlist':app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>${app.discoverSource==='curated'?'Albums from the official Qobuz weekly playlist':'Recently released albums available in the catalogue'}</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">${ic('refresh',25)}</button></div>${app.discoverStatus==='stale'?
+ ${app.discoverTab==='collection'?`<section class="welcome-panel"><span class="kicker">YOUR COLLECTION</span><h2>Everything you love,<br>in one place.</h2><p>Explore saved music from your library account.</p><button class="action-pill" data-nav="library">Open library ${ic('arrow-up-right')}</button></section>`:
+ `<section class="spotlight"><div class="spotlight-copy"><span class="kicker">AUREL / LOSSLESS LISTENING</span><h2>Listen deeper.</h2><p>Albums, artists and music worth your time.</p><button class="action-pill" data-nav="search">Explore music ${ic('arrow-up-right')}</button></div><div class="spotlight-stack">${app.albums.slice(0,3).map(a=>art(a,'spotlight-cover')).join('')}</div></section>
+ <div class="sectionhead new-section"><div><h2>${app.discoverSource==='curated'?'Qobuz New Releases playlist':app.discoverTab==='albums'?'New releases':'Fresh on Qobuz'}</h2><p>${app.discoverSource==='curated'?'Albums from the official Qobuz weekly playlist':'Recently released albums available in the catalogue'}</p></div><button class="plain-action" data-refresh aria-label="Refresh releases">${ic('refresh')}</button></div>${app.discoverStatus==='stale'?
   '<p class="aurel-discovery-stale" role="status">Showing the last available Qobuz releases. Refresh to try again.</p>':''}${albumShelf(app.albums)}
  <div class="sectionhead"><div><h2>Go your own way</h2><p>Quick access to music that matters</p></div></div>
- <div class="quicklinks"><button data-nav="library"><span class="quicklink-icon" aria-hidden="true">${ic('library',27)}</span><strong>Your favourites</strong><small>Releases, artists, playlists</small></button><button data-nav="search"><span class="quicklink-icon" aria-hidden="true">${ic('search',27)}</span><strong>Search catalogue</strong><small>Tracks, artists and albums</small></button></div>`}
+ <div class="quicklinks"><button data-nav="library"><span class="quicklink-icon" aria-hidden="true">${ic('library')}</span><strong>Your favourites</strong><small>Releases, artists, playlists</small></button><button data-nav="search"><span class="quicklink-icon" aria-hidden="true">${ic('search')}</span><strong>Search catalogue</strong><small>Tracks, artists and albums</small></button></div>`}
  <p class="disclaimer">AUREL is an independent client. Catalogue and streaming depend on Qobuz authorization.</p>`;
 };
 function renderMagazine(){
- $('#screen').innerHTML=`<div class="page-heading"><h1>Magazine</h1></div><div class="magazine-hero"><span class="kicker">MUSIC / STORIES / ARTISTS</span><h2>Go beyond<br>the recording.</h2><p>Reviews, interviews and listening guides from Qobuz's editorial magazine.</p><button class="action-pill" data-open-magazine>Read Qobuz Magazine ↗</button></div>
+ $('#screen').innerHTML=`<div class="page-heading"><h1>Magazine</h1></div><div class="magazine-hero"><span class="kicker">MUSIC / STORIES / ARTISTS</span><h2>Go beyond<br>the recording.</h2><p>Reviews, interviews and listening guides from Qobuz's editorial magazine.</p><button class="action-pill" data-open-magazine>Read Qobuz Magazine ${ic('arrow-up-right')}</button></div>
  <div class="sectionhead"><div><h2>Music has a story</h2><p>Editorial articles open on Qobuz's official site</p></div></div>
- <div class="magazine-features"><div class="magazine-tile">${ic('info',27)}<strong>Interviews</strong><small>The people behind the music</small></div><div class="magazine-tile">${ic('album',27)}<strong>Album stories</strong><small>Context for deeper listening</small></div><div class="magazine-tile">${ic('audio',27)}<strong>Discoveries</strong><small>Genres, labels and recordings</small></div></div>
+ <div class="magazine-features"><div class="magazine-tile">${ic('info')}<strong>Interviews</strong><small>The people behind the music</small></div><div class="magazine-tile">${ic('album')}<strong>Album stories</strong><small>Context for deeper listening</small></div><div class="magazine-tile">${ic('audio')}<strong>Discoveries</strong><small>Genres, labels and recordings</small></div></div>
  <p class="disclaimer">Articles are not mirrored or redistributed inside AUREL.</p>`;
 };
 function recentSearchesMarkup(){
  const recent=remembered();
- return recent.length?`<div class="recent-head"><h2>Recent searches</h2><button data-clear-recent aria-label="Clear recent searches">Clear</button></div><div class="recents">${recent.map(q=>`<button data-search-recent="${html(q)}"><span>↗</span>${html(q)}<b>›</b></button>`).join('')}</div>`:'';
+ return recent.length?`<div class="recent-head"><h2>Recent searches</h2><button data-clear-recent aria-label="Clear recent searches">Clear</button></div><div class="recents">${recent.map(q=>`<button data-search-recent="${html(q)}"><span>${ic('arrow-up-right')}</span>${html(q)}<b>${ic('chevron')}</b></button>`).join('')}</div>`:'';
 }
 renderSearch=function(){
  $('#screen').innerHTML=`<div class="page-heading"><h1>Search</h1></div>
- <form id="searchForm" class="searchbox qsearch"><span class="aurel-search-leading" aria-hidden="true">${ic('search',24)}</span><input id="searchInput" type="search" enterkeyhint="search" placeholder="Artists, albums, tracks…" autocomplete="off" value="${html(app.searchQuery)}"><button class="search-submit" type="submit" aria-label="Search">${ic('arrow-right',27)}</button></form>
+ <form id="searchForm" class="searchbox qsearch"><span class="aurel-search-leading" aria-hidden="true">${ic('search')}</span><input id="searchInput" type="search" enterkeyhint="search" placeholder="Artists, albums, tracks…" autocomplete="off" value="${html(app.searchQuery)}"><button class="search-submit" type="submit" aria-label="Search">${ic('arrow-right')}</button></form>
  <div class="tabs search-tabs">${['tracks','albums','artists'].map(t=>`<button class="tab ${app.searchType===t?'active':''}" data-search-type="${t}">${({tracks:'Tracks',albums:'Albums',artists:'Artists'})[t]}</button>`).join('')}</div>
  <div id="searchHistory">${app.searchQuery?'':recentSearchesMarkup()}</div>
  <div id="searchResults">${app.searchBusy?'<div class="loading"><div class="pulse"></div>Searching catalogue…</div>':searchResults()}</div>`;
@@ -74,18 +74,18 @@ renderLibrary=function(){
  const tabs=[['playlists','Playlists'],['albums','Releases'],['tracks','Tracks'],['artists','Artists']];
  let contents='';
  if(isLoading)contents='<div class="loading"><div class="pulse"></div>Loading your collection…</div>';
- else if(kind==='playlists')contents=items.length?`<div class="playlist-list">${items.map(o=>`<button class="playlist-entry" data-playlist-id="${html(o.id)}"><span class="playlist-art">▤</span><span><strong>${html(o.name||'Playlist')}</strong><small>${Number(o.tracks_count)||0} tracks</small></span><b>›</b></button>`).join('')}</div>`:'<div class="empty">No playlists have been returned for this account.</div>';
- else if(kind==='albums')contents=app.libLayout==='list'?`<div class="library-album-list">${displaySort(items).map(o=>`<button class="library-album-row" data-open-album="${html(o.id)}">${art(o,'library-row-image')||'<span class="library-row-image placeholder">♪</span>'}<span><strong>${html(o.title||'Untitled')}</strong><small>${html(artistLabel(o))}</small></span><b>›</b></button>`).join('')}</div>`:albumCards(displaySort(items));
+ else if(kind==='playlists')contents=items.length?`<div class="playlist-list">${items.map(o=>`<button class="playlist-entry" data-playlist-id="${html(o.id)}"><span class="playlist-art">${ic('queue')}</span><span><strong>${html(o.name||'Playlist')}</strong><small>${Number(o.tracks_count)||0} tracks</small></span><b>${ic('chevron')}</b></button>`).join('')}</div>`:'<div class="empty">No playlists have been returned for this account.</div>';
+ else if(kind==='albums')contents=app.libLayout==='list'?`<div class="library-album-list">${displaySort(items).map(o=>`<button class="library-album-row" data-open-album="${html(o.id)}">${art(o,'library-row-image')||'<span class="library-row-image placeholder">'+ic('music')+'</span>'}<span><strong>${html(o.title||'Untitled')}</strong><small>${html(artistLabel(o))}</small></span><b>${ic('chevron')}</b></button>`).join('')}</div>`:albumCards(displaySort(items));
  else if(kind==='tracks')contents=listTracks(trackSource());
  else contents=artistRows(displaySort(items));
- $('#screen').innerHTML=`<div class="page-heading"><h1>Library</h1><button class="subtle-icon" data-nav="settings" aria-label="Library account">＋</button></div>
+ $('#screen').innerHTML=`<div class="page-heading"><h1>Library</h1><button class="subtle-icon" data-nav="settings" aria-label="Library account">${ic('plus')}</button></div>
  <div class="collection-note">${app.session?.libraryConnected?'Showing your separate library account':'Showing favourites from your streaming account'}</div>
  <div class="tabs library-tabs">${tabs.map(([key,label])=>`<button class="tab ${kind===key?'active':''}" data-lib-type="${key}">${label}</button>`).join('')}</div>
- <div class="library-controls"><label>Sort <select id="libSort" aria-label="Library sort order"><option value="recent" ${app.libSort==='recent'?'selected':''}>Recently added</option><option value="alpha" ${app.libSort==='alpha'?'selected':''}>Title</option><option value="artist" ${app.libSort==='artist'?'selected':''}>Artist</option></select></label>${kind==='albums'?`<div class="view-switch"><button data-library-layout="grid" class="${app.libLayout==='grid'?'active':''}" aria-label="Grid view">▦</button><button data-library-layout="list" class="${app.libLayout==='list'?'active':''}" aria-label="List view">☷</button></div>`:''}</div>
+ <div class="library-controls"><label>Sort <select id="libSort" aria-label="Library sort order"><option value="recent" ${app.libSort==='recent'?'selected':''}>Recently added</option><option value="alpha" ${app.libSort==='alpha'?'selected':''}>Title</option><option value="artist" ${app.libSort==='artist'?'selected':''}>Artist</option></select></label>${kind==='albums'?`<div class="view-switch"><button data-library-layout="grid" class="${app.libLayout==='grid'?'active':''}" aria-label="Grid view">${ic('grid')}</button><button data-library-layout="list" class="${app.libLayout==='list'?'active':''}" aria-label="List view">${ic('list')}</button></div>`:''}</div>
  <div id="libraryContent">${contents}</div>`;
 };
 function queuePanel(p){const q=Array.isArray(p.queue)?p.queue:[];if(!q.length)return '<div class="empty">Your queue is empty.</div>';
- return `<div class="sheet-title">Play queue <span>${q.length} tracks</span></div><div class="queue-list">${q.map((t,i)=>`<div class="editable-queue">${fmtTrack(t,i)}<div class="queue-ops"><button data-queue-move="${i}" data-queue-dir="-1" aria-label="Move up" ${i===0?'disabled':''}>↑</button><button data-queue-move="${i}" data-queue-dir="1" aria-label="Move down" ${i===q.length-1?'disabled':''}>↓</button><button data-queue-remove="${i}" aria-label="Remove track">×</button></div></div>`).join('')}</div>`}
+ return `<div class="sheet-title">Play queue <span>${q.length} tracks</span></div><div class="queue-list">${q.map((t,i)=>`<div class="editable-queue">${fmtTrack(t,i)}<div class="queue-ops"><button data-queue-move="${i}" data-queue-dir="-1" aria-label="Move up" ${i===0?'disabled':''}>${ic('arrow-up')}</button><button data-queue-move="${i}" data-queue-dir="1" aria-label="Move down" ${i===q.length-1?'disabled':''}>${ic('arrow-down')}</button><button data-queue-remove="${i}" aria-label="Remove track">${ic('close')}</button></div></div>`).join('')}</div>`}
 function creditsPanel(p){
  const t=p.track||{}, album=t.album||{};
  const show=(key,val)=>{
@@ -217,7 +217,7 @@ const aurelStopLoadingAnimation=(root)=>{
   try{svg._aurelSpinnerAnimation?.cancel();}catch(_){}
  }
 };
-const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron',19)}</button>`;
+const artistButton=(t)=>`<button class="player-artist-link" data-open-playing-artist aria-label="Open ${html(artistLabel(t))} discography"><span>${html(artistLabel(t))}</span>${ic('chevron')}</button>`;
 let aurelMiniAnimating=false;
 let aurelLastMiniFrame=0;
 let aurelMiniFrameTimer=0;
@@ -251,12 +251,12 @@ function aurelMiniFrame(time){
    if(durationMs>0 && clock){
      const position=clock.read(p);
      const ratio=Math.max(0,Math.min(1,position/durationMs));
-     const fill=document.querySelector('#mini .mini-progress-fill');
+     const bar=app.overlay?null:document.querySelector('#mini .mini-progress');
+     const fill=bar?.querySelector('.mini-progress-fill');
      if(fill){
        const next='scaleX('+ratio.toFixed(6)+')';
        if(fill.style.transform!==next)fill.style.transform=next;
      }
-     const bar=document.querySelector('#mini .mini-progress');
      if(bar){
        const cssValue=(ratio*100).toFixed(2)+'%';
        if(bar.style.getPropertyValue('--played')!==cssValue)
@@ -266,7 +266,7 @@ function aurelMiniFrame(time){
        const label=duration(position/1000)+' of '+duration(durationMs/1000);
        if(bar.getAttribute('aria-valuetext')!==label)bar.setAttribute('aria-valuetext',label);
      }
-     const slider=document.querySelector('#overlay #progress');
+     const slider=app.overlay?document.querySelector('#overlay #progress'):null;
      if(slider&&!app.dragging){
        const pos=String(Math.round(position));
        if(slider.value!==pos)slider.value=pos;
@@ -281,16 +281,16 @@ function aurelMiniFrame(time){
        const aria=duration(position/1000)+' of '+duration(durationMs/1000);
        if(slider.getAttribute('aria-valuetext')!==aria)
          slider.setAttribute('aria-valuetext',aria);
-     }
-     const elapsed=document.querySelector('#overlay #elapsed');
-     if(elapsed&&!app.dragging){
-       const timeLabel=duration(position/1000);
-       if(elapsed.textContent!==timeLabel)elapsed.textContent=timeLabel;
-     }
-     const remaining=document.querySelector('#overlay #remaining');
-     if(remaining&&!app.dragging){
-       const timeLabel='-'+duration(Math.max(0,(durationMs-position)/1000));
-       if(remaining.textContent!==timeLabel)remaining.textContent=timeLabel;
+       const elapsed=document.querySelector('#overlay #elapsed');
+       if(elapsed){
+         const timeLabel=duration(position/1000);
+         if(elapsed.textContent!==timeLabel)elapsed.textContent=timeLabel;
+       }
+       const remaining=document.querySelector('#overlay #remaining');
+       if(remaining){
+         const timeLabel='-'+duration(Math.max(0,(durationMs-position)/1000));
+         if(remaining.textContent!==timeLabel)remaining.textContent=timeLabel;
+       }
      }
    }
  }
@@ -302,23 +302,35 @@ document.addEventListener('visibilitychange',wakeAurelMiniAnimation);
 updateMini=function(){
  const p=app.player,m=$('#mini');
  if(!m)return;
- if(!p?.track?.id){m.classList.add('hidden');m.removeAttribute('data-mini-track');return;}
+ if(!p?.track?.id){
+  window.AurelProgressClock?.accept(p);
+  aurelStopLoadingAnimation(m);
+  m.classList.add('hidden');m.removeAttribute('data-mini-track');
+  return;
+ }
  const t=p.track,id=String(t.id),title=trackTitle(t),performer=artistLabel(t);
  const cover=image(t,'thumb');
  m.classList.remove('hidden');
  const miniRebuilt=m.dataset.miniTrack!==id||!m.querySelector('.mini-track-open');
  if(miniRebuilt){
-  m.innerHTML=`${cover?'<img class="minicover" src="'+html(cover)+'" alt="Album art" loading="eager">':'<span class="minicover placeholder">♪</span>'}
-   <div class="meta mini-track-open"><strong class="title"></strong><small class="artist"></small></div>
-   <div class="mini-buttons"><button class="mini-love" data-mini-fav="${html(id)}" aria-label="Add to favourites">${ic('heart',24)}</button>
-   <button class="mini-play" data-mini-toggle aria-label="Play">${ic('play',26)}</button></div>
+  aurelStopLoadingAnimation(m);
+  m.innerHTML=`<span class="mini-handle" aria-hidden="true"></span>
+   ${cover?'<img class="minicover" src="'+html(cover)+'" alt="Album cover" loading="eager" decoding="async" fetchpriority="high">':'<span class="minicover placeholder">'+ic('music')+'</span>'}
+   <button class="mini-track-open" data-open-mini-player aria-label="Open Now Playing">
+    <strong class="mini-title">${html(title)}</strong><small class="mini-artist">${html(performer)}</small>
+   </button>
+   <div class="mini-buttons">
+    <button data-mini-prev aria-label="Previous track">${ic('prev')}</button>
+    <button data-mini-toggle aria-label="Play" class="mini-play">${ic('play')}</button>
+    <button data-mini-next aria-label="Next track">${ic('next')}</button>
+   </div>
    <div class="mini-progress" role="progressbar" aria-label="Track progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="mini-progress-fill" aria-hidden="true"></span></div>`;
   m.dataset.miniTrack=id;
   m.dataset.miniPlaying='';
   m.dataset.miniArtwork=cover||'';
  }
- const titleNode=m.querySelector('.mini-track-open .title'),
-       artistNode=m.querySelector('.mini-track-open .artist');
+ const titleNode=m.querySelector('.mini-track-open .mini-title'),
+       artistNode=m.querySelector('.mini-track-open .mini-artist');
  if(titleNode&&titleNode.textContent!==title)titleNode.textContent=title;
  if(artistNode&&artistNode.textContent!==performer)artistNode.textContent=performer;
  if((m.dataset.miniArtwork||'')!==cover){
@@ -327,7 +339,7 @@ updateMini=function(){
    const replacement=document.createElement(cover?'img':'span');
    replacement.className=cover?'minicover':'minicover placeholder';
    if(cover){replacement.src=cover;replacement.alt='Album art';}
-   else replacement.textContent='♪';
+   else replacement.innerHTML=ic('music');
    old.replaceWith(replacement);
   }
   m.dataset.miniArtwork=cover||'';
@@ -335,7 +347,8 @@ updateMini=function(){
  const play=m.querySelector('[data-mini-toggle]');
  const miniMode=aurelPlaybackMode(p);
  if(play&&m.dataset.miniPlaying!==miniMode){
-  play.innerHTML=aurelPlaybackIcon(p,26);
+  aurelStopLoadingAnimation(play);
+  play.innerHTML=aurelPlaybackIcon(p);
   play.setAttribute('aria-label',aurelPlaybackLabel(p));
   play.setAttribute('aria-busy',String(miniMode==='loading'));
   play.classList.toggle('is-loading',miniMode==='loading');
@@ -379,32 +392,32 @@ drawOverlay=function(){
  overlay.innerHTML=`<div class="aurel-listening-screen">
   <div class="aurel-art-backdrop" aria-hidden="true"></div>
   <header class="aurel-listening-nav">
-   <button class="aurel-round-icon" data-close-overlay aria-label="Minimize player">${ic('down',29)}</button>
+   <button class="aurel-round-icon" data-close-overlay aria-label="Minimize player">${ic('down')}</button>
    <strong>Now Playing</strong>
-   <div class="aurel-nav-right"><button class="aurel-round-icon" data-player-sheet="upnext" aria-label="Play queue">${ic('queue',27)}</button><button class="aurel-round-icon" data-player-sheet="audio" aria-label="Audio details">${ic('more',25)}</button></div>
+   <div class="aurel-nav-right"><button class="aurel-round-icon" data-player-sheet="upnext" aria-label="Play queue">${ic('queue')}</button><button class="aurel-round-icon" data-player-sheet="audio" aria-label="Audio details">${ic('more')}</button></div>
   </header>
   <div class="aurel-art-space" aria-hidden="true"></div>
   <div class="aurel-listening-bottom">
    <section class="aurel-track-title-row"><div class="aurel-song-details"><h1>${html(t.title||'Choose a track')}</h1>
     <div class="aurel-source-caption">${html(subtitle)}</div>
     ${artistButton(t)}
-    ${t.album?.title?`<button class="aurel-album-link" data-open-playing-album aria-label="Open album">${html(t.album.title)} ${ic('chevron',15)}</button>`:''}
+    ${t.album?.title?`<button class="aurel-album-link" data-open-playing-album aria-label="Open album">${html(t.album.title)} ${ic('chevron')}</button>`:''}
     </div>
-    <button class="aurel-fav-button" data-like-track="${html(t.id||'')}" aria-label="Add to favourites">${ic('heart',27)}</button></section>
+    <button class="aurel-fav-button" data-like-track="${html(t.id||'')}" aria-label="Add to favourites">${ic('heart')}</button></section>
    <section class="aurel-timeline" aria-label="Track progress">
     <input id="progress" class="progress" type="range" min="0" max="${progressTotal||100}" step="any" value="${position}" aria-label="Playback position">
-    <div class="aurel-timeline-labels"><span id="elapsed">${duration(position/1000)}</span><button class="aurel-source-pill" data-player-sheet="audio" aria-label="Show audio source information">${ic('audio',17)}<span>${html(format)}</span></button><span id="remaining">${duration(progressTotal/1000)}</span></div>
+    <div class="aurel-timeline-labels"><span id="elapsed">${duration(position/1000)}</span><button class="aurel-source-pill" data-player-sheet="audio" aria-label="Show audio source information">${ic('audio')}<span>${html(format)}</span></button><span id="remaining">${duration(progressTotal/1000)}</span></div>
    </section>
    <section class="aurel-main-actions" aria-label="Playback controls">
-    <button data-prev aria-label="Previous track" class="aurel-transport side">${ic('prev',33)}</button>
-    <button id="full-toggle" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${loading}" class="aurel-transport middle ${loading?'is-loading':''}">${aurelPlaybackIcon(p,40)}</button>
-    <button data-next aria-label="Next track" class="aurel-transport side">${ic('next',33)}</button>
+    <button data-prev aria-label="Previous track" class="aurel-transport side">${ic('prev')}</button>
+    <button id="full-toggle" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${loading}" class="aurel-transport middle ${loading?'is-loading':''}">${aurelPlaybackIcon(p)}</button>
+    <button data-next aria-label="Next track" class="aurel-transport side">${ic('next')}</button>
    </section>
    <section class="aurel-extra-actions" aria-label="Playback options">
-    <button data-player-sheet="upnext" aria-label="Queue" class="${active==='upnext'?'active':''}">${ic('queue',25)}<span>Queue</span></button>
-    <button id="full-shuffle" data-shuffle aria-label="Shuffle" class="${p.shuffle?'active':''}">${ic('shuffle',23)}<span>Shuffle</span></button>
-    <button id="full-repeat" data-repeat aria-label="Repeat" class="${p.repeat?'active':''}">${ic('repeat',24)}${p.repeat===2?'<sup>1</sup>':''}<span>Repeat</span></button>
-    <button data-player-sheet="credits" aria-label="Credits" class="${active==='credits'?'active':''}">${ic('info',24)}<span>Info</span></button>
+    <button data-player-sheet="upnext" aria-label="Queue" class="${active==='upnext'?'active':''}">${ic('queue')}<span>Queue</span></button>
+    <button id="full-shuffle" data-shuffle aria-label="Shuffle" class="${p.shuffle?'active':''}">${ic('shuffle')}<span>Shuffle</span></button>
+    <button id="full-repeat" data-repeat aria-label="Repeat" class="${p.repeat?'active':''}">${ic('repeat')}${p.repeat===2?'<sup>1</sup>':''}<span>Repeat</span></button>
+    <button data-player-sheet="credits" aria-label="Credits" class="${active==='credits'?'active':''}">${ic('info')}<span>Info</span></button>
    </section>
    ${active?`<div class="aurel-detail-sheet">${active==='upnext'?queuePanel(p):active==='credits'?creditsPanel(p):audioPanel(p)}</div>`:''}
    ${p.error?`<div class="playback-error" role="status">${html(p.error)}</div>`:''}
@@ -416,14 +429,14 @@ drawOverlay=function(){
 const formerEvent=window.AurelEvent;
 window.AurelEvent=function(kind,data){
  const old=app.lastQueueFingerprint;formerEvent(kind,data);if(kind==='player'){
- const slider=document.querySelector('[data-aurel-usb-volume]');
+ const slider=app.nav==='settings'&&!app.overlay?document.querySelector('[data-aurel-usb-volume]'):null;
  if(slider&&document.activeElement!==slider&&Number.isFinite(Number(data?.usbOutputVolumePercent))){
    const percent=Math.min(100,Math.max(0,Number(data.usbOutputVolumePercent)));
    slider.value=String(percent);
    const label=document.querySelector('[data-aurel-usb-volume-label]');
    if(label)label.textContent=percent+'%';
  }
- const mode=document.querySelector('[data-aurel-usb-volume-mode]');
+ const mode=app.nav==='settings'&&!app.overlay?document.querySelector('[data-aurel-usb-volume-mode]'):null;
  if(mode){
    const route=data?.bitPerfect?.usbVolumeMode;
    const status=route==='hardware'?'DAC hardware volume · PCM unchanged':
@@ -432,10 +445,15 @@ window.AurelEvent=function(kind,data){
      'USB control not active';
    if(mode.textContent!==status)mode.textContent=status;
  }
- const q=data?.queue||[];const fingerprint=JSON.stringify([q.map(x=>x?.id),data?.index]);app.lastQueueFingerprint=fingerprint;
+ if(app.overlay){
+   let fingerprint='';
+   if(app.playerSheet==='upnext'){
+     const order=data.queueRevision??(data.queue||[]).map(track=>track?.id);
+     fingerprint=JSON.stringify([order,data.index]);
+   }
+   app.lastQueueFingerprint=fingerprint;
  const sourceSignature=JSON.stringify([data?.sourceVerified,data?.bits,data?.sampleRateHz,data?.codec,data?.sourceLabel,data?.decoderSampleRateHz,data?.decoderMime,data?.catalogMaxBits,data?.catalogMaxSampleRateHz,data?.sourceBitrateKbps,data?.decoderBitrateKbps,data?.estimatedAvgBitrateKbps,data?.qualityProbePending,data?.qualityProbeAttempted,data?.streamHeaderVerified,data?.sourceEvidence,data?.frameBitrateKbps,data?.fileSize,data?.quality,data?.androidMixerHz,data?.bitPerfect?.enabled,data?.bitPerfect?.usbRouted,data?.bitPerfect?.mixerPreferenceAccepted,data?.bitPerfect?.detail]);
  const trackSignature=JSON.stringify([data?.track?.id,data?.track?.title,artistLabel(data?.track||{}),data?.track?.album?.title,image(data?.track||{}),data?.track?.isrc,data?.track?.composers,data?.track?.performers,data?.track?.album?.label,data?.track?.album?.release_date_original]);
- if(app.overlay){
    const viewChanged=old!==fingerprint||app.lastVisualSignature!==trackSignature;
    const audioChanged=app.lastSourceSignature!==sourceSignature;
    app.lastSourceSignature=sourceSignature;
@@ -491,12 +509,12 @@ document.addEventListener('error',event=>{
  if(full||img.matches('#mini .minicover')){
   const fallback=document.createElement(full?'div':'span');
   fallback.className=full?'murglar-cover murglar-art-placeholder':'minicover placeholder';
-  fallback.textContent=full?'♫':'♪';
+  fallback.innerHTML=ic('music');
   if(full){fallback.setAttribute('role','img');fallback.setAttribute('aria-label','No cover art available');}
   else fallback.setAttribute('aria-hidden','true');
   img.replaceWith(fallback);
   return;
  }
  img.style.display='none';
- if(img.parentElement?.classList.contains('shelf-image'))img.parentElement.textContent='♪';
+ if(img.parentElement?.classList.contains('shelf-image'))img.parentElement.innerHTML=ic('music');
 },true);

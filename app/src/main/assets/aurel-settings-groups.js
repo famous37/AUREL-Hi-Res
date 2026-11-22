@@ -11,13 +11,7 @@
   appearance:'Appearance',
   app:'App & data'
  };
- const glyphs={
-  outputs:'<path d="M11 5 6 9H3v6h3l5 4V5ZM15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/>',
-  playback:'<path d="M6 7v10M12 3v18M18 7v10M3 11v2M21 11v2"/>',
-  accounts:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
-  appearance:'<path d="M12 3a9 9 0 1 0 9 9c0-1.2-1-2.1-2.2-2.1h-2.1c-.9 0-1.7-.7-1.7-1.6V6.1C15 4.3 13.7 3 12 3Z"/><circle cx="8" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="14" r="1"/>',
-  app:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>'
- };
+ const glyphs={outputs:'speaker',playback:'audio',accounts:'user',appearance:'palette',app:'library'};
  function readOpen(){
   try{
    const value=localStorage.getItem(KEY);
@@ -99,11 +93,14 @@
    const glyph=document.createElement('span');
    glyph.className='aurel-group-icon';
    glyph.setAttribute('aria-hidden','true');
-   glyph.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'+glyphs[id]+'</svg>';
+   glyph.innerHTML=ic(glyphs[id]);
    const heading=document.createElement('span');
    heading.className='aurel-group-name';
    heading.textContent=label;
-   summary.append(glyph,heading);
+   const disclosure=document.createElement('span');
+   disclosure.className='aurel-group-disclosure';
+   disclosure.innerHTML=ic('down');
+   summary.append(glyph,heading,disclosure);
    const content=document.createElement('div');
    content.className='aurel-settings-group-content';
    section.append(summary,content);

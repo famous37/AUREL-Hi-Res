@@ -27,7 +27,7 @@
     const p=app.player||{},t=p.track||{},src=image(t),active=app.playerSheet||'';
     const total=Math.max(0,Number(p.duration)||0),position=Math.min(total,Math.max(0,Number(p.position)||0));
     const played=total?100*position/total:0;
-    const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" role="img" aria-label="No cover art available">♫</div>';
+    const artwork=src?`<img src="${html(src)}" class="murglar-cover" alt="Cover art for ${html(t.album?.title||t.title||'the current track')}" loading="eager">`:'<div class="murglar-cover murglar-art-placeholder" role="img" aria-label="No cover art available">'+ic('music')+'</div>';
     const source=actualSource(p);
     const loading=aurelPlaybackMode(p)==='loading';
     // Preserve the actual drawer DOM across all player/session/quality updates.
@@ -52,7 +52,7 @@
         <header class="aurel-drawer-header">
           <button type="button" class="aurel-drawer-handle" aria-expanded="false" aria-controls="aurel-detail-content" aria-label="Expand information panel"></button>
           <h2>${active==='upnext'?'Queue':active==='credits'?'Track information':active==='lyrics'?'Lyrics':'Audio information'}</h2>
-          <button type="button" data-close-detail aria-label="Close information panel">&times;</button>
+          <button type="button" data-close-detail aria-label="Close information panel">${ic('close')}</button>
         </header>
         <div class="aurel-detail-scroll" id="aurel-detail-content">
           <div class="aurel-detail-sheet murglar-detail-sheet">${contents}</div>
@@ -119,23 +119,23 @@
     overlay.innerHTML=`<div class="aurel-listening-screen murglar-view ${active?'murglar-sheet-open':''}">
       <div class="aurel-art-backdrop" aria-hidden="true"></div>
       <header class="murglar-header aurel-listening-nav">
-        <button data-close-overlay class="murglar-header-button" aria-label="Minimize player">${ic('down',26)}</button>
+        <button data-close-overlay class="murglar-header-button" aria-label="Minimize player">${ic('down')}</button>
         <span class="murglar-now-heading" aria-hidden="true"></span>
-        <button data-player-sheet="audio" class="murglar-header-button" aria-label="Audio information">${ic('more',27)}</button>
+        <button data-player-sheet="audio" class="murglar-header-button" aria-label="Audio information">${ic('more')}</button>
       </header>
       <div class="murglar-player-content">
         <div class="murglar-art-wrap">${artwork}</div>
         <section class="murglar-track-data aurel-track-title-row">
           <h1>${html(t.title||'Choose a track')}</h1>
           ${artistButton(t)}
-          ${t.album?.title?`<button class="murglar-album-link" data-open-playing-album aria-label="Open ${html(t.album.title)} album">${html(t.album.title)} ${ic('chevron',16)}</button>`:''}
+          ${t.album?.title?`<button class="murglar-album-link" data-open-playing-album aria-label="Open ${html(t.album.title)} album">${html(t.album.title)} ${ic('chevron')}</button>`:''}
         </section>
         <div class="murglar-quick-actions" aria-label="Track actions">
-          <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-expanded="${active==='upnext'}" aria-label="Play queue" title="Queue">${ic('queue',28)}<span>Queue</span></button>
-          <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info',28)}<span>Info</span></button>
-          <button data-player-sheet="lyrics" class="${active==='lyrics'?'active':''}" aria-expanded="${active==='lyrics'}" aria-label="Lyrics" title="Lyrics">${ic('lyrics',28)}<span>Lyrics</span></button>
-          <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart',28)}<span>Favourite</span></button>
-          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share',28)}<span>Share</span></button>
+          <button data-player-sheet="upnext" class="${active==='upnext'?'active':''}" aria-expanded="${active==='upnext'}" aria-label="Play queue" title="Queue">${ic('queue')}<span>Queue</span></button>
+          <button data-player-sheet="credits" class="${active==='credits'?'active':''}" aria-expanded="${active==='credits'}" aria-label="Track details" title="Credits">${ic('info')}<span>Info</span></button>
+          <button data-player-sheet="lyrics" class="${active==='lyrics'?'active':''}" aria-expanded="${active==='lyrics'}" aria-label="Lyrics" title="Lyrics">${ic('lyrics')}<span>Lyrics</span></button>
+          <button data-like-track="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Add to favourites" title="Favourite">${ic('heart')}<span>Favourite</span></button>
+          <button type="button" class="aurel-share-control aurel-share-label" data-aurel-share-kind="track" data-aurel-share-id="${html(t.id||'')}" ${t.id?'':'disabled'} aria-label="Share track" title="Share track">${ic('share')}<span>Share</span></button>
         </div>
         <section class="murglar-progress-row aurel-timeline" aria-label="Playback position">
           <span id="elapsed">${duration(position/1000)}</span>
@@ -144,14 +144,14 @@
           <span id="remaining">-${duration(Math.max(0,total-position)/1000)}</span>
         </section>
         <section class="murglar-transport aurel-main-actions" aria-label="Playback controls">
-          <button id="full-shuffle" data-shuffle class="murglar-control peripheral ${p.shuffle?'active':''}" aria-label="Shuffle" aria-pressed="${!!p.shuffle}">${ic('shuffle',25)}</button>
-          <button data-prev class="murglar-control aurel-transport side" aria-label="Previous track">${ic('prev',32)}</button>
-          <button id="full-toggle" data-full-toggle class="murglar-control aurel-transport middle ${loading?'is-loading':''}" aria-label="${aurelPlaybackLabel(p)}" aria-busy="${loading}">${aurelPlaybackIcon(p,39)}</button>
-          <button data-next class="murglar-control aurel-transport side" aria-label="Next track">${ic('next',32)}</button>
-          <button id="full-repeat" data-repeat class="murglar-control peripheral ${p.repeat?'active':''}" aria-label="${repeatCaption(p)}" aria-pressed="${!!p.repeat}">${ic('repeat',25)}${p.repeat===2?'<sup>1</sup>':''}</button>
+          <button id="full-shuffle" data-shuffle class="murglar-control peripheral ${p.shuffle?'active':''}" aria-label="Shuffle" aria-pressed="${!!p.shuffle}">${ic('shuffle')}</button>
+          <button data-prev class="murglar-control aurel-transport side" aria-label="Previous track">${ic('prev')}</button>
+          <button id="full-toggle" data-full-toggle class="murglar-control aurel-transport middle ${loading?'is-loading':''}" aria-label="${aurelPlaybackLabel(p)}" aria-busy="${loading}">${aurelPlaybackIcon(p)}</button>
+          <button data-next class="murglar-control aurel-transport side" aria-label="Next track">${ic('next')}</button>
+          <button id="full-repeat" data-repeat class="murglar-control peripheral ${p.repeat?'active':''}" aria-label="${repeatCaption(p)}" aria-pressed="${!!p.repeat}">${ic('repeat')}${p.repeat===2?'<sup>1</sup>':''}</button>
         </section>
         <button class="murglar-source-line aurel-source-pill" data-player-sheet="audio" aria-label="See audio source details">
-          ${ic('audio',18)}<span>${html(source)}</span>
+          ${ic('audio')}<span>${html(source)}</span>
         </button>
          ${p.error&&(app.session?.mornyeConfigured||app.session?.mornyeConnected)&&/mornye|zarz|gateway|verif|session/i.test(p.error)&&!/rate limit|try again/i.test(p.error)?'<button type="button" class="aurel-recovery-inline" data-reverify-mornye>Verify Mornye session</button>':''}
         <span class="murglar-state" id="playingStatus" aria-live="polite">${stateCaption(p)}</span>
@@ -212,7 +212,7 @@
         aurelStopLoadingAnimation(toggle);
         toggle.dataset.icon=mode;
         toggle.setAttribute('aria-label',aurelPlaybackLabel(p));
-        toggle.innerHTML=aurelPlaybackIcon(p,39);
+        toggle.innerHTML=aurelPlaybackIcon(p);
       }
       toggle.classList.toggle('is-loading',mode==='loading');
       if(mode==='loading')aurelEnsureLoadingAnimation(toggle);
@@ -231,7 +231,7 @@
       if(repeatButton.dataset.mode!==String(p.repeat)){
         repeatButton.dataset.mode=String(p.repeat);
         repeatButton.setAttribute('aria-label',repeatCaption(p));
-        repeatButton.innerHTML=ic('repeat',25)+(p.repeat===2?'<sup>1</sup>':'');
+        repeatButton.innerHTML=ic('repeat')+(p.repeat===2?'<sup>1</sup>':'');
       }
     }
     const state=$('#playingStatus'),caption=stateCaption(p);

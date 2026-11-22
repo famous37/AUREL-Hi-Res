@@ -1,53 +1,49 @@
-/* AUREL 1.1.99 — one control scale, one album palette, low-repaint progress.
- * Final stylesheet. Native audio, Qobuz IDs and user settings are untouched.
- * Only high-specificity visual exceptions to the existing unified theme.
- */
-:root[data-aurel-palette]{
-  --aurel-control-glyph:25px;
-  --aurel-control-stroke:2.30;
+/* Fixed vector geometry must win over legacy per-screen width and min-width declarations.
+ * Layered important rules outrank unlayered theme rules without competing selector specificity. */
+:root{
+  --aurel-control-glyph:24px;
+  --aurel-control-stroke:2.25;
   --aurel-mini-progress-height:3px;
 }
-/* Five quick actions occupy equal touch targets and equal visual geometry.
- * The share pictogram must not be larger/heavier than heart/info/queue/lyrics. */
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- .murglar-quick-actions > button{
-  min-width:44px!important;
-  min-height:44px!important;
-  align-items:center!important;
-  justify-content:center!important;
+@layer aurel-icons{
+  svg.ui-icon,svg.aurel-spinner{
+    box-sizing:border-box!important;
+    width:var(--aurel-control-glyph)!important;
+    height:var(--aurel-control-glyph)!important;
+    min-width:var(--aurel-control-glyph)!important;
+    min-height:var(--aurel-control-glyph)!important;
+    max-width:var(--aurel-control-glyph)!important;
+    max-height:var(--aurel-control-glyph)!important;
+    flex:none!important;
+    padding:0!important;
+    margin:0!important;
+    vertical-align:middle;
+  }
+  svg.ui-icon{
+    transform:none!important;
+    stroke:currentColor!important;
+  }
+  svg.ui-icon,svg.ui-icon > *,svg.aurel-spinner > *{
+    stroke-width:var(--aurel-control-stroke)!important;
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
+  }
+  .aurel-settings-group>summary::after{display:none!important}
+  .aurel-settings-group[open]>summary .aurel-group-disclosure{transform:rotate(180deg)}
+  :is(.queue-ops,.view-switch,.mini-buttons)>button,.murglar-quick-actions>button{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:0!important;
+  }
+  .murglar-quick-actions>button,.queue-ops>button,.view-switch>button{
+    min-width:44px!important;
+    min-height:44px!important;
+  }
 }
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- .murglar-quick-actions > button :is(svg,svg.ui-icon),
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- .murglar-quick-actions > button.aurel-share-control :is(svg,svg.ui-icon){
-  display:block!important;
-  flex:none!important;
-  width:var(--aurel-control-glyph)!important;
-  height:var(--aurel-control-glyph)!important;
-  margin:0!important;
-  transform:none!important;
-  stroke:currentColor!important;
-  stroke-width:var(--aurel-control-stroke)!important;
-  stroke-linecap:round!important;
-  stroke-linejoin:round!important;
-  vector-effect:non-scaling-stroke;
-}
-/* Shared icon family beyond the quick-action row, with larger transport
- * glyphs retained intentionally for the central primary play/pause action. */
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- :is(.murglar-header-button,.murglar-transport .murglar-control:not(.middle)) svg.ui-icon,
-:root[data-aurel-palette] .app .bottom-nav .aurel-tab-icon svg.ui-icon{
-  stroke-width:var(--aurel-control-stroke)!important;
-  stroke-linecap:round!important;
-  stroke-linejoin:round!important;
-}
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- :is(.murglar-header-button,.murglar-transport .murglar-control.peripheral) svg.ui-icon{
-  width:25px!important;height:25px!important;
-}
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
- .murglar-transport .murglar-control.side svg.ui-icon{
-  width:29px!important;height:29px!important;
+.aurel-group-disclosure,.aurel-ltm-chevron,.aurel-ltm-entry-chevron,
+.aurel-language-check,.aurel-popular-play,.playing-indicator{
+  display:inline-flex;align-items:center;justify-content:center;
 }
 /* Mini progress: single compositor-only bar. The previous final stylesheet
  * painted both a 6px dynamic gradient and a transform fill, causing a thick

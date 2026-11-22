@@ -2,13 +2,11 @@
 
 **AUREL Hi-Res** is an independent Android music player focused on lossless streaming, responsive browsing and a consistent, album-aware listening interface.
 
-[![Latest stable release](https://img.shields.io/badge/Stable-v1.1.88-222222?style=flat-square)](https://github.com/famous37/AUREL-Hi-Res/releases/latest)
+[![Latest stable release](https://img.shields.io/github/v/release/famous37/AUREL-Hi-Res?label=Stable&style=flat-square&color=222222)](https://github.com/famous37/AUREL-Hi-Res/releases/latest)
 ![Android](https://img.shields.io/badge/Android-10%2B-222222?style=flat-square)
-![Version code](https://img.shields.io/badge/versionCode-105-222222?style=flat-square)
 ![Developer](https://img.shields.io/badge/Developer-famous37-222222?style=flat-square)
 
 **Developer:** famous37  
-**Current stable version:** 1.1.88 (19 November 2026)  
 **Minimum Android:** 10 (API 29)  
 **Application ID:** `com.aurel.hires`
 
@@ -86,7 +84,7 @@ AUREL uses Android media playback and offers an experimental USB/audio-mixer pre
 
 ## Install or update
 
-1. Open [GitHub Releases](https://github.com/famous37/AUREL-Hi-Res/releases/latest) and download **`AUREL-Hi-Res-v1.1.88.apk`**.
+1. Open [GitHub Releases](https://github.com/famous37/AUREL-Hi-Res/releases/latest) and download the **AUREL-Hi-Res APK** attached to the latest release.
 2. Install it on Android 10 or newer.
 3. When upgrading a previously installed *production-signed* AUREL, install over the existing app **without uninstalling**, so its saved local data remains available.
 4. To receive future versions, open **Settings → App updates**, enable automatic update **checks** and approve download/installation when prompted.
@@ -122,9 +120,9 @@ Automated tests verify supported UI, navigation, JavaScript, Android build and s
 
 ## Українською
 
-**AUREL Hi-Res v1.1.88** — музичний програвач для Android 10+ із підтримкою авторизованого каталогу Qobuz, історією прослуховування, синхронізованими текстами пісень, кольоровими палітрами обкладинок і перевіркою підписаних оновлень.
+**AUREL Hi-Res** — музичний програвач для Android 10+ із підтримкою авторизованого каталогу Qobuz, історією прослуховування, синхронізованими текстами пісень, кольоровими палітрами обкладинок і перевіркою підписаних оновлень.
 
-**[Завантажити APK](https://github.com/famous37/AUREL-Hi-Res/releases/latest)** · **[Зміни у v1.1.88](https://github.com/famous37/AUREL-Hi-Res/releases/tag/v1.1.88)**
+**[Завантажити APK](https://github.com/famous37/AUREL-Hi-Res/releases/latest)** · **[Історія випусків](https://github.com/famous37/AUREL-Hi-Res/releases)**
 
 ---
 

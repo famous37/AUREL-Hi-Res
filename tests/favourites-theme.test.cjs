@@ -34,7 +34,7 @@ assert(css.includes('prefers-reduced-motion:reduce')&&css.includes('aurel-soft-e
 assert(css.includes('.aurel-shelf-shell')&&css.includes('.aurel-artist-item'));
 assert(css.includes('font-size:15.6px!important')&&css.includes('font-size:14.3px!important'));
 assert(!/downloadTrack|downloadDiscography/.test(favCode),'No download feature added.');
-let controlState={pressed:null,classes:new Set(),text:'♡'};
+let controlState={pressed:null,classes:new Set(),markup:''};
 const control={
  dataset:{likeTrack:'11'},
  hasAttribute:k=>k==='data-like-track',
@@ -45,9 +45,8 @@ const control={
   toggle(name,on){if(on)controlState.classes.add(name);else controlState.classes.delete(name);},
   contains(name){return controlState.classes.has(name);}
  },
- querySelector(){return null},
- get textContent(){return controlState.text},
- set textContent(t){controlState.text=t},
+ querySelector(selector){return selector==='svg'&&controlState.markup?{}:null},
+ set innerHTML(markup){controlState.markup=markup},
  closest(){return null}
 };
 const document={
@@ -75,7 +74,7 @@ const nativeCall=async(action,data)=>{
 const notices=[];
 const win={};
 const sandbox=vm.createContext({
- window:win,document,app,nativeCall,showToast:t=>notices.push(t),
+ window:win,document,app,nativeCall,ic:key=>'<svg data-icon="'+key+'"></svg>',showToast:t=>notices.push(t),
  like:async()=>{},console,setTimeout:()=>0,clearTimeout:()=>{},
  Date,Set,Promise,String,Object,Array
 });
@@ -88,11 +87,11 @@ vm.runInContext(favCode,sandbox,{filename:'aurel-favourites.js'});
  assert.equal(f.isSaved('albums','00022'),true,'Keep leading zeros on album ID');
  assert.equal(f.isSaved('artists','7'),true);
  assert.equal(controlState.pressed,'true');
- assert.equal(controlState.text,'♥');
+ assert.match(controlState.markup,/data-icon="heart"/);
  await f.toggle('tracks','11');
  assert.equal(f.isSaved('tracks','11'),false);
  assert.equal(controlState.pressed,'false');
- assert.equal(controlState.text,'♡');
+ assert.match(controlState.markup,/data-icon="heart"/);
  assert.equal(history.at(-1).action,'favoriteRemove');
  await f.toggle('tracks','11');
  assert.equal(f.isSaved('tracks','11'),true);

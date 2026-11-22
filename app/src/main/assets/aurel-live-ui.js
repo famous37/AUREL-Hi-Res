@@ -11,7 +11,7 @@
       ['settings','Settings','settings']
     ].map(function(entry){
       const action=entry[0]==='playing'?'data-open-player-nav':'data-nav="'+entry[0]+'"';
-      return '<button type="button" aria-label="'+entry[1]+'" '+action+'><span class="aurel-tab-icon" aria-hidden="true">'+ic(entry[2],23)+'</span><span class="aurel-tab-label">'+entry[1]+'</span></button>';
+      return '<button type="button" aria-label="'+entry[1]+'" '+action+'><span class="aurel-tab-icon" aria-hidden="true">'+ic(entry[2])+'</span><span class="aurel-tab-label">'+entry[1]+'</span></button>';
     }).join('');
   }
   // Vectorise the desktop sidebar too; native nav actions remain unchanged.
@@ -19,7 +19,7 @@
     const glyph=button.querySelector('b');
     const map={home:'home',magazine:'album',library:'library',search:'search',settings:'settings'};
     const kind=map[button.dataset.nav];
-    if(glyph&&kind){glyph.setAttribute('aria-hidden','true');glyph.innerHTML=ic(kind,23);}
+    if(glyph&&kind){glyph.setAttribute('aria-hidden','true');glyph.innerHTML=ic(kind);}
   });
   // All navigation icons remain consistent vectors; track artwork belongs to mini player.
   const themeByCover=new Map();
@@ -175,11 +175,14 @@
     if(!e.target.matches?.('[data-aurel-artwork-colours]'))return;
     setArtworkPalette(e.target.checked);
   });
-  function navSync(){
+  let lastNavRoute;
+  function navSync(force=false){
     if(!tabs)return;
     syncTheme();
     // The player tab is a stable queue glyph, including during artwork updates.
     const route=app.overlay?'playing':app.nav==='playlists'?'library':app.nav==='magazine'?'home':app.nav;
+    if(!force&&route===lastNavRoute)return;
+    lastNavRoute=route;
     tabs.querySelectorAll('button').forEach(function(b){
       const active=b.hasAttribute('data-open-player-nav')?route==='playing':b.dataset.nav===route;
       // Native player progress arrives every second. Do not repaint stable
@@ -203,13 +206,13 @@
     tabs.addEventListener('error',function(e){
       if(!e.target.matches('img.aurel-nav-cover'))return;
       const el=e.target.closest('.aurel-tab-icon');
-      if(el)el.innerHTML=ic('queue',23);
+      if(el)el.innerHTML=ic('queue');
     },true);
   }
   const oldMini=updateMini;
   updateMini=function(){const v=oldMini.apply(this,arguments);navSync();return v;};
   const oldRender=render;
-  render=function(){const v=oldRender.apply(this,arguments);navSync();return v;};
+  render=function(){const v=oldRender.apply(this,arguments);navSync(true);return v;};
   const oldOverlay=drawOverlay;
   drawOverlay=function(){
     const result=oldOverlay.apply(this,arguments);

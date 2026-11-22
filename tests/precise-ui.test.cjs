@@ -20,16 +20,16 @@ for(const name of ['search','library','settings','refresh','arrow-right','heart'
  assert(app.includes(name+':')||app.includes("'"+name+"':"),
   'Missing vector icon map entry: '+name);
 }
-assert(modern.includes("ic('arrow-right',27)"));
+assert(modern.includes("ic('arrow-right')"));
 assert(modern.includes('class="aurel-search-leading"'));
 assert(modern.includes('class="quicklink-icon"'));
-assert(modern.includes("ic('library',27)"));
-assert(modern.includes("ic('search',27)"));
-assert(modern.includes("ic('refresh',25)"));
-assert(modern.includes("ic('settings',26)"));
+assert(modern.includes("ic('library')"));
+assert(modern.includes("ic('search')"));
+assert(modern.includes("ic('refresh')"));
+assert(modern.includes("ic('settings')"));
 assert(!modern.includes('>⌕ <strong>Search catalogue</strong>'));
 assert(!modern.includes('aria-label="Search">→</button>'));
-assert(live.includes("glyph.innerHTML=ic(kind,23)"));
+assert(live.includes("glyph.innerHTML=ic(kind)"));
 
 for(const selector of [
   '#searchForm.qsearch','.search-submit svg','.aurel-search-leading svg',
@@ -44,11 +44,11 @@ for(const action of [
  'data-like-track','data-play-next','data-play-index',
  'data-play-all','data-like-album','data-artist-from-album','data-back'
 ])assert(app.includes(action),'Action missing after vector conversion: '+action);
-for(const key of ["ic('heart',24)","ic('plus',24)","ic('play',25)",
- "ic('chevron',20)","ic('back',20)","ic('play',20)"])
+for(const key of ["ic('heart')","ic('plus')","ic('play')",
+ "ic('chevron')","ic('back')"])
  assert(app.includes(key),'Missing vector action: '+key);
 assert(app.includes('aurel-save-label'));
-assert(favorites.includes("b.innerHTML=ic('heart',24)"));
+assert(favorites.includes("b.innerHTML=ic('heart')"));
 assert(favorites.includes("if(!b.querySelector('svg')"));
 assert(favorites.includes("b.querySelector('.aurel-save-label')"));
 assert(share.includes('data-aurel-share-kind'));

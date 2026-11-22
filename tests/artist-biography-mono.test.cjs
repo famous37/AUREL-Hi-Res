@@ -89,7 +89,7 @@ const window={
  matchMedia(){return {matches:true}},
  setTimeout(fn){fn()}
 };
-vm.runInNewContext(modal,{document,window,app,Array,String,Set,console},{filename:'aurel-artist-info.js'});
+vm.runInNewContext(modal,{document,window,app,ic:key=>'<svg data-icon="'+key+'"></svg>',Array,String,Set,console},{filename:'aurel-artist-info.js'});
 window.AurelArtistInfo.open();
 assert(live&&dialogFocused,'Artist modal opens and focuses dialog');
 assert.match(live._status.textContent,/Loading biography/);

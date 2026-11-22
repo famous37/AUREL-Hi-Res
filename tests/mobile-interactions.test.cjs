@@ -103,6 +103,14 @@ async function run(){
    return document.querySelector('.aurel-detail-drawer').getAnimations().length;
   });
   assert.equal(animations,0,'Reduced motion must suppress drawer entrance');
+  console.log('Playback clock and native message sizes',await evaluate(checkProgressClock));
+  for(const [width,height] of [[393,808],[808,393]]){
+   await viewport(width,height);
+   for(const artwork of [false,true]){
+    const result=await evaluate(checkGlobalIcons,artwork);
+    console.log('Rendered icons',width+'x'+height,artwork?'artwork':'mono',JSON.stringify(result));
+   }
+  }
   console.log('Mobile Chrome '+info.capabilities.browserVersion+' interaction checks passed.');
  }finally{
   try{if(session)await fetch(base+session,{method:'DELETE'});}finally{driver.kill();}
@@ -126,12 +134,18 @@ function installFixture(){
  };
  window.addEventListener('error',e=>{if(e.message)fixture.errors.push(e.message);});
  window.AurelNative={
+  getAppVersion:()=>'1.2.2-preview',
   call(id,action,raw){
    const params=JSON.parse(raw);calls.push({action,params});
    const reply=data=>window.AurelReceive(id,{ok:true,data});
    if(action==='search'){pending.set(params.query,reply);return;}
-   const data={session,validateSession:session,discover:{albums:{items:[{id:'a12',title:'Album'}]}},
-    favorites:{tracks:{items:tracks}},audioDiagnostics:{outputs:[]},lyrics:{status:'missing'}};
+   if(action==='playerState'&&window.AurelEvent){
+    setTimeout(()=>window.AurelEvent('player',{...player,queueRevision:20}),0);
+   }
+   const album={id:'a12',title:'Test album',artist:{id:42,name:'Test artist'},tracks:{items:tracks}};
+   const data={session,validateSession:session,album,playlist:{...album,id:'55',name:'Test playlist'},
+    artist:{id:42,name:'Test artist',albums:{items:[album]},biography:'Short biography.'},discover:{albums:{items:[{id:'a12',title:'Album'}]}},
+    favorites:{tracks:{items:tracks},albums:{items:[album]}},audioDiagnostics:{outputs:[]},lyrics:{status:'missing'}};
    setTimeout(()=>reply(data[action]||{}),0);
   },
   setPlayerImmersive(open){
@@ -145,6 +159,9 @@ async function checkLibraryAndSearch(){
  await until(()=>window.AurelLanguage&&app.session?.streamConnected);
  AurelLanguage.set('uk');
  await navigate('settings');
+ check(document.querySelector('[data-aurel-settings-panel="about"]').textContent.includes('1.2.2-preview'),'About must display the installed variant');
+ check(document.querySelector('#aurel-updates-panel').textContent.includes('1.2.2-preview'),'Updates must display the installed variant');
+ check(AurelErrorLog.report().includes('1.2.2-preview'),'Error reports must display the installed variant');
  check(document.querySelectorAll('[data-aurel-settings-group]').length===5,'Missing Ukrainian settings groups');
  document.querySelector('.aurel-settings-heading h1').click();
  check(!document.documentElement.hasAttribute('aria-pressed'),'Unrelated taps selected the page as a motion control');
@@ -267,4 +284,100 @@ async function checkLayout(){
  check(!fixture.errors.length,fixture.errors.join('; '));
  return {width:innerWidth,height:innerHeight,railOffset:offset,railWidth:Math.round(rail.width)};
 }
+async function checkProgressClock(){
+ const {check,until,player}=fixture;
+ window.AurelMinimizePlayer();
+ await navigate('library');
+ const queue=Array.from({length:500},(_,index)=>({...player.track,id:index+1000}));
+ const full={...player,queue,queueRevision:17,playing:true,position:12000};
+ window.AurelEvent('player',full);
+ const bar=document.querySelector('#mini .mini-progress'),fill=bar?.querySelector('.mini-progress-fill');
+ check(fill&&bar.getAttribute('role')==='progressbar','The active mini renderer discarded its progress fill');
+ const first=Number(fill.style.transform.match(/[\d.]+/)?.[0])||0;
+ await until(()=>Number(fill.style.transform.match(/[\d.]+/)?.[0])>first+.0005);
+ const {queue:ignored,...tick}=full;
+ window.AurelEvent('player',{...tick,position:14000});
+ check(app.player.queue===queue,'A native progress tick copied or lost a 500-track queue');
+ const compactBytes=JSON.stringify(tick).length,fullBytes=JSON.stringify(full).length;
+ check(compactBytes<fullBytes/50,'Progress messages still carry catalogue-size payloads');
+ document.querySelector('#mini [data-open-mini-player]').click();
+ await until(()=>document.querySelector('#overlay #progress'));
+ const slider=document.querySelector('#progress'),start=Number(slider.value);
+ await until(()=>Number(slider.value)>start+120);
+ window.AurelEvent('player',{...player,queueRevision:18,queue:player.queue.slice().reverse()});
+ document.querySelector('.murglar-quick-actions [data-player-sheet="upnext"]').click();
+ await until(()=>document.querySelector('.queue-item .queue-text strong'));
+ check(document.querySelector('.queue-item .queue-text strong').textContent===player.queue.at(-1).title,
+       'A changed queue was not reflected in the drawer');
+ window.AurelEvent('player',{...player,queueRevision:19,queue:[]});
+ check(!document.querySelector('.queue-item'),'The last queue entry remained after removing it');
+ window.AurelEvent('player',{...player,queueRevision:20});
+ await until(()=>fixture.calls.some(c=>c.action==='playerState')&&app.player.queue?.length===player.queue.length);
+ check(app.player.queue[0].id===player.track.id,'A missing full snapshot did not resynchronize the queue');
+ window.AurelMinimizePlayer();
+ return {tracks:queue.length,fullBytes,compactBytes};
+}
+
+async function checkGlobalIcons(artwork){
+ const {check,until,frame,player}=fixture;
+ window.AurelTheme.setArtworkPalette(artwork);
+ window.AurelEvent('player',player);
+ const screens={};
+ async function scan(name,root,required){
+  await frame();
+  const scope=document.querySelector(root);
+  check(scope,name+' root is missing');
+  const vectors=[...scope.querySelectorAll('svg:not(.aurel-brand-svg)')].filter(svg=>svg.getClientRects().length&&getComputedStyle(svg).visibility==='visible');
+  check(vectors.length,name+' has no rendered controls');
+  for(const svg of vectors){
+   const shape=svg.querySelector('path,circle,rect,ellipse');
+   const css=getComputedStyle(svg),box=svg.getBoundingClientRect(),id=svg.dataset.icon||svg.className.baseVal;
+   check(svg.matches('svg.ui-icon,svg.aurel-spinner'),name+' uses a detached icon family: '+id);
+   check(css.width==='24px'&&css.height==='24px'&&Math.abs(box.width-24)<.6&&Math.abs(box.height-24)<.6,
+     name+'/'+id+' rendered '+box.width+'×'+box.height+' (CSS '+css.width+'×'+css.height+')');
+   check(shape&&getComputedStyle(shape).strokeWidth==='2.25px',name+'/'+id+' has a different outline');
+  }
+  for(const key of required||[])check(vectors.some(svg=>svg.dataset.icon===key),name+' did not render '+key);
+  screens[name]=vectors.length;
+ }
+ await navigate('home');
+ await scan('home','#screen',['settings','search','library']);
+ await scan('navigation','.bottom-nav',['home','search','library','queue','settings']);
+ await scan('mini','#mini',['prev','play','next']);
+ await navigate('search');
+ await scan('search','#screen',['search','arrow-right']);
+ app.libType='tracks';await navigate('library');
+ await scan('library tracks','#screen',['plus','play','heart']);
+ app.libType='albums';await navigate('library');
+ await scan('library layouts','#screen',['grid','list']);
+ await openAlbum('a12');await scan('album','#screen',['back','play','heart']);
+ await openPlaylist('55');await scan('playlist','#screen',['back','play']);
+ await openArtist('42');await scan('artist','#screen',['info','play','plus']);
+ document.querySelector('[data-artist-info-open]').click();
+ await scan('artist biography','.aurel-artist-info-dialog',['close']);
+ window.AurelArtistInfo.close();
+ await navigate('settings');
+ await scan('settings','#screen',['speaker','audio','user','palette','library','down']);
+ renderLogin();await scan('sign-in','#screen',['user','key']);
+ await navigate('search');
+ showToast('Icon QA '+artwork,4000);
+ await scan('notification','#toast',['close']);
+ document.querySelector('[data-dismiss-aurel-toast]').click();
+ document.querySelector('#mini [data-open-mini-player]').click();
+ await scan('player','#overlay',['queue','info','lyrics','heart','share','shuffle','prev','play','next','repeat']);
+ const actions=[...document.querySelectorAll('.murglar-quick-actions > button')];
+ const extents=actions.map(button=>{
+  const svg=button.querySelector('svg'),box=svg.getBBox(),target=button.getBoundingClientRect();
+  check(target.width>=43.5&&target.height>=43.5,'Small touch target for '+svg.dataset.icon);
+  check(Math.abs((box.x+box.width/2)-12)<1.5&&Math.abs((box.y+box.height/2)-12)<1.6,'Off-centre '+svg.dataset.icon);
+  return Math.max(box.width,box.height);
+ });
+ check(Math.max(...extents)-Math.min(...extents)<2,'Mismatched drawn player glyphs: '+extents);
+ document.querySelector('.murglar-quick-actions [data-player-sheet="upnext"]').click();
+ await scan('queue','.aurel-detail-drawer',['close','arrow-up','arrow-down']);
+ window.AurelMinimizePlayer();
+ check(!fixture.errors.length,fixture.errors.join('; '));
+ return screens;
+}
+
 run().catch(error=>{console.error(error);process.exitCode=1;});

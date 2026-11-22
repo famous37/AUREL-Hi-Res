@@ -44,9 +44,10 @@
    }catch(_){}finally{writing=false;}
  }
  function report(){
-   return 'AUREL Hi-Res 1.2.2 | App error log\n'+
+   const version=window.AurelNative?.getAppVersion?.()||null;
+   return 'AUREL Hi-Res'+(version?' '+version:'')+' | App error log\n'+
      'Local diagnostic only. No audio, account tokens, URLs or system logcat.\n'+
-     JSON.stringify({version:'1.2.2',count:entries.length,errors:entries},null,2);
+     JSON.stringify({version,count:entries.length,errors:entries},null,2);
  }
  function clear(){entries=[];persist();refreshCount();refreshReport();}
  function refreshReport(){

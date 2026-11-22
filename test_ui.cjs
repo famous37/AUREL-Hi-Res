@@ -4,7 +4,7 @@ const elem=()=>({
  innerHTML:'',value:'',type:'password',textContent:'',dataset:{},scrollTop:0,
  classList:{add(){},remove(){},toggle(){},contains(){return false}},addEventListener(){},
  querySelector(){return null},querySelectorAll(){return[]},
- setAttribute(){},appendChild(){},replaceChildren(){},style:{setProperty(){}}
+ removeAttribute(){},setAttribute(){},appendChild(){},replaceChildren(){},style:{setProperty(){}}
 });
 const nodes=new Map(),listeners={};
 const doc={
@@ -17,7 +17,7 @@ const values=new Map();
 const localStorage={getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
 const win={AurelNative:null};
 const ctx=vm.createContext({document:doc,window:win,localStorage,console,URL,Map,Promise,setTimeout,clearTimeout,JSON,Error});
-for(const f of ['app.js','modern.js','murglar.js','responsive.js','polish.js']){
+for(const f of ['app.js','modern.js','murglar.js','responsive.js']){
  const source=fs.readFileSync(base+f,'utf8');
  assert(!/data-download-|downloadTrack|downloadDiscography|openSafImport|downloadState/.test(source),f+' still has download controls');
  vm.runInContext(source,ctx,{filename:f});
@@ -194,7 +194,7 @@ assert(!java.includes('qualityProbePending=!sourceVerified&&!viaMornye;'), 'Do n
 assert(java.includes('StreamQualityProbe.inspect(streamUrl)'));
 assert(java.includes('if(generation!=playGeneration)return;'));
 assert(java.includes('fileInfo.put("bits_depth",parsed.bitDepth)'));
-assert(fs.readFileSync(base+'responsive.js','utf8').includes('loading="eager" decoding="async" fetchpriority="high"'));
+assert(fs.readFileSync(base+'modern.js','utf8').includes('loading="eager" decoding="async" fetchpriority="high"'));
 assert(!fs.readFileSync(base+'murglar.js','utf8').includes('murglar-heading-cover'));
 assert(fs.readFileSync(base+'murglar.js','utf8').includes('murglar-now-heading'));
 const layout=fs.readFileSync(base+'layout-fix.css','utf8');
@@ -455,7 +455,12 @@ assert(gateway.includes('"VERIFICATION_REQUIRED".equalsIgnoreCase(code)')&&
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('reverifyMornye')"), 'settings/player must invoke re-verification');
 assert(fs.readFileSync(base+'app.js','utf8').includes('aurel-gateway-warning'), 'failed grants need a persistent warning');
 assert(murglarJs.includes('data-reverify-mornye'), 'Now Playing must expose verification instead of an inert error');
-assert(fs.readFileSync(base+'app.js','utf8').includes('<strong>1.2.2</strong>'), 'Settings must show the installed version');
+for(const version of ['1.2.2','1.2.2-preview']){
+ win.AurelNative={getAppVersion:()=>version};
+ run("app.nav='settings';app.selected=null;app.session={streamConnected:true,profile:{}};renderSettings()");
+ assert(nodes.get('#screen').innerHTML.includes('<strong>'+version+'</strong>'),'Settings must show the installed variant version');
+}
+win.AurelNative=null;
 
 const playerFitCss=fs.readFileSync(base+'aurel-player-fit.css','utf8');
 const playerFitJs=fs.readFileSync(base+'aurel-player-fit.js','utf8');

@@ -59,7 +59,7 @@ const doc={
  getElementById:()=>null,
  addEventListener:(name,fn)=>callbacks[name]=fn,
 };
-const win={AurelEvent:()=>{},addEventListener:(name,fn)=>callbacks['window:'+name]=fn};
+const win={AurelNative:{getAppVersion:()=>'1.2.2'},AurelEvent:()=>{},addEventListener:(name,fn)=>callbacks['window:'+name]=fn};
 const context={
  window:win,document:doc,Date,JSON,Promise,console,
  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
@@ -104,6 +104,6 @@ const event=button=>({
  assert(typeof fallbackClick==='function');
  await fallbackClick(event({...copyButton,disabled:false}));
  assert.equal(captured.length,1);
- assert.match(captured[0],/^AUREL Hi-Res 1\.2\.2/);
+ assert.match(captured[0],/^AUREL Hi-Res \| App error log/);
  console.log('AUREL 1.2.2 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});

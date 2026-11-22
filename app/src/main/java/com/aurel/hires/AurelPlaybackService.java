@@ -436,12 +436,12 @@ public final class AurelPlaybackService extends Service {
             .setOngoing(playing||buffering)
             .setCategory(Notification.CATEGORY_TRANSPORT)
             .addAction(new Notification.Action.Builder(
-                android.R.drawable.ic_media_previous,"Previous",control("previous",1)).build())
+                R.drawable.ic_transport_previous,"Previous",control("previous",1)).build())
             .addAction(new Notification.Action.Builder(
-                playing?android.R.drawable.ic_media_pause:android.R.drawable.ic_media_play,
+                playing?R.drawable.ic_transport_pause:R.drawable.ic_transport_play,
                 playing?"Pause":"Play",control(playing?"pause":"play",2)).build())
             .addAction(new Notification.Action.Builder(
-                android.R.drawable.ic_media_next,"Next",control("next",3)).build())
+                R.drawable.ic_transport_next,"Next",control("next",3)).build())
             .setStyle(new Notification.MediaStyle()
                 .setMediaSession(session.getSessionToken())
                 .setShowActionsInCompactView(0,1,2));

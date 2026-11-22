@@ -49,7 +49,7 @@ function summary(){
 }
 function button(action,caption,disabled=false,extra=''){
  return '<button type="button" data-ltm-action="'+esc(action)+'" '+extra+
-  (disabled?' disabled':'')+'>'+esc(caption)+'</button>';
+  (disabled?' disabled':'')+(action==='prev'||action==='next'?' aria-label="'+esc(caption)+'">'+ic(action==='prev'?'back':'chevron'):'>'+esc(caption))+'</button>';
 }
 function contentRows(){
  if(state.loading)return '<p class="aurel-ltm-empty">'+
@@ -86,11 +86,11 @@ function contentRows(){
    '</span><span class="aurel-ltm-actions-row">'+
    (state.active==='playlists'?'<span role="button" tabindex="-1" data-ltm-local-playlist="'+esc(item.id)+
       '" class="aurel-ltm-relink" aria-label="'+esc(tr('View saved track list','Переглянути збережені треки'))+
-      '" title="'+esc(tr('Local track list','Локальний список треків'))+'">☷</span>':'')+
+      '" title="'+esc(tr('Local track list','Локальний список треків'))+'">'+ic('list')+'</span>':'')+
    (local&&linked?'<span role="button" tabindex="-1" data-ltm-relink="'+esc(item.id)+
        '" class="aurel-ltm-relink" aria-label="'+esc(tr('Change Qobuz match','Змінити збіг Qobuz'))+
-       '" title="'+esc(tr('Change match','Змінити збіг'))+'">⋯</span>':'')+
-   '<span class="aurel-ltm-chevron">›</span></span></button>';
+       '" title="'+esc(tr('Change match','Змінити збіг'))+'">'+ic('more')+'</span>':'')+
+   '<span class="aurel-ltm-chevron">'+ic('chevron')+'</span></span></button>';
  }).join('')+'</div>';
 }
 function draw(){
@@ -103,7 +103,7 @@ function draw(){
  node.innerHTML='<button type="button" class="aurel-ltm-entrypoint" data-ltm-action="tools" aria-expanded="'+String(tools)+'">'+
    '<span class="aurel-ltm-compact-title"><strong>'+esc(tr('Library Import / Export','Імпорт та експорт бібліотеки'))+'</strong>'+
    '<small>'+esc(tr('Import · Export · Local copy','Імпорт · Експорт · Локальна копія'))+'</small></span>'+
-   '<span class="aurel-ltm-entry-chevron" aria-hidden="true">'+(tools?'⌃':'⌄')+'</span></button>'+
+   '<span class="aurel-ltm-entry-chevron" aria-hidden="true">'+ic(tools?'up':'down')+'</span></button>'+
  (tools?'<div class="aurel-ltm-body">'+
    '<div class="aurel-ltm-counts">'+summary()+'</div>'+
    '<div class="aurel-ltm-actions">'+
@@ -143,9 +143,9 @@ function draw(){
        esc(label(t))+'</button>').join('')+'</div>'+
      contentRows()+
      (!state.playlist&&state.total>30?'<div class="aurel-ltm-pager">'+
-       button('prev','‹',state.offset===0)+
+       button('prev',tr('Previous page','Попередня сторінка'),state.offset===0)+
        '<span>'+(state.offset+1)+'–'+Math.min(state.offset+30,state.total)+' / '+state.total+'</span>'+
-       button('next','›',state.offset+30>=state.total)+'</div>':'')+
+       button('next',tr('Next page','Наступна сторінка'),state.offset+30>=state.total)+'</div>':'')+
      '</div>':'')+
    '<details class="aurel-ltm-advanced"><summary>'+esc(tr('More options','Інші дії'))+'</summary>'+
      '<div class="aurel-ltm-secondary-actions">'+
