@@ -10,8 +10,8 @@ const player=load('murglar.js'),live=load('aurel-live-ui.js');
 const journal=load('aurel-error-log.js');
 const activity=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+119/);
-assert.match(gradle,/versionName[^\n]*'1\.2\.2'/);
+assert.match(gradle,/versionCode\s+120/);
+assert.match(gradle,/versionName[^\n]*'1\.2\.3'/);
 assert.match(player,/classList\.toggle\('aurel-player-open',!!app\.overlay\)/);
 assert.match(player,/previousPage\.setAttribute\('aria-hidden','true'\)/);
 assert.match(player,/previousPage\.removeAttribute\('aria-hidden'\)/);
@@ -59,7 +59,7 @@ const doc={
  getElementById:()=>null,
  addEventListener:(name,fn)=>callbacks[name]=fn,
 };
-const win={AurelNative:{getAppVersion:()=>'1.2.2'},AurelEvent:()=>{},addEventListener:(name,fn)=>callbacks['window:'+name]=fn};
+const win={AurelNative:{getAppVersion:()=>'1.2.3'},AurelEvent:()=>{},addEventListener:(name,fn)=>callbacks['window:'+name]=fn};
 const context={
  window:win,document:doc,Date,JSON,Promise,console,
  localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
@@ -78,7 +78,7 @@ const event=button=>({
  await callbacks.click(event(copyButton));
  assert.equal(requests.length,1,'One request must reach Android native clipboard');
  assert.equal(requests[0].action,'copySupportLog');
- assert.match(requests[0].data.report,/^AUREL Hi-Res 1\.2\.2 \| App error log\n/);
+ assert.match(requests[0].data.report,/^AUREL Hi-Res 1\.2\.3 \| App error log\n/);
  assert(requests[0].data.report.includes('Uncaught TypeError'));
  assert(toast.some(x=>/copied/.test(x)),'Successful native copy must show success');
  await callbacks.click(event(viewerButton));
@@ -105,5 +105,5 @@ const event=button=>({
  await fallbackClick(event({...copyButton,disabled:false}));
  assert.equal(captured.length,1);
  assert.match(captured[0],/^AUREL Hi-Res \| App error log/);
- console.log('AUREL 1.2.2 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
+ console.log('AUREL 1.2.3 immersive navigation, album/graphite design, native/local clipboard, inline viewer PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});

@@ -49,4 +49,4 @@ assert(bold.includes('@keyframes aurel-bold-spin'),'Buffering must have fallback
 assert(modern.includes('aurelEnsureLoadingAnimation'));
 assert(html.indexOf('aurel-bold-controls.css')>html.indexOf('aurel-monochrome.css'));
 assert(app.includes('AurelNative?.getAppVersion?.()'));
-console.log('AUREL 1.2.2 icon family, Share size/contrast, narrow screens and spinner PASS');
+console.log('AUREL 1.2.3 icon family, Share size/contrast, narrow screens and spinner PASS');

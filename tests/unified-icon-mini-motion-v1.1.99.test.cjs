@@ -46,5 +46,5 @@ assert(player.includes('!p.playing||!window.AurelProgressClock'));
 assert(player.includes('positionForLabels'));
 for(const action of ['data-full-toggle','data-like-track','data-aurel-share-kind','data-shuffle','data-repeat','data-prev','data-next'])
  assert(player.includes(action),'Playback controls must survive restyling: '+action);
-assert(/versionCode\s+119/.test(gradle)&&gradle.includes("'1.2.2'"));
-console.log('AUREL 1.2.2 icon sizes, mini progress, artwork palette, smooth clock and controls PASS');
+assert(/versionCode\s+120/.test(gradle)&&gradle.includes("'1.2.3'"));
+console.log('AUREL 1.2.3 icon sizes, mini progress, artwork palette, smooth clock and controls PASS');

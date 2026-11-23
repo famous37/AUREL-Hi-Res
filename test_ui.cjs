@@ -385,8 +385,8 @@ const releaseCode=releaseGradle.match(/versionCode\s+(\d+)/);
 const releaseName=releaseGradle.match(/versionName[\s\S]{0,160}?['"](\d+)\.(\d+)\.(\d+)(?:-preview)?['"]/);
 const versionNumber=releaseName?
  Number(releaseName[1])*1000000+Number(releaseName[2])*1000+Number(releaseName[3]):0;
-assert(releaseCode&&Number(releaseCode[1])>=117&&releaseName&&versionNumber>=1002000,
- 'APK version must advance across minor versions, including v1.2.2');
+assert(releaseCode&&Number(releaseCode[1])>=120&&releaseName&&versionNumber>=1002003,
+ 'APK version must advance across minor versions, including v1.2.3');
 
 const atelier=fs.readFileSync(base+'aurel-atelier.css','utf8');
 assert(atelier.includes('--aurel-theme-ink:#180E16'), 'selected controls need dark ink');
@@ -396,7 +396,7 @@ assert(atelier.includes('var(--aurel-theme-card)'), 'cards must use the shared a
 assert(atelier.includes('prefers-reduced-motion:reduce'), 'motion accessibility remains supported');
 assert(fs.readFileSync(base+'index.html','utf8').includes('aurel-atelier.css'), 'final theme must be loaded');
 assert(fs.readFileSync(base+'app.js','utf8').includes('class="aurel-settings-heading"'), 'settings must have compact heading');
-assert(releaseGradle.includes("'1.2.2'"));
+assert(releaseGradle.includes("'1.2.3'"));
 assert(media.includes('new float[]{hue,.37f,.075f}')&&media.includes('new float[]{hue,.43f,.16f}'), 'native palette should use dark artwork-harmonized backgrounds');
 
 const discoJs=fs.readFileSync(base+'aurel-discography.js','utf8');
@@ -428,7 +428,7 @@ assert(discoJs.includes('aurel-artist-initial')&&discoCss.includes('.aurel-artis
 assert(discoJs.includes("if(expand&&b.dataset.artistMore==='similar')"),
   'expanding similar artists should request newly visible portraits');
 assert(fs.readFileSync(__dirname+'/app/src/main/java/com/aurel/hires/QobuzApi.java','utf8').includes('publicArtist('));
-assert(releaseGradle.includes("'1.2.2'"));
+assert(releaseGradle.includes("'1.2.3'"));
 
 vm.runInContext(discoJs,ctx,{filename:'aurel-discography.js'});
 run("app.selected={id:123,name:'Test Artist',albums:{items:[{id:'abc',title:'Album One',release_type:'album',artist:{name:'Test Artist'}}],total:1,limit:100}};app.selectedKind='artist';renderArtist()");
@@ -455,7 +455,7 @@ assert(gateway.includes('"VERIFICATION_REQUIRED".equalsIgnoreCase(code)')&&
 assert(fs.readFileSync(base+'app.js','utf8').includes("nativeCall('reverifyMornye')"), 'settings/player must invoke re-verification');
 assert(fs.readFileSync(base+'app.js','utf8').includes('aurel-gateway-warning'), 'failed grants need a persistent warning');
 assert(murglarJs.includes('data-reverify-mornye'), 'Now Playing must expose verification instead of an inert error');
-for(const version of ['1.2.2','1.2.2-preview']){
+for(const version of ['1.2.3','1.2.3-preview']){
  win.AurelNative={getAppVersion:()=>version};
  run("app.nav='settings';app.selected=null;app.session={streamConnected:true,profile:{}};renderSettings()");
  assert(nodes.get('#screen').innerHTML.includes('<strong>'+version+'</strong>'),'Settings must show the installed variant version');

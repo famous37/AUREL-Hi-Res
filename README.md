@@ -14,6 +14,10 @@
 
 > **Independent client.** AUREL is not affiliated with or endorsed by Qobuz. Catalogue, personal library and streaming access depend on the user's own valid subscription, session, permitted integration and the provider's current authorization policies. Server-side restrictions cannot be resolved by changing the app alone.
 
+## What's new in v1.2.3
+
+The player and library share a 24 × 24 icon set. Playback progress moves between Android updates, and large queues travel to the interface only when needed. Library playback follows the displayed sort order, and search results follow the latest query. [Full release notes in Ukrainian and English](docs/releases/v1.2.3.md)
+
 ## Library Import / Export Manager
 
 The Android app includes a private, metadata-only **Library Import / Export Manager** under **Library** and **Settings**. Connect a *separate* authorized Qobuz account under **Settings → Personal Qobuz library**, then choose Artists, Albums, Tracks and Playlists to copy into AUREL's local library.

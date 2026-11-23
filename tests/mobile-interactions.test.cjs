@@ -134,7 +134,7 @@ function installFixture(){
  };
  window.addEventListener('error',e=>{if(e.message)fixture.errors.push(e.message);});
  window.AurelNative={
-  getAppVersion:()=>'1.2.2-preview',
+  getAppVersion:()=>'1.2.3-preview',
   call(id,action,raw){
    const params=JSON.parse(raw);calls.push({action,params});
    const reply=data=>window.AurelReceive(id,{ok:true,data});
@@ -159,9 +159,9 @@ async function checkLibraryAndSearch(){
  await until(()=>window.AurelLanguage&&app.session?.streamConnected);
  AurelLanguage.set('uk');
  await navigate('settings');
- check(document.querySelector('[data-aurel-settings-panel="about"]').textContent.includes('1.2.2-preview'),'About must display the installed variant');
- check(document.querySelector('#aurel-updates-panel').textContent.includes('1.2.2-preview'),'Updates must display the installed variant');
- check(AurelErrorLog.report().includes('1.2.2-preview'),'Error reports must display the installed variant');
+ check(document.querySelector('[data-aurel-settings-panel="about"]').textContent.includes('1.2.3-preview'),'About must display the installed variant');
+ check(document.querySelector('#aurel-updates-panel').textContent.includes('1.2.3-preview'),'Updates must display the installed variant');
+ check(AurelErrorLog.report().includes('1.2.3-preview'),'Error reports must display the installed variant');
  check(document.querySelectorAll('[data-aurel-settings-group]').length===5,'Missing Ukrainian settings groups');
  document.querySelector('.aurel-settings-heading h1').click();
  check(!document.documentElement.hasAttribute('aria-pressed'),'Unrelated taps selected the page as a motion control');
