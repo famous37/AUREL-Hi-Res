@@ -117,6 +117,7 @@ public final class MainActivity extends Activity {
     private final ExecutorService jobs=Executors.newFixedThreadPool(3);
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ArrayList<JSONObject> queue=new ArrayList<>();
+    private long queueRevision;
     private MediaPlayer player;
     private AurelBeatMonitor beatMonitor;
     private static final int BEAT_CAPTURE_PERMISSION_REQUEST=4107;
@@ -492,6 +493,7 @@ public final class MainActivity extends Activity {
                     return;
                 recovered.add(item);
             }
+            queueRevision++;
             queue.clear();queue.addAll(recovered);
             queueIndex=index;
             current=queue.get(index);
@@ -713,7 +715,7 @@ public final class MainActivity extends Activity {
         @Override public void run() {
             if(web!=null) {
                 long now=System.currentTimeMillis();
-                if(hasEngine()&&now-lastStateSent>900) { emit("player",playerState()); lastStateSent=now; }
+                if(hasEngine()&&now-lastStateSent>900) { emit("player",playerState(false)); lastStateSent=now; }
                 if(beatUiWanted)refreshBeatMonitor();
                 ui.postDelayed(this,1000);
             }
@@ -1089,7 +1091,7 @@ public final class MainActivity extends Activity {
         verificationInProgress=false;
         if(wasMornye)ui.post(()->{
             pauseByUser();
-            cleanupPlayer();queue.clear();queueIndex=-1;
+            cleanupPlayer();queue.clear();queueRevision++;queueIndex=-1;
             current=new JSONObject();fileInfo=new JSONObject();
             emit("player",playerState());
         });
@@ -1193,6 +1195,10 @@ public final class MainActivity extends Activity {
     }
 
     private final class Bridge {
+        @JavascriptInterface public String getAppVersion() {
+            return BuildConfig.VERSION_NAME;
+        }
+
         @JavascriptInterface public void setWindowPalette(String color) {
             ui.post(()->setSystemChrome(color));
         }
@@ -1437,7 +1443,7 @@ public final class MainActivity extends Activity {
                             clearPlaybackContinuity();
                             digitalHeadroomDb=0;
                             prefetchNextMetadata=true;
-                            ui.post(()->{pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
+                            ui.post(()->{pauseByUser();bitPerfect.setEnabled(false,player,fileInfo);cleanupPlayer();queue.clear();queueRevision++;queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();emit("player",playerState());});
                             data=session();break;
                         }
                         case "setBitPerfect": {
@@ -1890,6 +1896,7 @@ public final class MainActivity extends Activity {
                             final int target=mapped;
                             ui.post(()->{
                                 restoredPositionMs=0;restoredTrackId="";
+                                queueRevision++;
                                 queue.clear();queue.addAll(eligible);
                                 queueIndex=target;startAtCurrent();
                             });
@@ -1923,6 +1930,7 @@ public final class MainActivity extends Activity {
                                 for(JSONObject track:eligible){
                                     if(queue.size()>=500)break;
                                     queue.add(Math.min(at++,queue.size()),track);
+                                    queueRevision++;
                                 }
                                 emit("player",playerState());
                             });
@@ -1942,6 +1950,7 @@ public final class MainActivity extends Activity {
                             final int from=p.optInt("from",-1),to=p.optInt("to",-1);
                             ui.post(()->{
                                 if(from<0||to<0||from>=queue.size()||to>=queue.size()||from==to)return;
+                                queueRevision++;
                                 JSONObject moving=queue.remove(from);queue.add(to,moving);
                                 if(queueIndex==from)queueIndex=to;
                                 else if(from<queueIndex&&to>=queueIndex)queueIndex--;
@@ -1953,6 +1962,7 @@ public final class MainActivity extends Activity {
                             final int index=p.optInt("index",-1);
                             ui.post(()->{
                                 if(index<0||index>=queue.size())return;
+                                queueRevision++;
                                 queue.remove(index);
                                 if(queue.isEmpty()){playGeneration++;pauseByUser();cleanupPlayer();queueIndex=-1;current=new JSONObject();fileInfo=new JSONObject();}
                                 else if(index==queueIndex){queueIndex=Math.min(index,queue.size()-1);startAtCurrent();}
@@ -2660,6 +2670,7 @@ public final class MainActivity extends Activity {
                         if(generation!=playGeneration||current==null)return;
                         try {
                             copyMetadata(current,full);
+                            queueRevision++;
                             queue.set(queueIndex,current);
                             emit("player",playerState());
                         }catch(Exception ignored){}
@@ -2936,6 +2947,9 @@ public final class MainActivity extends Activity {
         queueIndex=next;startAtCurrent();
     }
     private JSONObject playerState() {
+        return playerState(true);
+    }
+    private JSONObject playerState(boolean includeQueue) {
         JSONObject state=new JSONObject();
         try {
             state.put("track",current).put("index",queueIndex).put("count",queue.size());
@@ -2992,9 +3006,13 @@ public final class MainActivity extends Activity {
             state.put("catalogMaxBits",catalogBits>=8&&catalogBits<=32?catalogBits:0);
             state.put("catalogMaxSampleRateHz",catalogRate>=8000&&catalogRate<=768000?catalogRate:0);
             state.put("catalogMaxFromAlbum",albumCap);
-            JSONArray nextQueue=new JSONArray();
-            for(int i=0;i<queue.size();i++)nextQueue.put(queue.get(i));
-            state.put("queue",nextQueue);
+            state.put("queueRevision",queueRevision);
+            // The regular position tick shares the queue already delivered to this WebView.
+            if(includeQueue){
+                JSONArray nextQueue=new JSONArray();
+                for(JSONObject track:queue)nextQueue.put(track);
+                state.put("queue",nextQueue);
+            }
             AudioManager manager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             state.put("androidMixerHz",manager==null?"":manager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE));
         }catch(Exception ignored){}

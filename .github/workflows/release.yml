@@ -1,7 +1,4 @@
 name: Publish permanently signed AUREL release
-# v1.2.2: safe notifications, compact bilingual sign-in and unchanged audio pipeline.
-# Preserve USB bit-perfect, navigation, layouts, preferences and permanent signing.
-
 # Release signing always requires private GitHub Actions Secrets.
 # Publish only on a version bump or release workflow change merged into main.
 # Every release retains certificate pinning, signed APK verification and all tests.
@@ -78,6 +75,9 @@ jobs:
             echo "::error::Release v$VERSION already exists. Increase versionCode and versionName; never overwrite an existing signed release."
             exit 1
           fi
+          VERSION_CODE="$(awk '$1 == "versionCode" { print $2 }' app/build.gradle)"
+          [[ "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]
+          echo "AUREL_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           echo "AUREL_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "AUREL_TAG=v$VERSION" >> "$GITHUB_ENV"
 
@@ -183,8 +183,8 @@ jobs:
             echo "::error::APK is not signed by the permanent AUREL release certificate."
             exit 1
           fi
-          "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$APK" | \
-            grep -q "package: name='com.aurel.hires'"
+          "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$APK" > "$RUNNER_TEMP/aurel-release-badging.txt"
+          grep -Fq "package: name='com.aurel.hires' versionCode='${AUREL_VERSION_CODE}' versionName='${AUREL_VERSION}'" "$RUNNER_TEMP/aurel-release-badging.txt"
           mkdir -p build/signed-artifacts
           cp "$APK" "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk"
           (
@@ -199,38 +199,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' \
-            "**AUREL Hi-Res v${AUREL_VERSION} — safe notifications and streamlined sign-in" \
-            '' \
-            '- In-app notifications stay below Android status icons even in immersive Now Playing mode; messages wrap and dismiss cleanly.' \
-            '- Qobuz sign-in is simplified to password or token, with Advanced credentials collapsed and Mornye available separately.' \
-            '- Ukrainian translations, theme colors, authorized sessions and playback routing are preserved.' \
-            '- All five Now Playing action glyphs have uniform visual size, including Share.' \
-            '- Public Deezer Single/EP classifications are matched against actual, artist-verified Qobuz album IDs before display; Qobuz provides all playback and album navigation.' \
-            '- The official Qobuz artist ranking and typed releases take priority when available; rejected categories display clear fallback state.' \
-            '- Reissue years no longer silently replace the original album date in the latest-listed-release section.' \
-            '- If public metadata or authorized Qobuz search is unavailable, shelves accurately remain unavailable; not all catalog categories can be guaranteed.' \
-            '- Audio engine, bit-perfect routing, account sessions, library, settings and signature remain unchanged.' \
-            '- A single 3px compositor-only mini progress track removes double-painted 6px gradients; updates use a scheduled 100ms frame and do not race native ticks.' \
-            '- Artwork palette accents apply consistently to mini-player, navigation, controls, cards and settings while monochrome remains neutral.' \
-            '- Artwork size remains stable when opening/closing Lyrics, Queue, Credits and Audio; portrait cover is slightly larger.' \
-            '- Drag any information panel header to expand below the Android status indicators, or collapse it; native top and bottom insets are respected.' \
-            '- Ukrainian settings panels use stable nontranslated identities, retaining their five categories; additional interface translations.' \
-            '- Optional album-derived colors are supplied to the Android AUREL media notification where Android SystemUI permits.' \
-            '- Existing real-FFT ambient effects use only composited transforms, not timers or fabricated beats.' \
-            '- Keep the same album cover DOM when opening any information sheet; a short GPU-only enter transition removes flashes.' \
-            '- Independent WebView seek fill stays visible even when Android fails to paint its range gradient.' \
-            '- Real FFT envelope uses attack/release smoothing and limits CSS writes to ~25 fps.' \
-            '- Android versionCode 119, versionName 1.2.2, original permanently signed certificate.' \
-            '' \
-            "Install v${AUREL_VERSION} over v1.2.1; do not uninstall or clear AUREL data." \
-            'Certificate SHA-256: C9F57989C6622A55440F35CD426A5DC6830161EEB5AEAB299FDB3E69F94ED3CA' > build/signed-artifacts/release-notes.md
+          notes="docs/releases/${AUREL_TAG}.md"
+          notes_args=(--generate-notes)
+          if [[ -s "$notes" ]]; then
+            notes_args=(--notes-file "$notes")
+          fi
           gh release create "$AUREL_TAG" \
             "build/signed-artifacts/AUREL-Hi-Res-v${AUREL_VERSION}.apk" \
             "build/signed-artifacts/SHA256SUMS.txt" \
             --target "$GITHUB_SHA" \
             --title "AUREL Hi-Res v${AUREL_VERSION}" \
-            --notes-file build/signed-artifacts/release-notes.md 
+            "${notes_args[@]}"
           gh release view "$AUREL_TAG" --json tagName,url,assets --jq '.tagName + " " + .url + " " + ([.assets[].name] | join(", "))'
 
       - name: Keep the verified signed APK as a CI artifact

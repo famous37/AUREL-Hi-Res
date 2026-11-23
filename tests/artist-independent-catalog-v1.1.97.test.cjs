@@ -54,6 +54,6 @@ assert.equal(canonicalLatestRelease([fallen,doorReissue,doorOriginal]).id,'d');
 const newer={id:'n',title:'The Bitter Truth',release_date_original:'2021-03-26'};
 assert.equal(canonicalLatestRelease([fallen,doorOriginal,doorReissue,newer]).id,'n');
 assert(disc.includes('Latest listed release'));
-assert.match(gradle,/versionCode\s+119/);
-assert(gradle.includes("'1.2.2'"));
+assert.match(gradle,/versionCode\s+120/);
+assert(gradle.includes("'1.2.3'"));
 console.log('Independent chart -> Qobuz ID mapping, source disclosure, release-year accuracy PASS');

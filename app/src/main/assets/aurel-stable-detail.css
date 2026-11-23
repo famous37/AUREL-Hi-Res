@@ -1,4 +1,4 @@
-/* AUREL 1.2.10 — stable full-size artwork, safe expandable information
+/* AUREL — stable full-size artwork, safe expandable information
  * sheets and artwork-derived compositor light. Keep audio timing untouched. */
 :root[data-aurel-palette]{
  --aurel-detail-rest:min(68dvh,590px);
@@ -28,6 +28,8 @@
 /* Constrain the actual sheet inside the player viewport. The player viewport
  * already excludes both the bottom Android gesture inset and AUREL nav. */
 :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer{
+ /* The immersive player header occupies stacking level 30. */
+ z-index:32!important;
  height:var(--aurel-drawer-size,var(--aurel-detail-rest))!important;
  min-height:0!important;
  max-height:calc(100% - var(--aurel-sheet-safe-top))!important;
@@ -35,8 +37,6 @@
  overflow:hidden!important;
  border-radius:23px 23px 0 0!important;
  background:var(--aurel-theme-surface,#202124)!important;
- animation:none!important;
- transform:none!important;
  transition:border-color 180ms ease,background-color 180ms ease!important;
  touch-action:pan-y;
 }
@@ -49,15 +49,21 @@
  cursor:ns-resize;
  background:transparent!important;
 }
-:root[data-aurel-palette] #overlay:not(.hidden) .aurel-drawer-header button{
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-drawer-header [data-close-detail]{
  cursor:pointer!important;touch-action:manipulation!important;
 }
-:root[data-aurel-palette] #overlay:not(.hidden) .aurel-drawer-handle{
- width:52px!important;height:5px!important;
- left:calc(50% - 26px)!important;
- background:color-mix(in srgb,var(--aurel-theme-on,#f8f8f8) 45%,transparent)!important;
- border-radius:999px!important;
+:root[data-aurel-palette] #overlay:not(.hidden) .aurel-drawer-header .aurel-drawer-handle{
+ position:absolute;top:0;left:50%!important;transform:translateX(-50%);
+ width:68px!important;height:44px!important;min-height:44px!important;
+ margin:0!important;padding:0!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ touch-action:none!important;cursor:ns-resize!important;
 }
+.aurel-drawer-handle::before{
+ content:"";position:absolute;top:7px;left:8px;right:8px;height:5px;
+ border-radius:999px;background:var(--aurel-theme-secondary,#adb0b5);
+}
+.aurel-drawer-handle:focus-visible{outline:2px solid var(--aurel-theme-accent,#eee);outline-offset:-2px}
 :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-scroll{
  min-height:0!important;flex:1 1 auto!important;
  overscroll-behavior:contain!important;
@@ -72,7 +78,7 @@
  border-color:color-mix(in srgb,var(--aurel-theme-accent,#dedede) 22%,transparent)!important;
 }
 :root[data-aurel-palette="artwork"] #overlay:not(.hidden)
- .aurel-drawer-header button{
+ .aurel-drawer-header [data-close-detail]{
  background:color-mix(in srgb,var(--aurel-theme-accent,#dddddd) 12%,
    var(--aurel-theme-raised,#313135))!important;
 }
@@ -91,20 +97,6 @@
   scale(var(--aurel-reactive-scale,1))!important;
  will-change:transform,opacity;
 }
-:root[data-aurel-palette] .app .toast:not(.hidden){
- max-width:calc(100vw - 28px)!important;
- z-index:120!important;
- bottom:calc(var(--aurel-unified-nav-height,64px) +
-   var(--aurel-native-navigation-inset,0px) + 16px)!important;
- background:var(--aurel-theme-raised,#303135)!important;
- color:var(--aurel-theme-on,#f7f8f9)!important;
- border-color:var(--aurel-theme-border,#ffffff25)!important;
-}
-:root[data-aurel-palette="artwork"] .app .toast:not(.hidden){
- background:color-mix(in srgb,var(--aurel-theme-surface,#252529) 84%,
-   var(--aurel-theme-accent,#dedede))!important;
- border-color:color-mix(in srgb,var(--aurel-theme-accent,#dedede) 25%,transparent)!important;
-}
 @media (prefers-reduced-motion:reduce){
  :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .murglar-cover,
  :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-drawer,
@@ -122,11 +114,10 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
  .murglar-progress-row.aurel-timeline{position:relative!important;isolation:isolate;}
 :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view
  .murglar-progress-row.aurel-timeline .aurel-seek-rail{
- display:block!important;position:absolute!important;
- left:clamp(1px,1vw,6px)!important;right:clamp(1px,1vw,6px)!important;
- top:19px!important;bottom:auto!important;
+ display:block!important;position:relative!important;inset:auto!important;
  width:auto!important;height:8px!important;min-width:0!important;
- grid-row:auto!important;grid-column:auto!important;
+ grid-row:1!important;grid-column:1/-1!important;
+ align-self:center!important;justify-self:stretch!important;
  padding:0!important;margin:0!important;
  pointer-events:none!important;z-index:1!important;
  border:0!important;border-radius:999px!important;
@@ -156,8 +147,9 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
 /* A drawer's compositor and overlay stay mounted while sheet contents change.
  * No alpha restart, backdrop blur, or colour flashes on opening/closing. */
 :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
+ z-index:31!important;
  animation:none!important;
- transition:opacity 170ms ease-out!important;
+ transition:none!important;
  background:rgba(0,0,0,.35)!important;
  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
 }
@@ -176,33 +168,29 @@ html[data-aurel-motion="off"] #overlay:not(.hidden)
  }
 }
 
-/* Drawer only enters once per panel change. Artwork DOM never remounts. */
-@keyframes aurelDetailEnter{from{opacity:.86;transform:translate3d(0,12px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+/* The mounted panel owns one entrance, including when playback updates arrive mid-drag. */
+@keyframes aurelDetailEnter{from{opacity:.96;transform:translateY(7px)}to{opacity:1;transform:none}}
 @keyframes aurelDimmerEnter{from{opacity:0}to{opacity:1}}
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer:not(.aurel-detail-dragging){
- animation:aurelDetailEnter 190ms cubic-bezier(.2,.72,.25,1) both!important;
- transform:translate3d(0,0,0)!important;
-}
-:root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
- animation:aurelDimmerEnter 180ms ease-out both!important;
-}
-:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer.aurel-detail-dragging{
- animation:none!important;transform:translate3d(0,0,0)!important;
-}
-@media(prefers-reduced-motion:reduce){
- :root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer,
- :root[data-aurel-palette] #overlay:not(.hidden) .aurel-detail-dimmer{
- animation:none!important;transition:none!important;
+@media(prefers-reduced-motion:no-preference){
+ :root[data-aurel-palette]:not([data-aurel-motion="off"]) #overlay:not(.hidden) .murglar-view .aurel-detail-drawer{
+  animation:aurelDetailEnter 190ms cubic-bezier(.2,.72,.25,1)!important;
+ }
+ :root[data-aurel-palette]:not([data-aurel-motion="off"]) #overlay:not(.hidden) .aurel-detail-dimmer{
+  animation:aurelDimmerEnter 180ms ease-out!important;
  }
 }
-html[data-aurel-motion="off"] #overlay:not(.hidden) :is(.aurel-detail-drawer,.aurel-detail-dimmer){animation:none!important;}
-
+:root[data-aurel-palette] #overlay:not(.hidden) .murglar-view .aurel-detail-drawer{
+ animation:none!important;
+}
 
 /* Status-safe notifications and the compact Qobuz/Mornye sign-in surface.
    Android supplies --aurel-toast-safe-top only while the player draws beneath
    the status bar. The normal padded WebView must not receive that inset twice. */
 .app #toast.toast{
   position:fixed!important;
+  background:var(--aurel-theme-raised,#303135)!important;
+  color:var(--aurel-theme-on,#f7f8f9)!important;
+  border-color:var(--aurel-theme-border,#ffffff25)!important;
   top:calc(max(env(safe-area-inset-top,0px),var(--aurel-toast-safe-top,0px)) + 12px)!important;
   bottom:auto!important;
   left:clamp(14px,4vw,28px)!important;
@@ -222,6 +210,10 @@ html[data-aurel-motion="off"] #overlay:not(.hidden) :is(.aurel-detail-drawer,.au
   overflow-y:auto!important;
   overflow-wrap:anywhere;
   line-height:1.48!important;
+}
+:root[data-aurel-palette="artwork"] .app #toast.toast{
+ background:color-mix(in srgb,var(--aurel-theme-surface,#252529) 84%,var(--aurel-theme-accent,#dedede))!important;
+ border-color:color-mix(in srgb,var(--aurel-theme-accent,#dedede) 25%,transparent)!important;
 }
 .app #toast.toast.hidden{display:none!important}
 .app #toast.toast .aurel-toast-message{

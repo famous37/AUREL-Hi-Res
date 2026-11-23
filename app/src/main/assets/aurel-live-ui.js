@@ -11,7 +11,7 @@
       ['settings','Settings','settings']
     ].map(function(entry){
       const action=entry[0]==='playing'?'data-open-player-nav':'data-nav="'+entry[0]+'"';
-      return '<button type="button" aria-label="'+entry[1]+'" '+action+'><span class="aurel-tab-icon" aria-hidden="true">'+ic(entry[2],23)+'</span><span class="aurel-tab-label">'+entry[1]+'</span></button>';
+      return '<button type="button" aria-label="'+entry[1]+'" '+action+'><span class="aurel-tab-icon" aria-hidden="true">'+ic(entry[2])+'</span><span class="aurel-tab-label">'+entry[1]+'</span></button>';
     }).join('');
   }
   // Vectorise the desktop sidebar too; native nav actions remain unchanged.
@@ -19,7 +19,7 @@
     const glyph=button.querySelector('b');
     const map={home:'home',magazine:'album',library:'library',search:'search',settings:'settings'};
     const kind=map[button.dataset.nav];
-    if(glyph&&kind){glyph.setAttribute('aria-hidden','true');glyph.innerHTML=ic(kind,23);}
+    if(glyph&&kind){glyph.setAttribute('aria-hidden','true');glyph.innerHTML=ic(kind);}
   });
   // All navigation icons remain consistent vectors; track artwork belongs to mini player.
   const themeByCover=new Map();
@@ -175,11 +175,14 @@
     if(!e.target.matches?.('[data-aurel-artwork-colours]'))return;
     setArtworkPalette(e.target.checked);
   });
-  function navSync(){
+  let lastNavRoute;
+  function navSync(force=false){
     if(!tabs)return;
     syncTheme();
     // The player tab is a stable queue glyph, including during artwork updates.
     const route=app.overlay?'playing':app.nav==='playlists'?'library':app.nav==='magazine'?'home':app.nav;
+    if(!force&&route===lastNavRoute)return;
+    lastNavRoute=route;
     tabs.querySelectorAll('button').forEach(function(b){
       const active=b.hasAttribute('data-open-player-nav')?route==='playing':b.dataset.nav===route;
       // Native player progress arrives every second. Do not repaint stable
@@ -203,13 +206,13 @@
     tabs.addEventListener('error',function(e){
       if(!e.target.matches('img.aurel-nav-cover'))return;
       const el=e.target.closest('.aurel-tab-icon');
-      if(el)el.innerHTML=ic('queue',23);
+      if(el)el.innerHTML=ic('queue');
     },true);
   }
   const oldMini=updateMini;
   updateMini=function(){const v=oldMini.apply(this,arguments);navSync();return v;};
   const oldRender=render;
-  render=function(){const v=oldRender.apply(this,arguments);navSync();return v;};
+  render=function(){const v=oldRender.apply(this,arguments);navSync(true);return v;};
   const oldOverlay=drawOverlay;
   drawOverlay=function(){
     const result=oldOverlay.apply(this,arguments);
@@ -262,60 +265,8 @@
       drawOverlay();
     }
   },true);
-  // Fast in-place suggestions, no input focus loss and no screen rerender on keystrokes.
-  let timer=0,serial=0;
-  const cache=new Map();
-  function show(items,query){
-    const field=document.querySelector('#searchInput');
-    const pane=document.querySelector('#searchResults');
-    if(!field||!pane||app.nav!=='search'||field.value.trim()!==query)return;
-    app.results=items;
-    pane.innerHTML=items.length?searchResults():'<div class="aurel-live-results-status">No matching results yet.</div>';
-  }
-  document.addEventListener('input',function(e){
-    const input=e.target;
-    if(input.id!=='searchInput'||e.isComposing)return;
-    const query=input.value.trim();
-    app.searchQuery=query;
-    const id=++serial;
-    clearTimeout(timer);
-    const pane=document.querySelector('#searchResults');
-    if(query.length<2){
-      app.results=[];
-      if(pane)pane.innerHTML='<div class="aurel-live-results-status">Enter at least two characters to search.</div>';
-      return;
-    }
-    const category=app.searchType;
-    const key=category+'|'+query.toLocaleLowerCase();
-    const previous=cache.get(key);
-    if(previous&&Date.now()-previous.time<60000)show(previous.items,query);
-    else if(pane)pane.innerHTML='<div class="aurel-live-results-status">Searching…</div>';
-    timer=setTimeout(async function(){
-      try{
-        const response=await api('search',{query:query,type:category},true);
-        if(id!==serial||app.searchType!==category)return;
-        let items=sliceItems(response,category);
-        if(!items.length)items=sliceItems(response);
-        const needle=query.toLocaleLowerCase();
-        const rank=function(item){
-          const primary=String(item.title||item.name||'').toLocaleLowerCase();
-          const artistName=String(artistLabel(item)||'').toLocaleLowerCase();
-          return primary===needle?0:primary.startsWith(needle)?1:primary.includes(needle)?2:artistName.includes(needle)?3:4;
-        };
-        items=items.slice().sort(function(a,b){return rank(a)-rank(b)});
-        cache.set(key,{time:Date.now(),items:items});
-        if(cache.size>30)cache.delete(cache.keys().next().value);
-        show(items,query);
-      }catch(error){
-        if(id!==serial)return;
-        if(pane&&app.nav==='search'){
-          pane.innerHTML='<div class="aurel-live-results-status">Could not load suggestions. Press Search to retry.</div>';
-        }
-      }
-    },320);
-  },true);
-  document.addEventListener('submit',function(e){
-    if(e.target.id==='searchForm'){serial++;clearTimeout(timer);}
+  document.addEventListener('input',event=>{
+    if(event.target.id==='searchInput'&&!event.isComposing)void search(true);
   },true);
   setTheme(baseTheme);
   navSync();

@@ -1,18 +1,17 @@
 'use strict';
 /* Icons and transport glyphs are initialized before the asynchronous Android bridge. */
-const ic=(key,size=24)=>{
- const path={
-  down:'<path d="m6 9 6 6 6-6"/>',more:'<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
-  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.7 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.7 7.7L12 21l8.8-8.7a5.5 5.5 0 0 0 0-7.7Z"/>',
+const aurelIconPaths={
+  down:'<path d="m4 8 8 8 8-8"/>',more:'<path d="M12 4.5v.8m0 6.3v.8m0 6.3v.8"/>',
+  heart:'<path d="M12 20.5 4.65 13a5.45 5.45 0 0 1 7.35-8 5.45 5.45 0 0 1 7.35 8Z"/>',
   shuffle:'<path d="m18 14 4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M18 2l4 4-4 4M2 6h2.5c2 0 3.5 1.6 5 4M14 16c1.6 1.5 3.4 2 6 2"/>',
   repeat:'<path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3"/>',
-  prev:'<path d="M6 5v14M19 6 9 12l10 6V6Z"/>',next:'<path d="M18 5v14M5 6l10 6-10 6V6Z"/>',
-  play:'<path d="m8 5 12 7-12 7V5Z"/>',pause:'<path d="M8 5v14M16 5v14"/>',
-  queue:'<path d="M4 6h16M4 12h16M4 18h9"/><path d="m17 16 4 2-4 2z"/>',
-  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
-  lyrics:'<path d="M5 5h14M5 10h14M5 15h9M5 20h11"/><path d="m19 15 3 3-3 3"/>',
+  prev:'<path d="M4 4v16M20 4l-12 8 12 8V4Z"/>',next:'<path d="M20 4v16M4 4l12 8-12 8V4Z"/>',
+  play:'<path d="M5 3.5 20 12 5 20.5Z"/>',pause:'<path d="M8 3.5v17M16 3.5v17"/>',
+  queue:'<path d="M3 5h18M3 11.5h18M3 18h9"/><path d="m16.5 15.5 4.5 2.75-4.5 2.75z"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.4v.2"/>',
+  lyrics:'<path d="M3.5 4h16M3.5 9.5h16M3.5 15h9M3.5 20h11"/><path d="m18 14 3 3.5-3 3.5"/>',
   audio:'<path d="M5 9v6M9 6v12M13 3v18M17 7v10M21 10v4"/>',
-  chevron:'<path d="m9 18 6-6-6-6"/>',
+  chevron:'<path d="m8 4 8 8-8 8"/>',
   eye:'<path d="M2 12s3.6-6.7 10-6.7S22 12 22 12s-3.6 6.7-10 6.7S2 12 2 12z"/><circle cx="12" cy="12" r="3.4"/>',
   key:'<circle cx="8" cy="15" r="4.5"/><path d="M11.5 11.5 21 2l1 4-4 1-1 4-4 1"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-5 5-5 13 0 18M12 3c5 5 5 13 0 18"/>',
@@ -28,17 +27,34 @@ const ic=(key,size=24)=>{
   refresh:'<path d="M20 11a8 8 0 1 0-2 5M20 4v7h-7"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   check:'<path d="m4 12 5 5L20 6"/>',
-  back:'<path d="m15 18-6-6 6-6"/>',
-  close:'<path d="m18 9-6 6-6-6"/>',
+  back:'<path d="m16 4-8 8 8 8"/>',
+  close:'<path d="m5 5 14 14M19 5 5 19"/>',
   album:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/>',
-  share:'<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m7.9 11 8.2-4.9M7.9 13l8.2 4.9"/>',
- }[key]||'';
- return `<svg class="ui-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+  share:'<circle cx="18" cy="5.5" r="2.25"/><circle cx="5.75" cy="12" r="2.25"/><circle cx="18" cy="18.5" r="2.25"/><path d="m7.75 10.94 8.25-4.38M7.75 13.06 16 17.44"/>',
+  up:'<path d="m4 16 8-8 8 8"/>',
+  'arrow-up':'<path d="M12 20V4m-7 7 7-7 7 7"/>',
+  'arrow-down':'<path d="M12 4v16m-7-7 7 7 7-7"/>',
+  'arrow-up-right':'<path d="M5 19 19 5M5 5h14v14"/>',
+  grid:'<rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.2"/><rect x="14" y="14" width="6.5" height="6.5" rx="1.2"/>',
+  list:'<path d="M4 5h.1M9 5h11M4 12h.1M9 12h11M4 19h.1M9 19h11"/>',
+  music:'<path d="M9 17V6l11-2v11M9 9l11-2"/><ellipse cx="6" cy="17.5" rx="3" ry="2.5"/><ellipse cx="17" cy="15.5" rx="3" ry="2.5"/>',
+  speaker:'<path d="M11 5 6 9H3v6h3l5 4V5ZM15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 9 9c0-1.2-1-2.1-2.2-2.1h-2.1c-.9 0-1.7-.7-1.7-1.6V6.1C15 4.3 13.7 3 12 3Z"/><circle cx="8" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="14" r="1"/>',
+};
+// Lists reuse the same finite set of vectors. Render each glyph once.
+const aurelIconMarkup=new Map();
+const ic=key=>{
+ if(!aurelIconMarkup.has(key)){
+  const path=aurelIconPaths[key];
+  if(!path)return '';
+  aurelIconMarkup.set(key,`<svg class="ui-icon" data-icon="${key}" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`);
+ }
+ return aurelIconMarkup.get(key);
 };
 /** Shared vector family and playback-state glyph selection. */
 const aurelPlaybackMode=p=>p?.buffering&&!p?.error?'loading':p?.playing?'pause':'play';
-const aurelSpinner=(size=28)=>`<svg class="aurel-spinner" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="aurel-spinner-track" cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.6" opacity=".20"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>`;
-const aurelPlaybackIcon=(p,size=28)=>aurelPlaybackMode(p)==='loading'?aurelSpinner(size):ic(aurelPlaybackMode(p),size);
+const aurelSpinner=()=>`<svg class="aurel-spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="aurel-spinner-track" cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.25" opacity=".20"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/></svg>`;
+const aurelPlaybackIcon=p=>aurelPlaybackMode(p)==='loading'?aurelSpinner():ic(aurelPlaybackMode(p));
 const aurelPlaybackLabel=p=>aurelPlaybackMode(p)==='loading'?'Loading audio':p?.playing?'Pause':'Play';
 
 const $=s=>document.querySelector(s);
@@ -126,6 +142,7 @@ window.AurelReceive=(id,reply)=>{
  clearTimeout(pending.timer);waiting.delete(String(id));
  reply?.ok?pending.resolve(reply.data):pending.reject(new Error(reply?.error||'Unknown API error'));
 };
+let queueSnapshotPending=false;
 window.AurelEvent=(kind,data)=>{
  if(kind==='mornyeVerificationResult'){
    if(data?.streamRecovery){
@@ -187,6 +204,16 @@ window.AurelEvent=(kind,data)=>{
   return;
  }
  if(kind==='player'){
+  // Full state arrives on startup, edits and explicit requests. Routine ticks share its queue.
+  if(Number.isSafeInteger(data?.queueRevision)&&!Array.isArray(data.queue)){
+   const previous=app.player;
+   if(previous?.queueRevision===data.queueRevision&&Array.isArray(previous.queue)){
+    data.queue=previous.queue;
+   }else if(!queueSnapshotPending){
+    queueSnapshotPending=true;
+    nativeCall('playerState').catch(()=>{}).finally(()=>{queueSnapshotPending=false;});
+   }
+  }
   const changed=app.player?.track?.id!==data?.track?.id || app.player?.error!==data?.error;
   app.player=data;
   updateMini();
@@ -212,7 +239,7 @@ function showToast(msg,ms=3600){
   action.className='aurel-toast-action';action.setAttribute('data-reverify-mornye','');t.appendChild(action);
  }
  const close=document.createElement('button');close.type='button';close.className='aurel-toast-close';
- close.textContent='×';close.setAttribute('aria-label','Dismiss notification');
+ close.innerHTML=ic('close');close.setAttribute('aria-label','Dismiss notification');
  close.setAttribute('data-dismiss-aurel-toast','');t.appendChild(close);
  t.setAttribute('role',/error|fail|unavailable|limit|rejected|expired|verification|try again/i.test(message)?'alert':'status');
  t.classList.remove('hidden');t.classList.add('aurel-toast-visible');
@@ -225,11 +252,11 @@ async function api(action,params={},quiet=false){try{return await nativeCall(act
 const sliceItems=(body,key)=>{if(!body)return[];const o=key?body[key]:body;return Array.isArray(o)?o:Array.isArray(o?.items)?o.items:Array.isArray(body.items)?body.items:[]};
 const hasAuth=()=>!!((app.session?.streamConnected&&app.session?.streamValidation!=='rejected')||app.session?.libraryConnected);
 function title(name,subtitle){return `<div class="eyebrow">AUREL / ${html(name)}</div><h1 class="headline">${html(subtitle)}</h1>`}
-function banner(){return `<div class="hero"><div class="content"><div class="eyebrow" style="color:#f3b8a9">HI-RES WITHOUT COMPROMISE</div><h2>Hear the music.<br>Feel everything.</h2><p>Uncompressed detail, thoughtful discovery and a listening space made for music lovers.</p><button class="pill" data-nav="search">Explore music <span>↗</span></button></div></div>`}
+function banner(){return `<div class="hero"><div class="content"><div class="eyebrow" style="color:#f3b8a9">HI-RES WITHOUT COMPROMISE</div><h2>Hear the music.<br>Feel everything.</h2><p>Uncompressed detail, thoughtful discovery and a listening space made for music lovers.</p><button class="pill" data-nav="search">Explore music ${ic('arrow-up-right')}</button></div></div>`}
 function albumCards(items){if(!items.length)return `<div class="empty"><strong>Nothing to show yet</strong>Search for your favourite artists or explore another section.</div>`;
  return `<div class="cards">${items.map((o,i)=>{
    let name=o.title||o.name||'Untitled';let rawId=html(o.id||'');let cd=art(o);
-   return `<article class="albumcard" data-open-album="${rawId}"><div class="cover">${cd}<span class="hoverplay">▶</span></div><div class="album-title">${html(name)}</div><div class="album-artist">${html(artistLabel(o))}</div>${o.hires||Number(o.maximum_bit_depth)>16?`<span class="audio-badge">HI-RES AUDIO</span>`:''}</article>`;
+   return `<article class="albumcard" data-open-album="${rawId}"><div class="cover">${cd}<span class="hoverplay">${ic('play')}</span></div><div class="album-title">${html(name)}</div><div class="album-artist">${html(artistLabel(o))}</div>${o.hires||Number(o.maximum_bit_depth)>16?`<span class="audio-badge">HI-RES AUDIO</span>`:''}</article>`;
  }).join('')}</div>`
 }
 function listTracks(items){if(!items.length)return '<div class="empty">No tracks found.</div>';
@@ -245,9 +272,9 @@ function listTracks(items){if(!items.length)return '<div class="empty">No tracks
    '<div class="track-details" '+(unavailable?'':'data-play-index="'+i+'"')+'><div class="track-title">'+html(o.title||'Untitled')+'</div>'+
    '<div class="track-meta">'+html(artistLabel(o))+(o.album?.title?' · '+html(o.album.title):'')+'</div>'+status+'</div>'+
    '<span class="track-length">'+duration(o.duration)+'</span>'+
-   '<button class="icon-btn aurel-track-action" aria-label="Add to favourites" title="Add to favourites" data-like-track="'+html(o.id||'')+'">'+ic('heart',24)+'</button>'+
-   '<button class="icon-btn queue-add-icon aurel-track-action" data-play-next="'+i+'" aria-label="'+(unavailable?reason:'Play next')+'" title="'+(unavailable?reason:'Play next')+'" '+(unavailable?'disabled':'')+'>'+ic('plus',24)+'</button>'+
-   '<button class="icon-btn aurel-track-action" data-play-index="'+i+'" aria-label="'+(unavailable?reason:'Play track')+'" title="'+(unavailable?reason:'Play')+'" '+(unavailable?'disabled':'')+'>'+ic('play',25)+'</button></div>';
+   '<button class="icon-btn aurel-track-action" aria-label="Add to favourites" title="Add to favourites" data-like-track="'+html(o.id||'')+'">'+ic('heart')+'</button>'+
+   '<button class="icon-btn queue-add-icon aurel-track-action" data-play-next="'+i+'" aria-label="'+(unavailable?reason:'Play next')+'" title="'+(unavailable?reason:'Play next')+'" '+(unavailable?'disabled':'')+'>'+ic('plus')+'</button>'+
+   '<button class="icon-btn aurel-track-action" data-play-index="'+i+'" aria-label="'+(unavailable?reason:'Play track')+'" title="'+(unavailable?reason:'Play')+'" '+(unavailable?'disabled':'')+'>'+ic('play')+'</button></div>';
  }).join('')+'</div>';
 }
 function render(){
@@ -265,7 +292,7 @@ function renderHome(){
 }
 function renderSearch(){
  $('#screen').innerHTML=title('DISCOVER','What moves you?')+`<div class="subline">Artists, albums, and every track worth hearing.</div>
- <form id="searchForm" class="searchbox"><span>⌕</span><input id="searchInput" placeholder="Search tracks, albums, artists…" autocomplete="off" value="${html(app.searchQuery)}" autofocus></form>
+ <form id="searchForm" class="searchbox">${ic('search')}<input id="searchInput" placeholder="Search tracks, albums, artists…" autocomplete="off" value="${html(app.searchQuery)}" autofocus></form>
  <div class="tabs">${['tracks','albums','artists'].map(t=>`<button class="tab ${app.searchType===t?'active':''}" data-search-type="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div>
  <div id="searchResults">${app.searchBusy?'<div class="loading"><div class="pulse"></div>Searching catalogue…</div>':searchResults()}</div>`;
 }
@@ -276,7 +303,7 @@ function searchResults(){if(!app.searchQuery)return '<div class="empty"><strong>
  return albumCards(app.results);
 }
 function artistRows(items){if(!items.length)return '<div class="empty">No artists found.</div>';
- return `<div class="artistrows">${items.map(o=>`<button class="artistrow" data-open-artist="${html(o.id||'')}">${art(o,'artist-avatar')||'<span class="artist-avatar artist-placeholder">♫</span>'}<span class="artist-text"><strong>${html(artistName(o))}</strong><small>Artist · Discography</small></span><span class="chevron">›</span></button>`).join('')}</div>`;
+ return `<div class="artistrows">${items.map(o=>`<button class="artistrow" data-open-artist="${html(o.id||'')}">${art(o,'artist-avatar')||'<span class="artist-avatar artist-placeholder">'+ic('music')+'</span>'}<span class="artist-text"><strong>${html(artistName(o))}</strong><small>Artist · Discography</small></span><span class="chevron">${ic('chevron')}</span></button>`).join('')}</div>`;
 }
 function renderLibrary(){
  $('#screen').innerHTML=title('YOUR COLLECTION','The music you love.')+`<div class="subline">Your Qobuz favourites, always close.</div>
@@ -286,18 +313,18 @@ function renderLibrary(){
 function renderPlaylists(){
  const lists=app.playlists||[];
  $('#screen').innerHTML=title('YOUR LIBRARY','Playlists.')+`<p class="subline">Made by you. Collected for every mood.</p><div class="sectionhead"><h2>My playlists</h2></div>
- ${app.playlistsLoading?'<div class="loading"><div class="pulse"></div>Loading playlists…</div>':lists.length?`<div class="tracklist">${lists.map(o=>`<div class="track"><div class="track-details" data-playlist-id="${html(o.id)}"><div class="track-title">${html(o.name)}</div><div class="track-meta">${o.tracks_count||0} tracks</div></div><button class="icon-btn aurel-playlist-open" data-playlist-id="${html(o.id)}">${ic('chevron',23)}</button></div>`).join('')}</div>`:'<div class="empty">No Qobuz playlists returned by your account.</div>'}`;
+ ${app.playlistsLoading?'<div class="loading"><div class="pulse"></div>Loading playlists…</div>':lists.length?`<div class="tracklist">${lists.map(o=>`<div class="track"><div class="track-details" data-playlist-id="${html(o.id)}"><div class="track-title">${html(o.name)}</div><div class="track-meta">${o.tracks_count||0} tracks</div></div><button class="icon-btn aurel-playlist-open" data-playlist-id="${html(o.id)}">${ic('chevron')}</button></div>`).join('')}</div>`:'<div class="empty">No Qobuz playlists returned by your account.</div>'}`;
 }
 function renderAlbum(){
  let o=app.selected;
  if(!o)return;
- let content=`<button class="small-link" data-back>${ic('back',20)}<span>Back</span></button><div class="albumhero"><div class="cover">${art(o,"album-hero-art")}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><button class="album-artist-button" data-artist-from-album aria-label="Open artist discography">${html(artistLabel(o))}<span aria-hidden="true">${ic('chevron',20)}</span></button><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
- <div class="actionbar"><button class="pill" data-play-all>${ic('play',20)}<span>Play album</span></button><button class="pill secondary" data-like-album="${html(o.id)}">${ic('heart',20)}<span class="aurel-save-label">Save</span></button></div>
+ let content=`<button class="small-link" data-back>${ic('back')}<span>Back</span></button><div class="albumhero"><div class="cover">${art(o,"album-hero-art")}</div><div class="details"><div class="eyebrow">${app.selectedKind==='playlist'?'PLAYLIST':'ALBUM'}</div><h1>${html(o.title||o.name||'Untitled')}</h1><button class="album-artist-button" data-artist-from-album aria-label="Open artist discography">${html(artistLabel(o))}<span aria-hidden="true">${ic('chevron')}</span></button><div class="subline" style="margin-top:7px">${app.selectedTracks.length} tracks ${Number(o.maximum_bit_depth)>16?' · HI-RES':''}</div></div></div>
+ <div class="actionbar"><button class="pill" data-play-all>${ic('play')}<span>Play album</span></button><button class="pill secondary" data-like-album="${html(o.id)}">${ic('heart')}<span class="aurel-save-label">Save</span></button></div>
  ${listTracks(app.selectedTracks)}<p class="footer-note">Availability and stream quality are verified when playback is requested. Direct-file streaming only in this alpha build.</p>`;
  $('#screen').innerHTML=content;
 }
 function renderArtist(){let o=app.selected||{},albums=sliceItems(o,'albums');
- $('#screen').innerHTML=`<button class="small-link" data-back>${ic('back',20)}<span>Back</span></button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">♫</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2><span class="discography-count">${albums.length} releases</span></div>${albumCards(albums)}${albums.length>=Number(o.albums?.limit||100)&&albums.length<Number(o.albums?.total||albums.length)?`<button class="load-more-albums" data-load-more-artist>Show more releases</button>`:``}`;
+ $('#screen').innerHTML=`<button class="small-link" data-back>${ic('back')}<span>Back</span></button><div class="artist-hero">${art(o,'artist-image')||'<div class="artist-image artist-placeholder">'+ic('music')+'</div>'}<div><div class="eyebrow">ARTIST</div><h1>${html(artistName(o))}</h1><p class="subline">Browse albums and listen using your connected streaming account.</p></div></div><div class="sectionhead"><h2>Discography</h2><span class="discography-count">${albums.length} releases</span></div>${albumCards(albums)}${albums.length>=Number(o.albums?.limit||100)&&albums.length<Number(o.albums?.total||albums.length)?`<button class="load-more-albums" data-load-more-artist>Show more releases</button>`:``}`;
 }
 function renderLogin(){
   const secondary=app.loginTarget==='library';
@@ -313,7 +340,7 @@ function renderLogin(){
       <div class="eyebrow">AUREL / MORNYE</div><h1>Connect Mornye</h1>
       <p class="aurel-signin-subtitle">Use a gateway session instead of a personal Qobuz account.</p>
       
-      <button class="aurel-signin-submit" type="button" data-connect-mornye>${ic('shield-check',23)} Connect Mornye session</button>
+      <button class="aurel-signin-submit" type="button" data-connect-mornye>${ic('shield-check')} Connect Mornye session</button>
       <div id="mornyeLoginError" class="aurel-signin-error hidden" role="alert"></div>
       <p class="aurel-mornye-hint">Gateway verification may be required. Personal favourites need Qobuz.</p>
       <div class="aurel-login-footer"><button type="button" class="small-link" data-login-mode="password">Sign in with Qobuz</button></div>
@@ -328,8 +355,8 @@ function renderLogin(){
     ${rejected?'<div class="aurel-auth-warning" role="alert"><strong>Qobuz sign-in expired</strong><span>Sign in again. Your saved library is preserved.</span></div>':''}
     ${app.session?.previewBuild?'<p class="auth-preview-note">This Preview is installed separately and cannot read credentials stored by other AUREL installations.</p>':''}
     <div class="aurel-login-methods" role="tablist" aria-label="Sign-in method">
-      <button type="button" role="tab" aria-selected="${passwordMode}" class="${passwordMode?'active':''}" data-login-mode="password">${ic('user',19)} Email &amp; password</button>
-      <button type="button" role="tab" aria-selected="${!passwordMode}" class="${passwordMode?'':'active'}" data-login-mode="token">${ic('key',19)} Session token</button>
+      <button type="button" role="tab" aria-selected="${passwordMode}" class="${passwordMode?'active':''}" data-login-mode="password">${ic('user')} Email &amp; password</button>
+      <button type="button" role="tab" aria-selected="${!passwordMode}" class="${passwordMode?'':'active'}" data-login-mode="token">${ic('key')} Session token</button>
     </div>
     <form id="loginForm" class="aurel-signin-form">
       ${passwordMode?`
@@ -338,29 +365,29 @@ function renderLogin(){
         <label class="aurel-token-label" for="password">Password</label>
         <div class="aurel-token-input">
           <input id="password" type="password" autocomplete="current-password" placeholder="Enter Qobuz password" required>
-          <button type="button" data-toggle-password aria-label="Show password">${ic('eye',22)}</button>
+          <button type="button" data-toggle-password aria-label="Show password">${ic('eye')}</button>
         </div>
         <p class="aurel-method-help">Password is not stored. If sign-in is refused, try a session token.</p>`:`
         <label class="aurel-token-label" for="token">Qobuz session token</label>
         <div class="aurel-token-input">
           <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste X-User-Auth-Token" required>
-          <button type="button" data-toggle-token aria-label="Show token">${ic('eye',22)}</button>
+          <button type="button" data-toggle-token aria-label="Show token">${ic('eye')}</button>
         </div>
         <p class="aurel-method-help">If automatic detection fails, enter the App ID paired with your token in Advanced settings.</p>`}
       <details class="aurel-signin-advanced">
-        <summary>${ic('settings',19)} Advanced settings ${ic('chevron',17)}</summary>
+        <summary>${ic('settings')} Advanced settings ${ic('chevron')}</summary>
         <div class="aurel-advanced-fields">
           <label for="appId">App ID <small>Leave blank for automatic detection</small></label>
           <input id="appId" type="text" inputmode="numeric" autocomplete="off" value="${html(appId)}" placeholder="Auto-detect from Qobuz website">
           <label for="appSecret">App Secret <small>Only when required by the integration</small></label>
-          <div class="aurel-token-input"><input id="appSecret" type="password" autocomplete="off" placeholder="${(secondary?app.session?.hasLibrarySecret:app.session?.hasSecret)?'Saved on device · leave blank to keep':'Optional App Secret'}"><button type="button" data-toggle-secret aria-label="Show App Secret">${ic('eye',22)}</button></div>
+          <div class="aurel-token-input"><input id="appSecret" type="password" autocomplete="off" placeholder="${(secondary?app.session?.hasLibrarySecret:app.session?.hasSecret)?'Saved on device · leave blank to keep':'Optional App Secret'}"><button type="button" data-toggle-secret aria-label="Show App Secret">${ic('eye')}</button></div>
           <label for="userId">User ID <small>Optional</small></label>
           <input id="userId" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${html(savedUserId||'')}" placeholder="Optional account ID">
         </div>
       </details>
       
       <div id="loginError" class="aurel-signin-error hidden" role="alert"></div>
-      <button id="loginSubmit" type="submit" class="aurel-signin-submit">${secondary?'Connect library':'Sign in'} ${ic('chevron',21)}</button>
+      <button id="loginSubmit" type="submit" class="aurel-signin-submit">${secondary?'Connect library':'Sign in'} ${ic('chevron')}</button>
     </form>
     <div class="aurel-login-footer">
       <button type="button" class="small-link" data-open-qobuz-web>Qobuz website</button>
@@ -374,13 +401,13 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  const bpLabels={off:'Android audio',standard_usb_playback:'USB DAC · Android audio',standard_usb_not_routed:'USB DAC not routed',android_version:'Requires Android 14+',no_usb:'USB DAC not connected',waiting_track:'Waiting for track',unknown_format:'Audio format unverified',unsupported_format:'PCM format not supported',policy_unavailable:'Android bit-perfect unavailable',policy_error:'Android mixer error',rejected:'Android mixer rejected request',requested:'Android bit-perfect preference accepted',usb_mixer_routed:'Android USB policy routed'};
  const bpStatus=bpLabels[bp.status]||'Checking Android USB audio';
  const bpDescription=bp.detail||'The system USB audio driver is used. Bit-perfect is optional and may be unavailable on this device.';
- $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back',25)}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel" data-aurel-settings-panel="stream"><h3>Streaming account</h3>
+ $('#screen').innerHTML=`<div class="aurel-settings-heading"><button type="button" data-nav="home" aria-label="Back to Discover">${ic('back')}</button><h1>Settings <span>/ Audio &amp; Account</span></h1></div><div class="panel" data-aurel-settings-panel="stream"><h3>Streaming account</h3>
  ${app.session.gatewayPlaybackRejected?`<div class="aurel-gateway-warning" role="status"><strong>Streaming verification needed</strong><span>The Zarz gateway rejected audio playback. Catalogue access alone does not confirm streaming authorization.</span><button class="pill secondary" data-reverify-mornye>Verify Mornye session</button></div>`:'' }
 <div class="info-row"><span>Connected</span><strong>${app.session.streamConnected?'● Saved':'Not connected'}</strong></div>
  <div class="info-row"><span>Session verification</span><strong>${app.session.mornyeConnected?'Mornye catalogue verified · playback depends on Zarz':app.session.streamValidation==='verified'?'Verified by Qobuz':app.session.streamValidation==='playback'?'Playback confirmed':app.session.streamValidation==='unverified'?'Not verified · test playback':app.session.streamValidation==='rejected'?'Rejected · check token and App ID':'Not checked'}</strong></div>
  <div class="info-row"><span>Profile</span><strong>${html(p.displayName||'—')}</strong></div>
  <div class="info-row"><span>User ID</span><strong>${html(p.userId||'Not verified')}</strong></div>
- <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?' ✓':''}</strong></div>
+ <div class="info-row"><span>Subscription</span><strong>${html(p.subscription||'Not verified')}${p.verifiedSubscription?ic('check'):''}</strong></div>
  <div class="info-row"><span>Connection type</span><strong>${app.session.mornyeConnected?'Mornye signed gateway':'Qobuz account'}</strong></div>
   <div class="info-row"><span>App ID</span><strong>${html(app.session.mornyeConnected?'Gateway-managed':app.session.appId||'—')}</strong></div>
  <div class="aurel-account-actions"><button class="pill secondary" data-validate-stream>${app.session.mornyeConnected?'Check Mornye gateway':'Check Qobuz connection'}</button>${app.session.mornyeConfigured?'<button class="pill secondary" data-reverify-mornye>Reverify Mornye</button>':''}<button class="pill secondary" data-change-stream>${app.session.streamConnected?'Change streaming account':'Connect streaming account'}</button></div></div>
@@ -402,13 +429,13 @@ function renderSettings(){if(!hasAuth()&&!app.session?.mornyeConfigured){app.log
  <div style="margin-top:20px"><label class="field">App Secret (stream authorization)
  <input id="newSecret" type="password" placeholder="${app.session.hasSecret?'Saved · enter to replace':'Required for signed stream URLs'}" autocomplete="off"></label>
  <button class="pill secondary" style="margin-top:12px" data-save-secret>Save secret</button></div></div>
- <div class="panel" data-aurel-settings-panel="about"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>1.2.2</strong></div></div>
+ <div class="panel" data-aurel-settings-panel="about"><h3>About AUREL</h3><div class="info-row"><span>Developer</span><strong>famous37</strong></div><div class="info-row"><span>Version</span><strong>${html(window.AurelNative?.getAppVersion?.()||'—')}</strong></div></div>
  <div class="panel"><button class="pill secondary" data-logout>Sign out of all accounts</button></div>`;
 }
 function updateMini(){
  let p=app.player,m=$('#mini');if(!p?.track?.id){m.classList.add('hidden');return}
  m.classList.remove('hidden');let t=p.track;
- m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">${ic('next',24)}</button><button class="mini-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-mini-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p,26)}</button>`;
+ m.innerHTML=`${art(t)||'<div class="track-art"></div>'}<div class="meta"><div class="title">${html(trackTitle(t))}</div><div class="artist">${html(artistLabel(t))}</div></div><span class="mini-quality">${p.bits?p.bits+'-bit / '+(p.sampleRate>1000?p.sampleRate/1000:p.sampleRate)+' kHz':qualityText(p.quality)}</span><button class="icon-btn" data-mini-next title="Next">${ic('next')}</button><button class="mini-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-mini-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p)}</button>`;
 }
 function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
  const smoothPosition=window.AurelProgressClock?.read(p)??(Number(p.position)||0);
@@ -418,24 +445,24 @@ function updateOverlayState(){let p=app.player;if(!p||!app.overlay)return;
  const primary=$('#full-toggle');
  if(primary){
   const mode=aurelPlaybackMode(p);
-  if(primary.dataset.icon!==mode){primary.innerHTML=aurelPlaybackIcon(p,33);primary.dataset.icon=mode;}
+  if(primary.dataset.icon!==mode){primary.innerHTML=aurelPlaybackIcon(p);primary.dataset.icon=mode;}
   primary.classList.toggle('is-loading',mode==='loading');
   primary.setAttribute('aria-busy',String(mode==='loading'));
   primary.setAttribute('aria-label',aurelPlaybackLabel(p));
  }
  if($('#full-shuffle'))$('#full-shuffle').classList.toggle('active',!!p.shuffle);
- if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').innerHTML=ic('repeat',23)+(p.repeat===2?'<span class="repeat-one">1</span>':'');}
+ if($('#full-repeat')){ $('#full-repeat').classList.toggle('active',p.repeat!==0);$('#full-repeat').innerHTML=ic('repeat')+(p.repeat===2?'<span class="repeat-one">1</span>':'');}
  if($('#playingStatus'))$('#playingStatus').textContent=p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED';
 }
 function drawOverlay(){const overlay=$('#overlay');if(!app.overlay){overlay.classList.add('hidden');overlay.innerHTML='';return;}
  let p=app.player||{},t=p.track||{},src=image(t);overlay.classList.remove('hidden');
  overlay.style.setProperty('--cover-image',src?`url("${src}")`:'none');
- overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>${ic('down',25)} <span>Now playing</span></button>
- <div class="art-stage">${src?`<img class="now-cover" src="${html(src)}" alt="Album cover">`:'<div class="now-cover empty-art">♫</div>'}</div>
+ overlay.innerHTML=`<div class="overlay-inner"><button class="back" data-close-overlay>${ic('down')} <span>Now playing</span></button>
+ <div class="art-stage">${src?`<img class="now-cover" src="${html(src)}" alt="Album cover">`:'<div class="now-cover empty-art">'+ic('music')+'</div>'}</div>
  <div class="now-info"><span>${p.bits?(p.bits+'-bit / '+(p.sampleRate>1000?(p.sampleRate/1000):p.sampleRate)+' kHz'):'AUDIO QUALITY PENDING'}</span><span>${p.formatId===5?'MP3':p.formatId?'FLAC':''}</span></div>
  <div class="now-track-row"><div class="now-title">${html(t.title||'Choose a track')}</div><div class="now-artist">${html(artistLabel(t))}</div></div>
  <input id="progress" class="progress" type="range" min="0" max="${p.duration||100}" value="${p.position||0}" step="any"><div class="timebar"><span id="elapsed">${duration((p.position||0)/1000)}</span><span id="remaining">-${duration(Math.max(0,(p.duration||0)-(p.position||0))/1000)}</span></div>
- <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle aria-label="Shuffle">${ic('shuffle',24)}</button><button class="ctrl" data-prev aria-label="Previous track">${ic('prev',28)}</button><button id="full-toggle" class="main-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p,34)}</button><button class="ctrl" data-next aria-label="Next track">${ic('next',28)}</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat aria-label="Repeat">${ic('repeat',24)}${p.repeat===2?'<span class="repeat-one">1</span>':''}</button></div>
+ <div class="controls"><button id="full-shuffle" class="ctrl ${p.shuffle?'active':''}" data-shuffle aria-label="Shuffle">${ic('shuffle')}</button><button class="ctrl" data-prev aria-label="Previous track">${ic('prev')}</button><button id="full-toggle" class="main-play ${aurelPlaybackMode(p)==='loading'?'is-loading':''}" data-full-toggle aria-label="${aurelPlaybackLabel(p)}" aria-busy="${aurelPlaybackMode(p)==='loading'}">${aurelPlaybackIcon(p)}</button><button class="ctrl" data-next aria-label="Next track">${ic('next')}</button><button id="full-repeat" class="ctrl ${p.repeat?'active':''}" data-repeat aria-label="Repeat">${ic('repeat')}${p.repeat===2?'<span class="repeat-one">1</span>':''}</button></div>
  <div class="playing-foot"><span id="playingStatus">${p.buffering?'BUFFERING':p.error?'UNAVAILABLE':p.playing?'PLAYING':'PAUSED'}</span><span>QUEUE ${p.count?`${p.index+1} / ${p.count}`:'—'}</span></div>
  ${p.error?`<div class="playback-error">${html(p.error)}</div>`:''}</div>`;
 }
@@ -445,6 +472,7 @@ async function navigate(page){
  const focus=document.activeElement;
  if(focus&&typeof focus.blur==='function')focus.blur();
  ++app.catalogRequestId;
+ cancelSearch();
  app.selected=null;app.selectedTracks=[];app.nav=page;
  render();
  // Restore saved vertical position after switching to this route.
@@ -509,12 +537,76 @@ async function loadHome(force=false){
  try{return await aurelHomeInFlight;}
  finally{aurelHomeInFlight=null;}
 }
-async function search(){let i=$('#searchInput');app.searchQuery=i?.value?.trim()||app.searchQuery;if(!app.searchQuery)return;
- if(window.AurelSearchHistory)window.AurelSearchHistory(app.searchQuery);
- const buffered=window.AurelPageCache?.peek('search',{query:app.searchQuery,type:app.searchType});
- if(buffered){app.results=sliceItems(buffered,app.searchType);if(!app.results.length)app.results=sliceItems(buffered);app.searchBusy=false;renderSearch();return;}
- app.searchBusy=true;renderSearch();try{let d=await api('search',{query:app.searchQuery,type:app.searchType},true);app.results=sliceItems(d,app.searchType);if(!app.results.length)app.results=sliceItems(d);}
- catch(e){app.results=[];showToast(e.message,6000)}finally{app.searchBusy=false;if(app.nav==='search')renderSearch();}}
+let searchGeneration=0,searchTimer=0;
+function cancelSearch(){
+ clearTimeout(searchTimer);
+ searchTimer=0;
+ app.searchBusy=false;
+ return ++searchGeneration;
+}
+function rankedSuggestions(items,query){
+ const needle=query.toLocaleLowerCase();
+ const rank=item=>{
+  const name=String(item.title||item.name||'').toLocaleLowerCase();
+  if(name===needle)return 0;
+  if(name.startsWith(needle))return 1;
+  if(name.includes(needle))return 2;
+  return artistLabel(item).toLocaleLowerCase().includes(needle)?3:4;
+ };
+ return items.slice().sort((a,b)=>rank(a)-rank(b));
+}
+async function search(suggestions=false){
+ const request=cancelSearch();
+ const field=$('#searchInput'),pane=$('#searchResults');
+ if(!field||!pane||app.nav!=='search'||app.selected)return;
+ const query=field.value.trim(),type=app.searchType,route=app.catalogRequestId;
+ const owner=aurelDiscoverSessionKey();
+ const current=()=>request===searchGeneration&&route===app.catalogRequestId&&
+  app.nav==='search'&&!app.selected&&app.searchQuery===query&&app.searchType===type&&
+  owner===aurelDiscoverSessionKey();
+ app.searchQuery=query;
+ app.results=[];
+ const history=$('#searchHistory');
+ if(history){
+  if(query){if(history.firstChild)history.replaceChildren();}
+  else history.innerHTML=recentSearchesMarkup();
+ }
+ if(!query||(suggestions&&query.length<2)){
+  pane.innerHTML=query?'<div class="aurel-live-results-status">Enter at least two characters to search.</div>':searchResults();
+  return;
+ }
+ if(!suggestions)window.AurelSearchHistory?.(query);
+ function display(data){
+  const typed=sliceItems(data,type);
+  const items=typed.length?typed:sliceItems(data);
+  app.results=suggestions?rankedSuggestions(items,query):items;
+  const results=$('#searchResults');
+  if(results)results.innerHTML=searchResults();
+ }
+ const params={query,type};
+ const cached=window.AurelPageCache?.peek('search',params);
+ if(cached){display(cached);return;}
+ app.searchBusy=true;
+ pane.innerHTML='<div class="aurel-live-results-status" role="status">Searching…</div>';
+ async function fetchResults(){
+  if(request!==searchGeneration)return;
+  searchTimer=0;
+  try{
+   if(!current())return;
+   const data=await api('search',params,true);
+   if(current())display(data);
+  }catch(error){
+   if(!current())return;
+   const results=$('#searchResults');
+   if(results)results.innerHTML='<div class="aurel-live-results-status" role="status">Could not load suggestions. Press Search to retry.</div>';
+   if(!suggestions)showToast(error.message,6000);
+  }finally{
+   if(request===searchGeneration)app.searchBusy=false;
+  }
+ }
+ if(suggestions)searchTimer=setTimeout(fetchResults,320);
+ else await fetchResults();
+}
 async function loadLibrary(force=false){
  const type=app.libType;
  app.libraryCache=app.libraryCache||Object.create(null);
@@ -657,7 +749,7 @@ async function login(form){
  }else showToast(msg,6500);
   const advanced=document.querySelector('.aurel-signin-advanced');
   if(advanced&&/App ID|X-App-Id|web app|401|403/i.test(msg))advanced.open=true;
-  if(button){button.disabled=false;button.innerHTML=(secondary?'Connect library':'Sign in')+' '+ic('chevron',21)}
+  if(button){button.disabled=false;button.innerHTML=(secondary?'Connect library':'Sign in')+' '+ic('chevron')}
  }finally{
   if(data.password)data.password='';
  }
@@ -726,7 +818,7 @@ document.addEventListener('click',async ev=>{
      if(error){error.textContent=message;error.classList.remove('hidden');}
      else showToast(message,7000);
    }finally{
-     b.disabled=false;b.innerHTML=ic('shield-check',23)+' Connect Mornye session';
+     b.disabled=false;b.innerHTML=ic('shield-check')+' Connect Mornye session';
    }
    return;
  }
@@ -738,7 +830,7 @@ document.addEventListener('click',async ev=>{
     if(field){
       field.type=field.type==='password'?'text':'password';
       b.setAttribute('aria-label',field.type==='password'?(secret?'Show App Secret':password?'Show password':'Show token'):(secret?'Hide App Secret':password?'Hide password':'Hide token'));
-      b.innerHTML=ic(field.type==='password'?'eye':'eye-off',22);
+      b.innerHTML=ic(field.type==='password'?'eye':'eye-off');
     }
     return;
   }
@@ -759,8 +851,7 @@ document.addEventListener('click',async ev=>{
    return;
   }
  if(b.hasAttribute('data-play-index')){
-  const source=app.selected?app.selectedTracks:app.nav==='library'?app.libraryItems:app.results;
-  playFromTracks(source||[],Number(b.dataset.playIndex));return;
+  playFromTracks(trackSource(),Number(b.dataset.playIndex));return;
  }
  if(b.dataset.likeTrack){like('tracks',b.dataset.likeTrack);return}
  if(b.dataset.likeAlbum){like('albums',b.dataset.likeAlbum);return}
@@ -821,8 +912,17 @@ document.addEventListener('submit',e=>{
 });
 // A seek is an intentional user gesture. Ignore periodic native position
 // updates until it ends, then commit one bounded seek (not one per input).
+let seekPointer=null;
 document.addEventListener('pointerdown',e=>{
- if(e.target?.id==='progress')app.dragging=true;
+ if(e.target?.id!=='progress'||e.isPrimary===false)return;
+ seekPointer=e.pointerId;
+ app.dragging=true;
+},{passive:true});
+document.addEventListener('pointerup',e=>{
+ if(seekPointer===null||e.pointerId!==seekPointer)return;
+ // A tap on the current thumb produces no change event.
+ seekPointer=null;
+ app.dragging=false;
 },{passive:true});
 document.addEventListener('input',e=>{
  if(e.target?.id!=='progress')return;
@@ -832,9 +932,13 @@ document.addEventListener('input',e=>{
  const ratio=max?Math.max(0,Math.min(1,next/max)):0;
  const fill=e.target.parentElement?.querySelector('.aurel-seek-rail-fill');
  if(fill)fill.style.transform='scaleX('+ratio.toFixed(6)+')';
+ if(e.target.dataset)delete e.target.dataset.played;
  e.target.style?.setProperty?.('--played',(ratio*100).toFixed(2)+'%');
- const text=$('#elapsed');
- if(text)text.textContent=duration(next/1000);
+ const elapsed=duration(next/1000),remaining=duration(Math.max(0,max-next)/1000);
+ const text=$('#elapsed'),end=$('#remaining');
+ if(text)text.textContent=elapsed;
+ if(end)end.textContent='-'+remaining;
+ e.target.setAttribute?.('aria-valuetext',elapsed+' of '+duration(max/1000));
 });
 document.addEventListener('change',e=>{
  if(e.target?.id!=='progress')return;
@@ -851,7 +955,8 @@ document.addEventListener('change',e=>{
  });
 });
 const cancelSeek=e=>{
- if(e.target?.id==='progress'){
+ if(e.target?.id==='progress'||(seekPointer!=null&&e.pointerId===seekPointer)){
+   seekPointer=null;
    app.dragging=false;
    updateOverlayState();
  }
@@ -860,7 +965,7 @@ document.addEventListener('pointercancel',cancelSeek,{passive:true});
 document.addEventListener('touchcancel',cancelSeek,{passive:true});
 document.addEventListener('focusout',cancelSeek,{passive:true});
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden)app.dragging=false;
+ if(document.hidden){seekPointer=null;app.dragging=false;}
 });
 $('#mini').addEventListener('click',e=>{if(e.target.closest('button'))return;app.overlay=true;drawOverlay()});
 // Startup: no injected credentials or assumed subscription status.

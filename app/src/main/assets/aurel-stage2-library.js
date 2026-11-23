@@ -61,9 +61,9 @@ function rows(limit){
   'Історія порожня. Трек з’явиться після 5 секунд відтворення.'))+'</p>';
  return '<div class="aurel-stage2-history-list">'+history.slice(0,limit).map(t=>
   '<button class="aurel-stage2-history-entry" type="button" data-aurel-history-id="'+html(t.id)+'">'+
-   '<span class="aurel-stage2-history-icon">'+ic('audio',20)+'</span>'+
+   '<span class="aurel-stage2-history-icon">'+ic('audio')+'</span>'+
    '<span><strong>'+html(t.title||'Untitled')+'</strong><small>'+html(t.artist)+
-   (t.album.title?' · '+html(t.album.title):'')+'</small></span>'+ic('play',21)+
+   (t.album.title?' · '+html(t.album.title):'')+'</small></span>'+ic('play')+
   '</button>').join('')+'</div>';
 }
 function appendSettings(){

@@ -89,7 +89,7 @@ function render(){
        if(year&&entry.type==='albums')detail+=' · '+String(year).slice(0,4);
        return '<button type="button" class="aurel-online-choice" data-online-choice="'+index+
          '" role="listitem"><strong>'+esc(title)+'</strong><small>'+esc(detail)+'</small>'+
-         '<span aria-hidden="true">›</span></button>';
+         '<span aria-hidden="true">'+ic('chevron')+'</span></button>';
      }).join(''):'<p class="aurel-online-empty">'+esc(tr(
        'No matching catalogue entries. Try another spelling or a shorter search.',
        'Збігів у каталозі немає. Спробуй інше написання або коротший запит.'))+'</p>')+

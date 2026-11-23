@@ -33,11 +33,12 @@ assert(stat.includes('strokeColor="#FFFFFFFF"') && stat.includes('M5.6,20 L10.5,
 assert(html.includes('aurel-brand-svg') && !html.includes('class="mark">a'));
 assert(live.includes('stable queue glyph') || live.includes('stable vector'));
 assert(!live.includes('icon.innerHTML=url?'), 'No album art in the vector navigation tab');
-assert(responsive.includes('const fingerprint=id+\'|\'+cover'));
+assert(modern.includes('const miniRebuilt=m.dataset.miniTrack!==id'));
+assert(!responsive.includes('updateMini='),'The gesture handler must not replace the clock-driven renderer');
 assert(!responsive.includes('!!p.playing].join'), 'Playback state must not recreate mini DOM');
 for(const t of ['data-mini-prev','data-mini-next','data-mini-toggle','data-open-mini-player'])
- assert(responsive.includes(t),'Lost functional mini action '+t);
-assert(responsive.includes('trackTitle(t)') && responsive.includes('artistLabel(t)'));
+ assert(modern.includes(t),'Lost functional mini action '+t);
+assert(modern.includes('trackTitle(t)') && modern.includes('artistLabel(t)'));
 assert(css.includes('.app .mini .mini-track-open :is(strong,small)'));
 assert(css.includes('text-overflow:ellipsis!important'));
 assert(swipe.includes('Math.max(960,(window.innerHeight||720)*1.18)'));

@@ -3,7 +3,7 @@
 (function installAurelSharing(){
 'use strict';
 // Use the same high-contrast vector as every player control.
-const icon=()=>ic('share',24);
+const icon=()=>ic('share');
 const valid={
  track:/^[0-9]{1,20}$/,
  album:/^[A-Za-z0-9]{1,64}$/,
@@ -97,7 +97,8 @@ function scheduleDecorate(){
 if(typeof MutationObserver==='function'){
  const observer=new MutationObserver(function(records){
    // The elapsed-time counter is not a new shareable item.
-   if(records.some(change=>Array.from(change.addedNodes).some(n=>n.nodeType===1)))
+   if(records.some(change=>Array.from(change.addedNodes).some(n=>
+       n.nodeType===1&&n.namespaceURI!=='http://www.w3.org/2000/svg'&&!n.matches?.('.aurel-share-control,.aurel-favourite-control'))))
      scheduleDecorate();
  });
  for(const id of ['screen','overlay']){

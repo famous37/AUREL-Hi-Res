@@ -8,8 +8,8 @@ const aurora=read('aurel-aurora.js'),rhythm=read('aurel-cover-rhythm.js');
 const theme=read('aurel-live-ui.js'),css=read('aurel-seamless-theme.css');
 const index=read('index.html'),native=fs.readFileSync('app/src/main/java/com/aurel/hires/MainActivity.java','utf8');
 const gradle=fs.readFileSync('app/build.gradle','utf8');
-assert.match(gradle,/versionCode\s+119/);
-assert.match(gradle,/versionName[^\n]*'1\.2\.2'/);
+assert.match(gradle,/versionCode\s+120/);
+assert.match(gradle,/versionName[^\n]*'1\.2\.3'/);
 assert(app.indexOf('const ic=')>=0&&app.indexOf('const ic=')<app.indexOf('window.AurelEvent='),
   'Icon helper must exist before native can emit the first player event');
 assert(app.indexOf('const aurelPlaybackIcon=')<app.indexOf('window.AurelEvent='),
@@ -39,4 +39,4 @@ assert.match(css,/pointer-events:none!important/,'Ambient layer must not block c
 assert.doesNotMatch(css,/@keyframes|animation\s*:\s*infinite/,
   'Palette decoration must not replace real FFT with a fake rhythm');
 new Function(app);new Function(modern);new Function(aurora);new Function(rhythm);new Function(theme);
-console.log('AUREL 1.2.2 bridge, native bars, palette, FFT and CSS regression PASS');
+console.log('AUREL 1.2.3 bridge, native bars, palette, FFT and CSS regression PASS');

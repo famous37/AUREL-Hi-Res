@@ -102,7 +102,7 @@
     if(!frame)frame=requestAnimationFrame(paint);
   }
   function dismiss(){
-    if(!app.overlay)return;
+    if(dismissing||!isOpen())return;
     const reduced=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if(reduced||document.documentElement?.dataset?.aurelMotion==='off'){
       clearVisual(false);closePage();return;
@@ -156,10 +156,18 @@
   // The player's collapse button uses the same smooth dismissal as a swipe.
   document.addEventListener('click',event=>{
     const button=event.target?.closest?.('[data-close-overlay]');
-    if(!button||!isOpen()||dismissing)return;
+    if(!button||!isOpen())return;
     event.preventDefault();
     event.stopImmediatePropagation();
     dismiss();
   },true);
+  const drawPlayer=drawOverlay;
+  drawOverlay=function(){
+    if(!app.overlay||app.playerSheet){
+      gesture=null;
+      if(dismissing||restoreTimer||frame)clearVisual(false);
+    }
+    return drawPlayer.apply(this,arguments);
+  };
   window.AurelSwipeMinimize={isInstalled:true,minimize:dismiss};
 })();

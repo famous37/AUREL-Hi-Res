@@ -895,7 +895,7 @@ function visit(element){
  if(element.nodeType===3){translateNode(element);return;}
  if(element.nodeType!==1)return;
  var tag=element.tagName;
- if(tag==='SCRIPT'||tag==='STYLE'||tag==='TEXTAREA'||tag==='NOSCRIPT')return;
+ if(tag==='SCRIPT'||tag==='STYLE'||tag==='TEXTAREA'||tag==='NOSCRIPT'||element.namespaceURI==='http://www.w3.org/2000/svg')return;
  if(element.closest&&element.closest(skipContent))return;
  attributeNames.forEach(function(key){translateAttribute(element,key);});
  var child=element.firstChild;
@@ -920,6 +920,9 @@ Object.assign(dictionary,{
  'Your library and playlists, in one place.':'Ваша бібліотека та плейлисти в одному місці.',
  'Connect your personal collection with a password or compatible token.':'Під’єднайте свою бібліотеку за допомогою пароля або сумісного токена.',
  'Qobuz sign-in expired':'Сеанс Qobuz завершився',
+ 'Dismiss notification':'Закрити сповіщення',
+ 'Explore music':'Шукати музику','Open library':'Відкрити бібліотеку',
+ 'Read Qobuz Magazine':'Читати часопис Qobuz','Show less':'Згорнути',
  'Sign in again. Your saved library is preserved.':'Увійдіть знову. Ваша збережена бібліотека залишилася без змін.',
  'Email & password':'Ел. пошта й пароль',
  'Session token':'Токен сеансу',
@@ -959,8 +962,8 @@ function createLanguagePanel(){
  panel.innerHTML='<h3>Language</h3>'+
   '<p class="aurel-language-intro">Choose the application language. Music metadata remains unchanged.</p>'+
   '<div class="aurel-language-options" role="radiogroup" aria-label="Language">'+
-  '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="en" aria-checked="true"><span><span class="aurel-language-name">English</span><small>Default</small></span><span class="aurel-language-check" aria-hidden="true">✓</span></button>'+
-  '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="uk" aria-checked="false"><span><span class="aurel-language-name">Українська</span></span><span class="aurel-language-check" aria-hidden="true">✓</span></button>'+
+  '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="en" aria-checked="true"><span><span class="aurel-language-name">English</span><small>Default</small></span><span class="aurel-language-check" aria-hidden="true">'+ic('check')+'</span></button>'+
+  '<button type="button" role="radio" class="aurel-language-choice" data-aurel-locale="uk" aria-checked="false"><span><span class="aurel-language-name">Українська</span></span><span class="aurel-language-check" aria-hidden="true">'+ic('check')+'</span></button>'+
   '</div>';
  var appearance=root.querySelector('[data-aurel-settings-group="appearance"] .aurel-settings-group-content');
  if(appearance)appearance.appendChild(panel);
@@ -1011,7 +1014,8 @@ var observer=new MutationObserver(function(mutations){
  if(settingsNeeded)createLanguagePanel();
  if(loginNeeded)createLoginLanguageSwitch();
 });
-observer.observe(document.body,{childList:true,characterData:true,subtree:true});
+observer.observe(document.body,{childList:true,characterData:true,subtree:true,
+ attributes:true,attributeFilter:attributeNames});
 createLanguagePanel();
 createLoginLanguageSwitch();
 if(current==='uk')visit(document.body);

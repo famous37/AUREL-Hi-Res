@@ -58,6 +58,7 @@ const doc={
  addEventListener(name,fn){events[name]=fn;}
 };
 const context={
+ ic:key=>'<svg data-icon="'+key+'"></svg>',
  window:{AurelLanguage:{get:()=> 'uk'},AurelLibraryTransfer:{onLinked:()=>called.push(['refreshed'])}},
  document:doc,
  app:{selected:null,nav:'library',session:{streamConnected:true}},

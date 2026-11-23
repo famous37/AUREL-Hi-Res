@@ -72,9 +72,7 @@
      '<header class="aurel-artist-info-header">'+
      '<h2 id="aurel-artist-info-title">About artist</h2>'+
      '<button type="button" data-artist-info-close aria-label="Close artist information">'+
-     '<svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24"'+
-     ' fill="none" stroke="currentColor" stroke-width="2.7"'+
-     ' stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'+
+     ic('close')+
      '</button></header>'+
      '<h3 class="aurel-artist-info-name" data-aurel-artist-name></h3>'+
      '<p class="aurel-artist-info-status" data-aurel-artist-info-status role="status"></p>'+

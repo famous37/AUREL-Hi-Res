@@ -10,7 +10,7 @@ const app=read('app/src/main/assets/app.js');
 const lang=read('app/src/main/assets/aurel-language.js');
 const gradle=read('app/build.gradle');
 
-assert(/versionCode\s+119/.test(gradle) && gradle.includes("'1.2.2'"));
+assert(/versionCode\s+120/.test(gradle) && gradle.includes("'1.2.3'"));
 for(const line of [
  'web.setVerticalScrollBarEnabled(false);',
  'web.setHorizontalScrollBarEnabled(false);',
